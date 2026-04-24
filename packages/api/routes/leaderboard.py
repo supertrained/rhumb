@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import re
 from typing import Any, Optional
-from urllib.parse import quote
 
 from fastapi import APIRouter, Query
 
 from routes._supabase import cached_query, supabase_fetch
+from services.error_envelope import RhumbError
 from services.service_slugs import (
     CANONICAL_TO_PROXY,
     public_service_slug,
@@ -155,6 +155,32 @@ def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[s
     return list(canonical_rows.values())
 
 
+
+def _canonicalize_leaderboard_category(category: str | None) -> str | None:
+    if category is None:
+        return None
+
+    normalized = category.strip().lower()
+    return normalized or None
+
+
+
+def _validated_leaderboard_category(
+    category: str,
+    *,
+    available_categories: set[str],
+) -> str:
+    normalized = _canonicalize_leaderboard_category(category)
+    if normalized and normalized in available_categories:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'category' filter.",
+        detail=f"Use one of: {', '.join(sorted(available_categories))}.",
+    )
+
+
 @router.get("/leaderboard/{category}")
 async def get_leaderboard(
     category: str,
@@ -168,29 +194,52 @@ async def get_leaderboard(
 
     Returns leaderboard items ranked by aggregate AN Score.
     """
-    # Get services in this category
+    scored_rows = await _cached_fetch("scores", "scores?select=service_slug")
+    if scored_rows is None:
+        return {
+            "data": {"category": _canonicalize_leaderboard_category(category), "items": []},
+            "error": "Unable to load scores.",
+        }
+
+    scored_slugs = {
+        public_service_slug(str(row["service_slug"])) or str(row["service_slug"])
+        for row in scored_rows
+        if row.get("service_slug")
+    }
+    if not scored_slugs:
+        return {
+            "data": {"category": _canonicalize_leaderboard_category(category), "items": []},
+            "error": None,
+        }
+
     services = await _cached_fetch(
         "services",
-        f"services?category=eq.{quote(category)}&select=slug,name"
+        f"services?slug=in.({','.join(f'\"{s}\"' for s in sorted(_score_query_slugs(list(scored_slugs))))})&select=slug,name,category"
     )
-
-    if not services:
-        # Check if category exists at all
-        all_services = await _cached_fetch("services", "services?select=category")
-        if all_services:
-            categories = sorted(set(s["category"] for s in all_services))
-            return {
-                "data": {"category": category, "items": []},
-                "error": f"Category not found. Available: {', '.join(categories)}",
-            }
+    if services is None:
         return {
-            "data": {"category": category, "items": []},
+            "data": {"category": _canonicalize_leaderboard_category(category), "items": []},
             "error": "Unable to load categories.",
         }
 
     normalized_services = _canonicalize_service_rows(services)
+    available_categories = {
+        str(service.get("category") or "").strip().lower()
+        for service in normalized_services
+        if str(service.get("category") or "").strip()
+    }
+    normalized_category = _validated_leaderboard_category(
+        category,
+        available_categories=available_categories,
+    )
 
-    slugs = [s["slug"] for s in normalized_services]
+    filtered_services = [
+        service
+        for service in normalized_services
+        if str(service.get("category") or "").strip().lower() == normalized_category
+    ]
+
+    slugs = [s["slug"] for s in filtered_services]
     name_map = {s["slug"]: s["name"] for s in normalized_services}
     score_query_slugs = _score_query_slugs(slugs)
     slug_filter = ",".join(f'"{s}"' for s in score_query_slugs)
@@ -246,7 +295,7 @@ async def get_leaderboard(
 
     return {
         "data": {
-            "category": category,
+            "category": normalized_category,
             "items": items,
             "count": len(items),
         },

@@ -17,6 +17,7 @@ from routes.leaderboard import (
 )
 from routes.search import _canonicalize_service_rows as canonicalize_search_rows
 from routes.search import search_services
+from services.error_envelope import RhumbError
 
 
 _SERVICES = [
@@ -259,6 +260,10 @@ def _mock_alias_backed_catalog_supabase(path: str):
             for service in _ALIAS_BACKED_SERVICES
         ]
 
+    if decoded.startswith("services?slug=in.("):
+        slugs = _parse_in_filter(decoded, "slug") or set()
+        return [service for service in _ALIAS_BACKED_SERVICES if service["slug"] in slugs]
+
     if decoded.startswith("services?or=("):
         query = _extract_search_query(decoded)
         if not query:
@@ -295,6 +300,10 @@ def _mock_mixed_order_alias_catalog_supabase(path: str):
             {"slug": service["slug"], "category": service["category"]}
             for service in _MIXED_ORDER_ALIAS_BACKED_SERVICES
         ]
+
+    if decoded.startswith("services?slug=in.("):
+        slugs = _parse_in_filter(decoded, "slug") or set()
+        return [service for service in _MIXED_ORDER_ALIAS_BACKED_SERVICES if service["slug"] in slugs]
 
     if decoded.startswith("services?or=("):
         query = _extract_search_query(decoded)
@@ -341,6 +350,10 @@ def _mock_alternate_alias_text_catalog_supabase(path: str):
             for service in _ALTERNATE_ALIAS_TEXT_SERVICES
         ]
 
+    if decoded.startswith("services?slug=in.("):
+        slugs = _parse_in_filter(decoded, "slug") or set()
+        return [service for service in _ALTERNATE_ALIAS_TEXT_SERVICES if service["slug"] in slugs]
+
     if decoded.startswith("services?or=("):
         query = _extract_search_query(decoded)
         if not query:
@@ -380,6 +393,14 @@ def _mock_canonical_row_alternate_alias_text_catalog_supabase(path: str):
         return [
             {"slug": service["slug"], "category": service["category"]}
             for service in _CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SERVICES
+        ]
+
+    if decoded.startswith("services?slug=in.("):
+        slugs = _parse_in_filter(decoded, "slug") or set()
+        return [
+            service
+            for service in _CANONICAL_ROW_ALTERNATE_ALIAS_TEXT_SERVICES
+            if service["slug"] in slugs
         ]
 
     if decoded.startswith("services?or=("):
@@ -422,6 +443,10 @@ def _mock_canonical_row_shorthand_catalog_supabase(path: str):
             {"slug": service["slug"], "category": service["category"]}
             for service in _CANONICAL_ROW_SHORTHAND_SERVICES
         ]
+
+    if decoded.startswith("services?slug=in.("):
+        slugs = _parse_in_filter(decoded, "slug") or set()
+        return [service for service in _CANONICAL_ROW_SHORTHAND_SERVICES if service["slug"] in slugs]
 
     if decoded.startswith("services?or=("):
         query = _extract_search_query(decoded)
@@ -508,10 +533,23 @@ async def test_get_leaderboard_canonicalizes_alias_backed_service_rows():
 
 @pytest.mark.asyncio
 async def test_get_leaderboard_invalid_category(mock_catalog_supabase):
-    """Test /leaderboard/{invalid} returns error."""
-    result = await get_leaderboard("nonexistent-category")
-    assert result["error"] is not None
-    assert result["data"]["items"] == []
+    """Test /leaderboard/{invalid} rejects unsupported categories explicitly."""
+    with pytest.raises(RhumbError) as exc_info:
+        await get_leaderboard("nonexistent-category")
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'category' filter."
+    assert exc_info.value.detail == "Use one of: email, payments, search."
+
+
+@pytest.mark.asyncio
+async def test_get_leaderboard_normalizes_valid_category(mock_catalog_supabase):
+    result = await get_leaderboard("  SeArCh  ", limit=5)
+
+    assert result["error"] is None
+    assert result["data"]["category"] == "search"
+    assert result["data"]["count"] == 1
+    assert result["data"]["items"][0]["service_slug"] == "brave-search-api"
 
 
 @pytest.mark.asyncio
