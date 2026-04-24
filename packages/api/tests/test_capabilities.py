@@ -2832,6 +2832,34 @@ async def test_list_bundles(app):
 
 
 @pytest.mark.anyio
+async def test_list_bundles_rejects_blank_search_before_catalog_reads(app):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/bundles?search=%20%20%20")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'search' filter."
+    assert body["error"]["detail"] == "Provide a non-empty search query."
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_list_bundles_search_trims_whitespace(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/bundles?search=%20prospect%20")
+
+    assert resp.status_code == 200
+    first_path = mock_fetch.await_args_list[0].args[0]
+    assert "%2Aprospect%2A" in first_path
+    assert "%20prospect%20" not in first_path
+    data = resp.json()["data"]
+    assert len(data["bundles"]) == 1
+
+
+@pytest.mark.anyio
 async def test_list_bundles_canonicalizes_alias_backed_provider_text(app):
     async def mock_fetch(path: str):
         if path.startswith("capability_bundles?"):

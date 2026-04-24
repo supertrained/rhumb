@@ -3098,12 +3098,14 @@ async def list_bundles(
     Bundles represent pre-packaged capability chains that deliver more
     value together than individually (e.g., enrich + verify + validate).
     """
+    normalized_search = _validated_capability_search_filter(search)
+
     path = (
         "capability_bundles?select=id,name,description,example,value_proposition"
         "&order=name.asc"
     )
-    if search:
-        encoded = quote(f"*{search}*")
+    if normalized_search:
+        encoded = quote(f"*{normalized_search}*")
         path += (
             f"&or=(id.ilike.{encoded},"
             f"name.ilike.{encoded},"
