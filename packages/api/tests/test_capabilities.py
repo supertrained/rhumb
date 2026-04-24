@@ -266,6 +266,15 @@ DB_DIRECT_CAPABILITY = {
     "outcome": "Query results: column metadata + rows, bounded by row limit and timeout",
 }
 
+WAREHOUSE_DIRECT_CAPABILITY = {
+    "id": "warehouse.query.read",
+    "domain": "warehouse",
+    "action": "query_read",
+    "description": "Execute a read-only SQL query against a BigQuery warehouse",
+    "input_hint": "warehouse_ref, query, params (optional), max_rows, timeout_ms",
+    "outcome": "Query results with dry-run validation metadata",
+}
+
 OBJECT_STORAGE_DIRECT_CAPABILITIES = [
     {
         "id": "object.list",
@@ -349,6 +358,22 @@ def _mock_db_direct_supabase(path: str):
         if "id=eq.db.query.read" in path:
             return [DB_DIRECT_CAPABILITY]
         return [DB_DIRECT_CAPABILITY]
+    if path.startswith("capability_services?"):
+        return []
+    if path.startswith("scores?"):
+        return []
+    if path.startswith("services?"):
+        return []
+    if path.startswith("bundle_capabilities?"):
+        return []
+    return []
+
+
+def _mock_warehouse_direct_supabase(path: str):
+    if path.startswith("capabilities?"):
+        if "id=eq.warehouse.query.read" in path:
+            return [WAREHOUSE_DIRECT_CAPABILITY]
+        return [WAREHOUSE_DIRECT_CAPABILITY]
     if path.startswith("capability_services?"):
         return []
     if path.startswith("scores?"):
@@ -3227,6 +3252,93 @@ async def test_db_direct_resolve_respects_credential_mode_filter(app):
             "selection_reason": "highest_ranked_provider",
         },
     }
+
+
+@pytest.mark.anyio
+async def test_warehouse_direct_capability_surfaces_synthetic_provider(app):
+    """BigQuery direct capabilities should expose a truthful synthetic provider."""
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_warehouse_direct_supabase,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/warehouse.query.read")
+            resolve_resp = await client.get("/v1/capabilities/warehouse.query.read/resolve")
+            modes_resp = await client.get("/v1/capabilities/warehouse.query.read/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "bigquery"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "bigquery"
+    assert get_data["providers"][0]["auth_method"] == "warehouse_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "bigquery"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["execute_hint"]["preferred_provider"] == "bigquery"
+    assert resolve_data["execute_hint"]["auth_method"] == "warehouse_ref"
+    assert resolve_data["execute_hint"]["configured"] is False
+    assert resolve_data["execute_hint"]["preferred_credential_mode"] == "byok"
+    assert "RHUMB_WAREHOUSE_<REF>" in resolve_data["execute_hint"]["setup_hint"]
+
+    mode_data = modes_resp.json()["data"]
+    assert mode_data["providers"][0]["service_slug"] == "bigquery"
+    assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
+    assert "RHUMB_WAREHOUSE_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_warehouse_direct_capability_ignores_catalog_mapping_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [WAREHOUSE_DIRECT_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return [{
+                "capability_id": "warehouse.query.read",
+                "service_slug": "stale-warehouse-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-warehouse",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "stale mapping row",
+                "is_primary": True,
+            }]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/warehouse.query.read")
+            resolve_resp = await client.get("/v1/capabilities/warehouse.query.read/resolve")
+            modes_resp = await client.get("/v1/capabilities/warehouse.query.read/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "bigquery"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "bigquery"
+    assert get_data["providers"][0]["auth_method"] == "warehouse_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "bigquery"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == "warehouse_ref"
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == "bigquery"
+    assert provider["auth_method"] == "warehouse_ref"
+    assert len(provider["modes"]) == 1
+    assert provider["modes"][0]["mode"] == "byok"
 
 
 @pytest.mark.anyio
