@@ -71,8 +71,16 @@ const CHECKLIST = [
   "Does the capability surface narrow authority around the job, or mostly mirror a broad upstream API?",
   "Can the intended caller authenticate cleanly, with the right principal and scope?",
   "If the server advertises a permission manifest or governance layer, does that declared boundary match the tools this caller can actually see and invoke?",
+  "Which high-risk claims still need reality checks against live endpoints, schemas, repos, or pricing before promotion?",
   "What happens on timeout, retry, partial success, or auth expiry?",
   "After the action, can an operator tell who invoked what and what actually happened?",
+];
+
+const REALITY_CHECKS = [
+  "Challenge the few claims that could most distort the decision: endpoint status, auth path, schema shape, artifact existence, and current price or quota behavior.",
+  "Use real systems for the check — the endpoint, the repo, the schema, the billing surface — not another summarizer that might inherit the same false premise.",
+  "Record pass, fail, and unknown separately so promotion and quarantine decisions stay tied to evidence instead of confidence theater.",
+  "If the claim fails validation, treat that as runtime drift or truth-surface weakness even when the demo still looked clean.",
 ];
 
 const RELATED_READING = [
@@ -128,7 +136,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How to Evaluate MCP Servers: Workflow Fit, Trust Class, and Runtime Reality",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-04-24T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The right MCP server question is not popularity or tool count. Evaluate workflow fit, trust class, capability shape, auth viability, and runtime behavior before letting a server into an agent loop.",
@@ -303,6 +311,17 @@ const ARTICLE_JSON_LD = {
                 ))}
               </ul>
             </div>
+            <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Reality-check drill</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                The fresh validation-server signal makes one selection mistake clearer: confident agreement is not the same thing as proof. Before a server gets promoted into the shortlist, the risky claims behind the choice should face a small number of direct tests against reality.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {REALITY_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
           </section>
 
           <section>
@@ -318,6 +337,9 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 The useful live questions are not just reachability or socket success. They are whether the intended caller can still authenticate, whether failures stay typed and recoverable, and whether the server still behaves like the trust class it claimed to belong to.
+              </p>
+              <p>
+                Fresh validation-server work pushes that one step further: even a clean-looking shortlist can still rest on false factual claims if no one tests them against the real endpoint, repo, schema, or pricing surface. Promotion should depend on observed reality, not only on internally consistent narratives about the server.
               </p>
               <p>
                 That is why <a href="/blog/static-mcp-scores-runtime-trust-overlays" class="text-amber hover:text-amber-200 transition-colors">baseline scoring plus runtime overlays</a> is a better operator model than forcing static and live systems to compete.

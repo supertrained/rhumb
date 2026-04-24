@@ -55,7 +55,15 @@ const REGISTRY_FIELDS = [
   "separate reachability, handshake, and post-auth usability",
   "trust-class-aware runtime evidence",
   "manifest and gateway-policy drift when caller-visible scope no longer matches the baseline claim",
+  "claim-validation probes for endpoint, schema, price, and artifact assertions",
   "drift alerts when current behavior diverges from the baseline model",
+];
+
+const VALIDATION_DRILL = [
+  "Challenge the claims most likely to mislead an operator: endpoint health, price, schema shape, auth behavior, and artifact existence.",
+  "Use scenario-specific checks against real systems instead of asking another model to repeat the same claim more confidently.",
+  "Store the pass or fail result as runtime evidence so promotion, quarantine, and human-review decisions are tied to observed reality.",
+  "Treat failed validation as trust-overlay drift, not a docs nit, because the bad claim is already part of the runtime risk story.",
 ];
 
 const ARTICLE_JSON_LD = {
@@ -63,7 +71,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-04-24T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Static MCP scoring and runtime trust are not competing systems. The useful operator model is baseline evaluation plus live overlays that catch drift, auth breakage, and caller-visible failure patterns.",
@@ -233,12 +241,26 @@ const ARTICLE_JSON_LD = {
               <p>
                 If directories and trust registries want to become genuinely useful, they should stop collapsing everything into stars, metadata, or one summary score. Operators need a baseline plus a freshness-aware overlay.
               </p>
+              <p>
+                The adjacent validation-server signal sharpens what that overlay should contain. Consensus, reviews, and confident summaries still miss confabulated facts when every agent repeats the same wrong endpoint status, price, commit, or schema claim. A useful registry surface needs room for reality checks, not just opinions about likely quality.
+              </p>
             </div>
             <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
               <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">A stronger registry surface</div>
               <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
                 {REGISTRY_FIELDS.map((field) => (
                   <li>{field}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Reality-check drill</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                Runtime overlays get much more useful once they test risky claims against the world outside the model. That does not require one universal harness. It requires scenario-specific checks that turn &ldquo;looks plausible&rdquo; into observed truth or observed drift.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {VALIDATION_DRILL.map((item) => (
+                  <li>{item}</li>
                 ))}
               </ul>
             </div>
