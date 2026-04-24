@@ -9,7 +9,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from routes.services import _canonicalize_service_rows, _validated_service_history_limit
+from routes.services import (
+    _canonicalize_service_rows,
+    _validated_service_history_limit,
+    _validated_service_list_offset,
+)
 from services.error_envelope import RhumbError
 
 
@@ -984,6 +988,34 @@ def test_services_reject_limit_above_max(client) -> None:
     assert payload["error"]["code"] == "INVALID_PARAMETERS"
     assert payload["error"]["message"] == "Invalid 'limit' filter."
     assert payload["error"]["detail"] == "Provide an integer between 1 and 500."
+    assert mock_fetch.await_count == 0
+    assert mock_count.await_count == 0
+
+
+def test_services_reject_invalid_offset_directly() -> None:
+    with pytest.raises(RhumbError) as exc_info:
+        _validated_service_list_offset(-1)
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'offset' filter."
+    assert exc_info.value.detail == "Provide an integer greater than or equal to 0."
+
+
+def test_services_http_rejects_invalid_offset_with_canonical_envelope(client) -> None:
+    mock_fetch = AsyncMock(side_effect=_mock_supabase_fetch)
+    mock_count = AsyncMock(side_effect=_mock_supabase_count)
+
+    with (
+        patch("routes.services.supabase_fetch", mock_fetch),
+        patch("routes.services.supabase_count", mock_count),
+    ):
+        resp = client.get("/v1/services", params={"offset": -1})
+
+    assert resp.status_code == 400
+    payload = resp.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'offset' filter."
+    assert payload["error"]["detail"] == "Provide an integer greater than or equal to 0."
     assert mock_fetch.await_count == 0
     assert mock_count.await_count == 0
 

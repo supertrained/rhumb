@@ -108,6 +108,17 @@ def _validated_service_list_limit(limit: int) -> int:
     )
 
 
+def _validated_service_list_offset(offset: int) -> int:
+    if offset >= 0:
+        return offset
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'offset' filter.",
+        detail="Provide an integer greater than or equal to 0.",
+    )
+
+
 def _validated_service_history_limit(limit: int) -> int:
     if 1 <= limit <= 100:
         return limit
@@ -395,7 +406,7 @@ def _not_found_response(
 @router.get("/services")
 async def list_services(
     limit: int = Query(default=50),
-    offset: int = Query(default=0, ge=0),
+    offset: int = Query(default=0),
     category: str | None = Query(default=None),
 ) -> dict:
     """List indexed services with optional category filter.
@@ -405,12 +416,18 @@ async def list_services(
     when users click through from search or API results.
     """
     effective_limit = _validated_service_list_limit(limit)
+    effective_offset = _validated_service_list_offset(offset)
 
     # Fetch the set of slugs that actually have scores.
     scored_rows = await _cached_fetch("scores", "scores?select=service_slug")
     if scored_rows is None:
         return {
-            "data": {"items": [], "total": 0, "limit": effective_limit, "offset": offset},
+            "data": {
+                "items": [],
+                "total": 0,
+                "limit": effective_limit,
+                "offset": effective_offset,
+            },
             "error": "Unable to load services.",
         }
 
@@ -421,7 +438,12 @@ async def list_services(
     }
     if not scored_slugs:
         return {
-            "data": {"items": [], "total": 0, "limit": effective_limit, "offset": offset},
+            "data": {
+                "items": [],
+                "total": 0,
+                "limit": effective_limit,
+                "offset": effective_offset,
+            },
             "error": None,
         }
 
@@ -434,7 +456,12 @@ async def list_services(
     data = await _cached_fetch("services", path)
     if data is None:
         return {
-            "data": {"items": [], "total": 0, "limit": effective_limit, "offset": offset},
+            "data": {
+                "items": [],
+                "total": 0,
+                "limit": effective_limit,
+                "offset": effective_offset,
+            },
             "error": "Unable to load services.",
         }
 
@@ -459,7 +486,7 @@ async def list_services(
         ]
 
     items.sort(key=lambda item: str(item.get("name") or item.get("slug") or "").lower())
-    paginated_items = items[offset : offset + effective_limit]
+    paginated_items = items[effective_offset : effective_offset + effective_limit]
 
     return {
         "data": {
@@ -474,7 +501,7 @@ async def list_services(
             ],
             "total": len(items),
             "limit": effective_limit,
-            "offset": offset,
+            "offset": effective_offset,
         },
         "error": None,
     }
