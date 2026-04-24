@@ -789,8 +789,8 @@ async def v2_health() -> dict[str, Any]:
 async def list_capabilities_v2(
     domain: str | None = Query(default=None, description="Filter by domain"),
     search: str | None = Query(default=None, description="Search capabilities by text"),
-    limit: int = Query(default=50, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50),
+    offset: int = Query(default=0),
 ) -> dict[str, Any]:
     body = await v1_capabilities.list_capabilities(
         domain=domain,

@@ -152,6 +152,28 @@ def _validated_capability_domain_filter(
     )
 
 
+def _validated_capability_list_limit(limit: int) -> int:
+    if 1 <= limit <= 100:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 100.",
+    )
+
+
+def _validated_capability_list_offset(offset: int) -> int:
+    if offset >= 0:
+        return offset
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'offset' filter.",
+        detail="Provide an integer greater than or equal to 0.",
+    )
+
+
 def _canonicalize_known_provider_aliases(
     text: Any,
     *,
@@ -2837,13 +2859,16 @@ async def _suggested_capabilities(query: str, *, limit: int = 3) -> list[dict[st
 async def list_capabilities(
     domain: str | None = Query(default=None, description="Filter by domain (e.g. 'email', 'payment')"),
     search: str | None = Query(default=None, description="Search capabilities by text"),
-    limit: int = Query(default=50, ge=1, le=100),
-    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50),
+    offset: int = Query(default=0),
 ) -> dict:
     """List capabilities with optional domain filter and text search.
 
     Returns capabilities enriched with provider count and top provider info.
     """
+    effective_limit = _validated_capability_list_limit(limit)
+    effective_offset = _validated_capability_list_offset(offset)
+
     # Pull the lightweight capability registry and rank/filter in Python so
     # intent-style queries like "generate image" or "scrape website" can
     # match dotted/underscored IDs and related descriptions.
@@ -2895,11 +2920,11 @@ async def list_capabilities(
         capabilities = [capability for _, capability in ranked]
 
     total = len(capabilities)
-    page = capabilities[offset : offset + limit]
+    page = capabilities[effective_offset : effective_offset + effective_limit]
 
     if not page:
         return {
-            "data": {"items": [], "total": total, "limit": limit, "offset": offset},
+            "data": {"items": [], "total": total, "limit": effective_limit, "offset": effective_offset},
             "error": degraded_error,
         }
 
@@ -3007,8 +3032,8 @@ async def list_capabilities(
         "data": {
             "items": items,
             "total": total,
-            "limit": limit,
-            "offset": offset,
+            "limit": effective_limit,
+            "offset": effective_offset,
         },
         "error": degraded_error,
     }
