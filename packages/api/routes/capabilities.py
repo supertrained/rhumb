@@ -1187,6 +1187,24 @@ def _canonicalize_credential_mode(credential_mode: str | None) -> str | None:
     return normalized
 
 
+def _validated_resolve_credential_mode_filter(credential_mode: str | None) -> str | None:
+    if credential_mode is None:
+        return None
+
+    normalized = _canonicalize_credential_mode(credential_mode)
+    if normalized in _VALID_RESOLVE_CREDENTIAL_MODES:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'credential_mode' filter.",
+        detail=(
+            "Use one of: byok, rhumb_managed, agent_vault. "
+            "Legacy 'byo' is accepted as 'byok'."
+        ),
+    )
+
+
 def _canonicalize_credential_modes(
     credential_modes: object,
     *,
@@ -3416,19 +3434,7 @@ async def resolve_capability(
     Returns providers ranked by AN score with cost, health, and recommendation data.
     Includes circuit breaker state and execute_hint for direct execution.
     """
-    normalized_credential_mode = _canonicalize_credential_mode(credential_mode)
-    if (
-        normalized_credential_mode is not None
-        and normalized_credential_mode not in _VALID_RESOLVE_CREDENTIAL_MODES
-    ):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Invalid 'credential_mode' filter. Use one of: byok, rhumb_managed, agent_vault. "
-                "Legacy 'byo' is accepted as 'byok'."
-            ),
-        )
-    credential_mode = normalized_credential_mode
+    credential_mode = _validated_resolve_credential_mode_filter(credential_mode)
 
     agent_id = x_rhumb_key or "anonymous"
     # Verify capability exists

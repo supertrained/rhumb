@@ -1443,8 +1443,8 @@ async def test_resolve_capability_accepts_byok_alias_for_byo_mappings(app):
 
 
 @pytest.mark.anyio
-async def test_resolve_capability_rejects_invalid_credential_mode_filter(app):
-    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+async def test_resolve_capability_rejects_invalid_credential_mode_filter_before_catalog_reads(app):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
                 "/v1/capabilities/email.send/resolve",
@@ -1453,8 +1453,33 @@ async def test_resolve_capability_rejects_invalid_credential_mode_filter(app):
 
     assert resp.status_code == 400
     body = resp.json()
-    assert "credential_mode" in body.get("detail", "")
-    assert mock_fetch.await_count == 0
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'credential_mode' filter."
+    assert body["error"]["detail"] == (
+        "Use one of: byok, rhumb_managed, agent_vault. "
+        "Legacy 'byo' is accepted as 'byok'."
+    )
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_resolve_capability_rejects_blank_credential_mode_filter_before_catalog_reads(app):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                params={"credential_mode": "   "},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'credential_mode' filter."
+    assert body["error"]["detail"] == (
+        "Use one of: byok, rhumb_managed, agent_vault. "
+        "Legacy 'byo' is accepted as 'byok'."
+    )
+    mock_fetch.assert_not_awaited()
 
 
 @pytest.mark.anyio
