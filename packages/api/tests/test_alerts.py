@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import pytest
+from fastapi.testclient import TestClient
 
 from db.repository import InMemoryProbeRepository
+from services.error_envelope import RhumbError
 
 
 @pytest.fixture
@@ -209,3 +211,37 @@ def test_alerts_route_merges_mixed_alias_and_canonical_probe_history_for_canonic
     assert schema_alert["details"]["previous_fingerprint"] == "schema-old"
     assert schema_alert["details"]["latest_probe_id"]
     assert schema_alert["details"]["previous_probe_id"]
+
+
+def test_alerts_route_rejects_invalid_limit_directly() -> None:
+    """Blanket alert queries should fail fast on out-of-range limits."""
+    from routes import scores as score_routes
+
+    with pytest.raises(RhumbError) as exc_info:
+        score_routes._validated_alert_limit(0)
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'limit' filter."
+    assert exc_info.value.detail == "Provide an integer between 1 and 100."
+
+
+def test_alerts_http_rejects_invalid_limit_with_canonical_envelope() -> None:
+    """HTTP callers should get the canonical 400 envelope for invalid alert limits."""
+    from app import create_app
+    from routes import scores as score_routes
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            score_routes,
+            "get_probe_repository",
+            lambda: pytest.fail("get_probe_repository should not run on rejected input"),
+        )
+
+        client = TestClient(create_app())
+        response = client.get("/v1/alerts", params={"limit": 101})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'limit' filter."
+    assert payload["error"]["detail"] == "Provide an integer between 1 and 100."

@@ -521,6 +521,17 @@ def _validated_compare_service_slugs(services: str) -> list[str]:
     )
 
 
+def _validated_alert_limit(limit: int) -> int:
+    if 1 <= limit <= 100:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 100.",
+    )
+
+
 @router.get("/compare")
 async def compare_services(services: str) -> dict:
     """Compare a comma-separated set of services."""
@@ -595,7 +606,7 @@ async def evaluate_stack() -> dict:
 @router.get("/alerts")
 async def get_alerts(limit: int = 50) -> dict:
     """Fetch schema/score change alerts derived from probe telemetry."""
-    safe_limit = max(1, min(limit, 100))
+    safe_limit = _validated_alert_limit(limit)
     service_slugs = [spec.service_slug for spec in DEFAULT_PROBE_SPECS]
     alert_service = ProbeAlertService(
         repository=get_probe_repository(),
