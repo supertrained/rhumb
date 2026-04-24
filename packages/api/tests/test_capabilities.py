@@ -603,6 +603,20 @@ async def test_list_capabilities_rejects_invalid_offset_before_registry_reads(ap
 
 
 @pytest.mark.anyio
+async def test_list_capabilities_rejects_blank_search_before_registry_reads(app):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities?search=%20%20%20")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'search' filter."
+    assert body["error"]["detail"] == "Provide a non-empty search query."
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_list_capabilities_intent_search_matches_spaced_queries(app):
     """Intent-style searches should match dotted/underscored capability IDs."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_intent_supabase):

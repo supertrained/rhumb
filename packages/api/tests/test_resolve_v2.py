@@ -410,6 +410,20 @@ async def test_v2_capabilities_rejects_invalid_offset_filter(app):
 
 
 @pytest.mark.anyio
+async def test_v2_capabilities_rejects_blank_search_filter(app):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities", params={"search": "   "})
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'search' filter."
+    assert body["error"]["detail"] == "Provide a non-empty search query."
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_capabilities_search_ignores_stale_direct_provider_alias_rows(app):
     async def mock_fetch(path: str):
         if path.startswith("capabilities?"):

@@ -174,6 +174,21 @@ def _validated_capability_list_offset(offset: int) -> int:
     )
 
 
+def _validated_capability_search_filter(search: str | None) -> str | None:
+    if search is None:
+        return None
+
+    normalized = str(search).strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'search' filter.",
+        detail="Provide a non-empty search query.",
+    )
+
+
 def _canonicalize_known_provider_aliases(
     text: Any,
     *,
@@ -2868,6 +2883,7 @@ async def list_capabilities(
     """
     effective_limit = _validated_capability_list_limit(limit)
     effective_offset = _validated_capability_list_offset(offset)
+    effective_search = _validated_capability_search_filter(search)
 
     # Pull the lightweight capability registry and rank/filter in Python so
     # intent-style queries like "generate image" or "scrape website" can
@@ -2901,11 +2917,11 @@ async def list_capabilities(
             if _canonicalize_capability_domain(capability.get("domain")) == normalized_domain
         ]
 
-    if search:
+    if effective_search:
         capabilities = await _enrich_capabilities_with_provider_aliases(capabilities)
         ranked: list[tuple[int, dict]] = []
         for capability in capabilities:
-            intent_score = _score_capability_intent(search, capability)
+            intent_score = _score_capability_intent(effective_search, capability)
             if intent_score > 0:
                 ranked.append((intent_score, capability))
 
