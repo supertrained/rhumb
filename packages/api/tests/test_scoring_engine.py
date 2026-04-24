@@ -17,6 +17,7 @@ from db.repository import (
     SQLAlchemyScoreRepository,
     StoredScore,
 )
+from services.error_envelope import RhumbError
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.scoring import (
     AN_SCORE_VERSION,
@@ -473,6 +474,51 @@ def test_compare_route_exposes_dual_score_fields(
         assert item["execution_score"] >= 0.0
         assert item["access_readiness_score"] is not None
         assert item["autonomy_score"] is not None
+
+
+@pytest.mark.asyncio
+async def test_compare_route_rejects_blank_services_filter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank compare filters should fail fast with the canonical invalid-parameters error."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+
+    def _unexpected_scoring_service() -> ScoringService:
+        raise AssertionError("get_scoring_service should not run for blank compare filters")
+
+    monkeypatch.setattr(score_routes, "get_scoring_service", _unexpected_scoring_service)
+
+    with pytest.raises(RhumbError) as exc_info:
+        await score_routes.compare_services("   ,   ")
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'services' filter."
+    assert exc_info.value.detail == "Provide at least one service slug."
+
+
+def test_compare_http_rejects_blank_services_filter_with_canonical_envelope(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP callers should get a canonical 400 envelope for blank compare filters."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+
+    def _unexpected_scoring_service() -> ScoringService:
+        raise AssertionError("get_scoring_service should not run for blank compare filters")
+
+    monkeypatch.setattr(score_routes, "get_scoring_service", _unexpected_scoring_service)
+
+    response = client.get("/v1/compare", params={"services": "   ,   "})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'services' filter."
+    assert payload["error"]["detail"] == "Provide at least one service slug."
 
 
 def test_get_service_score_reads_alias_backed_stored_score_with_canonical_slug(

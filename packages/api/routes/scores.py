@@ -25,6 +25,7 @@ from routes._supabase import SupabaseWriteUnavailable
 from routes.admin_auth import require_admin_key
 from schemas.score import ANScoreSchema, ScoreRequestSchema
 from services.alerts import ProbeAlertService
+from services.error_envelope import RhumbError
 from services.fixtures import HAND_SCORED_FIXTURES
 from services.probe_scheduler import DEFAULT_PROBE_SPECS
 from services.scoring import EvidenceInput, ScoringService, TIER_LABELS
@@ -500,10 +501,7 @@ async def get_score(slug: str) -> ANScoreSchema:
     raise HTTPException(status_code=404, detail=f"No AN score found for service '{canonical_slug}'")
 
 
-@router.get("/compare")
-async def compare_services(services: str) -> dict:
-    """Compare a comma-separated set of services."""
-    scoring_service = get_scoring_service()
+def _validated_compare_service_slugs(services: str) -> list[str]:
     requested: list[str] = []
     for service in services.split(","):
         cleaned = service.strip()
@@ -512,6 +510,22 @@ async def compare_services(services: str) -> dict:
         canonical_slug = public_service_slug(cleaned) or cleaned.lower()
         if canonical_slug not in requested:
             requested.append(canonical_slug)
+
+    if requested:
+        return requested
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'services' filter.",
+        detail="Provide at least one service slug.",
+    )
+
+
+@router.get("/compare")
+async def compare_services(services: str) -> dict:
+    """Compare a comma-separated set of services."""
+    requested = _validated_compare_service_slugs(services)
+    scoring_service = get_scoring_service()
 
     comparisons: list[dict[str, float | str | None]] = []
     for service_slug in requested:
