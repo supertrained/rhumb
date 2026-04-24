@@ -286,6 +286,9 @@ const ARTICLE_JSON_LD = {
                 The latest 118-tool server write-up is a useful example. Better grouping may reduce human confusion, but it is not proof that the agent sees a smaller authority surface. The real question is whether discovery narrows by workflow or role, whether high-side-effect tools stay hidden until the lane actually needs them, and whether denial semantics stay typed once the model reaches past the task-shaped surface.
               </p>
               <p>
+                The same caution applies to curated registries. A curated MCP registry is a better starting pool than a raw pile of launch links, but registry inclusion is still editorial confidence, not caller-safe availability. Before a server makes the shortlist, the operator still needs workflow fit, trust class, auth viability, and a quick reality check on the claims that made the registry entry look trustworthy in the first place.
+              </p>
+              <p>
                 In practice, the cleanest selection shortcut is the same production split from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: ask what scope is reachable, which principal is acting, and what evidence survives after the call.
               </p>
             </div>
@@ -334,6 +337,9 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 Recent ecosystem work on permission manifests and policy toolkits is useful because it makes the intended boundary inspectable. But treat that as a floor, not a verdict. The operator test is whether the manifest actually narrows discovery for the real caller, whether out-of-scope calls fail with typed denials, and whether shared quota or headroom incidents still stay attributable once several agents lean on the same lane.
+              </p>
+              <p>
+                Curated registry badges belong in that same bucket. They can improve recall and reduce obvious junk, but they do not collapse the trust decision. A live shortlist should still ask whether the current caller can use the server safely now, not whether an editor or launch-week reviewer thought the entry looked promising.
               </p>
               <p>
                 The useful live questions are not just reachability or socket success. They are whether the intended caller can still authenticate, whether failures stay typed and recoverable, and whether the server still behaves like the trust class it claimed to belong to.
