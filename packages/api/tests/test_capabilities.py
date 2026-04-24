@@ -575,6 +575,20 @@ async def test_list_capabilities_rejects_invalid_domain_filter_before_mapping_re
 
 
 @pytest.mark.anyio
+async def test_list_capabilities_rejects_invalid_limit_before_registry_reads(app):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities?limit=0")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'limit' filter."
+    assert body["error"]["detail"] == "Provide an integer between 1 and 100."
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_list_capabilities_rejects_invalid_offset_before_registry_reads(app):
     with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

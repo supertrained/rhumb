@@ -382,6 +382,20 @@ async def test_v2_capabilities_rejects_invalid_domain_filter(app):
 
 
 @pytest.mark.anyio
+async def test_v2_capabilities_rejects_invalid_limit_filter(app):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities", params={"limit": 0})
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'limit' filter."
+    assert body["error"]["detail"] == "Provide an integer between 1 and 100."
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_capabilities_rejects_invalid_offset_filter(app):
     with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
