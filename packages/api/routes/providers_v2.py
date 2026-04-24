@@ -318,6 +318,17 @@ def _validated_provider_list_capability_query(capability: str | None) -> str | N
     )
 
 
+def _validated_provider_list_limit(limit: int) -> int:
+    if 1 <= limit <= 200:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 200.",
+    )
+
+
 def _validated_provider_list_offset(offset: int) -> int:
     if offset >= 0:
         return offset
@@ -821,7 +832,7 @@ async def list_providers(
         alias="status",
         description="Filter by status (callable, scored, listed)",
     ),
-    limit: int = Query(default=50, ge=1, le=200),
+    limit: int = Query(default=50),
     offset: int = Query(default=0),
 ) -> dict[str, Any]:
     """List available providers with optional filters.
@@ -832,6 +843,7 @@ async def list_providers(
     """
     status_filter = _validated_provider_list_status(status_filter)
     capability = _validated_provider_list_capability_query(capability)
+    effective_limit = _validated_provider_list_limit(limit)
     effective_offset = _validated_provider_list_offset(offset)
 
     direct_mappings = _all_direct_provider_mappings()
@@ -887,7 +899,7 @@ async def list_providers(
             "data": {
                 "providers": [],
                 "total": 0,
-                "limit": limit,
+                "limit": effective_limit,
                 "offset": effective_offset,
                 "_rhumb_v2": {
                     "api_version": "v2-alpha",
@@ -979,14 +991,14 @@ async def list_providers(
         )
     )
     total = len(providers)
-    page = providers[effective_offset : effective_offset + limit]
+    page = providers[effective_offset : effective_offset + effective_limit]
 
     return {
         "error": None,
         "data": {
             "providers": page,
             "total": total,
-            "limit": limit,
+            "limit": effective_limit,
             "offset": effective_offset,
             "_rhumb_v2": {
                 "api_version": "v2-alpha",

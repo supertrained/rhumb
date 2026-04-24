@@ -9,7 +9,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app import create_app
-from routes.providers_v2 import _canonicalize_service_rows, _validated_provider_list_offset
+from routes.providers_v2 import (
+    _canonicalize_service_rows,
+    _validated_provider_list_limit,
+    _validated_provider_list_offset,
+)
 from services.error_envelope import RhumbError
 
 # ---------------------------------------------------------------------------
@@ -515,6 +519,25 @@ class TestListProviders:
         assert body["error"]["code"] == "INVALID_PARAMETERS"
         assert body["error"]["message"] == "Invalid 'capability' filter."
         assert body["error"]["detail"] == "Use a capability id returned by GET /v2/capabilities."
+        mock_fetch.assert_not_awaited()
+
+    def test_list_rejects_invalid_limit_directly(self):
+        with pytest.raises(RhumbError) as exc_info:
+            _validated_provider_list_limit(201)
+
+        assert exc_info.value.code == "INVALID_PARAMETERS"
+        assert exc_info.value.message == "Invalid 'limit' filter."
+        assert exc_info.value.detail == "Provide an integer between 1 and 200."
+
+    def test_list_rejects_invalid_limit_with_canonical_envelope(self, client):
+        with patch("routes.providers_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+            resp = client.get("/v2/providers?limit=201")
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'limit' filter."
+        assert body["error"]["detail"] == "Provide an integer between 1 and 200."
         mock_fetch.assert_not_awaited()
 
     def test_list_rejects_invalid_offset_directly(self):
