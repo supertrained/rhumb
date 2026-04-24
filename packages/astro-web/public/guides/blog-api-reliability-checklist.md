@@ -108,6 +108,19 @@ This one's harder to test upfront, but look for it in community threads and issu
 
 An agent building a workflow model will retry 400s differently than 500s. If the API mislabels client errors as server errors, your agent will retry indefinitely on something that was never going to succeed.
 
+### Fresh operator signal: endpoint retirement is still a reliability failure
+
+Twilio is retiring `api.de1.twilio.com` on April 28. The harder lesson is not only that a hostname is going away. It is that many integrations treated a regional-looking base URL as if it preserved a routing promise the platform never actually gave them.
+
+That is a reliability problem before it becomes a docs problem.
+
+If your agent or wrapper pins base URLs in config, tests, or failover logic, treat those hostnames as part of the contract surface:
+
+- **Green flag:** the provider gives a deprecation date, a replacement target, and enough machine-readable signal to tell you whether geography, auth scope, or fallback behavior changed.
+- **Red flag:** the only warning is a prose post humans may or may not read, while automation keeps retrying a dead endpoint like it is transient infrastructure noise.
+
+This is the same boundary described in [machine-parseable change communication](/blog/machine-parseable-change-communication-for-agent-ready-apis): endpoint drift should fail closed as a deterministic migration event, not masquerade as flaky transport.
+
 ---
 
 ## Scoring the APIs You're Evaluating

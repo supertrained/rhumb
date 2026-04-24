@@ -41,6 +41,13 @@ const LIVE_PROTOCOL_DRILL = [
   "Keep assertion suites close to the live wire format so protocol regressions surface before users discover them at transport time.",
 ];
 
+const LIVE_ENDPOINT_DRIFT_DRILL = [
+  "Base URLs, regional hostnames, and vanity endpoints belong in the same contract inventory as schema fields because wrappers often pin them in config, tests, and failover logic.",
+  "A hostname retirement should arrive with machine-readable deprecation dates and replacement targets, not just a prose announcement that humans might miss.",
+  "If the replacement path changes routing, geography assumptions, auth scope, or fallback behavior, the migration is not a string swap. It is contract drift with operational consequences.",
+  "Retry logic should classify dead endpoints as deterministic drift and fail closed fast instead of producing noisy transient-error churn.",
+];
+
 const GOOD_PROPERTIES = [
   {
     title: "Structured, not buried",
@@ -111,7 +118,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-04-24T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "An API can be versioned and still be operationally unstable for agents. The real readiness test is whether non-human clients can detect drift in time to fail safely.",
@@ -144,7 +151,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-sky-400 uppercase tracking-widest">API Readiness</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">April 14, 2026</span>
+          <span class="text-slate-500">Updated April 24, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -271,6 +278,20 @@ const ARTICLE_JSON_LD = {
               </ul>
               <p class="mt-4 text-slate-300 leading-relaxed">
                 That is why machine-parseable change discipline belongs with <a href="/blog/remote-mcp-production-readiness-checklist" class="text-amber hover:text-amber-200 transition-colors">production readiness</a>, not in a docs footnote. The contract has to stay valid on the wire, especially when edge cases tempt a server to improvise.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Live endpoint drift test: regional hostnames</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                Fresh API signal: Twilio is killing <code class="text-slate-100">api.de1.twilio.com</code> on April 28, and the harder lesson is not only that a hostname died. Many wrappers treated the regional-looking base URL as if it preserved a routing promise the platform never actually delivered. For unattended systems, that is endpoint drift, not harmless DNS trivia.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {LIVE_ENDPOINT_DRIFT_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 text-slate-300 leading-relaxed">
+                If a provider retires a base URL and the only warning is prose, the wrapper owner still has to answer whether the replacement keeps the same geography, fallback, and auth assumptions. That is exactly the kind of change surface agents need to diff before retry logic turns a deterministic endpoint failure into noisy reliability churn.
               </p>
             </div>
           </section>
