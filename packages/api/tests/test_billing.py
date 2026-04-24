@@ -735,6 +735,57 @@ def test_generate_invoice_recanonicalizes_mixed_service_line_items_at_route_boun
     ]
 
 
+def test_generate_invoice_rejects_invalid_month_before_aggregator_reads(
+    admin_client: TestClient,
+    usage_meter: UsageMeterEngine,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_billing_aggregator = SimpleNamespace(generate_invoice=AsyncMock())
+    set_test_billing_stores(usage_meter, fake_billing_aggregator, stripe_manager)
+
+    response = admin_client.post(
+        "/v1/admin/billing/invoices/generate",
+        json={"organization_id": "org_invoice_alias", "month": "2026-99"},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["detail"] == "Invalid month: use YYYY-MM"
+    assert payload["error"] == "bad_request"
+    fake_billing_aggregator.generate_invoice.assert_not_awaited()
+
+
+def test_generate_invoice_normalizes_surrounding_whitespace_in_month_filter(
+    admin_client: TestClient,
+    usage_meter: UsageMeterEngine,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_billing_aggregator = SimpleNamespace(
+        generate_invoice=AsyncMock(
+            return_value=SimpleNamespace(
+                invoice_id="inv_whitespace_month",
+                organization_id="org_invoice_alias",
+                month="2026-04",
+                subtotal=0.002,
+                tax=0.0,
+                total=0.002,
+                status="draft",
+                line_items=[],
+            )
+        )
+    )
+    set_test_billing_stores(usage_meter, fake_billing_aggregator, stripe_manager)
+
+    response = admin_client.post(
+        "/v1/admin/billing/invoices/generate",
+        json={"organization_id": "org_invoice_alias", "month": " 2026-04 "},
+    )
+
+    assert response.status_code == 200
+    fake_billing_aggregator.generate_invoice.assert_awaited_once_with("org_invoice_alias", "2026-04")
+    assert response.json()["month"] == "2026-04"
+
+
 def test_list_invoices_empty(admin_client: TestClient) -> None:
     response = admin_client.get(
         "/v1/admin/billing/invoices",

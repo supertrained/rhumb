@@ -190,7 +190,8 @@ async def list_invoices(organization_id: str = Query(...)) -> List[Dict[str, Any
 async def generate_invoice(body: GenerateInvoiceRequest) -> Dict[str, Any]:
     """Generate a draft invoice for organization + month."""
     aggregator = _get_billing_aggregator()
-    invoice = await aggregator.generate_invoice(body.organization_id, body.month)
+    normalized_month = _normalize_billing_month(body.month)
+    invoice = await aggregator.generate_invoice(body.organization_id, normalized_month)
 
     return {
         "invoice_id": invoice.invoice_id,
