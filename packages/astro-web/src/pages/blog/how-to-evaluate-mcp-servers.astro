@@ -275,6 +275,9 @@ const ARTICLE_JSON_LD = {
                 That same logic shows up in <a href="/blog/governed-capability-surfaces-agent-integrations" class="text-amber hover:text-amber-200 transition-colors">governed capability surfaces</a>. Safer agent interfaces usually win by making authority clearer, not by making everything accessible at once.
               </p>
               <p>
+                The latest 118-tool server write-up is a useful example. Better grouping may reduce human confusion, but it is not proof that the agent sees a smaller authority surface. The real question is whether discovery narrows by workflow or role, whether high-side-effect tools stay hidden until the lane actually needs them, and whether denial semantics stay typed once the model reaches past the task-shaped surface.
+              </p>
+              <p>
                 In practice, the cleanest selection shortcut is the same production split from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: ask what scope is reachable, which principal is acting, and what evidence survives after the call.
               </p>
             </div>
