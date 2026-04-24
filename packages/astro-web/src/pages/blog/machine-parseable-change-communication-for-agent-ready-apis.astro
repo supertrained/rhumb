@@ -34,6 +34,13 @@ const LIVE_RETIREMENT_DRILL = [
   "The safe surface is machine-readable availability, retirement dates, replacement targets, and preflight checks that let the caller fail closed before side effects.",
 ];
 
+const LIVE_PROTOCOL_DRILL = [
+  "Validate tool results against the real protocol union, not a looser internal helper type that hides bad variants until production.",
+  "Prefer typed `isError` responses when a tool cannot satisfy the contract instead of inventing an ad-hoc fallback shape.",
+  "Treat content-type and enum drift as deploy-blocking contract failures because clients can reject them before recovery logic runs.",
+  "Keep assertion suites close to the live wire format so protocol regressions surface before users discover them at transport time.",
+];
+
 const GOOD_PROPERTIES = [
   {
     title: "Structured, not buried",
@@ -251,6 +258,20 @@ const ARTICLE_JSON_LD = {
                   <li>{item}</li>
                 ))}
               </ul>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Live protocol drift test</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                The fresh MCP filesystem issue where <code class="text-slate-100">read_media_file</code> returned <code class="text-slate-100">type: "blob"</code> makes the point cleanly: when a tool emits a value outside the protocol's valid result union, the caller does not get a soft warning. The client can reject the result at the transport boundary before normal recovery logic ever runs.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {LIVE_PROTOCOL_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 text-slate-300 leading-relaxed">
+                That is why machine-parseable change discipline belongs with <a href="/blog/remote-mcp-production-readiness-checklist" class="text-amber hover:text-amber-200 transition-colors">production readiness</a>, not in a docs footnote. The contract has to stay valid on the wire, especially when edge cases tempt a server to improvise.
+              </p>
             </div>
           </section>
 

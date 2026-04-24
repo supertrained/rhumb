@@ -35,6 +35,7 @@ const DEMO_FLAGS = [
   "write scope is hard to reason about before execution",
   "tenant isolation mostly means deployment sprawl instead of policy design",
   "retry, idempotency, and quota behavior are unclear",
+  "tool results invent ad-hoc content types or edge-case shapes that the protocol itself cannot validate",
   "audit trails do not map actions back to principals and scopes",
 ];
 
@@ -44,8 +45,16 @@ const CHECKLIST = [
   "Execution-time boundaries: which paths, URLs, repos, and write targets stay reachable after normalization and runtime validation?",
   "Tenant model: how are identities, quotas, and data segmented?",
   "Governors: what stops runaway spend, writes, or token burn?",
+  "Protocol contract: do tool results stay inside spec-valid types, mime metadata, and error shapes even on edge cases?",
   "Recovery: after partial failure, how does the caller re-verify state?",
   "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
+];
+
+const PROTOCOL_CONTRACT_DRILL = [
+  "Can the server prove tool results stay inside the protocol's allowed union variants instead of returning ad-hoc fallback types?",
+  "If a tool cannot satisfy the contract, does it emit a typed error path the caller can classify instead of malformed success output?",
+  "Are assertion suites exercising real client validators so edge cases fail before production, not during a live run?",
+  "Can operators tell the difference between transport-level contract rejection and an application-level failure worth retrying?",
 ];
 
 const PROMPT_INJECTION_DRILL = [
@@ -114,6 +123,11 @@ const RELATED_READING = [
     href: "/blog/governed-capability-surfaces-agent-integrations",
     title: "Governed Capabilities Are Becoming the Real Control Plane",
     description: "Why safer agent interfaces narrow authority instead of mirroring raw endpoint sprawl.",
+  },
+  {
+    href: "/blog/machine-parseable-change-communication-for-agent-ready-apis",
+    title: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
+    description: "Why invalid union variants, drifting enums, and weak change surfaces become operator incidents before they look like docs problems.",
   },
   {
     href: "/blog/mcp-observability-logging-auditing-debugging",
@@ -334,6 +348,20 @@ const ARTICLE_JSON_LD = {
           </section>
 
           <section>
+            <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6 mb-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Fresh operator signal</div>
+              <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+                Invalid result types fail before your recovery code runs
+              </h3>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                The new MCP filesystem issue where <code class="text-slate-100">read_media_file</code> returned <code class="text-slate-100">type: "blob"</code> is a clean reminder that protocol validity is part of production readiness. If a tool result falls outside the allowed union, the client can reject it at transport time before your normal retry, fallback, or audit logic even gets a turn.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {PROTOCOL_CONTRACT_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
               7. Auditability matters because blame eventually matters
             </h2>
