@@ -516,6 +516,65 @@ async def test_list_capabilities_domain_filter(app):
 
 
 @pytest.mark.anyio
+async def test_list_capabilities_normalizes_domain_filter_casing_and_whitespace(app):
+    base_capabilities = [
+        dict(SAMPLE_CAPABILITIES[0]),
+        dict(SAMPLE_CAPABILITIES[1]),
+        dict(SAMPLE_CAPABILITIES[2]),
+    ]
+
+    async def mock_cached_fetch(table: str, path: str, ttl: float = 60.0):
+        del table, ttl
+        if path.startswith("capabilities?"):
+            return [dict(item) for item in base_capabilities]
+        if path.startswith("capability_services?"):
+            return [dict(item) for item in SAMPLE_MAPPINGS]
+        if path.startswith("scores?"):
+            return [dict(item) for item in SAMPLE_SCORES]
+        return []
+
+    with (
+        patch("routes.capabilities._cached_fetch", new=AsyncMock(side_effect=mock_cached_fetch)),
+        patch("routes.capabilities._synthetic_capability_records", return_value=[]),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities?domain=%20EmAiL%20")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["total"] == 2
+    assert {item["domain"] for item in data["items"]} == {"email"}
+
+
+@pytest.mark.anyio
+async def test_list_capabilities_rejects_invalid_domain_filter_before_mapping_reads(app):
+    base_capabilities = [
+        dict(SAMPLE_CAPABILITIES[0]),
+        dict(SAMPLE_CAPABILITIES[1]),
+        dict(SAMPLE_CAPABILITIES[2]),
+    ]
+
+    async def mock_cached_fetch(table: str, path: str, ttl: float = 60.0):
+        del table, ttl
+        assert path.startswith("capabilities?")
+        return [dict(item) for item in base_capabilities]
+
+    with (
+        patch("routes.capabilities._cached_fetch", new=AsyncMock(side_effect=mock_cached_fetch)) as mock_fetch,
+        patch("routes.capabilities._synthetic_capability_records", return_value=[]),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities?domain=messaging")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'domain' filter."
+    assert body["error"]["detail"] == "Use one of: email, payment."
+    assert mock_fetch.await_count == 1
+
+
+@pytest.mark.anyio
 async def test_list_capabilities_intent_search_matches_spaced_queries(app):
     """Intent-style searches should match dotted/underscored capability IDs."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_intent_supabase):

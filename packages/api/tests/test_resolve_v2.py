@@ -351,6 +351,37 @@ async def test_v2_capabilities_direct_capability_ignores_stale_catalog_mapping_r
 
 
 @pytest.mark.anyio
+async def test_v2_capabilities_rejects_invalid_domain_filter(app):
+    async def mock_cached_fetch(table: str, path: str, ttl: float = 30.0):
+        del table, ttl
+        assert path.startswith("capabilities?")
+        return [
+            {
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+                "input_hint": "recipient, subject, body",
+                "outcome": "Email delivered",
+            }
+        ]
+
+    with (
+        patch("routes.capabilities._cached_fetch", new=AsyncMock(side_effect=mock_cached_fetch)) as mock_fetch,
+        patch("routes.capabilities._synthetic_capability_records", return_value=[]),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities", params={"domain": "messaging"})
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'domain' filter."
+    assert body["error"]["detail"] == "Use one of: email."
+    assert mock_fetch.await_count == 1
+
+
+@pytest.mark.anyio
 async def test_v2_capabilities_search_ignores_stale_direct_provider_alias_rows(app):
     async def mock_fetch(path: str):
         if path.startswith("capabilities?"):

@@ -26,6 +26,7 @@ from services.service_slugs import (
     public_service_slug_candidates,
 )
 from services.deployment_connection_registry import has_any_deployment_bundle_configured
+from services.error_envelope import RhumbError
 from services.storage_connection_registry import has_any_storage_bundle_configured
 from services.support_connection_registry import has_any_support_bundle_configured
 
@@ -123,6 +124,32 @@ def _response_provider_slug_list(service_slugs: list[Any]) -> list[str]:
         response_slugs.append(response_slug)
         seen.add(response_slug)
     return response_slugs
+
+
+def _canonicalize_capability_domain(domain: str | None) -> str | None:
+    if domain is None:
+        return None
+    normalized = str(domain).strip().lower()
+    return normalized or None
+
+
+def _validated_capability_domain_filter(
+    domain: str | None,
+    *,
+    available_domains: set[str],
+    validate: bool,
+) -> str | None:
+    normalized = _canonicalize_capability_domain(domain)
+    if normalized is None:
+        return None
+    if not validate or not available_domains or normalized in available_domains:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'domain' filter.",
+        detail=f"Use one of: {', '.join(sorted(available_domains))}.",
+    )
 
 
 def _canonicalize_known_provider_aliases(
@@ -2832,8 +2859,22 @@ async def list_capabilities(
         if synthetic["id"] not in existing_ids:
             capabilities.append(dict(synthetic))
 
-    if domain:
-        capabilities = [c for c in capabilities if c.get("domain") == domain]
+    available_domains = {
+        normalized_domain
+        for capability in capabilities
+        if (normalized_domain := _canonicalize_capability_domain(capability.get("domain")))
+    }
+    normalized_domain = _validated_capability_domain_filter(
+        domain,
+        available_domains=available_domains,
+        validate=degraded_error is None,
+    )
+    if normalized_domain:
+        capabilities = [
+            capability
+            for capability in capabilities
+            if _canonicalize_capability_domain(capability.get("domain")) == normalized_domain
+        ]
 
     if search:
         capabilities = await _enrich_capabilities_with_provider_aliases(capabilities)
