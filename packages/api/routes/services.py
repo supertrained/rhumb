@@ -55,6 +55,17 @@ async def _cached_count(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECO
     return 0 if result is None else int(result)
 
 
+async def _service_exists(service_slug: str) -> bool:
+    service_rows = _canonicalize_service_rows(
+        await _cached_fetch(
+            "services",
+            f"services?slug=in.({_build_in_filter(set(public_service_slug_candidates(service_slug)))})"
+            "&select=slug,name,category,description",
+        )
+    )
+    return any(row.get("slug") == service_slug for row in service_rows)
+
+
 def _build_in_filter(values: set[str]) -> str:
     """Build a PostgREST `in.(...)` filter from a set of string identifiers."""
     return ",".join(f'"{value}"' for value in sorted(values))
@@ -708,9 +719,9 @@ async def get_service_score(slug: str, raw_request: Request):
 
 
 @router.get("/services/{slug}/failures")
-async def get_failures(slug: str) -> dict:
+async def get_failures(slug: str, raw_request: Request):
     """Fetch active failure modes for a service."""
-    canonical_slug = public_service_slug(slug) or slug
+    canonical_slug = _public_service_input_slug(slug)
     failure_query_slugs = _score_query_slugs([canonical_slug])
     failures = await _cached_fetch(
         "failure_modes",
@@ -722,44 +733,53 @@ async def get_failures(slug: str) -> dict:
     if failures is None:
         return {"data": {"slug": canonical_slug, "failures": []}, "error": "Unable to load failure modes."}
 
+    failure_modes = [
+        {
+            "pattern": _canonicalize_service_text(
+                f.get("title", ""), canonical_slug, f.get("service_slug")
+            ) or "",
+            "impact": _canonicalize_service_text(
+                f.get("agent_impact"), canonical_slug, f.get("service_slug")
+            )
+            or _canonicalize_service_text(
+                f.get("description", ""), canonical_slug, f.get("service_slug")
+            )
+            or "",
+            "frequency": f.get("frequency", "unknown"),
+            "workaround": _canonicalize_service_text(
+                f.get("workaround", ""), canonical_slug, f.get("service_slug")
+            ) or "",
+            "category": f.get("category", ""),
+            "severity": f.get("severity", ""),
+            "description": _canonicalize_service_text(
+                f.get("description", ""), canonical_slug, f.get("service_slug")
+            ) or "",
+            "last_verified": f.get("last_verified"),
+            "evidence_count": f.get("evidence_count", 0),
+        }
+        for f in failures
+    ]
+    if not failure_modes and not await _service_exists(canonical_slug):
+        return _not_found_response(
+            raw_request,
+            error="service_not_found",
+            message=f"No service found with slug '{canonical_slug}'",
+            resolution="Check available services at GET /v1/services or /v1/search?q=...",
+        )
+
     return {
         "data": {
             "slug": canonical_slug,
-            "failure_modes": [
-                {
-                    "pattern": _canonicalize_service_text(
-                        f.get("title", ""), canonical_slug, f.get("service_slug")
-                    ) or "",
-                    "impact": _canonicalize_service_text(
-                        f.get("agent_impact"), canonical_slug, f.get("service_slug")
-                    )
-                    or _canonicalize_service_text(
-                        f.get("description", ""), canonical_slug, f.get("service_slug")
-                    )
-                    or "",
-                    "frequency": f.get("frequency", "unknown"),
-                    "workaround": _canonicalize_service_text(
-                        f.get("workaround", ""), canonical_slug, f.get("service_slug")
-                    ) or "",
-                    "category": f.get("category", ""),
-                    "severity": f.get("severity", ""),
-                    "description": _canonicalize_service_text(
-                        f.get("description", ""), canonical_slug, f.get("service_slug")
-                    ) or "",
-                    "last_verified": f.get("last_verified"),
-                    "evidence_count": f.get("evidence_count", 0),
-                }
-                for f in failures
-            ],
+            "failure_modes": failure_modes,
         },
         "error": None,
     }
 
 
 @router.get("/services/{slug}/history")
-async def get_history(slug: str, limit: int = Query(default=20, ge=1, le=100)) -> dict:
+async def get_history(slug: str, raw_request: Request, limit: int = Query(default=20, ge=1, le=100)):
     """Fetch historical AN score entries for a service."""
-    canonical_slug = public_service_slug(slug) or slug
+    canonical_slug = _public_service_input_slug(slug)
     score_query_slugs = _score_query_slugs([canonical_slug])
     scores = await _cached_fetch(
         "scores",
@@ -770,6 +790,13 @@ async def get_history(slug: str, limit: int = Query(default=20, ge=1, le=100)) -
     )
     if scores is None:
         return {"data": {"slug": canonical_slug, "history": []}, "error": "Unable to load history."}
+    if not scores and not await _service_exists(canonical_slug):
+        return _not_found_response(
+            raw_request,
+            error="service_not_found",
+            message=f"No service found with slug '{canonical_slug}'",
+            resolution="Check available services at GET /v1/services or /v1/search?q=...",
+        )
 
     return {
         "data": {

@@ -240,6 +240,29 @@ async def _mock_empty_alias_score_supabase_fetch(path: str):
     return await _mock_supabase_fetch(path)
 
 
+async def _mock_known_service_without_history_supabase_fetch(path: str):
+    decoded = unquote(path)
+
+    if decoded.startswith("services?slug=in.(") and "&select=slug,name,category,description" in decoded:
+        slugs = _parse_in_filter(decoded, "slug") or set()
+        if "service-no-history" in slugs:
+            return [
+                {
+                    "slug": "service-no-history",
+                    "name": "Service No History",
+                    "category": "payments",
+                    "description": "Known service without a stored score yet.",
+                }
+            ]
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        if "service-no-history" in slugs:
+            return []
+
+    return await _mock_supabase_fetch(path)
+
+
 async def _mock_alias_supabase_fetch(path: str):
     decoded = unquote(path)
 
@@ -748,6 +771,86 @@ def test_unknown_service_detail_alias_input_returns_canonical_404(client) -> Non
     }
 
 
+def test_unknown_service_history_returns_404(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get(
+            "/v1/services/unknown-service/history",
+            headers={"X-Request-ID": "req-service-history-404"},
+        )
+
+    assert resp.status_code == 404
+    assert resp.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'unknown-service'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-service-history-404",
+    }
+
+
+def test_unknown_service_history_alias_input_returns_canonical_404(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get(
+            "/v1/services/Brave-Search/history",
+            headers={"X-Request-ID": "req-service-history-alias-404"},
+        )
+
+    assert resp.status_code == 404
+    assert resp.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'brave-search-api'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-service-history-alias-404",
+    }
+
+
+def test_unknown_service_failures_returns_404(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get(
+            "/v1/services/unknown-service/failures",
+            headers={"X-Request-ID": "req-service-failures-404"},
+        )
+
+    assert resp.status_code == 404
+    assert resp.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'unknown-service'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-service-failures-404",
+    }
+
+
+def test_unknown_service_failures_alias_input_returns_canonical_404(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get(
+            "/v1/services/Brave-Search/failures",
+            headers={"X-Request-ID": "req-service-failures-alias-404"},
+        )
+
+    assert resp.status_code == 404
+    assert resp.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'brave-search-api'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-service-failures-alias-404",
+    }
+
+
 def test_service_score_uses_official_docs_column(client) -> None:
     """GET /v1/services/{slug}/score should map docs_url from official_docs."""
     with patch(
@@ -1185,6 +1288,20 @@ def test_service_history_accepts_mixed_case_alias_inputs(client) -> None:
     assert [entry["an_score"] for entry in payload["data"]["history"]] == [8.7, 8.4]
 
 
+def test_service_history_preserves_empty_state_for_known_services(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_known_service_without_history_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/service-no-history/history")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"] == {"slug": "service-no-history", "history": []}
+
+
 def test_service_score_reads_alias_backed_failure_modes(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -1429,6 +1546,21 @@ def test_service_failures_accept_mixed_case_alias_inputs(client) -> None:
     assert payload["error"] is None
     assert payload["data"]["slug"] == "brave-search-api"
     assert payload["data"]["failure_modes"][0]["pattern"] == "Session tokens expire early"
+
+
+
+def test_service_failures_preserve_empty_state_for_known_services(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/stripe/failures")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"] == {"slug": "stripe", "failure_modes": []}
 
 
 
