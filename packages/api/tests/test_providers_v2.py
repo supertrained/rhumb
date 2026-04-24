@@ -491,6 +491,44 @@ class TestListProviders:
         assert "brave-search-api" in providers_by_id
         assert providers_by_id["brave-search-api"]["an_score"] == 8.6
 
+    def test_list_rejects_invalid_capability_filter(self, client):
+        with (
+            patch("routes.providers_v2._all_direct_provider_mappings", return_value=[]),
+            patch("routes.providers_v2.supabase_fetch", new=AsyncMock(return_value=[])) as mock_fetch,
+        ):
+            resp = client.get("/v2/providers?capability=not.real")
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'capability' filter."
+        assert body["error"]["detail"] == "Use a capability id returned by GET /v2/capabilities."
+        assert mock_fetch.await_count == 1
+
+    def test_list_rejects_blank_capability_filter(self, client):
+        with patch("routes.providers_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+            resp = client.get("/v2/providers?capability=%20%20")
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'capability' filter."
+        assert body["error"]["detail"] == "Use a capability id returned by GET /v2/capabilities."
+        mock_fetch.assert_not_awaited()
+
+    def test_list_normalizes_capability_filter_whitespace(self, client):
+        with (
+            patch.dict("routes.providers_v2.SERVICE_REGISTRY", {"openai": {}, "anthropic": {}}, clear=True),
+            patch("routes.providers_v2._all_direct_provider_mappings", return_value=[]),
+            patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch),
+        ):
+            resp = client.get(f"/v2/providers?capability=%20{_TEST_CAPABILITY}%20&status=listed")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        providers_by_id = {provider["id"]: provider for provider in data["providers"]}
+        assert list(providers_by_id) == [_TEST_PROVIDER_SLUG]
+
     def test_list_rejects_invalid_category_filter(self, client):
         with (
             patch.dict("routes.providers_v2.SERVICE_REGISTRY", {"openai": {}, "anthropic": {}}, clear=True),

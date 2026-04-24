@@ -303,6 +303,29 @@ def _validated_provider_list_category(
     )
 
 
+def _validated_provider_list_capability_query(capability: str | None) -> str | None:
+    if capability is None:
+        return None
+
+    normalized = capability.strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'capability' filter.",
+        detail="Use a capability id returned by GET /v2/capabilities.",
+    )
+
+
+def _raise_invalid_provider_list_capability_filter() -> None:
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'capability' filter.",
+        detail="Use a capability id returned by GET /v2/capabilities.",
+    )
+
+
 def _budget_summary(status: BudgetStatus | None) -> dict[str, Any] | None:
     if status is None or status.budget_usd is None:
         return None
@@ -797,6 +820,7 @@ async def list_providers(
     score/tier lives in ``scores``.
     """
     status_filter = _validated_provider_list_status(status_filter)
+    capability = _validated_provider_list_capability_query(capability)
 
     direct_mappings = _all_direct_provider_mappings()
     direct_mappings_by_provider: dict[str, list[dict[str, Any]]] = {}
@@ -839,6 +863,10 @@ async def list_providers(
                 for row in capability_rows
                 if row.get("service_slug")
             }
+
+        if not capability_slugs:
+            _raise_invalid_provider_list_capability_filter()
+
         provider_slugs &= capability_slugs
 
     if not provider_slugs:
