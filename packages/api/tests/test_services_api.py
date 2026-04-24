@@ -965,38 +965,24 @@ def test_services_limit_and_offset_params_work(client) -> None:
     )
 
 
-def test_services_limit_above_max_is_capped(client) -> None:
-    """Limits above 500 are accepted but capped server-side."""
-    captured_paths: list[str] = []
-
-    async def _capturing_fetch(path: str):
-        captured_paths.append(path)
-        return await _mock_supabase_fetch(path)
+def test_services_reject_limit_above_max(client) -> None:
+    """Limits above 500 should fail explicitly instead of being silently capped."""
+    mock_fetch = AsyncMock(side_effect=_mock_supabase_fetch)
+    mock_count = AsyncMock(side_effect=_mock_supabase_count)
 
     with (
-        patch(
-            "routes.services.supabase_fetch",
-            new_callable=AsyncMock,
-            side_effect=_capturing_fetch,
-        ),
-        patch(
-            "routes.services.supabase_count",
-            new_callable=AsyncMock,
-            side_effect=_mock_supabase_count,
-        ),
+        patch("routes.services.supabase_fetch", mock_fetch),
+        patch("routes.services.supabase_count", mock_count),
     ):
         resp = client.get("/v1/services", params={"limit": 999})
 
-    assert resp.status_code == 200
-    payload = resp.json()["data"]
-    assert payload["limit"] == 500
-    assert payload["offset"] == 0
-    assert len(payload["items"]) == 500
-    assert payload["total"] == 600
-    assert any(
-        path.startswith("services?select=slug,name,category,description")
-        for path in captured_paths
-    )
+    assert resp.status_code == 400
+    payload = resp.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'limit' filter."
+    assert payload["error"]["detail"] == "Provide an integer between 1 and 500."
+    assert mock_fetch.await_count == 0
+    assert mock_count.await_count == 0
 
 
 def test_services_rejects_invalid_category_filter(client) -> None:

@@ -97,6 +97,17 @@ def _validated_service_list_category(
     )
 
 
+def _validated_service_list_limit(limit: int) -> int:
+    if 1 <= limit <= 500:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 500.",
+    )
+
+
 def _public_service_input_slug(service_slug: str | None) -> str:
     return public_service_slug(service_slug) or str(service_slug or "").strip().lower()
 
@@ -372,7 +383,7 @@ def _not_found_response(
 
 @router.get("/services")
 async def list_services(
-    limit: int = Query(default=50, ge=1),
+    limit: int = Query(default=50),
     offset: int = Query(default=0, ge=0),
     category: str | None = Query(default=None),
 ) -> dict:
@@ -382,7 +393,7 @@ async def list_services(
     Scoreless/ghost services are excluded to prevent 404 cascades
     when users click through from search or API results.
     """
-    effective_limit = min(limit, 500)
+    effective_limit = _validated_service_list_limit(limit)
 
     # Fetch the set of slugs that actually have scores.
     scored_rows = await _cached_fetch("scores", "scores?select=service_slug")
