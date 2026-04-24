@@ -90,6 +90,14 @@ _V2_NAVIGATION_URL_KEYS = {
 _VALID_PROVIDER_LIST_STATUSES = frozenset({"callable", "listed", "scored"})
 
 
+def _canonicalize_provider_list_category(category: str | None) -> str | None:
+    if category is None:
+        return None
+
+    normalized = category.strip().lower()
+    return normalized or None
+
+
 # ---------------------------------------------------------------------------
 # Request / response models
 # ---------------------------------------------------------------------------
@@ -274,6 +282,24 @@ def _validated_provider_list_status(status_filter: str | None) -> str | None:
         "INVALID_PARAMETERS",
         message="Invalid 'status' filter.",
         detail="Use one of: callable, listed, scored.",
+    )
+
+
+def _validated_provider_list_category(
+    category: str | None,
+    *,
+    available_categories: set[str],
+) -> str | None:
+    normalized = _canonicalize_provider_list_category(category)
+    if normalized is None:
+        return None
+    if not available_categories or normalized in available_categories:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'category' filter.",
+        detail=f"Use one of: {', '.join(sorted(available_categories))}.",
     )
 
 
@@ -858,22 +884,44 @@ async def list_providers(
             normalized_row["service_slug"] = canonical_slug
             scores_by_slug[canonical_slug] = normalized_row
 
-    providers = []
-    for slug in provider_slugs:
-        detail = _merge_provider_detail(
-            provider_id=slug,
-            service_row=services_by_slug.get(slug),
-            score_row=scores_by_slug.get(slug),
-            direct_mappings=direct_mappings_by_provider.get(slug),
+    merged_provider_details = [
+        detail
+        for slug in provider_slugs
+        if (
+            detail := _merge_provider_detail(
+                provider_id=slug,
+                service_row=services_by_slug.get(slug),
+                score_row=scores_by_slug.get(slug),
+                direct_mappings=direct_mappings_by_provider.get(slug),
+            )
         )
-        if detail is None:
-            continue
-        if category and detail.get("category") != category:
+        is not None
+    ]
+    available_categories = {
+        normalized_category
+        for detail in merged_provider_details
+        if (
+            normalized_category := _canonicalize_provider_list_category(
+                detail.get("category")
+            )
+        )
+    }
+    normalized_category = _validated_provider_list_category(
+        category,
+        available_categories=available_categories,
+    )
+
+    providers = []
+    for detail in merged_provider_details:
+        if normalized_category and _canonicalize_provider_list_category(
+            detail.get("category")
+        ) != normalized_category:
             continue
         if status_filter == "callable" and not detail.get("callable"):
             continue
         if status_filter == "scored" and detail.get("aggregate_recommendation_score") is None:
             continue
+        slug = str(detail.get("slug") or "")
         providers.append({
             "id": detail.get("slug", slug),
             "name": detail.get("name", slug),

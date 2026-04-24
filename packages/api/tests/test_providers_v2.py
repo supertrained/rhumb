@@ -491,6 +491,38 @@ class TestListProviders:
         assert "brave-search-api" in providers_by_id
         assert providers_by_id["brave-search-api"]["an_score"] == 8.6
 
+    def test_list_rejects_invalid_category_filter(self, client):
+        with (
+            patch.dict("routes.providers_v2.SERVICE_REGISTRY", {"openai": {}, "anthropic": {}}, clear=True),
+            patch("routes.providers_v2._all_direct_provider_mappings", return_value=[]),
+            patch("routes.providers_v2.supabase_fetch", new=AsyncMock(side_effect=_mock_supabase_fetch)) as mock_fetch,
+        ):
+            resp = client.get("/v2/providers?category=messaging")
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'category' filter."
+        assert body["error"]["detail"] == "Use one of: ai."
+        assert mock_fetch.await_count == 2
+
+    def test_list_normalizes_category_filter_casing(self, client):
+        with (
+            patch.dict("routes.providers_v2.SERVICE_REGISTRY", {"brave-search": {}}, clear=True),
+            patch("routes.providers_v2._all_direct_provider_mappings", return_value=[]),
+            patch(
+                "routes.providers_v2.supabase_fetch",
+                side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider,
+            ),
+        ):
+            resp = client.get("/v2/providers?category=%20SeArCh%20")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        providers_by_id = {provider["id"]: provider for provider in data["providers"]}
+        assert list(providers_by_id) == ["brave-search-api"]
+        assert providers_by_id["brave-search-api"]["category"] == "search"
+
     def test_list_with_capability_filter_and_status_listed(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
             resp = client.get(f"/v2/providers?capability={_TEST_CAPABILITY}&status=listed")
