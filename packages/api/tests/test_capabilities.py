@@ -3720,6 +3720,62 @@ async def test_support_direct_capability_surfaces_synthetic_provider(app):
 
 
 @pytest.mark.anyio
+async def test_support_direct_capability_ignores_catalog_mapping_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "ticket.search",
+                "domain": "support",
+                "action": "search",
+                "description": "Search support tickets",
+                "input_hint": "support_ref, query",
+                "outcome": "Ticket summaries",
+            }]
+        if path.startswith("capability_services?"):
+            return [{
+                "capability_id": "ticket.search",
+                "service_slug": "stale-support-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-support",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "stale mapping row",
+                "is_primary": True,
+            }]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/ticket.search")
+            resolve_resp = await client.get("/v1/capabilities/ticket.search/resolve")
+            modes_resp = await client.get("/v1/capabilities/ticket.search/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == "zendesk"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == "zendesk"
+    assert get_data["providers"][0]["auth_method"] == "support_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == "zendesk"
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == "support_ref"
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == "zendesk"
+    assert provider["auth_method"] == "support_ref"
+    assert len(provider["modes"]) == 1
+    assert provider["modes"][0]["mode"] == "byok"
+
+
+@pytest.mark.anyio
 async def test_crm_direct_capability_surfaces_synthetic_provider(app):
     """Configured CRM direct capabilities should surface Salesforce first when it is available."""
     with patch(
@@ -3762,6 +3818,59 @@ async def test_crm_direct_capability_surfaces_synthetic_provider(app):
     assert mode_data["providers"][1]["service_slug"] == "hubspot"
     assert mode_data["providers"][0]["modes"][0]["mode"] == "byok"
     assert "RHUMB_CRM_<REF>" in mode_data["providers"][0]["modes"][0]["setup_hint"]
+
+
+@pytest.mark.anyio
+async def test_crm_direct_capability_ignores_catalog_mapping_rows(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [CRM_DIRECT_CAPABILITY]
+        if path.startswith("capability_services?"):
+            return [{
+                "capability_id": "crm.record.search",
+                "service_slug": "stale-crm-proxy",
+                "credential_modes": ["byo"],
+                "auth_method": "api_key",
+                "endpoint_pattern": "/proxy/stale-crm",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": "stale mapping row",
+                "is_primary": True,
+            }]
+        return []
+
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=mock_fetch,
+    ), patch("routes.capabilities.has_any_crm_bundle_configured", return_value=True):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get("/v1/capabilities/crm.record.search")
+            resolve_resp = await client.get("/v1/capabilities/crm.record.search/resolve")
+            modes_resp = await client.get("/v1/capabilities/crm.record.search/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 2
+    assert list_item["top_provider"]["slug"] == "salesforce"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 2
+    assert [provider["service_slug"] for provider in get_data["providers"]] == ["salesforce", "hubspot"]
+    assert get_data["providers"][0]["auth_method"] == "crm_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert [provider["service_slug"] for provider in resolve_data["providers"]] == ["salesforce", "hubspot"]
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == "crm_ref"
+    assert resolve_data["execute_hint"]["preferred_provider"] == "salesforce"
+
+    mode_data = modes_resp.json()["data"]
+    providers = mode_data["providers"]
+    assert [provider["service_slug"] for provider in providers] == ["salesforce", "hubspot"]
+    assert providers[0]["auth_method"] == "crm_ref"
+    assert [mode["mode"] for mode in providers[0]["modes"]] == ["byok"]
 
 
 @pytest.mark.anyio
