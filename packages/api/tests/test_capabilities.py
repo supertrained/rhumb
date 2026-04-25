@@ -275,6 +275,18 @@ WAREHOUSE_DIRECT_CAPABILITY = {
     "outcome": "Query results with dry-run validation metadata",
 }
 
+WAREHOUSE_DIRECT_CAPABILITY_FIXTURES = {
+    "warehouse.query.read": WAREHOUSE_DIRECT_CAPABILITY,
+    "warehouse.schema.describe": {
+        "id": "warehouse.schema.describe",
+        "domain": "warehouse",
+        "action": "schema_describe",
+        "description": "Inspect BigQuery dataset and table schema metadata",
+        "input_hint": "warehouse_ref, dataset_id, table_id (optional)",
+        "outcome": "Dataset and table schema metadata",
+    },
+}
+
 DEPLOYMENT_DIRECT_CAPABILITY = {
     "id": "deployment.list",
     "domain": "deployment",
@@ -284,6 +296,18 @@ DEPLOYMENT_DIRECT_CAPABILITY = {
     "outcome": "Deployment summaries for the allowed Vercel projects",
 }
 
+DEPLOYMENT_DIRECT_CAPABILITY_FIXTURES = {
+    "deployment.list": DEPLOYMENT_DIRECT_CAPABILITY,
+    "deployment.get": {
+        "id": "deployment.get",
+        "domain": "deployment",
+        "action": "get",
+        "description": "Fetch one deployment from a bounded Vercel project scope",
+        "input_hint": "deployment_ref, deployment_id",
+        "outcome": "Deployment metadata and bounded failure summary",
+    },
+}
+
 ACTIONS_DIRECT_CAPABILITY = {
     "id": "workflow_run.list",
     "domain": "actions",
@@ -291,6 +315,18 @@ ACTIONS_DIRECT_CAPABILITY = {
     "description": "List recent workflow runs from a bounded GitHub repository scope",
     "input_hint": "actions_ref, repository, workflow_id (optional), status (optional)",
     "outcome": "Workflow run summaries for the allowed repositories",
+}
+
+ACTIONS_DIRECT_CAPABILITY_FIXTURES = {
+    "workflow_run.list": ACTIONS_DIRECT_CAPABILITY,
+    "workflow_run.get": {
+        "id": "workflow_run.get",
+        "domain": "actions",
+        "action": "get",
+        "description": "Fetch one workflow run from a bounded GitHub repository scope",
+        "input_hint": "actions_ref, repository, run_id",
+        "outcome": "Workflow run metadata for the allowed repository",
+    },
 }
 
 OBJECT_STORAGE_DIRECT_CAPABILITIES = [
@@ -3743,6 +3779,91 @@ async def test_object_storage_direct_capability_ignores_catalog_mapping_rows(app
     assert provider["auth_method"] == "storage_ref"
     assert len(provider["modes"]) == 1
     assert provider["modes"][0]["mode"] == "byok"
+
+
+@pytest.mark.parametrize(
+    ("capability", "expected_provider_slug", "expected_auth_method", "stale_proxy_slug"),
+    [
+        (
+            WAREHOUSE_DIRECT_CAPABILITY_FIXTURES["warehouse.schema.describe"],
+            "bigquery",
+            "warehouse_ref",
+            "stale-warehouse-proxy",
+        ),
+        (
+            DEPLOYMENT_DIRECT_CAPABILITY_FIXTURES["deployment.get"],
+            "vercel",
+            "deployment_ref",
+            "stale-deployment-proxy",
+        ),
+        (
+            ACTIONS_DIRECT_CAPABILITY_FIXTURES["workflow_run.get"],
+            "github",
+            "actions_ref",
+            "stale-actions-proxy",
+        ),
+        (OBJECT_STORAGE_DIRECT_CAPABILITIES[1], "aws-s3", "storage_ref", "stale-object-proxy"),
+        (OBJECT_STORAGE_DIRECT_CAPABILITIES[2], "aws-s3", "storage_ref", "stale-object-proxy"),
+    ],
+)
+@pytest.mark.anyio
+async def test_remaining_direct_sibling_capabilities_ignore_catalog_mapping_rows(
+    app,
+    capability: dict[str, str],
+    expected_provider_slug: str,
+    expected_auth_method: str,
+    stale_proxy_slug: str,
+):
+    capability_id = capability["id"]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [capability]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "capability_id": capability_id,
+                    "service_slug": stale_proxy_slug,
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": f"/proxy/{stale_proxy_slug}",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                    "notes": "stale mapping row",
+                    "is_primary": True,
+                }
+            ]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get(f"/v1/capabilities/{capability_id}")
+            resolve_resp = await client.get(f"/v1/capabilities/{capability_id}/resolve")
+            modes_resp = await client.get(f"/v1/capabilities/{capability_id}/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["id"] == capability_id
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == expected_provider_slug
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == expected_provider_slug
+    assert get_data["providers"][0]["auth_method"] == expected_auth_method
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == expected_provider_slug
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == expected_auth_method
+    assert resolve_data["execute_hint"]["preferred_provider"] == expected_provider_slug
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == expected_provider_slug
+    assert provider["auth_method"] == expected_auth_method
+    assert [mode["mode"] for mode in provider["modes"]] == ["byok"]
 
 
 @pytest.mark.anyio
