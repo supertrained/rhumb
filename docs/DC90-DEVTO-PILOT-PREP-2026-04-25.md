@@ -6,6 +6,7 @@ Prepared by: Pedro
 Runtime review: Helm pass received 2026-04-25
 Claim review: Keel pass received 2026-04-25 after tightening the `search.query` scope and per-call-constraint wording
 Publication state: **internal prep only — not published**
+Final draft: `docs/DC90-DEVTO-QUICKSTART-PILOT-DRAFT-2026-04-25.md` (Keel final copy review passed 2026-04-25 after one scope-tightening edit)
 
 ## Decision
 
@@ -150,4 +151,4 @@ Keel should review the adapted DEV.to draft for:
 
 ## Current next step
 
-Beacon can adapt this into one DEV.to pilot post after Keel clears the final copy. Do not start a syndication wave until this pilot is published, watched, and measured.
+Beacon now has a DEV.to-ready final-copy draft at `docs/DC90-DEVTO-QUICKSTART-PILOT-DRAFT-2026-04-25.md`, and Keel passed the final copy after one scope-tightening edit. Do not start a syndication wave until this pilot is published, watched, and measured.

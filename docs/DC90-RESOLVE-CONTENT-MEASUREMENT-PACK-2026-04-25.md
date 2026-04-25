@@ -217,12 +217,12 @@ Beacon can call the measurement run complete when:
 
 ## Pilot prep status
 
-The first selected external pilot is brief 3: **Three-line web-search Resolve quickstart**. Pedro prepared `docs/DC90-DEVTO-PILOT-PREP-2026-04-25.md` with a DEV.to skeleton, snippet block, claim boundaries, and Helm's hosted API validation notes.
+The first selected external pilot is brief 3: **Three-line web-search Resolve quickstart**. Pedro prepared `docs/DC90-DEVTO-PILOT-PREP-2026-04-25.md` with a DEV.to skeleton, snippet block, claim boundaries, and Helm's hosted API validation notes. The DEV.to-ready draft now lives at `docs/DC90-DEVTO-QUICKSTART-PILOT-DRAFT-2026-04-25.md`; Keel passed the final copy on 2026-04-25 after one scope-tightening edit.
 
 Helm pass summary: `resolve` and `estimate` work as anonymous preflight reads; `execute` requires a paid/authorized rail; the dogfood governed key executed through `brave-search-api` in `rhumb_managed` mode. Keep the external copy explicit that `estimate` can differ from the top provider listed by `resolve` because it represents the concrete execution rail before spend.
 
 ## Open follow-ups
 
-- Beacon should adapt the selected quickstart prep into exactly one DEV.to pilot post, not a wave.
-- Keel should review the final adapted DEV.to copy before external distribution.
+- Beacon can use `docs/DC90-DEVTO-QUICKSTART-PILOT-DRAFT-2026-04-25.md` as the final-copy source for exactly one DEV.to pilot post, not a wave.
+- Keel has passed the final adapted DEV.to copy; re-review only if Beacon changes the copy before external distribution.
 - Beacon should decide the five LLM/search surfaces for Month 1 and store raw artifacts in a durable folder before summarizing.
