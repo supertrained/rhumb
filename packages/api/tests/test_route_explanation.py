@@ -380,6 +380,38 @@ class TestSerialization:
         assert len(d["candidates"]) == 3
         assert isinstance(d["human_summary"], str)
 
+    def test_to_dict_exposes_public_route_factor_contract(self):
+        exp = build_explanation(
+            capability_id="ai.generate_text",
+            mappings=_make_mappings(),
+            scores_by_slug=_make_scores(),
+            circuit_states={"openai": "closed", "anthropic": "open", "google-ai": "closed"},
+            selected_provider="openai",
+            policy_deny=["google-ai"],
+            max_cost_usd=0.05,
+        )
+        d = exp.to_dict()
+
+        candidate = d["candidates"][0]
+        assert set(candidate["factors"].keys()) == {
+            "an_score",
+            "availability",
+            "estimated_cost",
+            "latency",
+            "credential_mode",
+        }
+        assert set(candidate["policy_checks"].keys()) == {
+            "pinned",
+            "denied",
+            "cost_ceiling_ok",
+            "quality_floor_ok",
+            "circuit_healthy",
+            "allow_list_ok",
+        }
+        assert d["winner"]["selection_reason"] == "highest_composite_score_within_policy"
+        assert d["policy_active"] is True
+        assert d["strategy"] == "balanced"
+
     def test_to_compact(self):
         exp = build_explanation(
             capability_id="ai.generate_text",

@@ -100,7 +100,7 @@ const BUYER_PATHS = [
     summary: "Start with governed API key unless you have a strong reason not to.",
     steps: [
       "Create an account and get X-Rhumb-Key.",
-      "Check the active execution rail, health, and cost before execution.",
+      "Check the active execution rail, availability, and cost before execution.",
       "Execute through Layer 2 with Rhumb-managed routing and billing.",
     ],
     href: "/auth/login",
@@ -137,7 +137,7 @@ const FAQ = [
   },
   {
     q: "Does Resolve just follow the top score?",
-    a: "No. AN Score is a major routing input, not the only one. Resolve chooses the best-fit supported provider for the call using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit constraints.",
+    a: "No. AN Score is a major routing input, not the only one. Resolve chooses the best-fit supported provider for the call by first matching the supported capability path, then using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints.",
   },
   {
     q: "Can I pick the provider path myself?",
@@ -145,7 +145,7 @@ const FAQ = [
   },
   {
     q: "Which rail should most buyers start with?",
-    a: "Start with the governed API key unless you specifically need wallet identity or per-request payment authorization. It is the default production path because it keeps repeat traffic on the stable X-Rhumb-Key execution header, gives you route, health, and cost checks before execution, and simplifies repeat-traffic operations.",
+    a: "Start with the governed API key unless you specifically need wallet identity or per-request payment authorization. It is the default production path because it keeps repeat traffic on the stable X-Rhumb-Key execution header, gives you route, availability, and cost checks before execution, and simplifies repeat-traffic operations.",
   },
   {
     q: "What is the difference between governed API key, wallet-prefund, and x402?",
@@ -190,10 +190,10 @@ const agentContext =
 
 <Layout
   title="Pricing"
-  description="Discovery is free. Execution is per call. Resolve routes each call to the best-fit provider for the call based on AN Score, capability fit, availability, credential mode, cost, and explicit constraints."
+  description="Discovery is free. Execution is per call. Resolve routes each call to the best-fit provider for the call based on supported capability matching, AN Score, availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints."
   canonical="/pricing"
   ogTitle="Pricing - Rhumb"
-  ogDescription="Discovery is free. Execution is per call. Know the route, health, and cost before execution."
+  ogDescription="Discovery is free. Execution is per call. Know the route, availability, and cost before execution."
   ogUrl="https://rhumb.dev/pricing"
   jsonLdBlocks={[PRICING_JSON_LD, PRICING_FAQ_JSON_LD]}
   agentContext={agentContext}
@@ -204,10 +204,10 @@ const agentContext =
         <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Pricing</p>
         <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
           Discovery is free. Execution is per call.
-          <span class="block text-slate-400 mt-2">Know the route, health, and cost before execution.</span>
+          <span class="block text-slate-400 mt-2">Know the route, availability, and cost before execution.</span>
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
-          Discovery, scoring, and browsing are always free. When your agent runs a supported capability through Rhumb Resolve, you pay per call. Resolve routes each call to the best-fit provider for the call based on AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit constraints.
+          Discovery, scoring, and browsing are always free. When your agent runs a supported capability through Rhumb Resolve, you pay per call. Resolve routes each call to the best-fit provider for the call after matching the supported capability path, based on AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints.
         </p>
         <p class="mt-4 text-base text-slate-500 leading-relaxed max-w-3xl">
           Want direct control instead? You can still pin the provider path yourself when that is the better execution shape.
@@ -240,13 +240,13 @@ const agentContext =
             <div class="rounded-xl border border-slate-800 bg-navy p-5">
               <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">What you are paying for</p>
               <p class="text-sm leading-6 text-slate-300">
-                The main paid surface today is <strong class="text-slate-100">Layer 2 capability routing</strong>: discover a Service, choose a Capability, check the route, health, and cost, then execute.
+                The main paid surface today is <strong class="text-slate-100">Layer 2 capability routing</strong>: discover a Service, choose a Capability, check the route, availability, and cost, then execute.
               </p>
             </div>
             <div class="rounded-xl border border-slate-800 bg-navy p-5">
               <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">What decides the route</p>
               <p class="text-sm leading-6 text-slate-300">
-                Resolve considers <strong class="text-slate-100">AN Score</strong>, capability fit, provider availability, credential mode, estimated cost, and explicit constraints before execution.
+                Resolve considers <strong class="text-slate-100">AN Score</strong>, supported capability matching, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints before execution.
               </p>
               <p class="mt-2 text-sm leading-6 text-slate-400">
                 Or pin the provider path explicitly when direct control matters more than automatic routing.
@@ -498,7 +498,7 @@ const agentContext =
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-400">
             Rhumb handles credentials, routing, supported fallback, and billing. You get route,
-            health, and cost checks before execution, best-fit-per-call routing, and fail-closed execution safety. Pay per call, no commitments.
+            availability, and cost checks before execution, best-fit-per-call routing, and fail-closed execution safety. Pay per call, no commitments.
           </p>
           <dl class="mt-5 space-y-3 text-sm">
             <div class="flex justify-between gap-4">
@@ -507,7 +507,7 @@ const agentContext =
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-slate-500">Pricing</dt>
-              <dd class="text-slate-200">Per-call, with route, health, and cost checks before execution</dd>
+              <dd class="text-slate-200">Per-call, with route, availability, and cost checks before execution</dd>
             </div>
             <div class="flex justify-between gap-4">
               <dt class="text-slate-500">Best for</dt>
@@ -645,7 +645,7 @@ const agentContext =
           <h2 class="font-display text-2xl font-bold text-slate-100">For agents and automation</h2>
           <p class="mt-3 text-slate-400 leading-7">
             The canonical machine-readable source remains public. Resolve the pricing contract,
-            then call the estimate endpoint for route, health, and exact per-call numbers before you run anything.
+            then call the estimate endpoint for route, availability, and exact per-call numbers before you run anything.
           </p>
           <div class="mt-5 space-y-4">
             <div class="bg-elevated rounded-xl border border-slate-800 p-4">
@@ -666,7 +666,7 @@ const agentContext =
         >
           <h2 class="font-display text-xl font-semibold text-slate-100">What you get</h2>
           <ul class="mt-4 space-y-3 text-sm text-slate-400 leading-6">
-            <li>Route, health, and cost checks before execution — know the path and price before you execute.</li>
+            <li>Route, availability, and cost checks before execution — know the path and price before you execute.</li>
             <li>Best-fit provider routing — Resolve routes each call to the best-fit provider for the call.</li>
             <li>Fail-closed billing — you're never charged for failed calls.</li>
           </ul>

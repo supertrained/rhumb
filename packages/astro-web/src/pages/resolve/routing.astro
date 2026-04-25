@@ -4,41 +4,51 @@ import { PUBLIC_TRUTH } from "../../lib/public-truth";
 
 const routeFactors = [
   {
+    label: "Candidate set",
+    title: "Supported capability path",
+    body: "Resolve first narrows the route to providers mapped to the requested capability. That is the candidate filter; it is not hidden as a generic quality score.",
+  },
+  {
     label: "Quality prior",
     title: "AN Score",
     body: "The public score is the starting signal. It tells Resolve which services are broadly agent-compatible, but it does not force every call to follow the global leaderboard.",
   },
   {
-    label: "Task fit",
-    title: "Capability match",
-    body: "Resolve checks which supported provider is strongest for the requested job: search, extraction, generation, enrichment, or a more specific capability path.",
+    label: "Runtime condition",
+    title: "Availability / circuit state",
+    body: "The route explanation exposes availability as the provider circuit state. Today the latency factor is also derived from that circuit state until richer runtime telemetry is used.",
   },
   {
-    label: "Live condition",
-    title: "Availability and health",
-    body: "Route condition, circuit state, recent failures, and readiness can outweigh raw rank for a specific execution.",
+    label: "Price signal",
+    title: "Estimated cost",
+    body: "Candidate routes carry estimated cost, and a max-cost policy can make an otherwise valid provider ineligible before execution.",
   },
   {
-    label: "Control plane",
-    title: "Credentials and constraints",
-    body: "Credential mode, budget ceilings, allow/deny policy, and explicit pins shape the honest route. Agents can also pin the provider path when direct control is the point.",
+    label: "Credential boundary",
+    title: "Credential mode",
+    body: "The route reflects whether the supported provider path can run through Rhumb-managed credentials, BYOK, or Agent Vault for the requested call.",
+  },
+  {
+    label: "Operator control",
+    title: "Explicit policy constraints",
+    body: "Pins, allow lists, deny lists, cost ceilings, and explicit provider choice shape the honest route. If a policy changes the answer, the explanation should say so.",
   },
 ];
 
 const routeExamples = [
   {
-    job: "Find fresh company context",
-    automatic: "Resolve can favor a provider with stronger current-web coverage, even if another service has the better broad score.",
+    job: "Search company context",
+    automatic: "Resolve can choose among providers mapped to the web-search capability using AN Score, availability / circuit state, estimated cost, credential mode, and policy constraints — not raw leaderboard order alone.",
     explicit: "If your agent needs a specific provider, it can pin that supported path directly instead of asking Resolve to choose.",
   },
   {
     job: "Extract structured data",
-    automatic: "Resolve can route toward the provider that fits extraction quality and schema reliability, not just the generic top-ranked API.",
+    automatic: "Resolve can route among supported extraction providers only after they are in the capability candidate set, then explain the runtime factors that affected the selected provider.",
     explicit: "If your workflow already standardized on a provider, keep that control and use Rhumb for governed execution, cost checks, and receipts.",
   },
   {
     job: "Use a private workspace",
-    automatic: "Resolve should not pretend Rhumb-managed routing is always right when the job touches your own systems or compliance boundary.",
+    automatic: "Resolve should not pretend Rhumb-managed routing is always right when the job touches your own systems, private data, or compliance boundary.",
     explicit: "Use BYOK or Agent Vault so the agent can execute with the provider path and credential boundary you choose.",
   },
 ];
@@ -48,6 +58,11 @@ const receiptFields = [
   "winner.provider_id",
   "winner.selection_reason",
   "candidates[].factors",
+  "candidates[].factors.an_score",
+  "candidates[].factors.availability",
+  "candidates[].factors.estimated_cost",
+  "candidates[].factors.latency",
+  "candidates[].factors.credential_mode",
   "candidates[].policy_checks",
   "candidates[].ineligible_reason",
   "policy_active",
@@ -61,7 +76,7 @@ const routingJsonLdBlocks = [
     name: "How Rhumb Resolve routes calls",
     url: "https://rhumb.dev/resolve/routing",
     description:
-      "How Rhumb Resolve chooses the best-fit provider for a supported capability call using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints while still allowing explicit provider choice.",
+      "How Rhumb Resolve chooses the best-fit provider for a supported capability call by first matching the supported capability path, then using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints while still allowing explicit provider choice.",
     isPartOf: {
       "@type": "WebSite",
       name: "Rhumb",
@@ -77,7 +92,7 @@ const routingJsonLdBlocks = [
         name: "Does Rhumb Resolve simply follow the top AN Score?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "No. AN Score is a major quality prior, but Resolve routes by task fit. It considers capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints.",
+          text: "No. AN Score is a major quality prior, but Resolve routes by task fit. It first matches the supported capability path, then considers provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints.",
         },
       },
       {
@@ -93,12 +108,12 @@ const routingJsonLdBlocks = [
 ];
 
 const agentContext =
-  "How Rhumb Resolve routes calls: Index ranks services with AN Score. Resolve routes supported calls to the best-fit provider for the task by default, using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints. Agents can also explicitly pin the supported provider or tool path when direct control is better.";
+  "How Rhumb Resolve routes calls: Index ranks services with AN Score. Resolve routes supported calls to the best-fit provider for the task by first matching the supported capability path, then using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints. Agents can also explicitly pin the supported provider or tool path when direct control is better.";
 ---
 
 <Layout
   title="How Resolve routes calls | Rhumb"
-  description="Rhumb Resolve routes by task fit, not leaderboard purity. See how AN Score, capability fit, availability, credential mode, cost, and explicit agent choice shape each route."
+  description="Rhumb Resolve routes by task fit, not leaderboard purity. See how supported capability matching, AN Score, availability / circuit state, estimated cost, credential mode, latency proxy, and explicit agent choice shape each route."
   canonical="/resolve/routing"
   ogTitle="How Rhumb Resolve routes calls"
   ogDescription="Index ranks. Resolve routes. How Rhumb chooses the best-fit provider for the call while preserving explicit agent control."
@@ -117,7 +132,7 @@ const agentContext =
             Resolve routes for the task, not the leaderboard.
           </h1>
           <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            Index ranks the field. Resolve routes the call. AN Score is a major quality prior, but the final route depends on what the agent is trying to accomplish, which provider routes are available, what credentials are available, and what constraints the operator set.
+            Index ranks the field. Resolve routes the call. AN Score is a major quality prior, but the final route depends on which providers support the requested capability path, which provider routes are available, what the estimated cost is, what credentials are available, and what constraints the operator set.
           </p>
           <p class="mt-4 max-w-3xl text-base leading-7 text-slate-400">
             The agent gets both modes: say what you want done and let Resolve choose, or pin directly when control is better. Agents can also pin the supported provider path explicitly when they want direct control.
@@ -151,7 +166,7 @@ const agentContext =
           <p class="text-xs font-mono uppercase tracking-[0.28em] text-emerald-300">Route explanation</p>
           <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-slate-100">What a route needs to explain</h2>
           <p class="mt-4 text-sm leading-7 text-slate-400">
-            A useful routing explanation should not just name a provider. It should show the selected path, material factors, policy checks, credential boundary, and whether the agent chose the provider explicitly or asked Resolve to choose.
+            A useful routing explanation should not just name a provider. It should show the selected path, material factors, policy checks, credential boundary, and whether the agent chose the provider explicitly or asked Resolve to choose. The current public explanation shape is the one produced by the v2 RouteExplanation runtime.
           </p>
         </div>
         <div class="rounded-[28px] border border-slate-800 bg-navy/80 p-6">

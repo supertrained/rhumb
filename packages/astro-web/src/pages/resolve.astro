@@ -6,7 +6,7 @@ const heroCards = [
   {
     title: "Best-fit routing",
     body:
-      "Index publishes the AN Score. Resolve uses that score as a major input, then routes the call based on capability fit, provider availability, credential mode, estimated cost, and explicit constraints.",
+      "Index publishes the AN Score. Resolve first matches the supported capability path, then routes the call using AN Score as a major input alongside provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints.",
   },
   {
     title: "Intent-first or explicit control",
@@ -131,7 +131,7 @@ const faqItems = [
   {
     question: "Does Resolve just follow the top score?",
     answer:
-      "No. AN Score is a major routing input, not the only one. Resolve chooses the best-fit supported provider for the call using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit constraints.",
+      "No. AN Score is a major routing input, not the only one. Resolve chooses the best-fit supported provider for the call by first matching the supported capability path, then using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints.",
   },
   {
     question: "Can I pick the provider or tool path myself?",
@@ -156,7 +156,7 @@ const resolveJsonLdBlocks = [
     name: "Resolve | Rhumb",
     url: "https://rhumb.dev/resolve",
     description:
-      "Rhumb Resolve is a governed execution layer for AI agents that routes each supported call to the best-fit provider for the call using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints.",
+      "Rhumb Resolve is a governed execution layer for AI agents that routes each supported call to the best-fit provider for the call by first matching the supported capability path, then using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints.",
   },
   {
     "@context": "https://schema.org",
@@ -196,15 +196,15 @@ const resolveJsonLdBlocks = [
 ];
 
 const agentContext =
-  `Rhumb Resolve is Rhumb’s governed execution layer for AI agents. Agents can tell Resolve the job they want done or explicitly pin the supported provider path they want. By default, Resolve routes supported capability calls to the best-fit provider for the call using AN Score as a major input alongside capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints. Current launchable scope is ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}.`;
+  `Rhumb Resolve is Rhumb’s governed execution layer for AI agents. Agents can tell Resolve the job they want done or explicitly pin the supported provider path they want. By default, Resolve first matches the supported capability path, then routes supported calls to the best-fit provider using AN Score as a major input alongside provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints. Current launchable scope is ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}.`;
 ---
 
 <Layout
   title="Resolve | Governed execution for AI agents"
-  description="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using AN Score, capability fit, availability, credential mode, cost, and explicit constraints."
+  description="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using supported capability matching, AN Score, availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints."
   canonical="/resolve"
   ogTitle="Resolve | Governed execution for AI agents"
-  ogDescription="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using AN Score, capability fit, availability, credential mode, cost, and explicit constraints."
+  ogDescription="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using supported capability matching, AN Score, availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints."
   ogUrl="https://rhumb.dev/resolve"
   jsonLdBlocks={resolveJsonLdBlocks}
   agentContext={agentContext}

@@ -29,7 +29,7 @@ const notClaims = [
 
 const lifecycle = [
   { step: "01", title: "Find the service or capability", body: "Use Index when you need vendor intelligence. Use capability discovery when you know the job but not the provider path." },
-  { step: "02", title: "Estimate the route", body: "Check readiness, credential mode, price, provider fit, and the explainable route before the agent spends money or touches a system." },
+  { step: "02", title: "Estimate the route", body: "Check readiness, credential mode, price, provider availability, cost, credentials, and the explainable route before the agent spends money or touches a system." },
   { step: "03", title: "Execute with receipts", body: "Call through governed API key, wallet-prefund, x402, BYOK, or Agent Vault depending on the job and trust boundary." },
   { step: "04", title: "Inspect and constrain", body: "Use spend, budgets, route explanations, and provider attribution so repeat agent traffic stays operable." },
 ];
@@ -67,7 +67,7 @@ const jsonLdBlocks = [
   },
 ];
 
-const agentContext = "What is Rhumb Resolve? Resolve is governed execution for AI agents. Index ranks the field. Resolve routes supported calls by task fit using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints, while preserving explicit provider pinning.";
+const agentContext = "What is Rhumb Resolve? Resolve is governed execution for AI agents. Index ranks the field. Resolve first matches the supported capability path, then routes supported calls by task fit using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints while preserving explicit provider pinning.";
 ---
 
 <Layout
