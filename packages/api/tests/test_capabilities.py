@@ -329,6 +329,77 @@ CRM_DIRECT_CAPABILITY = {
     "outcome": "CRM record summaries",
 }
 
+SUPPORT_DIRECT_CAPABILITY_FIXTURES = {
+    "ticket.search": {
+        "id": "ticket.search",
+        "domain": "support",
+        "action": "search",
+        "description": "Search support tickets",
+        "input_hint": "support_ref, query",
+        "outcome": "Ticket summaries",
+    },
+    "ticket.get": {
+        "id": "ticket.get",
+        "domain": "support",
+        "action": "get",
+        "description": "Fetch a support ticket",
+        "input_hint": "support_ref, ticket_id",
+        "outcome": "Ticket details",
+    },
+    "ticket.list_comments": {
+        "id": "ticket.list_comments",
+        "domain": "support",
+        "action": "list_comments",
+        "description": "List support ticket comments",
+        "input_hint": "support_ref, ticket_id",
+        "outcome": "Ticket comments",
+    },
+    "conversation.list": {
+        "id": "conversation.list",
+        "domain": "support",
+        "action": "list",
+        "description": "List support conversations",
+        "input_hint": "support_ref, limit",
+        "outcome": "Conversation summaries",
+    },
+    "conversation.get": {
+        "id": "conversation.get",
+        "domain": "support",
+        "action": "get",
+        "description": "Fetch a support conversation",
+        "input_hint": "support_ref, conversation_id",
+        "outcome": "Conversation details",
+    },
+    "conversation.list_parts": {
+        "id": "conversation.list_parts",
+        "domain": "support",
+        "action": "list_parts",
+        "description": "List support conversation parts",
+        "input_hint": "support_ref, conversation_id",
+        "outcome": "Conversation parts",
+    },
+}
+
+CRM_DIRECT_CAPABILITY_FIXTURES = {
+    "crm.object.describe": {
+        "id": "crm.object.describe",
+        "domain": "crm",
+        "action": "object.describe",
+        "description": "Describe CRM object properties",
+        "input_hint": "crm_ref, object_type",
+        "outcome": "Object property metadata",
+    },
+    "crm.record.search": CRM_DIRECT_CAPABILITY,
+    "crm.record.get": {
+        "id": "crm.record.get",
+        "domain": "crm",
+        "action": "record.get",
+        "description": "Fetch one CRM record with explicit object and property scope",
+        "input_hint": "crm_ref, object_type, record_id, property_names (optional)",
+        "outcome": "CRM record details",
+    },
+}
+
 
 def _mock_supabase(path: str):
     """Route supabase_fetch calls to sample data based on table name."""
@@ -472,14 +543,7 @@ def _mock_crm_direct_supabase(path: str):
 
 
 def _mock_support_direct_supabase(path: str):
-    support_capability = {
-        "id": "ticket.search",
-        "domain": "support",
-        "action": "search",
-        "description": "Search support tickets",
-        "input_hint": "support_ref, query",
-        "outcome": "Ticket summaries",
-    }
+    support_capability = SUPPORT_DIRECT_CAPABILITY_FIXTURES["ticket.search"]
     if path.startswith("capabilities?"):
         if "id=eq.ticket.search" in path:
             return [support_capability]
@@ -3852,6 +3916,136 @@ async def test_crm_direct_capability_ignores_catalog_mapping_rows(app):
             modes_resp = await client.get("/v1/capabilities/crm.record.search/credential-modes")
 
     list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["provider_count"] == 2
+    assert list_item["top_provider"]["slug"] == "salesforce"
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 2
+    assert [provider["service_slug"] for provider in get_data["providers"]] == ["salesforce", "hubspot"]
+    assert get_data["providers"][0]["auth_method"] == "crm_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert [provider["service_slug"] for provider in resolve_data["providers"]] == ["salesforce", "hubspot"]
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == "crm_ref"
+    assert resolve_data["execute_hint"]["preferred_provider"] == "salesforce"
+
+    mode_data = modes_resp.json()["data"]
+    providers = mode_data["providers"]
+    assert [provider["service_slug"] for provider in providers] == ["salesforce", "hubspot"]
+    assert providers[0]["auth_method"] == "crm_ref"
+    assert [mode["mode"] for mode in providers[0]["modes"]] == ["byok"]
+
+
+@pytest.mark.parametrize(
+    ("capability_id", "provider_slug"),
+    [
+        ("ticket.get", "zendesk"),
+        ("ticket.list_comments", "zendesk"),
+        ("conversation.list", "intercom"),
+        ("conversation.get", "intercom"),
+        ("conversation.list_parts", "intercom"),
+    ],
+)
+@pytest.mark.anyio
+async def test_support_sibling_direct_capabilities_ignore_catalog_mapping_rows(
+    app,
+    capability_id: str,
+    provider_slug: str,
+):
+    capability = SUPPORT_DIRECT_CAPABILITY_FIXTURES[capability_id]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [capability]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "capability_id": capability_id,
+                    "service_slug": "stale-support-proxy",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "/proxy/stale-support",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                    "notes": "stale mapping row",
+                    "is_primary": True,
+                }
+            ]
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get(f"/v1/capabilities/{capability_id}")
+            resolve_resp = await client.get(f"/v1/capabilities/{capability_id}/resolve")
+            modes_resp = await client.get(f"/v1/capabilities/{capability_id}/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["id"] == capability_id
+    assert list_item["provider_count"] == 1
+    assert list_item["top_provider"]["slug"] == provider_slug
+
+    get_data = get_resp.json()["data"]
+    assert get_data["provider_count"] == 1
+    assert get_data["providers"][0]["service_slug"] == provider_slug
+    assert get_data["providers"][0]["auth_method"] == "support_ref"
+
+    resolve_data = resolve_resp.json()["data"]
+    assert resolve_data["providers"][0]["service_slug"] == provider_slug
+    assert resolve_data["providers"][0]["credential_modes"] == ["byok"]
+    assert resolve_data["providers"][0]["auth_method"] == "support_ref"
+    assert resolve_data["execute_hint"]["preferred_provider"] == provider_slug
+
+    mode_data = modes_resp.json()["data"]
+    provider = mode_data["providers"][0]
+    assert provider["service_slug"] == provider_slug
+    assert provider["auth_method"] == "support_ref"
+    assert [mode["mode"] for mode in provider["modes"]] == ["byok"]
+
+
+@pytest.mark.parametrize("capability_id", ["crm.object.describe", "crm.record.get"])
+@pytest.mark.anyio
+async def test_crm_sibling_direct_capabilities_ignore_catalog_mapping_rows(
+    app,
+    capability_id: str,
+):
+    capability = CRM_DIRECT_CAPABILITY_FIXTURES[capability_id]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [capability]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "capability_id": capability_id,
+                    "service_slug": "stale-crm-proxy",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "/proxy/stale-crm",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": None,
+                    "notes": "stale mapping row",
+                    "is_primary": True,
+                }
+            ]
+        return []
+
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=mock_fetch,
+    ), patch("routes.capabilities.has_any_crm_bundle_configured", return_value=True):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            list_resp = await client.get("/v1/capabilities")
+            get_resp = await client.get(f"/v1/capabilities/{capability_id}")
+            resolve_resp = await client.get(f"/v1/capabilities/{capability_id}/resolve")
+            modes_resp = await client.get(f"/v1/capabilities/{capability_id}/credential-modes")
+
+    list_item = list_resp.json()["data"]["items"][0]
+    assert list_item["id"] == capability_id
     assert list_item["provider_count"] == 2
     assert list_item["top_provider"]["slug"] == "salesforce"
 
