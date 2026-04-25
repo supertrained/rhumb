@@ -195,6 +195,11 @@ const resolveJsonLdBlocks = [
   },
 ];
 
+
+const readinessCurl = `curl -sS \
+  -H "X-Rhumb-Client: web" \
+  "https://api.rhumb.dev/v1/capabilities/email.send/resolve"`;
+
 const agentContext =
   `Rhumb Resolve is Rhumb’s governed execution layer for AI agents. Agents can tell Resolve the job they want done or explicitly pin the supported provider path they want. By default, Resolve first matches the supported capability path, then routes supported calls to the best-fit provider using AN Score as a major input alongside provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints. Current launchable scope is ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}.`;
 ---
@@ -246,6 +251,19 @@ const agentContext =
             <a data-rhumb-propagate href="/capabilities" class="px-5 py-3 rounded-xl border border-slate-700 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">
               Browse capabilities
             </a>
+          </div>
+          <div class="mt-8 overflow-hidden rounded-2xl border border-emerald-500/20 bg-slate-950/80 shadow-[0_24px_80px_rgba(2,6,23,0.3)]">
+            <div class="flex flex-col gap-2 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">First executable proof</p>
+                <p class="mt-1 text-sm text-slate-300">Try the no-auth readiness check before execution.</p>
+              </div>
+              <span class="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.2em] text-emerald-200">read-only</span>
+            </div>
+            <pre class="overflow-x-auto px-5 py-4 text-sm leading-6 text-slate-200"><code>{readinessCurl}</code></pre>
+            <div class="border-t border-white/10 px-5 py-4 text-sm leading-6 text-slate-400">
+              This returns provider readiness for <code class="rounded bg-navy px-1.5 py-0.5 font-mono text-amber">email.send</code> before any side effect. Use it to inspect the route, credential modes, circuit state, and execute readiness before choosing a paid execution rail.
+            </div>
           </div>
         </div>
 
