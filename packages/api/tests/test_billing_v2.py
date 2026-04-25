@@ -73,7 +73,10 @@ def test_events_invalid_event_type_uses_explicit_invalid_parameters():
     from app import create_app
     from fastapi.testclient import TestClient
 
-    with patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+    with (
+        patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.billing_v2.get_billing_event_stream") as mock_stream,
+    ):
         resp = TestClient(create_app()).get(
             "/v2/billing/events?event_type=not-real",
             headers={"X-Rhumb-Key": "rk_test"},
@@ -84,13 +87,39 @@ def test_events_invalid_event_type_uses_explicit_invalid_parameters():
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'event_type' filter."
     assert "execution.charged" in body["error"]["detail"]
+    mock_stream.assert_not_called()
+
+
+def test_events_normalizes_event_type_filter_before_query():
+    from app import create_app
+    from fastapi.testclient import TestClient
+    from services.billing_events import BillingEventType
+
+    mock_stream = MagicMock()
+    mock_stream.query.return_value = []
+
+    with (
+        patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.billing_v2.get_billing_event_stream", return_value=mock_stream),
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/billing/events?event_type=%20EXECUTION.CHARGED%20",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    mock_stream.query.assert_called_once()
+    assert mock_stream.query.call_args.kwargs["event_type"] is BillingEventType.EXECUTION_CHARGED
 
 
 def test_events_invalid_since_uses_explicit_invalid_parameters():
     from app import create_app
     from fastapi.testclient import TestClient
 
-    with patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+    with (
+        patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.billing_v2.get_billing_event_stream") as mock_stream,
+    ):
         resp = TestClient(create_app()).get(
             "/v2/billing/events?since=definitely-not-iso",
             headers={"X-Rhumb-Key": "rk_test"},
@@ -101,3 +130,25 @@ def test_events_invalid_since_uses_explicit_invalid_parameters():
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'since' filter."
     assert "ISO 8601" in body["error"]["detail"]
+    mock_stream.assert_not_called()
+
+
+def test_events_rejects_invalid_limit_before_stream_reads():
+    from app import create_app
+    from fastapi.testclient import TestClient
+
+    with (
+        patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.billing_v2.get_billing_event_stream") as mock_stream,
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/billing/events?limit=0",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'limit' filter."
+    assert "between 1 and 200" in body["error"]["detail"]
+    mock_stream.assert_not_called()

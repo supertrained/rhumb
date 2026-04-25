@@ -142,8 +142,17 @@ def _validated_event_type(event_type: str | None) -> BillingEventType | None:
     if event_type is None:
         return None
 
+    normalized = event_type.strip().lower()
+    if not normalized:
+        valid_types = ", ".join(t.value for t in BillingEventType)
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'event_type' filter.",
+            detail=f"Use one of: {valid_types}.",
+        )
+
     try:
-        return BillingEventType(event_type)
+        return BillingEventType(normalized)
     except ValueError as exc:
         valid_types = ", ".join(t.value for t in BillingEventType)
         raise RhumbError(
@@ -157,8 +166,16 @@ def _validated_since_timestamp(since: str | None) -> datetime | None:
     if since is None:
         return None
 
+    normalized = since.strip()
+    if not normalized:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'since' filter.",
+            detail="Use an ISO 8601 timestamp (for example 2026-04-22T12:34:56+00:00).",
+        )
+
     try:
-        parsed_since = datetime.fromisoformat(since)
+        parsed_since = datetime.fromisoformat(normalized)
     except ValueError as exc:
         raise RhumbError(
             "INVALID_PARAMETERS",
@@ -169,6 +186,17 @@ def _validated_since_timestamp(since: str | None) -> datetime | None:
     if parsed_since.tzinfo is None:
         parsed_since = parsed_since.replace(tzinfo=timezone.utc)
     return parsed_since
+
+
+def _validated_events_limit(limit: int) -> int:
+    if 1 <= limit <= 200:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 200.",
+    )
 
 
 async def _require_org_or_401(raw_request: Request, api_key: str | None) -> str | JSONResponse:
@@ -350,7 +378,7 @@ async def query_billing_events(
     raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
     event_type: str | None = Query(None, description="Filter by event type"),
-    limit: int = Query(50, ge=1, le=200),
+    limit: int = Query(50),
     since: str | None = Query(None, description="ISO timestamp filter"),
 ) -> dict[str, Any] | JSONResponse:
     """Query billing events for the authenticated org.
@@ -361,11 +389,12 @@ async def query_billing_events(
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
-    stream = get_billing_event_stream()
 
-    # Parse filters
     parsed_type = _validated_event_type(event_type)
     parsed_since = _validated_since_timestamp(since)
+    limit = _validated_events_limit(limit)
+
+    stream = get_billing_event_stream()
 
     events = stream.query(
         org_id=org_id,

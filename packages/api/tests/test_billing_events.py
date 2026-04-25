@@ -556,7 +556,7 @@ class TestBillingV2Endpoints:
         )
 
         with (
-            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
         ):
             resp = client.get("/v2/billing/events", headers={"X-Rhumb-Key": "test_key"})
@@ -576,7 +576,7 @@ class TestBillingV2Endpoints:
         )
 
         with (
-            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_missing")),
+            patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_missing")),
             patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
         ):
             resp = client.get("/v2/billing/events", headers={"X-Rhumb-Key": "test_key"})
@@ -605,7 +605,7 @@ class TestBillingV2Endpoints:
         )
 
         with (
-            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
         ):
             resp = client.get("/v2/billing/events", headers={"X-Rhumb-Key": "test_key"})
@@ -649,7 +649,7 @@ class TestBillingV2Endpoints:
         )
 
         with (
-            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
         ):
             resp = client.get("/v2/billing/events", headers={"X-Rhumb-Key": "test_key"})
@@ -694,7 +694,7 @@ class TestBillingV2Endpoints:
         )
 
         with (
-            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
         ):
             resp = client.get("/v2/billing/events", headers={"X-Rhumb-Key": "test_key"})
@@ -730,7 +730,7 @@ class TestBillingV2Endpoints:
         )
 
         with (
-            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
         ):
             resp = client.get("/v2/billing/summary", headers={"X-Rhumb-Key": "test_key"})
@@ -754,7 +754,7 @@ class TestBillingV2Endpoints:
         )
 
         with (
-            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_missing")),
+            patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_missing")),
             patch("routes.billing_v2.get_billing_event_stream", return_value=stream),
         ):
             resp = client.get("/v2/billing/summary", headers={"X-Rhumb-Key": "test_key"})
@@ -783,7 +783,7 @@ class TestBillingV2Endpoints:
                 )
 
         with (
-            patch("routes.billing_v2._require_org", new=AsyncMock(return_value="org_alias")),
+            patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_alias")),
             patch("routes.billing_v2.get_billing_event_stream", return_value=_LegacySummaryStream()),
         ):
             resp = client.get("/v2/billing/summary", headers={"X-Rhumb-Key": "test_key"})
