@@ -35,9 +35,12 @@ const HOME_JSON_LD = {
   name: "Rhumb",
   url: "https://rhumb.dev",
   description:
-    `Rhumb is the tool discovery and access layer for AI agents. Search ${servicesLabel} services and ${PUBLIC_TRUTH.capabilitiesLabel} capabilities, then execute supported actions through a governed API or MCP layer.`,
+    "Rhumb is an agent gateway for AI agents. Rhumb Index scores external services for agent compatibility, and Rhumb Resolve routes supported calls through governed execution.",
   logo: "https://rhumb.dev/favicon.ico",
 };
+
+const agentContext =
+  "Rhumb is an agent gateway. Rhumb Index ranks external services for AI-agent compatibility. Rhumb Resolve routes supported capability calls to the best-fit provider for the call through governed execution by default, while also allowing explicit provider choice when the agent wants direct control.";
 
 const previewItems = leaderboard.items.slice(0, 3);
 const stats = [
@@ -64,7 +67,7 @@ const heroProof = [
     tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-200",
   },
   {
-    label: "Best current fit",
+    label: "Best current beachhead",
     value: PUBLIC_TRUTH.beachheadLabel,
     tone: "border-amber/20 bg-amber/10 text-amber-50",
   },
@@ -93,13 +96,14 @@ const howItWorks = [
 ---
 
 <Layout
-  title="Rhumb | Give your agent the right tool for the job"
-  description={`Rhumb is the tool discovery and access layer for AI agents. Search ${servicesLabel} services and ${PUBLIC_TRUTH.capabilitiesLabel} capabilities, then execute supported actions through a governed API or MCP layer.`}
+  title="Rhumb | Discover the right service. Execute what’s ready."
+  description="Rhumb is an agent gateway for service discovery and governed execution. Rhumb Index scores the field. Rhumb Resolve routes supported calls to the best-fit provider for the call."
   canonical="https://rhumb.dev/"
-  ogTitle="Rhumb — Give your agent the right tool for the job"
-  ogDescription={`Discover ${servicesLabel} scored services, compare ${PUBLIC_TRUTH.capabilitiesLabel} mapped capabilities, and execute supported actions through Rhumb's governed API and MCP layer.`}
+  ogTitle="Rhumb | Discover the right service. Execute what’s ready."
+  ogDescription="Rhumb is an agent gateway for service discovery and governed execution. Rhumb Index scores the field. Rhumb Resolve routes supported calls to the best-fit provider for the call."
   ogUrl="https://rhumb.dev/"
   jsonLd={HOME_JSON_LD}
+  agentContext={agentContext}
 >
   <div class="bg-navy min-h-screen">
     <!-- Hero -->
@@ -120,20 +124,23 @@ const howItWorks = [
             <div class="animate-fade-up flex items-center gap-3 mb-5 flex-wrap">
               <span class="inline-flex items-center gap-2 rounded-full border border-amber/25 bg-amber/10 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">
                 <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
-                Agent tool discovery + access
+                Agent gateway for discovery + governed execution
               </span>
-              <span class="text-xs font-mono text-slate-500 uppercase tracking-[0.28em]">Broad discovery, selective governed execution</span>
+              <span class="text-xs font-mono text-slate-500 uppercase tracking-[0.28em]">Index ranks. Resolve routes.</span>
             </div>
 
             <h1 class="animate-fade-up animate-delay-100 font-display font-bold text-5xl sm:text-6xl lg:text-[4.5rem] text-slate-100 leading-[0.98] tracking-tight max-w-4xl text-balance">
-              Give your agent the right tool for the job.
+              Discover the right service. Execute what’s ready.
             </h1>
 
             <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-300 max-w-3xl leading-relaxed">
-              Rhumb helps agents discover what services and capabilities exist across the web, then execute supported actions through one governed layer. Broad discovery today, selective execution where trust is earned.
+              Rhumb helps AI agents discover, evaluate, and execute against external services. Rhumb Index scores the field. Rhumb Resolve routes supported calls to the best-fit provider for the call.
             </p>
             <p class="animate-fade-up animate-delay-200 mt-4 text-base text-slate-400 max-w-3xl leading-relaxed">
-              Start where Rhumb is strongest, {PUBLIC_TRUTH.beachheadLabel}. Use Rhumb Index to compare the field. Use Rhumb Resolve when a supported action is ready.
+              Discovery is broad. Execution is selective and governed. Today Resolve is strongest in {PUBLIC_TRUTH.beachheadLabel} across {PUBLIC_TRUTH.callableProvidersLabel} callable providers.
+            </p>
+            <p class="animate-fade-up animate-delay-200 mt-4 text-base text-slate-400 max-w-3xl leading-relaxed">
+              Tell Rhumb what you want done, or explicitly use the provider path you want when direct control is the better move.
             </p>
 
             <div class="animate-fade-up animate-delay-300 mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 max-w-5xl">
@@ -191,7 +198,7 @@ const howItWorks = [
               ></div>
               <div class="flex items-start justify-between gap-4">
                 <div>
-                  <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Decision view</p>
+                  <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Routing view</p>
                   <h2 class="mt-2 font-display text-2xl font-semibold text-slate-100">One task, three possible routes</h2>
                 </div>
                 <span class="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400">
@@ -213,12 +220,15 @@ const howItWorks = [
                     <div class="flex items-start justify-between gap-3">
                       <div>
                         <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-emerald-300">Recommended path</p>
-                        <h3 class="mt-2 font-display text-lg font-semibold text-slate-100">Callable now through Resolve</h3>
+                        <h3 class="mt-2 font-display text-lg font-semibold text-slate-100">Best-fit callable route</h3>
                       </div>
                       <span class="rounded-full border border-emerald-500/25 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-emerald-300">Layer 2</span>
                     </div>
                     <p class="mt-3 text-sm leading-6 text-slate-300">
                       Rhumb routes supported work across {PUBLIC_TRUTH.callableProvidersLabel} callable providers today, strongest in {PUBLIC_TRUTH.beachheadLabel}.
+                    </p>
+                    <p class="mt-2 text-sm leading-6 text-slate-400">
+                      If you want direct control instead, you can still pin the provider path yourself.
                     </p>
                   </div>
                 </div>
@@ -278,6 +288,32 @@ const howItWorks = [
               <div class="text-xs text-slate-500 mt-0.5 font-mono uppercase tracking-wide">{label}</div>
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800 bg-surface/30 reveal">
+      <div class="max-w-6xl mx-auto px-6 py-16">
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/55 p-7 shadow-[0_16px_40px_rgba(2,6,23,0.2)]">
+            <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">One system, two jobs</p>
+            <h2 class="font-display font-bold text-2xl text-slate-100">Index is the map. Resolve is the route.</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-400">
+              Rhumb should teach both jobs clearly on the homepage: discovery first, governed execution second.
+            </p>
+          </div>
+          <div class="grid gap-4 sm:grid-cols-2">
+            <article class="rounded-[24px] border border-slate-800 bg-navy/70 p-6">
+              <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Rhumb Index</p>
+              <h3 class="mt-3 font-display text-xl font-semibold text-slate-100">Free discovery</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{PUBLIC_TRUTH.indexShort}</p>
+            </article>
+            <article class="rounded-[24px] border border-slate-800 bg-navy/70 p-6">
+              <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Rhumb Resolve</p>
+              <h3 class="mt-3 font-display text-xl font-semibold text-slate-100">Per-call governed execution</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{PUBLIC_TRUTH.resolveShort}</p>
+            </article>
+          </div>
         </div>
       </div>
     </section>

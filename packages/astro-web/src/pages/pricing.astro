@@ -136,6 +136,14 @@ const FAQ = [
     a: "A call is one API call to a third-party service routed through Rhumb. Searching, scoring, and browsing are always free, and failed provider calls are not charged.",
   },
   {
+    q: "Does Resolve just follow the top score?",
+    a: "No. AN Score is a major routing input, not the only one. Resolve chooses the best-fit supported provider for the call using AN Score, capability fit, provider health, credential mode, and your constraints.",
+  },
+  {
+    q: "Can I pick the provider path myself?",
+    a: "Yes. Resolve supports both best-fit-by-default routing and explicit provider control. Ask for the job and let Rhumb route it, or pin the provider path yourself when direct control is the point.",
+  },
+  {
     q: "Which rail should most buyers start with?",
     a: "Start with the governed API key unless you specifically need wallet identity or per-request payment authorization. It is the default production path because it keeps repeat traffic on the stable X-Rhumb-Key execution header, gives you route, health, and cost checks before execution, and simplifies repeat-traffic operations.",
   },
@@ -155,36 +163,54 @@ const PRICING_JSON_LD = {
   name: "Pricing - Rhumb",
   url: pricing.public_pricing_url,
   description:
-    "Rhumb pricing: pay only for the calls you make. Discovery, scoring, and browsing are always free. Check the route, health, and cost before execution.",
+    "Rhumb pricing applies to governed execution. Discovery is free. Resolve routes supported calls to the best-fit provider for the call using AN Score and execution-specific routing factors.",
   isPartOf: {
     "@type": "WebSite",
     name: "Rhumb",
     url: "https://rhumb.dev",
   },
 };
+
+const PRICING_FAQ_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.a,
+    },
+  })),
+};
+
+const agentContext =
+  "Rhumb pricing applies only to governed execution. Discovery is free. Resolve routes supported calls to the best-fit provider for the call by default using AN Score and execution-specific routing factors, while still allowing explicit provider choice when the agent wants direct control.";
 ---
 
 <Layout
   title="Pricing"
-  description="Pay only for the calls you make. Check the route, health, and cost before execution. Discovery, scoring, and browsing are always free."
+  description="Discovery is free. Execution is per call. Resolve routes each call to the best-fit provider for the call based on AN Score, capability fit, provider health, credential mode, and your constraints."
   canonical="/pricing"
   ogTitle="Pricing - Rhumb"
-  ogDescription="Pay only for the calls you make. Know the route, health, and cost before execution. Discovery is always free."
+  ogDescription="Discovery is free. Execution is per call. Know the route, health, and cost before execution."
   ogUrl="https://rhumb.dev/pricing"
-  jsonLd={PRICING_JSON_LD}
+  jsonLdBlocks={[PRICING_JSON_LD, PRICING_FAQ_JSON_LD]}
+  agentContext={agentContext}
 >
   <div class="bg-navy min-h-screen" data-testid="pricing-page" data-page-type="pricing">
     <div class="max-w-5xl mx-auto px-6 py-16">
       <header class="max-w-3xl" data-section="hero">
         <p class="text-xs font-mono font-semibold text-amber uppercase tracking-widest mb-3">Pricing</p>
         <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
-          Pay for what you use.
+          Discovery is free. Execution is per call.
           <span class="block text-slate-400 mt-2">Know the route, health, and cost before execution.</span>
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
-          Discovery, scoring, and browsing are always free. When your agent runs a capability
-          through Rhumb, you pay per call — and you can check the route, health, and exact price before committing.
-          No subscriptions, no seat fees, no minimums.
+          Discovery, scoring, and browsing are always free. When your agent runs a supported capability through Rhumb Resolve, you pay per call. Resolve routes each call to the best-fit provider for the call based on AN Score, capability fit, provider health, credential mode, and your constraints.
+        </p>
+        <p class="mt-4 text-base text-slate-500 leading-relaxed max-w-3xl">
+          Want direct control instead? You can still pin the provider path yourself when that is the better execution shape.
         </p>
       </header>
 
@@ -218,9 +244,12 @@ const PRICING_JSON_LD = {
               </p>
             </div>
             <div class="rounded-xl border border-slate-800 bg-navy p-5">
-              <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Default repeat-traffic rails</p>
+              <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">What decides the route</p>
               <p class="text-sm leading-6 text-slate-300">
-                For repeat traffic, default to <strong class="text-slate-100">governed API key</strong> or <strong class="text-slate-100">wallet-prefund</strong>. Both end up executing with <code class="font-mono text-emerald-300 text-xs">X-Rhumb-Key</code>.
+                Resolve considers <strong class="text-slate-100">AN Score</strong>, capability fit, provider health, credential mode, and your constraints before execution.
+              </p>
+              <p class="mt-2 text-sm leading-6 text-slate-400">
+                Or pin the provider path explicitly when direct control matters more than automatic routing.
               </p>
             </div>
             <div class="rounded-xl border border-slate-800 bg-navy p-5">
@@ -233,6 +262,8 @@ const PRICING_JSON_LD = {
 
           <p class="mt-5 text-sm text-slate-500">
             Canonical onboarding map: <a href="/docs#resolve-mental-model" class="text-amber hover:underline underline-offset-2">/docs#resolve-mental-model</a>
+            <span class="mx-2 text-slate-700">/</span>
+            Routing proof: <a href="/resolve/routing" class="text-amber hover:underline underline-offset-2">/resolve/routing</a>
           </p>
         </div>
       </section>
@@ -463,7 +494,7 @@ const PRICING_JSON_LD = {
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-400">
             Rhumb handles credentials, routing, failover, and billing. You get route,
-            health, and cost checks before execution, smart provider selection, and fail-closed execution safety. Pay per call, no commitments.
+            health, and cost checks before execution, best-fit-per-call routing, and fail-closed execution safety. Pay per call, no commitments.
           </p>
           <dl class="mt-5 space-y-3 text-sm">
             <div class="flex justify-between gap-4">
@@ -632,7 +663,7 @@ const PRICING_JSON_LD = {
           <h2 class="font-display text-xl font-semibold text-slate-100">What you get</h2>
           <ul class="mt-4 space-y-3 text-sm text-slate-400 leading-6">
             <li>Route, health, and cost checks before execution — know the path and price before you execute.</li>
-            <li>Smart provider routing — Rhumb picks the best provider for each call.</li>
+            <li>Best-fit provider routing — Resolve routes each call to the best-fit provider for the call.</li>
             <li>Fail-closed billing — you're never charged for failed calls.</li>
           </ul>
           <p class="mt-5 text-xs font-mono text-slate-500">

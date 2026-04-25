@@ -1,0 +1,206 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const routeFactors = [
+  {
+    label: "Quality prior",
+    title: "AN Score",
+    body: "The public score is the starting signal. It tells Resolve which services are broadly agent-compatible, but it does not force every call to follow the global leaderboard.",
+  },
+  {
+    label: "Task fit",
+    title: "Capability match",
+    body: "Resolve checks which supported provider is strongest for the requested job: search, extraction, generation, enrichment, or a more specific capability path.",
+  },
+  {
+    label: "Live condition",
+    title: "Freshness and health",
+    body: "Some calls need current data or a healthy provider right now. Recency, route condition, recent failures, and readiness can outweigh raw rank.",
+  },
+  {
+    label: "Control plane",
+    title: "Credentials and constraints",
+    body: "Credential mode, budget, policy, and operator preferences shape the honest route. Agents can also pin the provider path when direct control is the point.",
+  },
+];
+
+const routeExamples = [
+  {
+    job: "Find fresh company context",
+    automatic: "Resolve can favor a provider with stronger current-web coverage, even if another service has the better broad score.",
+    explicit: "If your agent needs a specific provider, it can pin that supported path directly instead of asking Resolve to choose.",
+  },
+  {
+    job: "Extract structured data",
+    automatic: "Resolve can route toward the provider that fits extraction quality and schema reliability, not just the generic top-ranked API.",
+    explicit: "If your workflow already standardized on a provider, keep that control and use Rhumb for governed execution, cost checks, and receipts.",
+  },
+  {
+    job: "Use a private workspace",
+    automatic: "Resolve should not pretend Rhumb-managed routing is always right when the job touches your own systems or compliance boundary.",
+    explicit: "Use BYOK or Agent Vault so the agent can execute with the provider path and credential boundary you choose.",
+  },
+];
+
+const receiptFields = [
+  "capability_id",
+  "selection_mode",
+  "selected_provider",
+  "credential_mode",
+  "route_factors",
+  "cost_estimate",
+  "alternatives_considered",
+  "operator_constraints",
+];
+
+const routingJsonLdBlocks = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "How Rhumb Resolve routes calls",
+    url: "https://rhumb.dev/resolve/routing",
+    description:
+      "How Rhumb Resolve chooses the best-fit provider for a supported capability call using AN Score, task fit, freshness, provider health, credential mode, and operator constraints while still allowing explicit provider choice.",
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Rhumb",
+      url: "https://rhumb.dev",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "Does Rhumb Resolve simply follow the top AN Score?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "No. AN Score is a major quality prior, but Resolve routes by task fit. It considers capability fit, freshness, provider health, credential mode, budget and policy constraints, and operator preferences.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Can an agent choose the provider directly?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Yes. Resolve supports best-fit-by-default routing and explicit provider or tool-path choice when the agent wants direct control.",
+        },
+      },
+    ],
+  },
+];
+
+const agentContext =
+  "How Rhumb Resolve routes calls: Index ranks services with AN Score. Resolve routes supported calls to the best-fit provider for the task by default, using AN Score, capability fit, freshness, provider health, credential mode, budget and policy constraints, and operator preferences. Agents can also explicitly pin the supported provider or tool path when direct control is better.";
+---
+
+<Layout
+  title="How Resolve routes calls | Rhumb"
+  description="Rhumb Resolve routes by task fit, not leaderboard purity. See how AN Score, capability fit, provider health, credential mode, cost, and explicit agent choice shape each route."
+  canonical="/resolve/routing"
+  ogTitle="How Rhumb Resolve routes calls"
+  ogDescription="Index ranks. Resolve routes. How Rhumb chooses the best-fit provider for the call while preserving explicit agent control."
+  ogUrl="https://rhumb.dev/resolve/routing"
+  jsonLdBlocks={routingJsonLdBlocks}
+  agentContext={agentContext}
+>
+  <div class="min-h-screen bg-navy text-slate-100">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="pointer-events-none absolute left-1/2 top-[-120px] h-[520px] w-[900px] -translate-x-1/2 rounded-full blur-3xl" style="background: radial-gradient(circle, rgba(245,158,11,0.16), rgba(16,185,129,0.08) 38%, transparent 68%);"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-20 lg:py-24">
+        <div class="max-w-4xl">
+          <p class="mb-4 text-xs font-mono uppercase tracking-[0.3em] text-amber">Routing proof surface</p>
+          <h1 class="font-display text-5xl font-bold leading-[1.02] tracking-tight text-slate-100 sm:text-6xl lg:text-7xl">
+            Resolve routes for the task, not the leaderboard.
+          </h1>
+          <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            Index ranks the field. Resolve routes the call. AN Score is a major quality prior, but the final route depends on what the agent is trying to accomplish, what providers are healthy, what credentials are available, and what constraints the operator set.
+          </p>
+          <p class="mt-4 max-w-3xl text-base leading-7 text-slate-400">
+            The agent gets both modes: say what you want done and let Resolve choose, or pin directly when control is better. Agents can also pin the supported provider path explicitly when they want direct control.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href="/resolve" class="rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-navy transition-colors hover:bg-amber-dark">Open Resolve</a>
+            <a href="/docs#resolve-mental-model" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-300 transition-colors hover:border-amber/40 hover:text-slate-100">Mental model</a>
+            <a href="/pricing" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-300 transition-colors hover:border-amber/40 hover:text-slate-100">Pricing and rails</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-16">
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {routeFactors.map((factor) => (
+          <article class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 shadow-[0_18px_60px_rgba(2,6,23,0.26)]">
+            <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">{factor.label}</p>
+            <h2 class="mt-3 font-display text-xl font-semibold text-slate-100">{factor.title}</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-400">{factor.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="border-y border-slate-800 bg-surface/35">
+      <div class="mx-auto grid max-w-6xl gap-8 px-6 py-16 lg:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <p class="text-xs font-mono uppercase tracking-[0.28em] text-emerald-300">Route explanation</p>
+          <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-slate-100">What a route needs to explain</h2>
+          <p class="mt-4 text-sm leading-7 text-slate-400">
+            A useful routing receipt should not just name a provider. It should explain the selected path, the material factors, the credential boundary, the expected cost, and whether the agent chose the provider explicitly or asked Resolve to choose.
+          </p>
+        </div>
+        <div class="rounded-[28px] border border-slate-800 bg-navy/80 p-6">
+          <div class="mb-4 flex items-center justify-between border-b border-slate-800 pb-4">
+            <p class="text-xs font-mono uppercase tracking-[0.24em] text-slate-500">Example receipt fields</p>
+            <span class="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-emerald-300">Explainable</span>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            {receiptFields.map((field) => (
+              <div class="rounded-2xl border border-slate-800 bg-slate-950/35 px-4 py-3 font-mono text-sm text-slate-300">{field}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-16">
+      <div class="mb-8 max-w-3xl">
+        <p class="text-xs font-mono uppercase tracking-[0.28em] text-amber">Examples</p>
+        <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-slate-100">Three ways task fit changes the answer</h2>
+      </div>
+      <div class="grid gap-5 lg:grid-cols-3">
+        {routeExamples.map((example) => (
+          <article class="rounded-[28px] border border-slate-800 bg-surface p-6">
+            <h3 class="font-display text-xl font-semibold text-slate-100">{example.job}</h3>
+            <div class="mt-5 space-y-4 text-sm leading-6">
+              <p class="rounded-2xl border border-emerald-500/15 bg-emerald-500/10 p-4 text-slate-300"><span class="font-semibold text-emerald-200">Best-fit default:</span> {example.automatic}</p>
+              <p class="rounded-2xl border border-amber/15 bg-amber/10 p-4 text-slate-300"><span class="font-semibold text-amber">Explicit control:</span> {example.explicit}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 pb-20">
+      <div class="grid gap-6 lg:grid-cols-2">
+        <div class="rounded-[30px] border border-amber/20 bg-amber/10 p-7">
+          <p class="text-xs font-mono uppercase tracking-[0.28em] text-amber">Neutrality rule</p>
+          <h2 class="mt-3 font-display text-2xl font-bold text-slate-100">No pay-to-rank. No pretending cost is quality.</h2>
+          <p class="mt-4 text-sm leading-7 text-slate-300">
+            AN Score must remain independent quality intelligence. If cost, policy, credential mode, or operator preference changes a route, that belongs in the explanation — not hidden inside the score.
+          </p>
+        </div>
+        <div class="rounded-[30px] border border-emerald-500/20 bg-emerald-500/10 p-7">
+          <p class="text-xs font-mono uppercase tracking-[0.28em] text-emerald-300">Current boundary</p>
+          <h2 class="mt-3 font-display text-2xl font-bold text-slate-100">Launchable where the route is real.</h2>
+          <p class="mt-4 text-sm leading-7 text-slate-300">
+            {PUBLIC_TRUTH.beachheadSummary} {PUBLIC_TRUTH.callableRealitySummary}
+          </p>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>

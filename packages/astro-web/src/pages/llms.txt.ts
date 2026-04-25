@@ -26,13 +26,25 @@ export const GET: APIRoute = async () => {
     .map((s) => `- /service/${s.slug} — ${s.description ?? s.name} [${s.category}]`)
     .join("\n");
 
-  const content = `# Rhumb — Agent-Native Tool Intelligence
+  const content = `# Rhumb — Agent Gateway for Discovery and Governed Execution
 > https://rhumb.dev
 
 ## What is Rhumb?
-Rhumb scores developer tools on how well they work for AI agents.
-The AN (Agent-Native) Score measures execution reliability and access readiness
-across 20 dimensions. Scores are computed as 70% Execution + 30% Access Readiness.
+Rhumb is an agent gateway for discovery and governed execution.
+Rhumb Index scores external services for AI-agent compatibility.
+Rhumb Resolve executes supported capabilities through governed execution and routes each call to the best-fit provider for the call using AN Score, capability fit, provider health, credential mode, and call-specific constraints by default, while also allowing explicit provider choice when the agent wants direct control.
+
+## System split: Index and Resolve
+- Rhumb Index is free discovery: score, compare, and research services.
+- Rhumb Resolve is per-call execution: route supported jobs through one governed surface.
+- Agents can say what they want done or explicitly pin the provider/tool path they want.
+- Index ranks the field. Resolve routes the call.
+
+## How Resolve routes calls
+- AN Score is a major routing input, not the sole routing rule.
+- Resolve considers capability fit, provider health, credential mode, freshness needs, and call-specific constraints before execution.
+- Agents can still pin the provider/tool path explicitly when direct control is better than automatic routing.
+- Discovery breadth is wider than current callable coverage, and Rhumb keeps that boundary explicit.
 
 ## Pick the right starting path
 ${routeList}
@@ -40,6 +52,15 @@ ${routeList}
 Service discovery answers who to trust.
 Capability discovery answers what Rhumb can execute.
 Signup creates identity. Credits or wallet-prefund unlock governed execution.
+
+## Rhumb Resolve
+Resolve is Rhumb’s governed execution layer for AI agents.
+Index ranks the field.
+Resolve routes each supported call to the best-fit provider for the call by default.
+AN Score is a major routing input, not the sole routing rule.
+Agents can also pin the supported provider path explicitly when they want direct control.
+Routing proof and factor explanation: ${PUBLIC_TRUTH.routingProofUrl}
+Current launchable scope: ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}.
 
 ## For Agents
 Install the MCP server for programmatic access:
@@ -92,6 +113,7 @@ Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabi
 - Provider-control modes where supported: BYOK and Agent Vault
 - No subscriptions, no seat fees, no minimums
 - Live pricing and markup terms: https://rhumb.dev/pricing
+- Routing proof and route-factor explanation: ${PUBLIC_TRUTH.routingProofUrl}
 
 ## Categories
 ${categoryList}

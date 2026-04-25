@@ -1,8 +1,12 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 import fs from "node:fs";
 import path from "node:path";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
@@ -131,7 +135,7 @@ const htmlContent = markdownToHtml(content);
 
 <Layout
   title="We Scored Ourselves First — Here's What We Found | Rhumb"
-  description="Rhumb's initial March 11 self-assessment baseline: 3.5/10 before launch. This page stays public as the original reference point, with a newer fuller self-assessment linked inside."
+  description={`Rhumb's initial March 11 self-assessment baseline: 3.5/10 before launch. This page stays public as the original reference point alongside today's ${servicesLabel} across ${categoriesLabel} discovery surface and newer fuller self-assessment.`}
   canonical="/blog/self-score"
   ogTitle="We Scored Ourselves First — Here's What We Found"
   ogDescription="Rhumb's original March 11 baseline self-assessment: 3.5/10 before launch. Historical reference, kept public alongside the later fuller self-assessment."
@@ -175,7 +179,7 @@ const htmlContent = markdownToHtml(content);
         </p>
         <p class="text-sm text-slate-300 leading-relaxed">
           This March 11 post is the original pre-launch baseline self-assessment.
-          For the later fuller public self-assessment and current reference point,
+          Today Rhumb's public discovery surface covers {servicesLabel} across {categoriesLabel}, and for the later fuller public self-assessment and current reference point,
           read{" "}
           <a href="/blog/we-scored-ourselves" class="text-amber hover:underline underline-offset-2">
             We Scored Ourselves

@@ -17,11 +17,13 @@ interface Props {
   twitterImage?: string;
   noindex?: boolean;
   jsonLd?: Record<string, unknown>;
+  jsonLdBlocks?: Record<string, unknown>[];
+  agentContext?: string;
 }
 
 const {
-  title = "Rhumb | Agent-native tool discovery",
-  description = "Discover and score agent-native developer tools. Every API rated for AI execution — idempotency, error ergonomics, schema stability.",
+  title = "Rhumb | Agent gateway for discovery and governed execution",
+  description = "Rhumb helps AI agents discover, evaluate, and execute against external services. Rhumb Index scores the field. Rhumb Resolve routes supported calls through governed execution.",
   canonical,
   ogTitle,
   ogDescription,
@@ -34,6 +36,8 @@ const {
   twitterImage,
   noindex = false,
   jsonLd,
+  jsonLdBlocks = [],
+  agentContext,
 } = Astro.props;
 
 const gaId = import.meta.env.PUBLIC_GA_ID ?? import.meta.env.NEXT_PUBLIC_GA_ID;
@@ -48,6 +52,7 @@ function toAbsolute(path: string | undefined): string {
 }
 const resolvedCanonical = toAbsolute(canonical);
 const resolvedOgUrl = toAbsolute(ogUrl);
+const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
 ---
 
 <!doctype html>
@@ -90,9 +95,9 @@ const resolvedOgUrl = toAbsolute(ogUrl);
     <!-- Favicon -->
     <link rel="icon" href="/favicon.ico" />
 
-    {jsonLd && (
-      <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
-    )}
+    {allJsonLdBlocks.map((block) => (
+      <script type="application/ld+json" set:html={JSON.stringify(block)} />
+    ))}
 
     {/* Microsoft Clarity */}
     {clarityId && (
@@ -122,6 +127,7 @@ const resolvedOgUrl = toAbsolute(ogUrl);
     <a href="#main-content" class="skip-link">Skip to content</a>
     <Navigation currentPath={currentPath} />
     <main id="main-content" class="flex-1">
+      {agentContext && <div class="sr-only" data-agent-context>{agentContext}</div>}
       <slot />
     </main>
 
@@ -137,8 +143,8 @@ const resolvedOgUrl = toAbsolute(ogUrl);
               <span class="text-slate-500 text-sm font-mono">Built by agents, for agents.</span>
             </div>
             <p class="mt-3 text-sm leading-6 text-slate-400">
-              Operational intelligence for humans choosing tools today, and for agents routing
-              between them tomorrow.
+              Rhumb helps agents discover, access, and trust services. Index ranks the field.
+              Resolve routes supported calls through governed execution.
             </p>
           </div>
 

@@ -23,6 +23,7 @@ const astroPublicTruth = readFileSync(new URL("../../astro-web/src/lib/public-tr
 const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/blog/getting-started-mcp.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroResolve = readFileSync(new URL("../../astro-web/src/pages/resolve.astro", import.meta.url), "utf8");
+const astroResolveRouting = readFileSync(new URL("../../astro-web/src/pages/resolve/routing.astro", import.meta.url), "utf8");
 const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
 const astroPaymentsAgent = readFileSync(new URL("../../astro-web/src/pages/payments/agent.astro", import.meta.url), "utf8");
 const astroSecuringKeys = readFileSync(new URL("../../astro-web/src/pages/blog/securing-keys-for-agents.astro", import.meta.url), "utf8");
@@ -126,8 +127,9 @@ describe("public authority pricing contract", () => {
 
   it("keeps the astro homepage authority surface pinned to canonical public truth", () => {
     expect(astroHome).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
-    expect(astroHome).toContain('Search ${servicesLabel} services');
+    expect(astroHome).toContain('Discover the right service. Execute what’s ready.');
     expect(astroHome).toContain('Search ${servicesLabel} scored services');
+    expect(astroHome).toContain('Index ranks. Resolve routes.');
     expect(astroHome).not.toContain('getServiceCount');
   });
 
@@ -544,24 +546,36 @@ describe("public authority pricing contract", () => {
 
     expect(astroResolve).toContain('const credentialPaths = [');
     expect(astroResolve).toContain('Three credential paths, one trust story');
-    expect(astroResolve).toContain('Use the managed path first');
+    expect(astroResolve).toContain('{PUBLIC_TRUTH.resolveEntityShort}');
+    expect(astroResolve).toContain('{PUBLIC_TRUTH.routingHumanSummary}');
     expect(astroResolve).toContain('{PUBLIC_TRUTH.beachheadSummary}');
     expect(astroResolve).toContain('{PUBLIC_TRUTH.callableRealitySummary}');
     expect(astroResolve).toContain('Resolve should not force every capability through the same trust model. Rhumb-managed, BYOK, and Agent Vault each exist for a reason.');
-    expect(astroResolve).toContain('label: "Default magic"');
+    expect(astroResolve).toContain('label: "Default path"');
     expect(astroResolve).toContain(resolveManagedCard);
-    expect(astroResolve).toContain('Best for zero-config utility capabilities where Rhumb can own the provider account and expose the capability as the product.');
+    expect(astroResolve).toContain('Best for zero-config utility capabilities where Rhumb can honestly own the provider account, route the call, and expose the capability as the product.');
     expect(astroResolve).toContain('label: "Your systems"');
     expect(astroResolve).toContain(resolveByokCard);
-    expect(astroResolve).toContain('Use when the capability touches your account data, workspace, or production systems and you want direct control over the upstream credential.');
+    expect(astroResolve).toContain('Use when the workflow touches your account data, workspace, or production systems and you want direct control over the upstream credential.');
     expect(astroResolve).toContain('label: "Agent-native custody"');
     expect(astroResolve).toContain(resolveVaultCard);
     expect(astroResolve).toContain('Use when the credential should stay encrypted in Rhumb custody, scoped to the agent, and be injected only at execution time.');
-    expect(astroResolve).toContain('title="Resolve | Managed superpowers first"');
-    expect(astroResolve).toContain('description="Resolve gives agents managed superpowers first, then secure bridges into operator-owned systems when the workflow needs them."');
-    expect(astroResolve).toContain('Managed superpowers first.');
-    expect(astroResolve).toContain('title: "Managed superpowers first"');
-    expect(astroResolve).toContain('starts agents on Rhumb-managed capabilities through governed API key or wallet-prefund');
+    expect(astroResolve).toContain('title="Resolve | Governed execution for AI agents"');
+    expect(astroResolve).toContain('description="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using AN Score, capability fit, provider health, credential mode, and your constraints."');
+    expect(astroResolve).toContain('Your agent needs APIs. Stop managing the keys.');
+    expect(astroResolve).toContain('Task-aligned routing, not blind leaderboard routing.');
+    expect(astroResolve).toContain('{PUBLIC_TRUTH.routingPrinciple}');
+    expect(astroResolve).toContain('Resolve does not blindly pick the global top score.');
+    expect(astroResolve).toContain('href="/resolve/routing"');
+    expect(astroResolve).toContain('Read how Resolve routes calls');
+    expect(astroResolveRouting).toContain('Resolve routes for the task, not the leaderboard.');
+    expect(astroResolveRouting).toContain('Index ranks the field. Resolve routes the call.');
+    expect(astroResolveRouting).toContain('Agents can also pin the supported provider path explicitly when they want direct control.');
+    expect(astroResolveRouting).toContain('AN Score is a major quality prior');
+    expect(astroResolveRouting).toContain('No pay-to-rank. No pretending cost is quality.');
+    expect(astroResolveRouting).toContain('selection_mode');
+    expect(astroResolveRouting).toContain('alternatives_considered');
+    expect(astroResolveRouting).not.toContain('highest-scoring provider');
     expect(astroResolve.indexOf(resolveManagedCard)).toBeLessThan(astroResolve.indexOf(resolveByokCard));
     expect(astroResolve.indexOf(resolveByokCard)).toBeLessThan(astroResolve.indexOf(resolveVaultCard));
     expect(astroResolve).toContain('data-rhumb-propagate href="/quickstart"');
@@ -578,9 +592,8 @@ describe("public authority pricing contract", () => {
     expect(astroResolve).not.toContain('const modes = [');
     expect(astroResolve).not.toContain('Three modes, one trust story');
     expect(astroResolve).not.toContain('Use managed mode first');
-    expect(astroResolve).not.toContain('agent-controlled storage');
-    expect(astroResolve).not.toContain('One key, many superpowers');
     expect(astroResolve).not.toContain('Resolve gives agents one key for managed superpowers');
+    expect(astroResolve).not.toContain('Managed superpowers first.\n          </h1>');
 
     expect(astroCapabilityFirstOnboarding).toContain('The honest production default today is still simple: start with the governed API key when you want repeat managed execution');
     expect(astroCapabilityFirstOnboarding).toContain('use x402 only when zero-signup per-call payment is the point');

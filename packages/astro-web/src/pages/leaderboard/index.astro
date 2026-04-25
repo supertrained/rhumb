@@ -27,7 +27,7 @@ const LEADERBOARD_HUB_JSON_LD = {
   "@type": "CollectionPage",
   name: "Agent-Native Rankings | Rhumb",
   url: "https://rhumb.dev/leaderboard",
-  description: `Browse ${ORDERED_SLUGS.length} featured leaderboard categories drawn from ${totalScoredServices} scored services.`,
+  description: `Browse ${leaderboardCategoryCount} categories drawn from ${totalScoredServices} scored services.`,
   mainEntity: {
     "@type": "ItemList",
     numberOfItems: ORDERED_SLUGS.length,
@@ -64,10 +64,10 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 <Layout
   title="Leaderboard | Rhumb"
-  description={`Browse ${leaderboardCategoryCount} featured leaderboard categories drawn from ${totalScoredServices} scored services.`}
+  description={`Browse ${leaderboardCategoryCount} categories drawn from ${totalScoredServices} scored services.`}
   canonical="/leaderboard"
   ogTitle="Leaderboard | Rhumb"
-  ogDescription={`${leaderboardCategoryCount} featured leaderboard categories drawn from ${totalScoredServices} scored services.`}
+  ogDescription={`${leaderboardCategoryCount} categories drawn from ${totalScoredServices} scored services.`}
   ogImage="https://rhumb.dev/api/og"
   jsonLd={LEADERBOARD_HUB_JSON_LD}
 >
@@ -82,7 +82,7 @@ const CATEGORY_ICONS: Record<string, string> = {
         </h1>
         <p class="mt-3 text-slate-400 max-w-xl leading-relaxed">
           Rhumb tracks {totalScoredServices} scored services.
-          This leaderboard highlights {ORDERED_SLUGS.length} featured categories on execution reliability and access readiness for autonomous AI agents.
+          This leaderboard highlights {leaderboardCategoryCount} categories on execution reliability and access readiness for autonomous AI agents.
           Each service is rated on 20 dimensions using Rhumb&apos;s Agent-Native Score (AN&nbsp;Score).
         </p>
       </div>

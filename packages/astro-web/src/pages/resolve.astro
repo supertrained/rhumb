@@ -2,57 +2,99 @@
 import Layout from "../layouts/Layout.astro";
 import { PUBLIC_TRUTH } from "../lib/public-truth";
 
-const managedFamilies = [
-  "web search + live research",
-  "scraping, capture, and extraction",
-  "image generation + media transforms",
-  "document parse, OCR, and structured extraction",
-  "email verification + deliverability checks",
-  "people, company, and ICP enrichment",
-  "candidate discovery + sourcing",
-  "classification, summarization, and analysis",
-  "translation, transcription, and content transforms",
-  "monitoring, routing, and utility workflows",
-];
-
-const systemBridges = [
-  "CRM and support systems",
-  "Slack, GitHub, and internal collaboration tools",
-  "databases, warehouses, and object storage",
-  "deployments, CI, and control-plane systems",
-  "operator-owned APIs and internal business tools",
-];
-
-const promisePoints = [
+const heroCards = [
   {
-    title: "Managed superpowers first",
+    title: "Best-fit routing",
     body:
-      "Start with Rhumb-managed capabilities so an agent can search, extract, generate, verify, enrich, and route work without you provisioning a pile of vendor accounts first.",
+      "Index publishes the AN Score. Resolve uses that score as a major input, then routes the call based on capability fit, freshness, provider health, credential mode, and your constraints.",
   },
   {
-    title: "Bring your systems only when needed",
+    title: "Intent-first or explicit control",
     body:
-      "When the job touches your CRM, warehouse, Slack, GitHub, or internal tools, switch to BYOK or Agent Vault and keep control of your own systems of record.",
+      "Say what job you want done and let Resolve route it, or explicitly pin the supported provider/tool path when direct control is the point.",
   },
   {
-    title: "One surface, not a tool graveyard",
+    title: "Honest execution boundary",
     body:
-      "Agents discover capabilities, resolve the right provider, estimate cost, and execute through the same Resolve surface instead of learning a new integration for every task.",
+      `Resolve is launchable today for ${PUBLIC_TRUTH.beachheadLabel} across ${PUBLIC_TRUTH.callableProvidersLabel} callable providers. It does not pretend every scored service is executable.`,
+  },
+];
+
+const routeFactors = [
+  {
+    title: "AN Score",
+    body: "Rhumb’s public quality prior. Important, but not the only routing input.",
+  },
+  {
+    title: "Capability fit",
+    body: "Which supported provider is actually strongest for the requested job.",
+  },
+  {
+    title: "Freshness",
+    body: "When the task depends on current information, recency matters more than generic rank purity.",
+  },
+  {
+    title: "Provider health",
+    body: "Live route condition, recent failures, and whether the provider is healthy enough to trust right now.",
+  },
+  {
+    title: "Credential mode",
+    body: "Rhumb-managed, BYOK, and Agent Vault create different honest execution paths.",
+  },
+  {
+    title: "Constraints",
+    body: "Budget, policy, and operator preferences should shape the route when they materially matter.",
+  },
+];
+
+const routingSteps = [
+  {
+    step: "01",
+    title: "Index ranks the field",
+    body: "Rhumb Index scores services for AI-agent compatibility and gives Resolve a public quality prior.",
+  },
+  {
+    step: "02",
+    title: "Resolve chooses the route — unless you do",
+    body: "Resolve picks the best-fit supported provider for the call by default instead of blindly following the global leaderboard, while still allowing explicit provider pinning when the agent wants direct control.",
+  },
+  {
+    step: "03",
+    title: "You see the operating truth",
+    body: "Estimate the route, cost, and readiness before execution so the agent can explain the path it took.",
+  },
+];
+
+const routeExamples = [
+  {
+    title: "Fresh social / live context",
+    body:
+      "When the task depends on current X-native information or real user-input-sensitive context, Resolve can prefer the provider that is strongest for that job instead of blindly following the generic overall ranking.",
+  },
+  {
+    title: "Web extraction",
+    body:
+      "When structure and extraction quality matter more than generic ranking, Resolve can route to the provider that best fits extraction work.",
+  },
+  {
+    title: "Generation / transform",
+    body:
+      "When the task is generation or transformation, Resolve routes based on the real capability path, not just the broad service score.",
   },
 ];
 
 const credentialPaths = [
   {
     name: "Rhumb-managed",
-    label: "Default magic",
+    label: "Default path",
     description:
-      "Best for zero-config utility capabilities where Rhumb can own the provider account and expose the capability as the product.",
+      "Best for zero-config utility capabilities where Rhumb can honestly own the provider account, route the call, and expose the capability as the product.",
   },
   {
     name: "BYOK",
     label: "Your systems",
     description:
-      "Use when the capability touches your account data, workspace, or production systems and you want direct control over the upstream credential.",
+      "Use when the workflow touches your account data, workspace, or production systems and you want direct control over the upstream credential.",
   },
   {
     name: "Agent Vault",
@@ -62,24 +104,87 @@ const credentialPaths = [
   },
 ];
 
-const resolveJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "WebPage",
-  name: "Resolve | Rhumb",
-  url: "https://rhumb.dev/resolve",
-  description:
-    "Resolve gives agents managed superpowers first, then secure bridges into operator-owned systems when the workflow needs them.",
-};
+const faqItems = [
+  {
+    question: "Does Resolve just follow the top score?",
+    answer:
+      "No. AN Score is a major routing input, not the only one. Resolve chooses the best-fit supported provider for the call using AN Score, capability fit, freshness, provider health, credential mode, and your constraints.",
+  },
+  {
+    question: "Can I pick the provider or tool path myself?",
+    answer:
+      "Yes. Rhumb supports both intent-first routing and explicit provider choice. Ask for the job and let Resolve route it, or pin the provider yourself on the raw-provider surface when direct control is the point.",
+  },
+  {
+    question: "What is executable today?",
+    answer: `${PUBLIC_TRUTH.beachheadSummary} Resolve is strongest today in ${PUBLIC_TRUTH.beachheadLabel} across ${PUBLIC_TRUTH.callableProvidersLabel} callable providers.`,
+  },
+  {
+    question: "When should I bring my own systems?",
+    answer:
+      "Start with Rhumb-managed capabilities where Rhumb can honestly own the execution path. Bring BYOK or Agent Vault only when the workflow touches your own systems, permissions, or compliance boundary.",
+  },
+];
+
+const resolveJsonLdBlocks = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Resolve | Rhumb",
+    url: "https://rhumb.dev/resolve",
+    description:
+      "Rhumb Resolve is a governed execution layer for AI agents that routes each supported call to the best-fit provider for the call using AN Score, capability fit, provider health, credential mode, and call-specific constraints.",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "Rhumb Resolve",
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Web",
+    url: "https://rhumb.dev/resolve",
+    description: PUBLIC_TRUTH.resolveEntityShort,
+    featureList: [
+      "Governed execution for AI agents",
+      "Explainable task-aligned provider routing",
+      "Managed credentials, BYOK, and Agent Vault",
+      "Pay-per-call pricing",
+      "Current callable beachhead in research, extraction, generation, and narrow enrichment",
+    ],
+    offers: {
+      "@type": "Offer",
+      availability: "https://schema.org/InStock",
+      price: "0",
+      priceCurrency: "USD",
+      description: "Discovery is free. Execution is pay-per-call.",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqItems.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  },
+];
+
+const agentContext =
+  "Rhumb Resolve is Rhumb’s governed execution layer for AI agents. Agents can tell Resolve the job they want done or explicitly pin the supported provider path they want. By default, Resolve routes supported capability calls to the best-fit provider for the call using AN Score as a major input alongside capability fit, freshness, provider health, credential mode, and operator constraints. Current launchable scope is 16 callable providers, strongest in research, extraction, generation, and narrow enrichment.";
 ---
 
 <Layout
-  title="Resolve | Managed superpowers first"
-  description="Resolve gives agents managed superpowers first, then secure bridges into operator-owned systems when the workflow needs them."
+  title="Resolve | Governed execution for AI agents"
+  description="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using AN Score, capability fit, provider health, credential mode, and your constraints."
   canonical="/resolve"
-  ogTitle="Resolve | Managed superpowers first"
-  ogDescription="Start agents on managed superpowers first, then bring your own systems in only when the workflow needs them."
+  ogTitle="Resolve | Governed execution for AI agents"
+  ogDescription="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using AN Score, capability fit, provider health, credential mode, and your constraints."
   ogUrl="https://rhumb.dev/resolve"
-  jsonLd={resolveJsonLd}
+  jsonLdBlocks={resolveJsonLdBlocks}
+  agentContext={agentContext}
 >
   <div class="bg-navy min-h-screen">
     <section class="relative overflow-hidden border-b border-slate-800">
@@ -88,15 +193,21 @@ const resolveJsonLd = {
 
       <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-16">
         <div class="max-w-4xl">
-          <p class="text-xs font-mono text-amber uppercase tracking-[0.3em] mb-4">Resolve</p>
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.3em] mb-4">Rhumb Resolve</p>
           <h1 class="font-display font-bold text-5xl sm:text-6xl lg:text-7xl text-slate-100 leading-[1.02] tracking-tight max-w-4xl">
-            Managed superpowers first.
+            Your agent needs APIs. Stop managing the keys.
           </h1>
           <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
-            Resolve is the access layer that starts agents on Rhumb-managed capabilities through governed API key or wallet-prefund, then lets operators bring their own systems in only when the workflow actually needs them.
+            {PUBLIC_TRUTH.resolveEntityShort}
           </p>
           <p class="mt-4 max-w-3xl text-base leading-7 text-slate-400">
-            The promise is simple: <span class="text-slate-200">managed superpowers first, secure bridges second</span>.
+            {PUBLIC_TRUTH.routingHumanSummary} <span class="text-slate-200">{PUBLIC_TRUTH.resolveTagline}</span>
+          </p>
+          <p class="mt-4 max-w-3xl text-base leading-7 text-slate-400">
+            Tell Resolve what you want accomplished, or use the supported provider/tool path you want in the way you want when direct control is better.
+          </p>
+          <p class="mt-4 max-w-3xl text-base leading-7 text-slate-400">
+            Today Resolve is strongest in <span class="text-slate-200">{PUBLIC_TRUTH.beachheadLabel}</span> across <span class="text-slate-200">{PUBLIC_TRUTH.callableProvidersLabel} callable providers</span>. Discovery is broader than current execution coverage, and Rhumb keeps that boundary explicit.
           </p>
 
           <div class="mt-8 flex flex-wrap gap-3">
@@ -116,7 +227,7 @@ const resolveJsonLd = {
         </div>
 
         <div class="mt-12 grid gap-4 lg:grid-cols-3">
-          {promisePoints.map((item) => (
+          {heroCards.map((item) => (
             <div class="rounded-2xl border border-slate-800 bg-surface/85 p-6 backdrop-blur-sm">
               <p class="text-xs font-mono uppercase tracking-[0.25em] text-slate-500 mb-3">{item.title}</p>
               <p class="text-sm leading-6 text-slate-300">{item.body}</p>
@@ -133,48 +244,41 @@ const resolveJsonLd = {
           Want to inspect the trust story first? Read <a data-rhumb-propagate href="/trust" class="text-amber hover:underline underline-offset-2">Trust</a>,
           inspect the public <a data-rhumb-propagate href="/methodology" class="text-amber hover:underline underline-offset-2">Methodology</a>,
           or use the provider <a data-rhumb-propagate href="/providers#dispute-a-score" class="text-amber hover:underline underline-offset-2">dispute path</a>
-          if a score, coverage claim, or launch claim looks wrong.
+          if a score, routing claim, or coverage claim looks wrong.
         </p>
       </div>
     </section>
 
     <section class="max-w-6xl mx-auto px-6 py-16">
-      <div class="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+      <div class="grid gap-6 xl:grid-cols-[1.12fr_0.88fr]">
         <div class="rounded-3xl border border-amber/20 bg-surface p-7 sm:p-8">
-          <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">Product promise</p>
-          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Start with managed magic. Bring your systems only on the boundary.</h2>
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">What Resolve is</p>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Governed execution for agents that need real work done.</h2>
           <div class="mt-6 space-y-4 text-slate-300 leading-7">
             <p>
-              Start with a managed capability layer that feels like agent superpowers. Search the web, scrape pages, generate images, validate emails, enrich people and companies, find candidates, classify documents, transform media, and more, all through one surface.
+              {PUBLIC_TRUTH.resolveEntityExpanded}
             </p>
             <p>
-              Then, when the workflow crosses into your actual business systems, connect only the systems that matter. CRM, support, GitHub, Slack, databases, warehouses, storage, and internal APIs stay under your control through BYOK or Agent Vault.
+              Start with Rhumb-managed capabilities where Rhumb can honestly own the execution path. Bring BYOK or Agent Vault only when the workflow touches your own systems, permissions, or compliance boundary.
             </p>
             <p>
-              Agents can use Resolve as a wide capability layer on its own, or as the bridge between broad managed capabilities and tightly-scoped operator-owned systems.
+              The product truth is simple: <span class="text-slate-200">Index ranks. Resolve routes.</span>
+            </p>
+            <p>
+              And agent control stays first-class: say what you want done, or pin the supported provider path yourself when that is the better way to work.
             </p>
           </div>
         </div>
 
         <div class="rounded-3xl border border-emerald-500/20 bg-surface p-7 sm:p-8">
-          <p class="text-xs font-mono text-emerald-300 uppercase tracking-[0.25em] mb-3">Default mental model</p>
+          <p class="text-xs font-mono text-emerald-300 uppercase tracking-[0.25em] mb-3">How it works</p>
           <div class="space-y-5">
-            <div>
-              <p class="text-sm font-semibold text-slate-100">1. Ask for the capability</p>
-              <p class="mt-1 text-sm leading-6 text-slate-400">Think in jobs to be done, not vendor APIs.</p>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-slate-100">2. Use the managed path first</p>
-              <p class="mt-1 text-sm leading-6 text-slate-400">If Rhumb can provide the capability directly, the agent should not need separate upstream accounts.</p>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-slate-100">3. Connect systems only on the boundary</p>
-              <p class="mt-1 text-sm leading-6 text-slate-400">Bring BYOK or Agent Vault only when the workflow touches your own data, permissions, or production systems.</p>
-            </div>
-            <div>
-              <p class="text-sm font-semibold text-slate-100">4. Keep one operational surface</p>
-              <p class="mt-1 text-sm leading-6 text-slate-400">Discover, resolve, estimate, and execute through the same Resolve interface.</p>
-            </div>
+            {routingSteps.map((item) => (
+              <div>
+                <p class="text-sm font-semibold text-slate-100">{item.step}. {item.title}</p>
+                <p class="mt-1 text-sm leading-6 text-slate-400">{item.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -182,42 +286,67 @@ const resolveJsonLd = {
 
     <section class="border-y border-slate-800 bg-surface/45">
       <div class="max-w-6xl mx-auto px-6 py-16">
-        <div class="grid gap-6 lg:grid-cols-2">
-          <div class="rounded-3xl border border-slate-800 bg-navy/70 p-7 sm:p-8">
-            <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">Lane 1</p>
-            <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Managed superpowers</h2>
-            <p class="mt-3 text-sm leading-6 text-slate-400">
-              Broad, zero-config capabilities where Rhumb owns the provider accounts and the capability itself is the product.
-            </p>
-            <div class="mt-6 flex flex-wrap gap-2">
-              {managedFamilies.map((item) => (
-                <span class="rounded-full border border-amber/20 bg-amber/5 px-3 py-1.5 text-xs font-mono text-amber/90">
-                  {item}
-                </span>
-              ))}
-            </div>
-          </div>
+        <div class="max-w-3xl mb-8">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">What decides the route?</p>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Task-aligned routing, not blind leaderboard routing.</h2>
+          <p class="mt-4 text-sm leading-7 text-slate-300">
+            Resolve does not blindly pick the global top score. It picks the best-fit supported provider for the call by default, while still allowing explicit provider choice when the agent wants direct control.
+          </p>
+          <p class="mt-3 text-sm leading-7 text-slate-400">
+            <span class="text-slate-200">{PUBLIC_TRUTH.routingPrinciple}</span> AN Score stays central, but it works as a quality prior inside an explainable routing system.
+          </p>
+          <a href="/resolve/routing" class="mt-5 inline-flex rounded-xl border border-amber/25 bg-amber/10 px-4 py-2.5 text-sm font-medium text-amber transition-colors hover:border-amber/50 hover:bg-amber/15">
+            Read how Resolve routes calls &rarr;
+          </a>
+        </div>
 
-          <div class="rounded-3xl border border-slate-800 bg-navy/70 p-7 sm:p-8">
-            <p class="text-xs font-mono text-emerald-300 uppercase tracking-[0.25em] mb-3">Lane 2</p>
-            <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Secure bridges into your systems</h2>
-            <p class="mt-3 text-sm leading-6 text-slate-400">
-              Tight, scoped access when the job needs your data, your permissions, or your production environment.
-            </p>
-            <ul class="mt-6 space-y-3">
-              {systemBridges.map((item) => (
-                <li class="flex items-start gap-3 text-sm leading-6 text-slate-300">
-                  <span class="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-300"></span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {routeFactors.map((item) => (
+            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h3 class="font-display font-semibold text-lg text-slate-100">{item.title}</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-400">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-6xl mx-auto px-6 py-16">
+      <div class="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+        <div class="rounded-3xl border border-amber/20 bg-surface p-7 sm:p-8">
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">Current launchable surface</p>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Broad enough to matter. Narrow enough to stay honest.</h2>
+          <p class="mt-4 text-sm leading-6 text-slate-300">
+            {PUBLIC_TRUTH.beachheadSummary}
+          </p>
+          <p class="mt-3 text-sm leading-6 text-slate-400">
+            {PUBLIC_TRUTH.callableRealitySummary}
+          </p>
+          <div class="mt-6 flex flex-wrap gap-2">
+            <span class="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-mono text-emerald-200">{PUBLIC_TRUTH.callableProvidersLabel} callable providers</span>
+            <span class="rounded-full border border-slate-700 bg-navy px-3 py-1.5 text-xs font-mono text-slate-300">Research</span>
+            <span class="rounded-full border border-slate-700 bg-navy px-3 py-1.5 text-xs font-mono text-slate-300">Extraction</span>
+            <span class="rounded-full border border-slate-700 bg-navy px-3 py-1.5 text-xs font-mono text-slate-300">Generation</span>
+            <span class="rounded-full border border-slate-700 bg-navy px-3 py-1.5 text-xs font-mono text-slate-300">Narrow enrichment</span>
+          </div>
+        </div>
+
+        <div class="rounded-3xl border border-slate-800 bg-surface p-7 sm:p-8">
+          <p class="text-xs font-mono text-slate-500 uppercase tracking-[0.25em] mb-3">Examples</p>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">When task fit beats raw rank</h2>
+          <div class="mt-6 grid gap-4">
+            {routeExamples.map((item) => (
+              <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+                <h3 class="font-display font-semibold text-lg text-slate-100">{item.title}</h3>
+                <p class="mt-2 text-sm leading-6 text-slate-400">{item.body}</p>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     </section>
 
-    <section id="credential-paths" class="max-w-6xl mx-auto px-6 py-16">
+    <section id="credential-paths" class="max-w-6xl mx-auto px-6 pb-16">
       <div class="rounded-3xl border border-slate-800 bg-surface p-7 sm:p-8">
         <div class="max-w-3xl">
           <p class="text-xs font-mono text-slate-500 uppercase tracking-[0.25em] mb-3">Credential paths</p>
@@ -240,38 +369,18 @@ const resolveJsonLd = {
     </section>
 
     <section class="max-w-6xl mx-auto px-6 pb-16">
-      <div class="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <div class="rounded-3xl border border-amber/20 bg-surface p-7 sm:p-8">
-          <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">Honest current state</p>
-          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">The promise is bigger than today’s launchable surface.</h2>
-          <p class="mt-4 text-sm leading-6 text-slate-300">
-            {PUBLIC_TRUTH.beachheadSummary}
-          </p>
-          <p class="mt-3 text-sm leading-6 text-slate-400">
-            {PUBLIC_TRUTH.callableRealitySummary}
-          </p>
+      <div class="rounded-3xl border border-slate-800 bg-surface p-7 sm:p-8">
+        <div class="max-w-3xl">
+          <p class="text-xs font-mono text-slate-500 uppercase tracking-[0.25em] mb-3">FAQ</p>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Resolve, plainly</h2>
         </div>
-
-        <div class="rounded-3xl border border-slate-800 bg-surface p-7 sm:p-8">
-          <p class="text-xs font-mono text-slate-500 uppercase tracking-[0.25em] mb-3">Why this matters</p>
-          <div class="grid gap-4 sm:grid-cols-2">
+        <div class="mt-8 grid gap-4 lg:grid-cols-3">
+          {faqItems.map((item) => (
             <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
-              <h3 class="font-display font-semibold text-lg text-slate-100">For operators</h3>
-              <p class="mt-2 text-sm leading-6 text-slate-400">Fewer vendor accounts to provision up front, fewer keys scattered across tools, and a clearer path to controlled system access only where it matters.</p>
+              <h3 class="font-display font-semibold text-lg text-slate-100">{item.question}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{item.answer}</p>
             </div>
-            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
-              <h3 class="font-display font-semibold text-lg text-slate-100">For agents</h3>
-              <p class="mt-2 text-sm leading-6 text-slate-400">A much broader useful action surface on day one, with the option to reach into customer-owned systems without abandoning the same interface.</p>
-            </div>
-            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
-              <h3 class="font-display font-semibold text-lg text-slate-100">For product</h3>
-              <p class="mt-2 text-sm leading-6 text-slate-400">Managed superpowers create the magical first experience. Secure bridges create depth, retention, and operational legitimacy.</p>
-            </div>
-            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
-              <h3 class="font-display font-semibold text-lg text-slate-100">For launch</h3>
-              <p class="mt-2 text-sm leading-6 text-slate-400">The win condition is not raw connector count. It is whether an agent feels suddenly more capable after getting Resolve once.</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>

@@ -16,6 +16,7 @@ export const PUBLIC_TRUTH = {
   trustOverviewUrl: "https://rhumb.dev/trust",
   methodologyUrl: "https://rhumb.dev/methodology",
   providersUrl: "https://rhumb.dev/providers",
+  routingProofUrl: "https://rhumb.dev/resolve/routing",
   llmsUrl: "https://rhumb.dev/llms.txt",
   publicAgentCapabilitiesUrl: "https://rhumb.dev/.well-known/agent-capabilities.json",
   currentSelfAssessmentUrl: "https://rhumb.dev/blog/we-scored-ourselves",
@@ -31,6 +32,32 @@ export const PUBLIC_TRUTH = {
     "Discovery breadth: 999 scored services and 435 capability definitions. Current execution-ready surface: 16 callable providers, strongest today for research, extraction, generation, and narrow enrichment.",
   callableRealitySummary:
     "Not every service or capability in the index is executable through Rhumb today. Discovery breadth is wider than current callable coverage.",
+  routingPrinciple: "Route for task fit, not leaderboard purity.",
+  rhumbEntityShort:
+    "Rhumb is an agent gateway that scores external services for AI-agent compatibility and provides governed execution for supported capabilities.",
+  rhumbEntityExpanded:
+    "Rhumb combines Rhumb Index for scored service discovery with Rhumb Resolve for governed execution. Index ranks the field. Resolve can route each call to the best-fit supported provider using AN Score, capability fit, provider health, credential mode, and call-specific constraints, or let the agent pin the supported provider path explicitly.",
+  indexShort: "Rhumb Index is free discovery: score, compare, and research services.",
+  resolveShort: "Rhumb Resolve is per-call governed execution for supported capabilities.",
+  resolveTagline: "Managed superpowers first. Secure bridges second.",
+  resolveEntityShort:
+    "Rhumb Resolve is Rhumb’s governed execution layer for AI agents: one integration surface for supported capabilities, with managed credentials, explainable routing, optional provider pinning, failover, budget controls, and pay-per-call pricing.",
+  resolveEntityExpanded:
+    "Agents can ask Resolve for a capability or explicitly pin the supported provider path they want. By default, Resolve chooses the best-fit supported provider for the call using AN Score as a major input alongside capability fit, provider strengths, freshness, provider health, credential mode, and operator constraints.",
+  routingHumanSummary:
+    "Resolve routes each call to the best-fit provider for the call by default, while keeping explicit provider choice available when the agent wants direct control.",
+  routingMachineSummary:
+    "Resolve performs explainable task-aligned provider routing using AN Score, capability fit, freshness, provider health, credential mode, budget and policy constraints, and operator preferences, while also supporting explicit provider pinning.",
+  routingFactors: [
+    "AN Score",
+    "capability fit",
+    "provider strengths",
+    "freshness / recency needs",
+    "provider health",
+    "credential mode",
+    "budget / policy constraints",
+    "operator preferences",
+  ],
   resolveMentalModel: {
     defaultPath:
       "Default path: start with governed API key or wallet-prefund on `X-Rhumb-Key`, discover a Service, choose a Capability, estimate the call, then execute through Layer 2. Start with Rhumb-managed superpowers first. Bring BYOK or Agent Vault only when the workflow touches your own systems. Use x402 only when zero-signup per-call matters. Use Layer 1 only when you must pin the provider. Use Layer 3 only when a published recipe already exists.",
@@ -61,11 +88,12 @@ export const PUBLIC_TRUTH = {
     layers: [
       {
         name: "Layer 1",
-        summary: "Raw provider access. You pin the provider yourself.",
+        summary: "Raw provider access. You pin the provider or tool path yourself.",
       },
       {
         name: "Layer 2",
-        summary: "Capability routing. Rhumb picks the best provider and is the main production surface today.",
+        summary:
+          "Capability routing. Rhumb routes each call to the best-fit supported provider for the task and is the main production surface today.",
       },
       {
         name: "Layer 3",
