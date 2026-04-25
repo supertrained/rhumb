@@ -2,11 +2,11 @@
 
 [![npm version](https://img.shields.io/npm/v/rhumb-mcp)](https://www.npmjs.com/package/rhumb-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![MCP Registry](https://img.shields.io/badge/MCP-Registry-green)](https://registry.modelcontextprotocol.io)
+[![MCP Registry](https://img.shields.io/badge/MCP-Registry-green)](https://registry.modelcontextprotocol.io/v0/servers?search=rhumb)
 
-**Rhumb is an agent gateway for external tools.** Rhumb Index scores and compares services; Rhumb Resolve routes supported capability calls through governed execution rails with receipts.
+**Index ranks. Resolve routes.** Rhumb is an agent gateway for external tools: Index scores and compares services; Resolve routes supported capability calls through governed execution rails with receipts.
 
-🌐 [rhumb.dev](https://rhumb.dev) · ⚡ [Quickstart](https://rhumb.dev/quickstart) · 💵 [Pricing](https://rhumb.dev/pricing) · 📊 [Leaderboard](https://rhumb.dev/leaderboard) · 📖 [Methodology](https://rhumb.dev/methodology) · 🔑 [Trust](https://rhumb.dev/trust)
+🌐 [rhumb.dev](https://rhumb.dev) · ⚡ [Quickstart](https://rhumb.dev/quickstart) · 🧭 [Resolve](https://rhumb.dev/resolve) · 💵 [Pricing](https://rhumb.dev/pricing) · 📊 [Leaderboard](https://rhumb.dev/leaderboard) · 📖 [Methodology](https://rhumb.dev/methodology) · 🔑 [Trust](https://rhumb.dev/trust)
 
 > **For agents:** See [`llms.txt`](llms.txt) for machine-readable documentation and [`agent-capabilities.json`](agent-capabilities.json) for structured capability metadata.
 
@@ -34,15 +34,18 @@ RHUMB_API_KEY=your_key npx rhumb-mcp@latest
 
 ```bash
 curl "https://api.rhumb.dev/v1/services/stripe/score"
+
+# See supported execution routes before you execute
+curl "https://api.rhumb.dev/v1/capabilities/email.send/resolve"
 ```
 
-All read endpoints are public.
+All read endpoints are public, including Resolve readiness checks. Estimate and execute require an authenticated payment path.
 
 ---
 
 ## What Rhumb does
 
-**Index ranks. Resolve routes.** Use Rhumb Index when an agent needs to discover and evaluate services. Use Rhumb Resolve when the task is on a supported capability path and you want governed execution with an explicit receipt.
+Use Rhumb Index when an agent needs to discover and evaluate services. Use Rhumb Resolve when the task is on a supported capability path and you want governed execution with an explicit receipt.
 
 Agents need external tools. Choosing the right one is hard — not because of feature lists, but because of:
 
@@ -276,7 +279,7 @@ We target an initial response within 5 business days. Negative findings remain v
 
 - **Website:** [rhumb.dev](https://rhumb.dev)
 - **npm:** [rhumb-mcp](https://www.npmjs.com/package/rhumb-mcp)
-- **MCP Registry:** [Rhumb on MCP Registry](https://registry.modelcontextprotocol.io)
+- **MCP Registry:** [Rhumb on MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=rhumb)
 - **X:** [@pedrorhumb](https://x.com/pedrorhumb)
 
 ## License
