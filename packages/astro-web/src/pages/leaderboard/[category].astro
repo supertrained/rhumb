@@ -3,7 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import ScoreDisplay from "../../components/ScoreDisplay.astro";
 import TierBadge from "../../components/TierBadge.astro";
 import AutonomyBadges from "../../components/AutonomyBadges.astro";
-import { getLeaderboard } from "../../lib/api";
+import { getCallableProviderIds, getLeaderboard } from "../../lib/api";
 import { getTierInfo } from "../../lib/utils";
 import type { EvidenceTier, LeaderboardItem } from "../../lib/types";
 
@@ -73,6 +73,9 @@ function buildLeaderboardJsonLd(category: string, items: LeaderboardItem[]): Rec
         item.accessReadinessScore !== null
           ? { "@type": "PropertyValue", name: "access_readiness_score", value: item.accessReadinessScore.toFixed(1) }
           : null,
+        callableProviderIds.has(item.serviceSlug)
+          ? { "@type": "PropertyValue", name: "callable_through_resolve", value: "true" }
+          : null,
       ].filter((p): p is { "@type": "PropertyValue"; name: string; value: string } => p !== null);
 
       return {
@@ -99,7 +102,10 @@ function getScoreBarParts(value: number | null) {
 
 const category = normalizeCategory(query.get("category")) ?? routeCategory!;
 const limit = parseLimit(query.get("limit"));
-const leaderboard = await getLeaderboard(category, { limit });
+const [leaderboard, callableProviderIds] = await Promise.all([
+  getLeaderboard(category, { limit }),
+  getCallableProviderIds(),
+]);
 
 const resolvedCategory = leaderboard.error ? category : leaderboard.category;
 const visibleItems = leaderboard.error ? [] : leaderboard.items.slice(0, limit);
@@ -193,9 +199,10 @@ const tierLegend = [
           {visibleItems.map((item, index) => {
             const execBar = getScoreBarParts(item.executionScore);
             const accessBar = getScoreBarParts(item.accessReadinessScore);
+            const isCallableThroughResolve = callableProviderIds.has(item.serviceSlug);
             return (
               <article
-                aria-label={`#${index + 1} ${item.name}: AN Score ${scoreLabel(item.aggregateRecommendationScore)}, ${item.tier}`}
+                aria-label={`#${index + 1} ${item.name}: AN Score ${scoreLabel(item.aggregateRecommendationScore)}, ${item.tier}${isCallableThroughResolve ? ", callable through Resolve" : ""}`}
                 class="bg-surface border border-slate-800 rounded-xl p-5 transition-all duration-200 hover:border-slate-600 hover:bg-elevated hover:-translate-y-0.5"
               >
                 <div class="flex items-center gap-4">
@@ -221,6 +228,15 @@ const tierLegend = [
                         {item.name}
                       </a>
                       <TierBadge tier={item.tier} />
+                      {isCallableThroughResolve && (
+                        <a
+                          href={`/resolve?provider=${item.serviceSlug}`}
+                          class="inline-flex items-center gap-1 rounded-full border border-amber/30 bg-amber/10 px-2 py-0.5 text-[10px] font-mono uppercase tracking-wide text-amber hover:border-amber/50 hover:bg-amber/15 transition-colors"
+                          title={`${item.name} is backed by live callable provider truth on Rhumb Resolve.`}
+                        >
+                          Callable through Resolve
+                        </a>
+                      )}
                     </div>
 
                     <!-- Score labels -->

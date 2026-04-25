@@ -2,10 +2,10 @@ import type { APIRoute } from 'astro';
 import { ImageResponse } from '@vercel/og';
 
 export const GET: APIRoute = async ({ url }) => {
-  const title = url.searchParams.get("title") || "Agent-Native Tool Discovery";
+  const title = url.searchParams.get("title") || "Rhumb — Index ranks. Resolve routes.";
   const subtitle =
     url.searchParams.get("subtitle") ||
-    "Every API scored for AI agent compatibility";
+    "Agent gateway for service scoring and governed execution";
 
   const html = {
     type: "div",
@@ -126,7 +126,7 @@ export const GET: APIRoute = async ({ url }) => {
                       type: "span",
                       props: {
                         style: { fontSize: "14px", color: "#475569" },
-                        children: "20 dimensions",
+                        children: "Index ranks",
                       },
                     },
                     {
@@ -140,7 +140,7 @@ export const GET: APIRoute = async ({ url }) => {
                       type: "span",
                       props: {
                         style: { fontSize: "14px", color: "#475569" },
-                        children: "2 axes",
+                        children: "Resolve routes",
                       },
                     },
                     {
@@ -154,7 +154,7 @@ export const GET: APIRoute = async ({ url }) => {
                       type: "span",
                       props: {
                         style: { fontSize: "14px", color: "#475569" },
-                        children: "Fully transparent",
+                        children: "Pay per call",
                       },
                     },
                   ],

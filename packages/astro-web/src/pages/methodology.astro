@@ -160,6 +160,9 @@ const TIERS = [
     desc: "Built for agents. Excellent across all dimensions. The gold standard.",
   },
 ];
+
+const agentContext =
+  `AN Score methodology. Rhumb scores external services across 20 dimensions and uses the AN Score as a public quality signal for Rhumb Index and as a major input to Rhumb Resolve routing. ${PUBLIC_TRUTH.callableRealitySummary}`;
 ---
 
 <Layout
@@ -170,7 +173,8 @@ const TIERS = [
   ogDescription="20 dimensions, 2 axes, fully transparent scoring. How Rhumb rates developer tools for AI agent compatibility."
   ogUrl="https://rhumb.dev/methodology"
   jsonLd={FAQ_JSON_LD}
->
+
+  agentContext={agentContext}>
   <div class="bg-navy min-h-screen">
     <div class="max-w-4xl mx-auto px-6 pt-14 pb-24">
       <!-- Header -->

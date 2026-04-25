@@ -1,0 +1,11 @@
+<svg role="img" aria-labelledby="rhumb-logo-title rhumb-logo-desc" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title id="rhumb-logo-title">Rhumb</title>
+  <desc id="rhumb-logo-desc">Rhumb logo. A constant-bearing amber rhumb line crossing a dark chart grid for agent service scoring and governed execution.</desc>
+  <rect width="512" height="512" rx="96" fill="#0B1120"/>
+  <path d="M96 384 C170 300 230 226 416 128" fill="none" stroke="#F59E0B" stroke-width="34" stroke-linecap="round"/>
+  <path d="M96 128h320M96 256h320M96 384h320M128 96v320M256 96v320M384 96v320" stroke="#1E293B" stroke-width="8" stroke-linecap="round" opacity="0.72"/>
+  <path d="M96 384 C170 300 230 226 416 128" fill="none" stroke="#F59E0B" stroke-width="34" stroke-linecap="round"/>
+  <circle cx="96" cy="384" r="22" fill="#F8FAFC"/>
+  <circle cx="416" cy="128" r="22" fill="#F8FAFC"/>
+  <circle cx="416" cy="128" r="10" fill="#F59E0B"/>
+</svg>

@@ -34,15 +34,17 @@ export const GET: APIRoute = async () => {
     })
     .join("\n\n");
 
-  const content = `# Rhumb — Agent-Native Tool Intelligence (Full Context)
+  const content = `# Rhumb — Agent Gateway for Service Discovery and Governed Execution (Full Context)
 > https://rhumb.dev
 > This is the extended version of llms.txt with per-service scores and details.
 > Summary version: https://rhumb.dev/llms.txt
 
 ## What is Rhumb?
-Rhumb scores developer tools on how well they work for AI agents — not humans
-browsing documentation, but machines making API calls autonomously. Every score
-is published, disputable, and transparent.
+${PUBLIC_TRUTH.rhumbEntityExpanded}
+Mission: make the internet as agent-native as possible.
+Rhumb Index is free discovery: score, compare, and research services.
+Rhumb Resolve is governed execution for supported capabilities: ${PUBLIC_TRUTH.routingHumanSummary}
+${PUBLIC_TRUTH.callableRealitySummary}
 
 ## Scoring Formula
 AN Score = (Execution × 0.70) + (Access Readiness × 0.30)
@@ -62,13 +64,23 @@ and sandbox availability.
 \`\`\`
 npx rhumb-mcp@latest
 \`\`\`
-Tools: find_services, get_score, get_alternatives, get_failure_modes
+MCP tools include find_services, get_score, get_alternatives, get_failure_modes, discover_capabilities, resolve_capability, estimate_capability, execute_capability, budget, spend, check_balance, and get_payment_url.
+
+## Resolve authority links
+- What is Resolve?: ${PUBLIC_TRUTH.resolveWhatIsUrl}
+- Routing proof and factor explanation: ${PUBLIC_TRUTH.routingProofUrl}
+- Resolve comparisons: ${PUBLIC_TRUTH.resolveCompareUrl}
+- Key management and credential paths: ${PUBLIC_TRUTH.resolveKeysUrl}
+- Per-call pricing explainer: ${PUBLIC_TRUTH.resolvePricingUrl}
+- Current launchable scope: ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}
 
 ## API
-- GET /v1/services — all services
+- GET /v1/services — all scored services
 - GET /v1/services/{slug}/score — score breakdown
-- GET /v1/leaderboard/{category} — ranked by category
+- GET /v1/leaderboard/{category} — ranked services by category
 - GET /v1/search?q={query} — semantic search
+- GET /v1/capabilities — capability definitions
+- GET /v2/providers?status=callable — live callable-through-Resolve provider truth
 
 ## Categories (${categories.length})
 ${categoryList}

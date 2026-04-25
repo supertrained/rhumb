@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { getCategories, getServiceCount } from "../../lib/api";
 import { CATEGORY_INFO, ORDERED_SLUGS } from "../../lib/categories";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 
 const leaderboardCategoryCount = ORDERED_SLUGS.length;
 const categoryData = await getCategories();
@@ -60,6 +61,9 @@ const CATEGORY_ICONS: Record<string, string> = {
   search: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M13 13L17 17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
   social: `<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="5" cy="10" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="5" r="2.5" stroke="currentColor" stroke-width="1.5"/><circle cx="15" cy="15" r="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M7.3 9L12.7 6M7.3 11L12.7 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>`,
 };
+
+const agentContext =
+  `Leaderboard hub. Rhumb Index ranks services by category using the AN Score. Browse ${leaderboardCategoryCount} categories drawn from ${totalScoredServices} scored services. ${PUBLIC_TRUTH.callableRealitySummary}`;
 ---
 
 <Layout
@@ -70,7 +74,8 @@ const CATEGORY_ICONS: Record<string, string> = {
   ogDescription={`${leaderboardCategoryCount} categories drawn from ${totalScoredServices} scored services.`}
   ogImage="https://rhumb.dev/api/og"
   jsonLd={LEADERBOARD_HUB_JSON_LD}
->
+
+  agentContext={agentContext}>
   <div class="bg-navy min-h-screen">
     <!-- Header -->
     <section class="relative border-b border-slate-800 overflow-hidden">

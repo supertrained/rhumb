@@ -489,6 +489,27 @@ async function getServiceReviewsFromAPI(
 // ---------- Exported functions (auto-select mode) ----------
 
 /** Fetch all services. */
+
+export async function getCallableProviderIds(): Promise<Set<string>> {
+  const root = API_BASE.endsWith("/v1") ? API_BASE.slice(0, -3) : API_BASE.replace(/\/v1\/?$/, "");
+  try {
+    const response = await fetch(`${root}/v2/providers?status=callable&limit=100`, {
+      headers: { "X-Rhumb-Client": "web" },
+      cache: "no-store",
+    });
+    if (!response.ok) return new Set();
+    const payload = await response.json();
+    const providers = Array.isArray(payload?.data?.providers) ? payload.data.providers : [];
+    return new Set(
+      providers
+        .filter((provider: { id?: unknown; callable?: unknown }) => provider.callable === true && typeof provider.id === "string")
+        .map((provider: { id: string }) => provider.id)
+    );
+  } catch {
+    return new Set();
+  }
+}
+
 export async function getServices(): Promise<Service[]> {
   return useSupabase ? getServicesFromSupabase() : getServicesFromAPI();
 }

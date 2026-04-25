@@ -18,6 +18,9 @@ const TRUST_JSON_LD = {
     url: "https://rhumb.dev",
   },
 };
+
+const agentContext =
+  `Trust at Rhumb. ${PUBLIC_TRUTH.rhumbEntityExpanded} Rhumb publishes its methodology, self-assessment, dispute process, public evidence links, and current callable limitations so humans and agents can inspect claims before relying on them.`;
 ---
 
 <Layout
@@ -28,7 +31,8 @@ const TRUST_JSON_LD = {
   ogDescription="Open methodology. Self-scoring. Disputable. Here's why you can trust the AN Score."
   ogUrl="https://rhumb.dev/trust"
   jsonLd={TRUST_JSON_LD}
->
+
+  agentContext={agentContext}>
   <div class="bg-navy min-h-screen">
     <div class="max-w-3xl mx-auto px-6 pt-14 pb-24">
       <!-- Header -->

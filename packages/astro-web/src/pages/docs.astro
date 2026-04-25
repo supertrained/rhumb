@@ -328,6 +328,9 @@ const MCP_TOOLS = [
   { name: "rhumb_recipe_execute", desc: "Execute a published Rhumb recipe once it is live in the public catalog.", example: 'rhumb_recipe_execute({ recipe_id: "published_recipe_id", inputs: { email: "sam@acme.com" } })' },
   { name: "get_receipt", desc: "Retrieve a chain-hashed execution receipt.", example: 'get_receipt({ receipt_id: "rcpt_123" })' },
 ];
+
+const agentContext =
+  `Rhumb docs. Use Rhumb Index to discover services and capabilities, then use Rhumb Resolve to estimate and execute supported actions through governed API, wallet-prefund, x402, BYOK, or Agent Vault paths. ${PUBLIC_TRUTH.callableRealitySummary}`;
 ---
 
 <Layout
@@ -338,7 +341,8 @@ const MCP_TOOLS = [
   ogDescription="Discover first, decide with evidence, and execute supported actions through Rhumb's governed API and MCP rails."
   ogUrl="https://rhumb.dev/docs"
   jsonLd={DOCS_JSON_LD}
->
+
+  agentContext={agentContext}>
   <div class="bg-navy min-h-screen">
     <div class="max-w-4xl mx-auto px-6 pt-14 pb-24">
       <header class="mb-16">

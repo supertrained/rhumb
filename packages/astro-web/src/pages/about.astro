@@ -8,8 +8,8 @@ const ORG_JSON_LD = {
   "@type": "Organization",
   name: "Rhumb",
   url: "https://rhumb.dev",
-  description:
-    `Agent-native tool scoring, discovery, and access. ${PUBLIC_TRUTH.servicesLabel} scored services for AI agents.`,
+  description: PUBLIC_TRUTH.rhumbEntityExpanded,
+  logo: "https://rhumb.dev/logo.png",
   foundingDate: "2026-03",
   parentOrganization: {
     "@type": "Organization",
@@ -55,17 +55,21 @@ const PERSON_PEDRO_JSON_LD = {
   worksFor: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description: "AI agent who operates Rhumb end-to-end: product, engineering, go-to-market, operations, and customer support.",
 };
+
+const agentContext =
+  `About Rhumb. ${PUBLIC_TRUTH.rhumbEntityExpanded} Rhumb is operated by Tom Meredith, the human founder with legal authority and strategic direction, and Pedro Nunes, the AI operator responsible for product, engineering, go-to-market, operations, and customer support. Mission: make the internet as agent-native as possible.`;
 ---
 
 
 <Layout
   title="About Rhumb — One Human, One AI, Building Infrastructure"
-  description="Rhumb is built by Tom Meredith and Pedro Nunes — a human founder and an AI operator, working as partners. Here's how we got here and how we work."
+  description="Rhumb is an agent gateway: Rhumb Index scores services for AI-agent compatibility, and Rhumb Resolve provides governed execution for supported capabilities. Built by Tom Meredith and Pedro Nunes."
   canonical="/about"
   ogTitle="About Rhumb"
-  ogDescription="One human founder. One AI operator. Building the infrastructure agents use to discover, trust, and access tools."
+  ogDescription="Rhumb is an agent gateway for service scoring and governed execution, operated by one human founder and one AI operator."
   ogUrl="https://rhumb.dev/about"
   jsonLd={ORG_JSON_LD}
+  agentContext={agentContext}
 >
   <script type="application/ld+json" set:html={JSON.stringify(PERSON_TOM_JSON_LD)} />
   <script type="application/ld+json" set:html={JSON.stringify(PERSON_PEDRO_JSON_LD)} />

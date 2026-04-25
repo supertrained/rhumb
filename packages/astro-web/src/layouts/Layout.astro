@@ -27,7 +27,7 @@ const {
   canonical,
   ogTitle,
   ogDescription,
-  ogImage = "https://rhumb.dev/api/og",
+  ogImage,
   ogUrl,
   ogType = "website",
   twitterCard = "summary_large_image",
@@ -52,6 +52,10 @@ function toAbsolute(path: string | undefined): string {
 }
 const resolvedCanonical = toAbsolute(canonical);
 const resolvedOgUrl = toAbsolute(ogUrl);
+const resolvedOgTitle = ogTitle ?? title;
+const resolvedOgDescription = ogDescription ?? description;
+const generatedOgImage = `https://rhumb.dev/api/og?title=${encodeURIComponent(resolvedOgTitle)}&subtitle=${encodeURIComponent(resolvedOgDescription)}`;
+const resolvedOgImage = !ogImage || ogImage === "https://rhumb.dev/api/og" ? generatedOgImage : ogImage;
 const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
 ---
 
@@ -77,10 +81,10 @@ const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
     <meta property="og:type" content={ogType} />
     <meta property="og:site_name" content="Rhumb" />
     <meta property="og:locale" content="en_US" />
-    <meta property="og:title" content={ogTitle ?? title} />
-    <meta property="og:description" content={ogDescription ?? description} />
+    <meta property="og:title" content={resolvedOgTitle} />
+    <meta property="og:description" content={resolvedOgDescription} />
     <meta property="og:url" content={resolvedOgUrl} />
-    <meta property="og:image" content={ogImage} />
+    <meta property="og:image" content={resolvedOgImage} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
 
@@ -88,12 +92,14 @@ const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
     <meta name="twitter:card" content={twitterCard} />
     <meta name="twitter:site" content="@pedrorhumb" />
     <meta name="twitter:creator" content="@pedrorhumb" />
-    <meta name="twitter:title" content={twitterTitle ?? ogTitle ?? title} />
-    <meta name="twitter:description" content={twitterDescription ?? ogDescription ?? description} />
-    <meta name="twitter:image" content={twitterImage ?? ogImage} />
+    <meta name="twitter:title" content={twitterTitle ?? resolvedOgTitle} />
+    <meta name="twitter:description" content={twitterDescription ?? resolvedOgDescription} />
+    <meta name="twitter:image" content={twitterImage ?? resolvedOgImage} />
 
-    <!-- Favicon -->
+    <!-- Favicon + machine-readable brand assets -->
     <link rel="icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" href="/logo.png" />
 
     {allJsonLdBlocks.map((block) => (
       <script type="application/ld+json" set:html={JSON.stringify(block)} />

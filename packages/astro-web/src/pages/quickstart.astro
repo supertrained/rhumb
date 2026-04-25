@@ -42,6 +42,9 @@ const DISCOVERY_TRACKS = [
     ],
   },
 ];
+
+const agentContext =
+  `Rhumb quickstart. Start with free discovery endpoints for services and capabilities, then move to Resolve only when the capability is supported. Read endpoints do not require signup; governed execution requires an appropriate credential or payment path.`;
 ---
 
 <Layout
@@ -52,7 +55,8 @@ const DISCOVERY_TRACKS = [
   ogDescription="Zero to first API response in 30 seconds. No signup required for read endpoints."
   ogUrl="https://rhumb.dev/quickstart"
   jsonLd={QUICKSTART_JSON_LD}
->
+
+  agentContext={agentContext}>
   <div class="bg-navy min-h-screen">
     <div class="max-w-4xl mx-auto px-6 py-16">
       <!-- Header -->

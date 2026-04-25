@@ -172,6 +172,9 @@ const comparisons: Comparison[] = [
     accentSoft: "rgba(217,119,6,0.14)",
   },
 ];
+
+const agentContext =
+  `Service comparisons for AI agents. Rhumb compares services using live AN Score data, failure modes, and scenario guidance. Comparisons educate service choice; Resolve CTAs must distinguish callable-through-Resolve services from discovery-only services.`;
 ---
 
 <Layout
@@ -183,9 +186,10 @@ const comparisons: Comparison[] = [
   ogUrl="https://rhumb.dev/compare"
   ogType="website"
   twitterTitle="Service Comparisons for AI Agents"
-  twitterDescription="Which tool should your agent use? Payments, email, CRM, auth — compared with live scores."
+  twitterDescription="Which service should your agent use? Payments, email, CRM, auth — compared with live scores."
   jsonLd={PAGE_JSON_LD}
->
+
+  agentContext={agentContext}>
   <div class="bg-navy min-h-screen overflow-hidden">
     <section class="relative border-b border-slate-800/80">
       <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
