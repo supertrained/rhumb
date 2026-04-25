@@ -189,6 +189,28 @@ def _validated_export_format(format: str) -> str:
     )
 
 
+def _validated_events_limit(limit: int) -> int:
+    if 1 <= limit <= 500:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 500.",
+    )
+
+
+def _validated_events_offset(offset: int) -> int:
+    if offset >= 0:
+        return offset
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'offset' filter.",
+        detail="Provide an integer greater than or equal to 0.",
+    )
+
+
 @router.get("/events")
 async def list_audit_events(
     raw_request: Request,
@@ -200,8 +222,8 @@ async def list_audit_events(
     resource_id: str | None = Query(None, description="Filter by resource ID"),
     since: str | None = Query(None, description="ISO 8601 timestamp — events after this time"),
     until: str | None = Query(None, description="ISO 8601 timestamp — events before this time"),
-    limit: int = Query(50, ge=1, le=500),
-    offset: int = Query(0, ge=0),
+    limit: int = Query(50),
+    offset: int = Query(0),
 ) -> dict[str, Any]:
     """Query audit events with filters and pagination.
 
@@ -210,13 +232,16 @@ async def list_audit_events(
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
-    trail = get_audit_trail()
 
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
     parsed_category = _validated_category(category)
     parsed_since = _validated_timestamp(since, field_name="since")
     parsed_until = _validated_timestamp(until, field_name="until")
+    limit = _validated_events_limit(limit)
+    offset = _validated_events_offset(offset)
+
+    trail = get_audit_trail()
 
     events = trail.query(
         org_id=org_id,

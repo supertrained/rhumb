@@ -106,6 +106,46 @@ def test_list_audit_events_invalid_since_uses_explicit_invalid_parameters():
     assert "ISO 8601" in body["error"]["detail"]
 
 
+def test_list_audit_events_invalid_limit_uses_explicit_invalid_parameters_before_reads():
+    from app import create_app
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?limit=0",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'limit' filter."
+    assert "between 1 and 500" in body["error"]["detail"]
+    get_audit_trail.assert_not_called()
+
+
+def test_list_audit_events_invalid_offset_uses_explicit_invalid_parameters_before_reads():
+    from app import create_app
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?offset=-1",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'offset' filter."
+    assert "greater than or equal to 0" in body["error"]["detail"]
+    get_audit_trail.assert_not_called()
+
+
 def test_list_audit_events_invalid_category_uses_explicit_invalid_parameters():
     from app import create_app
 
