@@ -32,7 +32,7 @@ export const GET: APIRoute = async () => {
 ## What is Rhumb?
 Rhumb is an agent gateway for discovery and governed execution.
 Rhumb Index scores external services for AI-agent compatibility.
-Rhumb Resolve executes supported capabilities through governed execution and routes each call to the best-fit provider for the call using AN Score, capability fit, provider health, credential mode, and call-specific constraints by default, while also allowing explicit provider choice when the agent wants direct control.
+Rhumb Resolve executes supported capabilities through governed execution and routes each call to the best-fit provider for the call using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints by default, while also allowing explicit provider choice when the agent wants direct control.
 
 ## System split: Index and Resolve
 - Rhumb Index is free discovery: score, compare, and research services.
@@ -42,7 +42,7 @@ Rhumb Resolve executes supported capabilities through governed execution and rou
 
 ## How Resolve routes calls
 - AN Score is a major routing input, not the sole routing rule.
-- Resolve considers capability fit, provider health, credential mode, freshness needs, and call-specific constraints before execution.
+- Resolve considers capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints before execution.
 - Agents can still pin the provider/tool path explicitly when direct control is better than automatic routing.
 - Discovery breadth is wider than current callable coverage, and Rhumb keeps that boundary explicit.
 

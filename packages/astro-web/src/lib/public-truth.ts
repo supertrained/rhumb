@@ -40,27 +40,25 @@ export const PUBLIC_TRUTH = {
   rhumbEntityShort:
     "Rhumb is an agent gateway that scores external services for AI-agent compatibility and provides governed execution for supported capabilities.",
   rhumbEntityExpanded:
-    "Rhumb combines Rhumb Index for scored service discovery with Rhumb Resolve for governed execution. Index ranks the field. Resolve can route each call to the best-fit supported provider using AN Score, capability fit, provider health, credential mode, and call-specific constraints, or let the agent pin the supported provider path explicitly.",
+    "Rhumb combines Rhumb Index for scored service discovery with Rhumb Resolve for governed execution. Index ranks the field. Resolve can route each call to the best-fit supported provider using AN Score, capability fit, availability, credential mode, estimated cost, and policy constraints, or let the agent pin the supported provider path explicitly.",
   indexShort: "Rhumb Index is free discovery: score, compare, and research services.",
   resolveShort: "Rhumb Resolve is per-call governed execution for supported capabilities.",
   resolveTagline: "Managed superpowers first. Secure bridges second.",
   resolveEntityShort:
-    "Rhumb Resolve is Rhumb’s governed execution layer for AI agents: one integration surface for supported capabilities, with managed credentials, explainable routing, optional provider pinning, failover, budget controls, and pay-per-call pricing.",
+    "Rhumb Resolve is Rhumb’s governed execution layer for AI agents: one integration surface for supported capabilities, with managed credentials, explainable routing, optional provider pinning, fallback where a supported alternate is configured, budget controls, and pay-per-call pricing.",
   resolveEntityExpanded:
-    "Agents can ask Resolve for a capability or explicitly pin the supported provider path they want. By default, Resolve chooses the best-fit supported provider for the call using AN Score as a major input alongside capability fit, provider strengths, freshness, provider health, credential mode, and operator constraints.",
+    "Agents can ask Resolve for a capability or explicitly pin the supported provider path they want. By default, Resolve chooses the best-fit supported provider for the call using AN Score as a major input alongside capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints.",
   routingHumanSummary:
     "Resolve routes each call to the best-fit provider for the call by default, while keeping explicit provider choice available when the agent wants direct control.",
   routingMachineSummary:
-    "Resolve performs explainable task-aligned provider routing using AN Score, capability fit, freshness, provider health, credential mode, budget and policy constraints, and operator preferences, while also supporting explicit provider pinning.",
+    "Resolve performs explainable task-aligned provider routing using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints, while also supporting provider pinning.",
   routingFactors: [
     "AN Score",
     "capability fit",
-    "provider strengths",
-    "freshness / recency needs",
-    "provider health",
+    "provider availability",
+    "estimated cost",
     "credential mode",
-    "budget / policy constraints",
-    "operator preferences",
+    "policy constraints (pin / allow / deny / cost ceiling)",
   ],
   resolveMentalModel: {
     defaultPath:

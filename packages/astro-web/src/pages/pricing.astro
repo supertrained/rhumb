@@ -137,7 +137,7 @@ const FAQ = [
   },
   {
     q: "Does Resolve just follow the top score?",
-    a: "No. AN Score is a major routing input, not the only one. Resolve chooses the best-fit supported provider for the call using AN Score, capability fit, provider health, credential mode, and your constraints.",
+    a: "No. AN Score is a major routing input, not the only one. Resolve chooses the best-fit supported provider for the call using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit constraints.",
   },
   {
     q: "Can I pick the provider path myself?",
@@ -190,7 +190,7 @@ const agentContext =
 
 <Layout
   title="Pricing"
-  description="Discovery is free. Execution is per call. Resolve routes each call to the best-fit provider for the call based on AN Score, capability fit, provider health, credential mode, and your constraints."
+  description="Discovery is free. Execution is per call. Resolve routes each call to the best-fit provider for the call based on AN Score, capability fit, availability, credential mode, cost, and explicit constraints."
   canonical="/pricing"
   ogTitle="Pricing - Rhumb"
   ogDescription="Discovery is free. Execution is per call. Know the route, health, and cost before execution."
@@ -207,7 +207,7 @@ const agentContext =
           <span class="block text-slate-400 mt-2">Know the route, health, and cost before execution.</span>
         </h1>
         <p class="mt-6 text-lg text-slate-400 leading-relaxed">
-          Discovery, scoring, and browsing are always free. When your agent runs a supported capability through Rhumb Resolve, you pay per call. Resolve routes each call to the best-fit provider for the call based on AN Score, capability fit, provider health, credential mode, and your constraints.
+          Discovery, scoring, and browsing are always free. When your agent runs a supported capability through Rhumb Resolve, you pay per call. Resolve routes each call to the best-fit provider for the call based on AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit constraints.
         </p>
         <p class="mt-4 text-base text-slate-500 leading-relaxed max-w-3xl">
           Want direct control instead? You can still pin the provider path yourself when that is the better execution shape.
@@ -246,7 +246,7 @@ const agentContext =
             <div class="rounded-xl border border-slate-800 bg-navy p-5">
               <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">What decides the route</p>
               <p class="text-sm leading-6 text-slate-300">
-                Resolve considers <strong class="text-slate-100">AN Score</strong>, capability fit, provider health, credential mode, and your constraints before execution.
+                Resolve considers <strong class="text-slate-100">AN Score</strong>, capability fit, provider availability, credential mode, estimated cost, and explicit constraints before execution.
               </p>
               <p class="mt-2 text-sm leading-6 text-slate-400">
                 Or pin the provider path explicitly when direct control matters more than automatic routing.
@@ -296,7 +296,7 @@ const agentContext =
                 <h3 class="font-display text-lg font-semibold text-slate-100">Governed API key</h3>
                 <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Managed</span>
               </div>
-              <p class="text-sm leading-6 text-slate-400">Rhumb handles routing, failover, and billing on the governed API key rail. Best default for apps and production agents.</p>
+              <p class="text-sm leading-6 text-slate-400">Rhumb handles routing, supported fallback, and billing on the governed API key rail. Best default for apps and production agents.</p>
             </a>
 
             <a href="/payments/agent" class="group rounded-xl border border-amber/20 bg-navy p-5 hover:border-amber/40 transition-colors">
@@ -497,7 +497,7 @@ const agentContext =
             </span>
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-400">
-            Rhumb handles credentials, routing, failover, and billing. You get route,
+            Rhumb handles credentials, routing, supported fallback, and billing. You get route,
             health, and cost checks before execution, best-fit-per-call routing, and fail-closed execution safety. Pay per call, no commitments.
           </p>
           <dl class="mt-5 space-y-3 text-sm">

@@ -286,7 +286,7 @@ describe("public authority pricing contract", () => {
 
   it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
     expect(astroHome).toContain('<h3 class="font-display font-semibold text-slate-100 text-lg">Governed API key</h3>');
-    expect(astroHome).toContain('Use governed API key when you want account-funded routing, failover, and billing on the default repeat-traffic rail.');
+    expect(astroHome).toContain('Use governed API key when you want account-funded routing, supported fallback, and billing on the default repeat-traffic rail.');
     expect(astroHome).toContain('Use BYOK or Agent Vault with your existing stack');
     expect(astroHome).toContain('Bring BYOK or Agent Vault when provider control is the point.');
     expect(astroHome).toContain('BYOK / Agent Vault');
@@ -565,7 +565,7 @@ describe("public authority pricing contract", () => {
     expect(astroResolve).toContain(resolveVaultCard);
     expect(astroResolve).toContain('Use when the credential should stay encrypted in Rhumb custody, scoped to the agent, and be injected only at execution time.');
     expect(astroResolve).toContain('title="Resolve | Governed execution for AI agents"');
-    expect(astroResolve).toContain('description="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using AN Score, capability fit, provider health, credential mode, and your constraints."');
+    expect(astroResolve).toContain('description="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using AN Score, capability fit, availability, credential mode, cost, and explicit constraints."');
     expect(astroResolve).toContain('Your agent needs APIs. Stop managing the keys.');
     expect(astroResolve).toContain('Task-aligned routing, not blind leaderboard routing.');
     expect(astroResolve).toContain('{PUBLIC_TRUTH.routingPrinciple}');
@@ -601,9 +601,16 @@ describe("public authority pricing contract", () => {
     expect(astroResolveRouting).toContain('Agents can also pin the supported provider path explicitly when they want direct control.');
     expect(astroResolveRouting).toContain('AN Score is a major quality prior');
     expect(astroResolveRouting).toContain('No pay-to-rank. No pretending cost is quality.');
-    expect(astroResolveRouting).toContain('selection_mode');
-    expect(astroResolveRouting).toContain('alternatives_considered');
+    expect(astroResolveRouting).toContain('winner.provider_id');
+    expect(astroResolveRouting).toContain('winner.selection_reason');
+    expect(astroResolveRouting).toContain('candidates[].factors');
+    expect(astroResolveRouting).toContain('candidates[].policy_checks');
+    expect(astroResolveRouting).not.toContain('selection_mode');
+    expect(astroResolveRouting).not.toContain('alternatives_considered');
     expect(astroResolveRouting).not.toContain('highest-scoring provider');
+    expect(astroResolveRouting).not.toContain('operator preferences');
+    expect(astroResolveRouting).not.toContain('freshness, provider health');
+    expect(astroResolve).not.toContain('16 callable providers');
     expect(astroResolve.indexOf(resolveManagedCard)).toBeLessThan(astroResolve.indexOf(resolveByokCard));
     expect(astroResolve.indexOf(resolveByokCard)).toBeLessThan(astroResolve.indexOf(resolveVaultCard));
     expect(astroResolve).toContain('data-rhumb-propagate href="/quickstart"');

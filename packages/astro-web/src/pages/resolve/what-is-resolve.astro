@@ -60,14 +60,14 @@ const jsonLdBlocks = [
         name: "Is every service in Rhumb executable through Resolve?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "No. Rhumb Index is broader than Resolve execution coverage. Resolve is currently strongest for research, extraction, generation, and narrow enrichment across 16 callable providers.",
+          text: `No. Rhumb Index is broader than Resolve execution coverage. Resolve is currently strongest for ${PUBLIC_TRUTH.beachheadLabel} across ${PUBLIC_TRUTH.callableProvidersLabel} callable providers.`,
         },
       },
     ],
   },
 ];
 
-const agentContext = "What is Rhumb Resolve? Resolve is governed execution for AI agents. Index ranks the field. Resolve routes supported calls by task fit using AN Score, capability fit, provider health, credential mode, budget and policy constraints, while preserving explicit provider pinning.";
+const agentContext = "What is Rhumb Resolve? Resolve is governed execution for AI agents. Index ranks the field. Resolve routes supported calls by task fit using AN Score, capability fit, provider availability, credential mode, estimated cost, and explicit policy constraints, while preserving explicit provider pinning.";
 ---
 
 <Layout
