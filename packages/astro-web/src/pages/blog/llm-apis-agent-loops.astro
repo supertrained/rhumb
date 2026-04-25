@@ -48,7 +48,7 @@ const ranked = [...providers].sort(
   (a, b) => (b.data?.aggregateRecommendationScore ?? 0) - (a.data?.aggregateRecommendationScore ?? 0)
 );
 const leader = ranked[0];
-const editorialUpdatedAtISO = "2026-04-24T00:00:00Z";
+const editorialUpdatedAtISO = "2026-04-25T00:00:00Z";
 const computedUpdatedAtISO = leader?.data?.calculatedAt ? new Date(leader.data.calculatedAt).toISOString() : editorialUpdatedAtISO;
 const updatedAtISO = new Date(Math.max(Date.parse(computedUpdatedAtISO), Date.parse(editorialUpdatedAtISO))).toISOString();
 const updatedAt = new Date(updatedAtISO).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -100,6 +100,13 @@ const PRE_RELEASE_MODEL_GUARDRAILS = [
   "Treat new mode switches like instant versus reasoning or thinking as cost and latency branches, not harmless quality flags.",
   "Do not assume an aggregator or preview endpoint preserves the final schema, error taxonomy, rate limits, or billing fields the production loop will see.",
   "Gate production promotion on a contract test that exercises the exact first-party endpoint, response shape, pricing fields, and fallback behavior you will run unattended.",
+];
+
+const COST_PER_ACTION_GUARDRAILS = [
+  "Track cost per completed user action, not only tokens per request, because retries, rejected outputs, and moderation detours all change unit economics.",
+  "Split instant, reasoning, fallback, and enrichment branches in spend logs so a cheaper nominal model does not hide a more expensive workflow path.",
+  "Set per-action budget ceilings before the loop starts and fail closed when the remaining budget cannot finish the job safely.",
+  "Feed observed cost deltas back into routing policy instead of waiting for the monthly bill to reveal which loop became unprofitable.",
 ];
 
 const ARTICLE_JSON_LD = {
@@ -380,6 +387,24 @@ const htmlContent = markdownToHtml(content);
             <p class="mt-2 text-sm leading-relaxed text-slate-400">Credential drift and quota pain usually compound together once the same loops keep retrying behind one shared auth surface.</p>
           </a>
         </div>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Unit-economics drill</div>
+        <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+          Cost per action is the loop metric operators actually feel
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Fresh AI product cost-engineering chatter makes the same loop-budget lesson concrete: a “generate” button is not priced by one model call. The bill comes from retries, validation, fallbacks, rejected outputs, and the cases where a cheap path quietly hands work to a more expensive reasoning or enrichment branch.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {COST_PER_ACTION_GUARDRAILS.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          That is why cost belongs beside <a href="/blog/agent-fleet-rate-limit-design" class="text-amber hover:text-amber-200 transition-colors">fleet rate-limit design</a> and <a href="/pricing" class="text-amber hover:text-amber-200 transition-colors">per-call pricing</a>: agents need a budget contract per completed action, not a vague hope that average token spend stays low.
+        </p>
       </section>
 
       <section class="mt-10 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
