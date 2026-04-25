@@ -215,8 +215,14 @@ Beacon can call the measurement run complete when:
 5. Start with one owned article or DEV.to pilot, not a syndication wave.
 6. Measure after indexing; then decide whether to widen.
 
+## Pilot prep status
+
+The first selected external pilot is brief 3: **Three-line web-search Resolve quickstart**. Pedro prepared `docs/DC90-DEVTO-PILOT-PREP-2026-04-25.md` with a DEV.to skeleton, snippet block, claim boundaries, and Helm's hosted API validation notes.
+
+Helm pass summary: `resolve` and `estimate` work as anonymous preflight reads; `execute` requires a paid/authorized rail; the dogfood governed key executed through `brave-search-api` in `rhumb_managed` mode. Keep the external copy explicit that `estimate` can differ from the top provider listed by `resolve` because it represents the concrete execution rail before spend.
+
 ## Open follow-ups
 
-- Helm should validate the `search.query` quickstart against the current hosted API and note whether estimate requires authorization in the external version.
+- Beacon should adapt the selected quickstart prep into exactly one DEV.to pilot post, not a wave.
+- Keel should review the final adapted DEV.to copy before external distribution.
 - Beacon should decide the five LLM/search surfaces for Month 1 and store raw artifacts in a durable folder before summarizing.
-- Keel should add this pack to the public-claim review queue before any external distribution copy ships.
