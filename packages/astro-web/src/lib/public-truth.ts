@@ -43,7 +43,7 @@ export const PUBLIC_TRUTH = {
     "Rhumb combines Rhumb Index for scored service discovery with Rhumb Resolve for governed execution. Index ranks the field. Resolve first matches the supported capability path, then routes using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and policy constraints, or lets the agent pin the supported provider path explicitly.",
   indexShort: "Rhumb Index is free discovery: score, compare, and research services.",
   resolveShort: "Rhumb Resolve is per-call governed execution for supported capabilities.",
-  resolveTagline: "Managed superpowers first. Secure bridges second.",
+  resolveTagline: "One key, many superpowers.",
   resolveEntityShort:
     "Rhumb Resolve is Rhumb’s governed execution layer for AI agents: one integration surface for supported capabilities, with managed credentials, explainable routing, optional provider pinning, fallback where a supported alternate is configured, budget controls, and pay-per-call pricing.",
   resolveEntityExpanded:
@@ -63,7 +63,7 @@ export const PUBLIC_TRUTH = {
   ],
   resolveMentalModel: {
     defaultPath:
-      "Default path: start with governed API key or wallet-prefund on `X-Rhumb-Key`, discover a Service, choose a Capability, estimate the call, then execute through Layer 2. Start with Rhumb-managed superpowers first. Bring BYOK or Agent Vault only when the workflow touches your own systems. Use x402 only when zero-signup per-call matters. Use Layer 1 only when you must pin the provider. Use Layer 3 only when a published recipe already exists.",
+      "Default path: start with governed API key or wallet-prefund on `X-Rhumb-Key`, discover a Service, choose a Capability, estimate the call, then execute through Layer 2. One key, many superpowers: start with Rhumb-managed capabilities first, bring your systems only when needed, and keep one surface instead of a tool graveyard. Bring BYOK or Agent Vault only when the workflow touches your own systems. Use x402 only when zero-signup per-call matters. Use Layer 1 only when you must pin the provider. Use Layer 3 only when a published recipe already exists.",
     surfaces: [
       {
         name: "REST API",
