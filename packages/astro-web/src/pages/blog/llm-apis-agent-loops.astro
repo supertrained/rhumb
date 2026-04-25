@@ -48,7 +48,7 @@ const ranked = [...providers].sort(
   (a, b) => (b.data?.aggregateRecommendationScore ?? 0) - (a.data?.aggregateRecommendationScore ?? 0)
 );
 const leader = ranked[0];
-const editorialUpdatedAtISO = "2026-04-23T00:00:00Z";
+const editorialUpdatedAtISO = "2026-04-24T00:00:00Z";
 const computedUpdatedAtISO = leader?.data?.calculatedAt ? new Date(leader.data.calculatedAt).toISOString() : editorialUpdatedAtISO;
 const updatedAtISO = new Date(Math.max(Date.parse(computedUpdatedAtISO), Date.parse(editorialUpdatedAtISO))).toISOString();
 const updatedAt = new Date(updatedAtISO).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -86,6 +86,13 @@ const MODEL_RETIREMENT_GUARDRAILS = [
   "Check model availability before execution and classify retirement or not-found errors as deterministic migration work, not transient retry noise.",
   "Treat a replacement model as a new operating profile: parameters, stop reasons, tool behavior, rate limits, and price can all shift together.",
   "Keep cost and quota alerts per model family so a 'successful' swap does not quietly exhaust a different limit bucket or budget envelope.",
+];
+
+const MULTI_PROVIDER_CONTEXT_GUARDRAILS = [
+  "Measure context with the tokenizer and window rules of the actual target model, not yesterday's provider or a generic estimate.",
+  "Treat reasoning effort, reasoning-token budget, and output format as provider-specific operating parameters that can change retry cost and state continuity.",
+  "When a fallback route changes provider or model family, re-run context trimming and compression before the next tool call or side effect.",
+  "Track usage and overflow by provider, model, and route so token explosions look like attributable loop failures instead of random latency or spend noise.",
 ];
 
 const ARTICLE_JSON_LD = {
@@ -366,6 +373,24 @@ const htmlContent = markdownToHtml(content);
             <p class="mt-2 text-sm leading-relaxed text-slate-400">Credential drift and quota pain usually compound together once the same loops keep retrying behind one shared auth surface.</p>
           </a>
         </div>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Fresh operator signal</div>
+        <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+          Multi-provider context is a loop budget, not just a prompt length
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Fresh multi-LLM context and reasoning posts sharpen the same loop lesson: once a route can move between OpenAI, Anthropic, Google, Cohere, xAI, or another model family, context accounting stops being portable. Tokenizers disagree, reasoning controls fragment, and a fallback model can inherit a conversation state it cannot safely fit or price.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {MULTI_PROVIDER_CONTEXT_GUARDRAILS.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          The same recovery pattern carries into <a href="/blog/agent-state-management-recovery-patterns" class="text-amber hover:text-amber-200 transition-colors">agent state management</a>: if model routing changes mid-workflow, the saved state needs to include enough provider context for the next worker to trim, resume, or fail closed deliberately.
+        </p>
       </section>
 
       <section class="mt-10 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">

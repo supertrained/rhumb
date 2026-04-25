@@ -58,9 +58,20 @@ const STATE_CATEGORIES = [
     body: "The last confirmed stage, inputs, outputs, and timestamps needed to resume after a restart or ambiguous failure.",
   },
   {
+    title: "Provider-context state",
+    body: "The target model, tokenizer, context budget, reasoning mode, and compression rules active when this step was planned or executed.",
+  },
+  {
     title: "Durable side-effect state",
     body: "Records, payments, messages, and external resources already written to another system. You verify and branch, not undo.",
   },
+];
+
+const MULTI_LLM_STATE_DRILL = [
+  "Checkpoint which provider and model were active when context was counted, trimmed, summarized, or compressed.",
+  "Do not reuse one token estimate across providers; tokenizer mismatch can turn a safe resume into a silent overflow.",
+  "Store the reasoning budget or mode that shaped the prior response so a fallback model does not inherit a state contract it cannot reproduce.",
+  "When routing changes mid-workflow, re-measure context for the new target before the next side effect, not after the overflow error.",
 ];
 
 const API_PROFILES = [
@@ -127,7 +138,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Agent State Management: How to Build Workflows That Recover Without You",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-03T00:00:00Z",
+  dateModified: "2026-04-24T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production agent reliability depends on checkpointing, verification, bounded work units, and explicit recovery paths, not just whether an API usually returns 200.",
@@ -159,7 +170,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="uppercase tracking-widest text-amber">Recovery Patterns</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">April 3, 2026</span>
+          <span class="text-slate-500">Updated April 24, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -232,13 +243,30 @@ const ARTICLE_JSON_LD = {
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
               2. Know which state your workflow is carrying
             </h2>
-            <div class="grid gap-4 md:grid-cols-3">
+            <div class="grid gap-4 md:grid-cols-2">
               {STATE_CATEGORIES.map((item) => (
                 <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
                   <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
                   <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section>
+            <div class="rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Fresh operator signal</div>
+              <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+                Multi-LLM routing makes context state provider-specific
+              </h2>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                Fresh multi-LLM context-management notes make the hidden state boundary concrete: a conversation that fits one provider can overflow another because tokenizers, context windows, reasoning controls, and response formats do not line up. If the workflow can switch models, provider context becomes recoverable state, not just prompt plumbing.
+              </p>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {MULTI_LLM_STATE_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
             </div>
           </section>
 
