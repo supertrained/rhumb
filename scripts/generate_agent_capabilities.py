@@ -147,7 +147,7 @@ def build_agent_capabilities() -> dict:
     return {
         "schema_version": "1.0",
         "name": "Rhumb",
-        "description": f"Agent-native tool intelligence for {public_truth['beachheadLabel']} — discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
+        "description": f"Agent gateway for {public_truth['beachheadLabel']}: Rhumb Index scores and compares services; Rhumb Resolve routes supported capability calls through governed execution rails with receipts.",
         "homepage": "https://rhumb.dev",
         "api_base": "https://api.rhumb.dev/v1",
         "mcp_install": "npx rhumb-mcp@latest",
@@ -240,7 +240,7 @@ def render_root_product_surface(public_truth: dict[str, int | str], tools: dict[
 
 ### Rhumb Resolve — Execute
 
-**{public_truth['capabilitiesLabel']} capability definitions** across **{public_truth['callableProvidersLabel']} callable providers today**. Cost-aware routing picks the best provider where execution is actually live.
+**{public_truth['capabilitiesLabel']} capability definitions** across **{public_truth['callableProvidersLabel']} callable providers today**. Resolve chooses the best-fit supported provider for the call using AN Score, availability / circuit state, estimated cost, latency proxy, credential mode, and explicit policy constraints.
 
 - `execute_capability` — {tools['execute_capability']}
 - `resolve_capability` — {tools['resolve_capability']}
@@ -291,7 +291,7 @@ def render_llms_txt(public_truth: dict[str, int | str], tools: dict[str, str]) -
 > Canonical public docs: https://rhumb.dev/llms.txt
 
 ## What is Rhumb?
-Rhumb is agent-native tool intelligence: discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.
+Rhumb is an agent gateway: Rhumb Index scores and compares services; Rhumb Resolve routes supported capability calls through governed execution rails with receipts.
 
 ## Current launchable scope
 - Best current fit: {public_truth['beachheadLabel']}

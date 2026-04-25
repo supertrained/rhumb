@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.supertrained/rhumb-mcp",
-  "description": "Agent-native tool intelligence for discovery, scoring, and governed execution",
+  "description": "Agent gateway for Index discovery, AN Score evaluation, and Resolve governed execution",
   "repository": {
     "url": "https://github.com/supertrained/rhumb",
     "source": "github",

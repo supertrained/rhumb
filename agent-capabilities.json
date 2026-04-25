@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "name": "Rhumb",
-  "description": "Agent-native tool intelligence for research, extraction, generation, and narrow enrichment — discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
+  "description": "Agent gateway for research, extraction, generation, and narrow enrichment: Rhumb Index scores and compares services; Rhumb Resolve routes supported capability calls through governed execution rails with receipts.",
   "homepage": "https://rhumb.dev",
   "api_base": "https://api.rhumb.dev/v1",
   "mcp_install": "npx rhumb-mcp@latest",

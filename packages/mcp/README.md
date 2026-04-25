@@ -62,7 +62,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 | Layer | What | How |
 |-------|------|-----|
 | **Layer 1** | Raw provider access | You pick the provider. Escape hatch + trust anchor. |
-| **Layer 2** | Capability routing | Rhumb picks the best provider. Cost-optimal with quality floor. |
+| **Layer 2** | Capability routing | Rhumb routes to the best-fit supported provider for the call, using AN Score, availability / circuit state, estimated cost, latency proxy, credential mode, and explicit policy constraints. |
 | **Layer 3** | Deterministic recipes (beta) | Compiled DAG workflows. Multi-step, budget-enforced, content-firewalled. No published recipes yet. |
 
 **New infrastructure:**
@@ -70,7 +70,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 - Route explanations (why this provider was chosen)
 - AN Score structural separation (read-only cache, auditable)
 - Billing event stream (chain-hashed, 15+ event types)
-- Trust dashboard (provider health, costs, reliability)
+- Trust dashboard inputs for observed availability, costs, and reliability
 - Recipe safety controls (content firewall, idempotency, nesting depth, fan-out rate limiting)
 - Kill switches (per-agent, per-provider, per-recipe, global with authenticated two-person auth)
 - Audit trail (append-only, chain-hash verification, export API)

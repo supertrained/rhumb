@@ -202,8 +202,16 @@ describe("types.contract", () => {
     expect(rootReadme).not.toContain("wallet-prefunded API key");
 
     expect(mcpReadme).toContain("**No governed API key needed for discovery.** Install and start immediately:");
+    expect(rootReadme).toContain("**Rhumb is an agent gateway for external tools.**");
+    expect(rootReadme).toContain("**Index ranks. Resolve routes.**");
+    expect(rootReadme).toContain("### Repository visibility map");
+    expect(rootReadme).toContain("Broad discovery is not the same as execution readiness");
+    expect(rootReadme).toContain("Resolve chooses the best-fit supported provider for the call");
+    expect(rootReadme).not.toContain("Cost-aware routing picks the best provider");
     expect(mcpReadme).toContain("Rhumb scores **999 services** and exposes **435 capability definitions**");
     expect(mcpReadme).toContain("current governed execution is concentrated in **28 callable providers**");
+    expect(mcpReadme).toContain("Rhumb routes to the best-fit supported provider for the call");
+    expect(mcpReadme).not.toContain("Rhumb picks the best provider");
     expect(mcpReadme).toContain("Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`");
     expect(mcpReadme).toContain("Bring BYOK or Agent Vault** only when provider control is the point");
     expect(mcpReadme).toContain("Get a governed API key at https://rhumb.dev/auth/login");
@@ -285,8 +293,9 @@ describe("types.contract", () => {
     }
 
     for (const description of [mcpPackageJson.description, mcpServerManifest.description]) {
-      expect(description.toLowerCase()).toContain("agent-native tool intelligence");
+      expect(description.toLowerCase()).toMatch(/agent-native tool intelligence|agent gateway/);
       expect(description).toContain("governed execution");
+      expect(description).toMatch(/Index|Resolve|capability routing/);
       expect(description).not.toMatch(/(?:600\+ services|1000\+ scored services|1,000\+ scored services)/);
     }
   });

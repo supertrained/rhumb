@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![MCP Registry](https://img.shields.io/badge/MCP-Registry-green)](https://registry.modelcontextprotocol.io)
 
-**Agent-native tool intelligence.** Discover, evaluate, and execute external tools — with trust scores, failure modes, cost-aware routing, and managed credentials.
+**Rhumb is an agent gateway for external tools.** Rhumb Index scores and compares services; Rhumb Resolve routes supported capability calls through governed execution rails with receipts.
 
 🌐 [rhumb.dev](https://rhumb.dev) · ⚡ [Quickstart](https://rhumb.dev/quickstart) · 💵 [Pricing](https://rhumb.dev/pricing) · 📊 [Leaderboard](https://rhumb.dev/leaderboard) · 📖 [Methodology](https://rhumb.dev/methodology) · 🔑 [Trust](https://rhumb.dev/trust)
 
@@ -42,6 +42,8 @@ All read endpoints are public.
 
 ## What Rhumb does
 
+**Index ranks. Resolve routes.** Use Rhumb Index when an agent needs to discover and evaluate services. Use Rhumb Resolve when the task is on a supported capability path and you want governed execution with an explicit receipt.
+
 Agents need external tools. Choosing the right one is hard — not because of feature lists, but because of:
 
 - auth and signup friction
@@ -74,7 +76,7 @@ Treat broader multi-system business automation as future scope, not the current 
 
 ### Rhumb Resolve — Execute
 
-**435 capability definitions** across **28 callable providers today**. Cost-aware routing picks the best provider where execution is actually live.
+**435 capability definitions** across **28 callable providers today**. Resolve chooses the best-fit supported provider for the call using AN Score, availability / circuit state, estimated cost, latency proxy, credential mode, and explicit policy constraints.
 
 - `execute_capability` — Call a Capability through Rhumb Resolve
 - `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, and machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, plus typo recovery when the capability ID is wrong
@@ -84,6 +86,15 @@ Treat broader multi-system business automation as future scope, not the current 
 
 > Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation and broad multi-system orchestration as future scope, not the current launch promise.
 <!-- GENERATED:README_PRODUCT_SURFACE_END -->
+
+### Repository visibility map
+
+| Surface | What it is for | Current honest boundary |
+|---------|----------------|-------------------------|
+| **Rhumb Index** | Free service discovery, AN Score lookup, alternatives, and failure-mode research | Broad discovery is not the same as execution readiness |
+| **Rhumb Resolve** | Governed execution for supported capabilities with estimates, receipts, budgets, and telemetry | 28 callable providers today; best fit is research, extraction, generation, and narrow enrichment |
+| **MCP package** | Agent-native entry point for Claude, Cursor, and other MCP clients | Discovery works without auth; execution needs a governed key, wallet-prefund, or x402 where supported |
+| **API** | Public read endpoints plus authenticated execution endpoints | Use current API responses as source of truth for readiness and callable coverage |
 
 ### Three credential paths
 

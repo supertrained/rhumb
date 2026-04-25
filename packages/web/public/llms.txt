@@ -2,7 +2,7 @@
 > Canonical public docs: https://rhumb.dev/llms.txt
 
 ## What is Rhumb?
-Rhumb is agent-native tool intelligence: discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.
+Rhumb is an agent gateway: Rhumb Index scores and compares services; Rhumb Resolve routes supported capability calls through governed execution rails with receipts.
 
 ## Current launchable scope
 - Best current fit: research, extraction, generation, and narrow enrichment
