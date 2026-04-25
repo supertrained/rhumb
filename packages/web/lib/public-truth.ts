@@ -1,5 +1,5 @@
 export const PUBLIC_TRUTH = {
-  servicesLabel: "1,038",
+  servicesLabel: "999",
   categoriesLabel: "92",
   providersUrl: "https://rhumb.dev/providers",
   publicDisputeTemplateUrl:

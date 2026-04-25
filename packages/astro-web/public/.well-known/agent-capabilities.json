@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "name": "Rhumb",
-  "description": "Agent-native tool intelligence for research, extraction, generation, and narrow enrichment — discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
+  "description": "Agent-native tool intelligence for research, extraction, generation, and narrow enrichment \u2014 discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
   "homepage": "https://rhumb.dev",
   "api_base": "https://api.rhumb.dev/v1",
   "mcp_install": "npx rhumb-mcp@latest",
@@ -16,7 +16,7 @@
   },
   "capabilities": {
     "discovery": {
-      "description": "Search, score, and evaluate 1,038 services across 50+ domains",
+      "description": "Search, score, and evaluate 999 services across 50+ domains",
       "auth_required": false,
       "tools": [
         {
@@ -119,17 +119,17 @@
         },
         {
           "name": "usage_telemetry",
-          "description": "Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage"
+          "description": "Get your execution analytics \u2014 calls, latency, errors, costs, and provider health for your Rhumb usage"
         }
       ]
     }
   },
   "coverage": {
-    "services": 1038,
-    "capabilities": 415,
+    "services": 999,
+    "capabilities": 435,
     "domains": 50,
     "categories": 92,
-    "providers_with_execution": 16,
+    "providers_with_execution": 28,
     "credential_modes": [
       "byok",
       "rhumb_managed",

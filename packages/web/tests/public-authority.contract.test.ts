@@ -141,7 +141,7 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the web homepage, about, and search authority surfaces pinned to public truth labels", () => {
-    expect(webPublicTruth).toContain('servicesLabel: "1,038"');
+    expect(webPublicTruth).toContain('servicesLabel: "999"');
     expect(webPublicTruth).toContain('categoriesLabel: "92"');
 
     expect(webHome).toContain('PUBLIC_TRUTH.servicesLabel');
@@ -289,7 +289,7 @@ describe("public authority pricing contract", () => {
 
   it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
     expect(astroHome).toContain('<h3 class="font-display font-semibold text-slate-100 text-lg">Governed API key</h3>');
-    expect(astroHome).toContain('Use governed API key when you want account-funded routing, supported fallback, and billing on the default repeat-traffic rail.');
+    expect(astroHome).toContain('Use governed API key when you want account-funded routing, fallback where a supported alternate is configured, and billing on the default repeat-traffic rail.');
     expect(astroHome).toContain('Use BYOK or Agent Vault with your existing stack');
     expect(astroHome).toContain('Bring BYOK or Agent Vault when provider control is the point.');
     expect(astroHome).toContain('BYOK / Agent Vault');
@@ -714,6 +714,16 @@ describe("public authority pricing contract", () => {
     expect(astroResolveWhatIs).toContain('Resolve first matches the supported capability path, then routes supported calls using AN Score');
     expect(astroResolve).toContain('"Explainable supported-capability provider routing"');
     expect(astroResolve).toContain('When supported routing beats raw rank');
+    expect(astroHome).toContain('description: PUBLIC_TRUTH.rhumbEntityShort');
+    expect(astroAbout).toContain('description: PUBLIC_TRUTH.rhumbEntityShort');
+    expect(astroAbout).toContain('${PUBLIC_TRUTH.rhumbEntityShort}');
+    expect(astroTrust).not.toContain('PUBLIC_TRUTH.rhumbEntityExpanded');
+    expect(astroLeaderboardHub).toContain('{PUBLIC_TRUTH.callableRealitySummary}');
+    expect(astroPricing).toContain('fallback where a supported alternate is configured');
+    expect(astroPricing).toContain('fail-closed billing / no charge for failed provider calls');
+    expect(astroPricing).not.toContain('fail-closed execution safety');
+    expect(astroLlmsFullRoute).toContain('Core MCP tools include');
+    expect(astroLlmsFullRoute).toContain('The public MCP reference covers all ${PUBLIC_TRUTH.mcpToolsLabel} tools.');
 
     for (const surface of dc90MachineSurfaces) {
       expect(surface).not.toContain('routes supported calls by task fit');
@@ -822,6 +832,10 @@ describe("public authority pricing contract", () => {
       expect(caps.auth.repeat_traffic).toBe("governed_api_key_or_wallet_prefund_on_x_rhumb_key");
       expect(caps.auth.zero_signup).toBe("x402_usdc");
       expect(caps.auth.provider_control).toBe("byok_or_agent_vault");
+      expect(caps.coverage.services).toBe(999);
+      expect(caps.coverage.capabilities).toBe(435);
+      expect(caps.coverage.providers_with_execution).toBe(28);
+      expect(caps.capabilities.discovery.description).toBe("Search, score, and evaluate 999 services across 50+ domains");
       expect(caps.capabilities.execution.description).toContain("governed API key, wallet-prefund, or x402 per-call, with BYOK or Agent Vault where supported");
       expect(checkCredentialsTool?.description).toBe(
         "Inspect live credential-mode readiness, globally or for a specific Capability",

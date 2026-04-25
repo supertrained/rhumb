@@ -64,7 +64,7 @@ and sandbox availability.
 \`\`\`
 npx rhumb-mcp@latest
 \`\`\`
-MCP tools include find_services, get_score, get_alternatives, get_failure_modes, discover_capabilities, resolve_capability, estimate_capability, execute_capability, budget, spend, check_balance, and get_payment_url.
+Core MCP tools include find_services, get_score, get_alternatives, get_failure_modes, discover_capabilities, resolve_capability, estimate_capability, execute_capability, budget, spend, check_balance, and get_payment_url. The public MCP reference covers all ${PUBLIC_TRUTH.mcpToolsLabel} tools.
 
 ## Resolve authority links
 - What is Resolve?: ${PUBLIC_TRUTH.resolveWhatIsUrl}

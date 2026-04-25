@@ -296,7 +296,7 @@ const agentContext =
                 <h3 class="font-display text-lg font-semibold text-slate-100">Governed API key</h3>
                 <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Managed</span>
               </div>
-              <p class="text-sm leading-6 text-slate-400">Rhumb handles routing, supported fallback, and billing on the governed API key rail. Best default for apps and production agents.</p>
+              <p class="text-sm leading-6 text-slate-400">Rhumb handles routing, fallback where a supported alternate is configured, and billing on the governed API key rail. Best default for apps and production agents.</p>
             </a>
 
             <a href="/payments/agent" class="group rounded-xl border border-amber/20 bg-navy p-5 hover:border-amber/40 transition-colors">
@@ -497,8 +497,8 @@ const agentContext =
             </span>
           </div>
           <p class="mt-4 text-sm leading-6 text-slate-400">
-            Rhumb handles credentials, routing, supported fallback, and billing. You get route,
-            availability, and cost checks before execution, best-fit-per-call routing, and fail-closed execution safety. Pay per call, no commitments.
+            Rhumb handles credentials, routing, fallback where a supported alternate is configured, and billing. You get route,
+            availability, and cost checks before execution, best-fit-per-call routing, and fail-closed billing / no charge for failed provider calls. Pay per call, no commitments.
           </p>
           <dl class="mt-5 space-y-3 text-sm">
             <div class="flex justify-between gap-4">

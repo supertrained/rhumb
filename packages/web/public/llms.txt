@@ -15,18 +15,18 @@ Rhumb is agent-native tool intelligence: discover, evaluate, and execute externa
 - npm: https://www.npmjs.com/package/rhumb-mcp
 
 ## Current coverage
-- 1,038 scored services across 50+ domains
-- 415 capability definitions
+- 999 scored services across 50+ domains
+- 435 capability definitions
 - 92 categories
-- 16 callable providers
+- 28 callable providers
 - 21 MCP tools
 - 3 execution rails: governed API key, wallet-prefund, x402 / USDC
 - 2 operator-controlled credential modes where supported: BYOK, Agent Vault
 
 ## Honest current state
 - Discovery breadth is wider than execution breadth
-- The index covers 1,038 scored services and 415 capability definitions
-- Current governed execution surface is 16 callable providers
+- The index covers 999 scored services and 435 capability definitions
+- Current governed execution surface is 28 callable providers
 - Best current fit remains research, extraction, generation, and narrow enrichment
 
 ## Discovery (no auth)
