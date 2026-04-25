@@ -165,6 +165,8 @@ Use the 15-query map from the DC90 backlog until Beacon has a reason to revise i
 
 Run each query against five LLM/search surfaces chosen by Beacon for the month. Keep the set stable month-over-month where possible. If a surface changes, record the change before running the test.
 
+Month 1 scaffold: `docs/DC90-MONTH1-MEASUREMENT-SETUP-2026-04-25.md` selects the baseline-comparable surfaces (`GPT-4`, `Claude`, `Perplexity`, `Gemini`, `Copilot`) and pre-expands the 75-row scorecard at `docs/dc90-measurement/month1-2026-04/scorecard.csv`.
+
 ### Scoring columns
 
 For each query × surface result, capture:

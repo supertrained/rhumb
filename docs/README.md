@@ -11,3 +11,4 @@
 - Package-level quickstart: `packages/api/README.md` (includes probe scheduler operator notes)
 - Product context: tracked in the parent workspace strategy docs
 - DC90 Resolve content + measurement pack: `docs/DC90-RESOLVE-CONTENT-MEASUREMENT-PACK-2026-04-25.md`
+- DC90 Month 1 measurement setup: `docs/DC90-MONTH1-MEASUREMENT-SETUP-2026-04-25.md` plus `docs/dc90-measurement/month1-2026-04/scorecard.csv`

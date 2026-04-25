@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DC90 Month 1 visibility scorecard row",
+  "type": "object",
+  "required": [
+    "query_id",
+    "query_cluster",
+    "query_text",
+    "surface",
+    "surface_mode",
+    "run_at_utc",
+    "artifact_path",
+    "rhumb_mentioned",
+    "resolve_mentioned",
+    "citation_url",
+    "citation_type",
+    "entity_accuracy",
+    "claim_accuracy",
+    "competitors_named",
+    "composio_present",
+    "actionability",
+    "keel_review_status",
+    "notes"
+  ],
+  "properties": {
+    "query_id": {
+      "enum": [
+        "Q1",
+        "Q2",
+        "Q3",
+        "Q4",
+        "Q5",
+        "Q6",
+        "Q7",
+        "Q8",
+        "Q9",
+        "Q10",
+        "Q11",
+        "Q12",
+        "Q13",
+        "Q14",
+        "Q15"
+      ]
+    },
+    "query_cluster": {
+      "enum": [
+        "index",
+        "resolve"
+      ]
+    },
+    "query_text": {
+      "type": "string"
+    },
+    "surface": {
+      "enum": [
+        "GPT-4",
+        "Claude",
+        "Perplexity",
+        "Gemini",
+        "Copilot"
+      ]
+    },
+    "surface_mode": {
+      "type": "string"
+    },
+    "run_at_utc": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp for the captured artifact"
+    },
+    "artifact_path": {
+      "type": "string",
+      "description": "Path under docs/dc90-measurement/month1-2026-04/raw-artifacts/"
+    },
+    "rhumb_mentioned": {
+      "enum": [
+        "yes",
+        "no",
+        "pending"
+      ]
+    },
+    "resolve_mentioned": {
+      "enum": [
+        "yes",
+        "no",
+        "pending"
+      ]
+    },
+    "citation_url": {
+      "type": "string"
+    },
+    "citation_type": {
+      "enum": [
+        "owned page",
+        "GitHub",
+        "MCP registry",
+        "npm",
+        "external article",
+        "social",
+        "directory",
+        "none",
+        "pending"
+      ]
+    },
+    "entity_accuracy": {
+      "enum": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "pending"
+      ]
+    },
+    "claim_accuracy": {
+      "enum": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "pending"
+      ]
+    },
+    "competitors_named": {
+      "type": "string"
+    },
+    "composio_present": {
+      "enum": [
+        "yes",
+        "no",
+        "pending"
+      ]
+    },
+    "actionability": {
+      "enum": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "pending"
+      ]
+    },
+    "keel_review_status": {
+      "enum": [
+        "not_required",
+        "pending",
+        "reviewed",
+        "blocked"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  }
+}
