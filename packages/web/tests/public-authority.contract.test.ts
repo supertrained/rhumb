@@ -29,6 +29,8 @@ const astroResolveCompare = readFileSync(new URL("../../astro-web/src/pages/reso
 const astroResolveKeys = readFileSync(new URL("../../astro-web/src/pages/resolve/keys.astro", import.meta.url), "utf8");
 const astroResolvePerCallPricing = readFileSync(new URL("../../astro-web/src/pages/resolve/per-call-pricing.astro", import.meta.url), "utf8");
 const astroLeaderboardHub = readFileSync(new URL("../../astro-web/src/pages/leaderboard/index.astro", import.meta.url), "utf8");
+const astroPricing = readFileSync(new URL("../../astro-web/src/pages/pricing.astro", import.meta.url), "utf8");
+const astroTrust = readFileSync(new URL("../../astro-web/src/pages/trust.astro", import.meta.url), "utf8");
 const astroPaymentsAgent = readFileSync(new URL("../../astro-web/src/pages/payments/agent.astro", import.meta.url), "utf8");
 const astroSecuringKeys = readFileSync(new URL("../../astro-web/src/pages/blog/securing-keys-for-agents.astro", import.meta.url), "utf8");
 const astroSwitchingFromSmithery = readFileSync(new URL("../../astro-web/src/pages/blog/switching-from-smithery.astro", import.meta.url), "utf8");
@@ -43,6 +45,7 @@ const astroMultiProviderMcp = readFileSync(new URL("../../astro-web/src/pages/bl
 const astroWallets = readFileSync(new URL("../../astro-web/src/pages/blog/why-agent-wallets-keep-losing-money.astro", import.meta.url), "utf8");
 const astroX402Dogfood = readFileSync(new URL("../../astro-web/src/pages/blog/how-agents-actually-pay-x402-dogfood.astro", import.meta.url), "utf8");
 const astroLlmsRoute = readFileSync(new URL("../../astro-web/src/pages/llms.txt.ts", import.meta.url), "utf8");
+const astroLlmsFullRoute = readFileSync(new URL("../../astro-web/src/pages/llms-full.txt.ts", import.meta.url), "utf8");
 const astroSearch = readFileSync(new URL("../../astro-web/src/pages/search.astro", import.meta.url), "utf8");
 const astroStartManagedExecution = readFileSync(new URL("../../astro-web/src/pages/start-managed-execution.astro", import.meta.url), "utf8");
 const astroQuickstart = readFileSync(new URL("../../astro-web/src/pages/quickstart.astro", import.meta.url), "utf8");
@@ -686,6 +689,43 @@ describe("public authority pricing contract", () => {
     expect(astroStartManagedExecution).not.toContain('If you want repeat managed execution, the honest default is API key first.');
     expect(astroStartManagedExecution).not.toContain('It keeps one stable execution header and the simplest operational model.');
     expect(astroStartManagedExecution).not.toContain('Get API key');
+  });
+
+  it("keeps DC90 schema and agent-context surfaces visible-equivalent", () => {
+    const dc90MachineSurfaces = [
+      astroHome,
+      astroResolve,
+      astroResolveRouting,
+      astroResolveWhatIs,
+      astroPricing,
+      astroAbout,
+      astroQuickstart,
+      astroTrust,
+      astroLeaderboardHub,
+      astroLlmsRoute,
+      astroLlmsFullRoute,
+    ];
+
+    expect(astroPublicTruth).toContain('routingPrinciple: "Route by supported capability, runtime factors, and explicit constraints — not leaderboard purity."');
+    expect(astroPublicTruth).toContain('"Resolve performs explainable supported-capability routing by first matching the supported capability path');
+    expect(astroResolveRouting).toContain('description="Rhumb Resolve routes by supported capability matching, runtime factors, and explicit constraints — not leaderboard purity.');
+    expect(astroResolveRouting).toContain('Resolve does not route by leaderboard purity. It first matches the supported capability path');
+    expect(astroResolveRouting).toContain('Three ways supported routing changes the answer');
+    expect(astroResolveWhatIs).toContain('Resolve first matches the supported capability path, then routes supported calls using AN Score');
+    expect(astroResolve).toContain('"Explainable supported-capability provider routing"');
+    expect(astroResolve).toContain('When supported routing beats raw rank');
+
+    for (const surface of dc90MachineSurfaces) {
+      expect(surface).not.toContain('routes supported calls by task fit');
+      expect(surface).not.toContain('Resolve routes by task fit');
+      expect(surface).not.toContain('task-aligned provider routing');
+      expect(surface).not.toContain('capability fit');
+      expect(surface).not.toContain('operator preferences');
+      expect(surface).not.toContain('freshness, provider health');
+      expect(surface).not.toContain('Availability and health');
+      expect(surface).not.toContain('highest-scoring provider');
+      expect(surface).not.toContain('16 callable providers');
+    }
   });
 
   it("keeps llms discovery surfaces aligned with live rail-based pricing truth", () => {

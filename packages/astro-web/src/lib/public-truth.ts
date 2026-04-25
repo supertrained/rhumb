@@ -36,7 +36,7 @@ export const PUBLIC_TRUTH = {
     "Discovery breadth: 999 scored services and 435 capability definitions. Current execution-ready surface: 28 callable providers, strongest today for research, extraction, generation, and narrow enrichment.",
   callableRealitySummary:
     "Not every service or capability in the index is executable through Rhumb today. Discovery breadth is wider than current callable coverage.",
-  routingPrinciple: "Route for task fit, not leaderboard purity.",
+  routingPrinciple: "Route by supported capability, runtime factors, and explicit constraints — not leaderboard purity.",
   rhumbEntityShort:
     "Rhumb is an agent gateway that scores external services for AI-agent compatibility and provides governed execution for supported capabilities.",
   rhumbEntityExpanded:
@@ -51,7 +51,7 @@ export const PUBLIC_TRUTH = {
   routingHumanSummary:
     "Resolve routes each call to the best-fit provider for the call by default, while keeping explicit provider choice available when the agent wants direct control.",
   routingMachineSummary:
-    "Resolve performs explainable task-aligned provider routing by first matching the supported capability path, then using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints, while also supporting provider pinning.",
+    "Resolve performs explainable supported-capability routing by first matching the supported capability path, then using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints, while also supporting provider pinning.",
   routingFactors: [
     "supported capability path (candidate filter)",
     "AN Score",
@@ -96,7 +96,7 @@ export const PUBLIC_TRUTH = {
       {
         name: "Layer 2",
         summary:
-          "Capability routing. Rhumb routes each call to the best-fit supported provider for the task and is the main production surface today.",
+          "Capability routing. Rhumb routes each call to a supported provider using the capability candidate set, runtime factors, and explicit constraints; this is the main production surface today.",
       },
       {
         name: "Layer 3",

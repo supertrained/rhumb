@@ -6,6 +6,14 @@ Purpose: keep Rhumb's public authority copy aligned with live product truth befo
 - **qualified** — allowed only with explicit scope/condition in the public claim.
 - **removed** — stale or unsupported wording removed from public surfaces.
 
+## 2026-04-25 — DC90 schema / agent-context anti-cloaking pass
+
+| Claim area | Verdict | Public action | Evidence / source |
+| --- | --- | --- | --- |
+| Hidden `task fit` routing shorthand | removed | Replaced hidden/schema `task fit` and `task-aligned provider routing` language on Resolve authority surfaces with the visible runtime-backed route contract: supported capability path first, then AN Score, availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints. | `docs/PUBLIC-SCHEMA-AGENT-CONTEXT-PARITY.md`; `packages/astro-web/src/lib/public-truth.ts`; `/resolve`; `/resolve/routing`; `/resolve/what-is-resolve`. |
+| Agent-context / JSON-LD visible equivalence | verified | Audited homepage, Resolve authority pages, pricing, about, quickstart, trust, leaderboard, `/llms.txt`, and `/llms-full.txt`; machine-readable summaries now summarize visible claims rather than introducing hidden-only routing factors. | `docs/PUBLIC-SCHEMA-AGENT-CONTEXT-PARITY.md`; regression coverage in `packages/web/tests/public-authority.contract.test.ts`. |
+| Hard-coded callable count in DC90 machine surfaces | verified | DC90 machine-visible Resolve surfaces continue to use `PUBLIC_TRUTH.callableProvidersLabel` or shared summaries instead of literal stale counts. | `packages/web/tests/public-authority.contract.test.ts` blocks `16 callable providers` across audited DC90 machine surfaces. |
+
 ## 2026-04-25 — DC90 route-explanation parity pass
 
 | Claim area | Verdict | Public action | Evidence / source |
