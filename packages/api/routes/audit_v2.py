@@ -115,8 +115,17 @@ def _validated_event_type(event_type: str | None) -> AuditEventType | None:
     if event_type is None:
         return None
 
+    normalized = event_type.strip().lower()
+    if not normalized:
+        valid_types = ", ".join(t.value for t in AuditEventType)
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'event_type' filter.",
+            detail=f"Use one of: {valid_types}.",
+        )
+
     try:
-        return AuditEventType(event_type)
+        return AuditEventType(normalized)
     except ValueError as exc:
         valid_types = ", ".join(t.value for t in AuditEventType)
         raise RhumbError(
@@ -130,8 +139,16 @@ def _validated_severity(severity: str | None) -> AuditSeverity | None:
     if severity is None:
         return None
 
+    normalized = severity.strip().lower()
+    if not normalized:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'severity' filter.",
+            detail="Use one of: info, warning, critical.",
+        )
+
     try:
-        return AuditSeverity(severity)
+        return AuditSeverity(normalized)
     except ValueError as exc:
         raise RhumbError(
             "INVALID_PARAMETERS",
@@ -176,6 +193,19 @@ def _validated_timestamp(ts: str | None, *, field_name: str) -> datetime | None:
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return dt
+
+
+def _validated_time_window(
+    since: datetime | None,
+    until: datetime | None,
+) -> tuple[datetime | None, datetime | None]:
+    if since is not None and until is not None and since > until:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid audit time window.",
+            detail="The 'since' timestamp must be before or equal to the 'until' timestamp.",
+        )
+    return since, until
 
 
 def _validated_export_format(format: str) -> str:
@@ -237,8 +267,10 @@ async def list_audit_events(
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
     parsed_category = _validated_category(category)
-    parsed_since = _validated_timestamp(since, field_name="since")
-    parsed_until = _validated_timestamp(until, field_name="until")
+    parsed_since, parsed_until = _validated_time_window(
+        _validated_timestamp(since, field_name="since"),
+        _validated_timestamp(until, field_name="until"),
+    )
     limit = _validated_events_limit(limit)
     offset = _validated_events_offset(offset)
 
@@ -375,8 +407,10 @@ async def export_audit_trail(
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
     parsed_category = _validated_category(category)
-    parsed_since = _validated_timestamp(since, field_name="since")
-    parsed_until = _validated_timestamp(until, field_name="until")
+    parsed_since, parsed_until = _validated_time_window(
+        _validated_timestamp(since, field_name="since"),
+        _validated_timestamp(until, field_name="until"),
+    )
 
     trail = get_audit_trail()
 

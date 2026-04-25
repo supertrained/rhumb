@@ -106,6 +106,50 @@ def test_list_audit_events_invalid_since_uses_explicit_invalid_parameters():
     assert "ISO 8601" in body["error"]["detail"]
 
 
+def test_list_audit_events_normalizes_event_type_and_severity_filters_before_reads():
+    from app import create_app
+    from services.audit_trail import AuditEventType, AuditSeverity
+
+    trail = MagicMock()
+    trail.query.return_value = []
+    trail.count.return_value = 0
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?event_type=%20EXECUTION.STARTED%20&severity=%20WARNING%20",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    trail.query.assert_called_once()
+    assert trail.query.call_args.kwargs["event_type"] is AuditEventType.EXECUTION_STARTED
+    assert trail.query.call_args.kwargs["severity"] is AuditSeverity.WARNING
+
+
+def test_list_audit_events_rejects_inverted_time_window_before_reads():
+    from app import create_app
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?since=2026-04-25T12:00:00%2B00:00&until=2026-04-25T11:00:00%2B00:00",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid audit time window."
+    assert "since" in body["error"]["detail"]
+    assert "until" in body["error"]["detail"]
+    get_audit_trail.assert_not_called()
+
+
 def test_list_audit_events_invalid_limit_uses_explicit_invalid_parameters_before_reads():
     from app import create_app
 
@@ -193,6 +237,53 @@ def test_export_audit_valid_category_normalizes_whitespace_and_case():
     assert resp.status_code == 200
     trail.export.assert_called_once()
     assert trail.export.call_args.kwargs["category"] == "auth"
+
+
+def test_export_audit_normalizes_event_type_and_severity_filters():
+    from app import create_app
+    from services.audit_trail import AuditEventType, AuditSeverity
+
+    trail = MagicMock()
+    trail.export.return_value = MagicMock(
+        format="json",
+        event_count=0,
+        chain_verified=True,
+        exported_at=MagicMock(isoformat=lambda: "2026-04-25T19:20:00+00:00"),
+        data="[]",
+    )
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).post(
+            "/v2/audit/export?event_type=%20EXECUTION.STARTED%20&severity=%20WARNING%20",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    trail.export.assert_called_once()
+    assert trail.export.call_args.kwargs["event_type"] is AuditEventType.EXECUTION_STARTED
+    assert trail.export.call_args.kwargs["severity"] is AuditSeverity.WARNING
+
+
+def test_export_audit_rejects_inverted_time_window_before_reads():
+    from app import create_app
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
+    ):
+        resp = TestClient(create_app()).post(
+            "/v2/audit/export?since=2026-04-25T12:00:00%2B00:00&until=2026-04-25T11:00:00%2B00:00",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid audit time window."
+    get_audit_trail.assert_not_called()
 
 
 def test_export_audit_invalid_format_uses_explicit_invalid_parameters():
