@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 
 from routes._supabase import supabase_fetch
 from schemas.agent_identity import get_agent_identity_store
+from services.error_envelope import RhumbError
 from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
@@ -74,6 +75,21 @@ def _to_bool(value: Any) -> bool:
 
 def _public_provider_slug(value: Any) -> str | None:
     return public_service_slug(value)
+
+
+def _validated_optional_filter(value: str | None, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail=f"Provide a non-empty {field_name} value or omit the filter.",
+    )
 
 
 def _canonicalize_known_provider_aliases(text: Any) -> str | None:
@@ -463,6 +479,8 @@ async def get_usage_telemetry(
             message=str(exc),
             resolution="Provide a valid governed API key via X-Rhumb-Key header.",
         )
+    capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
+    provider = _validated_optional_filter(provider, field_name="provider")
     start_at = _utcnow() - timedelta(days=days)
     rows = await supabase_fetch(
         _build_usage_query(
@@ -495,6 +513,7 @@ async def get_provider_health(
     hours: int = Query(24, ge=1, le=168, description="Lookback window in hours."),
 ) -> dict[str, Any]:
     """Return aggregate provider health from execution telemetry."""
+    provider = _validated_optional_filter(provider, field_name="provider")
     start_at = _utcnow() - timedelta(hours=hours)
     rows = await supabase_fetch(
         _build_usage_query(
@@ -546,6 +565,7 @@ async def get_recent_executions(
             message=str(exc),
             resolution="Provide a valid governed API key via X-Rhumb-Key header.",
         )
+    capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
     rows = await supabase_fetch(
         _build_usage_query(
             agent_id=agent_id,

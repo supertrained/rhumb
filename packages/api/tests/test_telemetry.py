@@ -257,6 +257,26 @@ def test_usage_endpoint_canonicalizes_alias_backed_provider_ids_and_filters(clie
     assert "or=(provider_used.eq.brave-search-api,provider_used.eq.brave-search)" in captured["path"]
 
 
+def test_usage_endpoint_rejects_blank_filters_before_reads(client: TestClient) -> None:
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get(
+            "/v1/telemetry/usage",
+            params={"days": 7, "capability_id": "   "},
+        )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'capability_id' filter."
+    assert "non-empty capability_id" in body["error"]["detail"]
+    mock_fetch.assert_not_called()
+
+
 def test_provider_health_canonicalizes_alias_backed_provider_ids() -> None:
     now = datetime.now(timezone.utc)
     rows = [
@@ -285,6 +305,21 @@ def test_provider_health_canonicalizes_alias_backed_provider_ids() -> None:
     assert "or=(provider_used.eq.brave-search-api,provider_used.eq.brave-search)" in captured["path"]
 
 
+def test_provider_health_rejects_blank_provider_before_reads() -> None:
+    with patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        response = TestClient(app).get(
+            "/v1/telemetry/provider-health",
+            params={"provider": "   "},
+        )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'provider' filter."
+    assert "non-empty provider" in body["error"]["detail"]
+    mock_fetch.assert_not_called()
+
+
 def test_recent_endpoint_canonicalizes_alias_backed_provider_ids(client: TestClient) -> None:
     row = _execution_row(execution_id="exec_recent_alias", provider_used="brave-search")
     row["fallback_attempted"] = True
@@ -302,6 +337,26 @@ def test_recent_endpoint_canonicalizes_alias_backed_provider_ids(client: TestCli
     record = response.json()["data"][0]
     assert record["provider_used"] == "brave-search-api"
     assert record["fallback_provider"] == "brave-search-api"
+
+
+def test_recent_endpoint_rejects_blank_capability_filter_before_reads(client: TestClient) -> None:
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get(
+            "/v1/telemetry/recent",
+            params={"limit": 5, "capability_id": "   "},
+        )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'capability_id' filter."
+    assert "non-empty capability_id" in body["error"]["detail"]
+    mock_fetch.assert_not_called()
 
 
 def test_recent_endpoint_canonicalizes_alias_backed_error_messages(client: TestClient) -> None:
