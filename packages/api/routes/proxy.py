@@ -407,7 +407,7 @@ def _validated_schema_alert_severity(severity: str | None) -> str | None:
 
     normalized = severity.strip().lower()
     if not normalized:
-        return None
+        raise HTTPException(status_code=400, detail="Severity filter cannot be blank")
 
     if normalized not in _SCHEMA_ALERT_SEVERITY_SET:
         valid_severities = ", ".join(_SCHEMA_ALERT_SEVERITIES)
@@ -417,6 +417,17 @@ def _validated_schema_alert_severity(severity: str | None) -> str | None:
         )
 
     return normalized
+
+
+def _validated_schema_alert_service(service: str | None) -> str | None:
+    """Normalize and validate the public admin schema-alert service filter."""
+    if service is None:
+        return None
+
+    if not str(service).strip():
+        raise HTTPException(status_code=400, detail="Service filter cannot be blank")
+
+    return _normalize_proxy_service_name(service)
 
 
 def _canonicalize_scoped_service_key(key: str) -> str:
@@ -1111,9 +1122,9 @@ async def list_schema_alerts(
     limit: int = Query(default=10, ge=1, le=100),
 ) -> dict[str, Any]:
     """Query recent schema alerts (in-app channel)."""
-    dispatcher = get_schema_alert_dispatcher()
-    proxy_service = _normalize_proxy_service_name(service) if service else None
+    proxy_service = _validated_schema_alert_service(service)
     normalized_severity = _validated_schema_alert_severity(severity)
+    dispatcher = get_schema_alert_dispatcher()
     alerts = dispatcher.query_alerts(
         service=proxy_service,
         severity=normalized_severity,

@@ -397,8 +397,13 @@ class TestProxySchemaIntegration:
         assert all(alert["severity"] == "breaking" for alert in data["alerts"])
 
     def test_admin_schema_alerts_reject_invalid_severity_filter(
-        self, client: TestClient
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        def fail_if_alert_store_opens():
+            raise AssertionError("schema alert store opened before severity validation")
+
+        monkeypatch.setattr(proxy_module, "get_schema_alert_dispatcher", fail_if_alert_store_opens)
+
         response = client.get("/v1/admin/schema-alerts?severity=offline")
 
         assert response.status_code == 400
@@ -406,3 +411,19 @@ class TestProxySchemaIntegration:
             response.json()["detail"]
             == "Invalid severity: use one of advisory, non_breaking, breaking"
         )
+
+    def test_admin_schema_alerts_reject_blank_filters_before_read(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def fail_if_alert_store_opens():
+            raise AssertionError("schema alert store opened before filter validation")
+
+        monkeypatch.setattr(proxy_module, "get_schema_alert_dispatcher", fail_if_alert_store_opens)
+
+        blank_service = client.get("/v1/admin/schema-alerts?service=%20%20")
+        blank_severity = client.get("/v1/admin/schema-alerts?severity=%20%20")
+
+        assert blank_service.status_code == 400
+        assert blank_service.json()["detail"] == "Service filter cannot be blank"
+        assert blank_severity.status_code == 400
+        assert blank_severity.json()["detail"] == "Severity filter cannot be blank"
