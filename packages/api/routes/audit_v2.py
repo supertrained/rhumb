@@ -163,7 +163,12 @@ def _validated_category(category: str | None) -> str | None:
 
     normalized = category.strip()
     if not normalized:
-        return None
+        valid_categories = ", ".join(sorted(AUDIT_EVENT_CATEGORIES))
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'category' filter.",
+            detail=f"Use one of: {valid_categories}.",
+        )
 
     lowered = normalized.lower()
     if lowered not in AUDIT_EVENT_CATEGORIES:
@@ -175,6 +180,21 @@ def _validated_category(category: str | None) -> str | None:
         )
 
     return lowered
+
+
+def _validated_text_filter(value: str | None, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail=f"Provide a non-empty '{field_name}' value or omit the filter.",
+    )
 
 
 def _validated_timestamp(ts: str | None, *, field_name: str) -> datetime | None:
@@ -267,6 +287,8 @@ async def list_audit_events(
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
     parsed_category = _validated_category(category)
+    parsed_resource_type = _validated_text_filter(resource_type, field_name="resource_type")
+    parsed_resource_id = _validated_text_filter(resource_id, field_name="resource_id")
     parsed_since, parsed_until = _validated_time_window(
         _validated_timestamp(since, field_name="since"),
         _validated_timestamp(until, field_name="until"),
@@ -281,8 +303,8 @@ async def list_audit_events(
         event_type=parsed_type,
         severity=parsed_severity,
         category=parsed_category,
-        resource_type=resource_type,
-        resource_id=resource_id,
+        resource_type=parsed_resource_type,
+        resource_id=parsed_resource_id,
         since=parsed_since,
         until=parsed_until,
         limit=limit,
@@ -294,8 +316,8 @@ async def list_audit_events(
         event_type=parsed_type,
         severity=parsed_severity,
         category=parsed_category,
-        resource_type=resource_type,
-        resource_id=resource_id,
+        resource_type=parsed_resource_type,
+        resource_id=parsed_resource_id,
         since=parsed_since,
         until=parsed_until,
     )
@@ -407,6 +429,8 @@ async def export_audit_trail(
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
     parsed_category = _validated_category(category)
+    parsed_resource_type = _validated_text_filter(resource_type, field_name="resource_type")
+    parsed_resource_id = _validated_text_filter(resource_id, field_name="resource_id")
     parsed_since, parsed_until = _validated_time_window(
         _validated_timestamp(since, field_name="since"),
         _validated_timestamp(until, field_name="until"),
@@ -420,8 +444,8 @@ async def export_audit_trail(
         event_type=parsed_type,
         severity=parsed_severity,
         category=parsed_category,
-        resource_type=resource_type,
-        resource_id=resource_id,
+        resource_type=parsed_resource_type,
+        resource_id=parsed_resource_id,
         since=parsed_since,
         until=parsed_until,
     )
