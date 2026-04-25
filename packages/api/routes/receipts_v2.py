@@ -25,6 +25,21 @@ router = APIRouter()
 _VALID_RECEIPT_STATUSES = frozenset({"success", "failure", "timeout", "rejected"})
 
 
+def _validated_optional_filter(value: str | None, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail=f"Provide a non-empty '{field_name}' value or omit the filter.",
+    )
+
+
 def _validated_receipt_status(status: str | None) -> str | None:
     if status is None:
         return None
@@ -142,6 +157,10 @@ async def query_receipts(
     offset: int = Query(default=0, ge=0, description="Pagination offset"),
 ) -> dict[str, Any]:
     """Query execution receipts with optional filters."""
+    agent_id = _validated_optional_filter(agent_id, field_name="agent_id")
+    org_id = _validated_optional_filter(org_id, field_name="org_id")
+    capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
+    provider_id = _validated_optional_filter(provider_id, field_name="provider_id")
     status = _validated_receipt_status(status)
     service = get_receipt_service()
     receipts = await service.query_receipts(

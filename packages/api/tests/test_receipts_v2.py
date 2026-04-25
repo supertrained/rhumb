@@ -179,6 +179,39 @@ def test_query_receipts_invalid_status_uses_explicit_invalid_parameters(client):
     assert mock_fetch.await_count == 0
 
 
+@pytest.mark.parametrize(
+    ("field", "query"),
+    [
+        ("agent_id", "agent_id=%20%20"),
+        ("org_id", "org_id="),
+        ("capability_id", "capability_id=%09"),
+        ("provider_id", "provider_id=%20"),
+    ],
+)
+def test_query_receipts_rejects_blank_filters_before_reads(client, field, query):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        resp = client.get(f"/v2/receipts?{query}")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == f"Invalid '{field}' filter."
+    assert "non-empty" in body["error"]["detail"]
+    assert mock_fetch.await_count == 0
+
+
+def test_query_receipts_trims_filters_before_reads(client):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = []
+        resp = client.get("/v2/receipts?agent_id=%20agent_test%20&provider_id=%20brave-search-api%20")
+
+    assert resp.status_code == 200
+    query = mock_fetch.await_args.args[0]
+    assert "agent_id=eq.agent_test" in query
+    assert "provider_id=in.(brave-search-api,brave-search)" in query
+    assert "%20" not in query
+
+
 def test_query_receipts_canonicalizes_alias_backed_provider_ids(client):
     receipts = [{"receipt_id": "rcpt_1", "provider_id": "brave-search"}]
     with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
