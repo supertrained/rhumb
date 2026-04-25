@@ -26,7 +26,9 @@ The runner must record the exact UI/model/retrieval mode in `surface_mode` for e
 - Artifact naming: `<query_id>__<surface>__YYYYMMDDTHHMMSSZ.<ext>`.
 - Run notes and drift checks: `docs/dc90-measurement/month1-2026-04/run_notes.md`.
 
-## Scoring readiness
+## Preflight and scoring readiness
+
+Use `python3 scripts/dc90_month1_measurement.py --validate` to verify the 75-row scorecard shape before/after edits. Use `python3 scripts/dc90_month1_measurement.py --preflight` before interpreting a run; it writes a timestamped artifact under `docs/dc90-measurement/month1-2026-04/preflight/` and checks public drift surfaces plus live callable-provider count.
 
 The CSV pre-expands the scoring columns needed for the Month 1 rollup:
 
@@ -39,4 +41,4 @@ The CSV pre-expands the scoring columns needed for the Month 1 rollup:
 
 ## Acceptance boundary
 
-Beacon can call Month 1 complete only when all 75 rows have artifacts, Keel has reviewed every Rhumb-mentioned row, and any public improvement claim is explicitly tied to the fresh artifacts. Partial results stay internal diagnostics.
+Beacon can call Month 1 complete only when all 75 rows have artifacts from the exact GPT-4, Claude, Perplexity, Gemini, and Copilot answer surfaces, Keel has reviewed every Rhumb-mentioned row, the validator passes, and any public improvement claim is explicitly tied to the fresh artifacts. Partial results stay internal diagnostics.

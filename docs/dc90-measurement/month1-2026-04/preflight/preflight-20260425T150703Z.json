@@ -1,0 +1,613 @@
+{
+  "boundary": "Rows remain pending until raw artifacts are captured from GPT-4, Claude, Perplexity, Gemini, and Copilot surfaces and Keel reviews Rhumb-mentioned rows.",
+  "derived": {
+    "all_public_urls_ok": true,
+    "callable_count_matches_public_truth_28": true,
+    "callable_provider_count": 28,
+    "mcp_registry_expected_version": "0.8.2",
+    "mcp_registry_version": "0.8.2",
+    "mcp_registry_version_ok": true,
+    "preflight_passed": true
+  },
+  "generated_at_utc": "2026-04-25T15:07:10.331760Z",
+  "public_checks": {
+    "agent_capabilities": {
+      "body_sample": "{\n  \"schema_version\": \"1.0\",\n  \"name\": \"Rhumb\",\n  \"description\": \"Agent-native tool intelligence for research, extraction, generation, and narrow enrichment \\u2014 discover, evaluate, and execute external tools with trust scores, failure mo",
+      "bytes_read": 7257,
+      "content_type": "application/json; charset=utf-8",
+      "elapsed_ms": 92,
+      "ok": true,
+      "parsed": {
+        "api_base": "https://api.rhumb.dev/v1",
+        "auth": {
+          "discovery": "none",
+          "execution": "rail_based",
+          "provider_control": "byok_or_agent_vault",
+          "repeat_traffic": "governed_api_key_or_wallet_prefund_on_x_rhumb_key",
+          "signup_url": "https://rhumb.dev/auth/login",
+          "zero_signup": "x402_usdc"
+        },
+        "capabilities": {
+          "billing": {
+            "auth_required": true,
+            "description": "Budget enforcement and spend tracking",
+            "tools": [
+              {
+                "description": "Check or set your call spending limit",
+                "name": "budget"
+              },
+              {
+                "description": "Get your spending breakdown for a billing period: total USD spent, call count, average cost per call, broken down by Capability and by provider",
+                "name": "spend"
+              },
+              {
+                "description": "Check your current Rhumb credit balance in USD",
+                "name": "check_balance"
+              },
+              {
+                "description": "Get a checkout URL to add credits to your Rhumb balance",
+                "name": "get_payment_url"
+              },
+              {
+                "description": "Get your billing history: charges (debits), top-ups (credits), and auto-reload events",
+                "name": "get_ledger"
+              }
+            ]
+          },
+          "discovery": {
+            "auth_required": false,
+            "description": "Search, score, and evaluate 999 services across 50+ domains",
+            "tools": [
+              {
+                "description": "Search indexed Services by what you need them to do",
+                "name": "find_services"
+              },
+              {
+                "description": "Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness",
+                "name": "get_score"
+              },
+              {
+                "description": "Find alternative Services, ranked by AN Score",
+                "name": "get_alternatives"
+              },
+              {
+                "description": "Get known failure patterns, impact severity, and workarounds for a service",
+                "name": "get_failure_modes"
+              },
+              {
+                "description": "Browse Capabilities by domain or search text",
+                "name": "discover_capabilities"
+              },
+              {
+                "description": "Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, and machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, plus typo recovery when the capability ID is wrong",
+                "name": "resolve_capability"
+              }
+            ]
+          },
+          "execution": {
+            "auth_required": true,
+            "description": "Execute capabilities through Resolve on the live execution rail returned by resolve: governed API key, wallet-prefund, or x402 per-call, with BYOK or Agent Vault where supported",
+            "tools": [
+              {
+                "description": "Call a Capability through Rhumb Resolve",
+                "name": "execute_capability"
+              },
+              {
+                "description": "Estimate the active execution rail, cost, and health before a Capability call; anonymous direct system-of-record paths also preserve machine-readable execute_readiness handoffs",
+                "name": "estimate_capability"
+              },
+              {
+                "description": "Get step-by-step instructions to obtain API credentials for a Service",
+                "name": "credential_ceremony"
+              },
+              {
+                "description": "Inspect live credential-mode readiness, globally or for a specific Capability",
+                "name": "check_credentials"
+              },
+              {
+                "description": "List the current published Rhumb Layer 3 recipe catalog",
+                "name": "rhumb_list_recipes"
+              },
+              {
+                "description": "Get the full published definition for a Rhumb recipe, including input/output schemas and step topology",
+                "name": "rhumb_get_recipe"
+              },
+              {
+                "description": "Execute a published Rhumb Layer 3 recipe once one is live in the public catalog",
+                "name": "rhumb_recipe_execute"
+              },
+              {
+                "description": "Retrieve an execution receipt by ID",
+                "name": "get_receipt"
+              }
+            ]
+          },
+          "operations": {
+            "auth_required": true,
+            "description": "Routing preferences and usage analytics",
+            "tools": [
+              {
+                "description": "Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability",
+                "name": "routing"
+              },
+              {
+                "description": "Get your execution analytics \u2014 calls, latency, errors, costs, and provider health for your Rhumb usage",
+                "name": "usage_telemetry"
+              }
+            ]
+          }
+        },
+        "coverage": {
+          "capabilities": 435,
+          "categories": 92,
+          "credential_modes": [
+            "byok",
+            "rhumb_managed",
+            "agent_vault"
+          ],
+          "domains": 50,
+          "providers_with_execution": 28,
+          "services": 999
+        },
+        "description": "Agent-native tool intelligence for research, extraction, generation, and narrow enrichment \u2014 discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
+        "homepage": "https://rhumb.dev",
+        "links": {
+          "blog": "https://rhumb.dev/blog",
+          "disputes": "https://rhumb.dev/providers",
+          "github": "https://github.com/supertrained/rhumb",
+          "methodology": "https://rhumb.dev/methodology",
+          "providers": "https://rhumb.dev/providers",
+          "quickstart": "https://rhumb.dev/quickstart",
+          "trust": "https://rhumb.dev/trust"
+        },
+        "mcp_install": "npx rhumb-mcp@latest",
+        "name": "Rhumb",
+        "npm_package": "rhumb-mcp",
+        "pricing": {
+          "details": "https://rhumb.dev/pricing",
+          "discovery": "free",
+          "execution": "rail_based",
+          "free_tier": null
+        },
+        "schema_version": "1.0",
+        "scoring": {
+          "axes": {
+            "access": {
+              "dimensions": 7,
+              "weight": 0.3
+            },
+            "execution": {
+              "dimensions": 13,
+              "includes_autonomy_dimensions": 3,
+              "weight": 0.7
+            }
+          },
+          "dimensions": 20,
+          "methodology": "https://rhumb.dev/methodology",
+          "tiers": {
+            "L1_Emerging": "0.0-3.9",
+            "L2_Developing": "4.0-5.9",
+            "L3_Ready": "6.0-7.9",
+            "L4_Native": "8.0-10.0"
+          }
+        },
+        "trust": {
+          "agent_capabilities": "https://rhumb.dev/.well-known/agent-capabilities.json",
+          "current_self_assessment": "https://rhumb.dev/blog/we-scored-ourselves",
+          "dispute_response_sla_business_days": 5,
+          "historical_self_assessment": "https://rhumb.dev/blog/self-score",
+          "machine_readable_docs": "https://rhumb.dev/llms.txt",
+          "methodology": "https://rhumb.dev/methodology",
+          "overview": "https://rhumb.dev/trust",
+          "private_dispute_email": "providers@supertrained.ai",
+          "private_dispute_mailto": "mailto:providers@supertrained.ai?subject=Score%20Dispute",
+          "provider_guide": "https://rhumb.dev/providers",
+          "public_dispute_log": "https://github.com/supertrained/rhumb/issues?q=is%3Aissue+%22Score+dispute%3A%22",
+          "public_dispute_template": "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md"
+        }
+      },
+      "status": 200
+    },
+    "callable_providers": {
+      "body_sample": "{\"error\":null,\"data\":{\"providers\":[{\"id\":\"aws-s3\",\"name\":\"AWS S3\",\"description\":\"AWS S3 (Simple Storage Service) is the foundational cloud object storage platform \u2014 providing a REST API for storing, retrieving, and managing objects (files",
+      "bytes_read": 10279,
+      "content_type": "application/json",
+      "elapsed_ms": 1164,
+      "ok": true,
+      "parsed": {
+        "data": {
+          "_rhumb_v2": {
+            "api_version": "v2-alpha",
+            "layer": 1
+          },
+          "limit": 200,
+          "offset": 0,
+          "providers": [
+            {
+              "an_score": 9.2,
+              "callable": true,
+              "category": "storage",
+              "description": "AWS S3 (Simple Storage Service) is the foundational cloud object storage platform \u2014 providing a REST API for storing, retrieving, and managing objects (files) at any scale, with versioning, lifecycle policies, presigned URLs, event notifications, and integration with the full AWS ecosystem. Agents use S3 for file storage, data archival, static asset hosting, and as the storage layer for data pipelines.",
+              "id": "aws-s3",
+              "name": "AWS S3",
+              "tier": "Native"
+            },
+            {
+              "an_score": 9.2,
+              "callable": true,
+              "category": "devops",
+              "description": "Code hosting, CI/CD (Actions), package registry, issue tracking, pull request review, and a comprehensive REST and GraphQL API for repository automation and developer workflow integration.",
+              "id": "github",
+              "name": "GitHub",
+              "tier": "Native"
+            },
+            {
+              "an_score": 9.1,
+              "callable": true,
+              "category": "devops",
+              "description": "Vercel is the leading frontend cloud platform \u2014 providing Git-based deployments for Next.js, React, Vue, Svelte, and any static/SSR framework, with global Edge Network, Preview Deployments per PR, Edge Functions, serverless functions, and a REST API for deployment and project management. Agents use Vercel to deploy frontend applications, manage environments, and trigger deployments programmatically.",
+              "id": "vercel",
+              "name": "Vercel",
+              "tier": "Native"
+            },
+            {
+              "an_score": 9.0,
+              "callable": true,
+              "category": "search",
+              "description": "Hosted search API delivering sub-millisecond full-text and typo-tolerant search results; faceted filtering, geo-search, A/B testing, personalization, and a REST API with SDKs for every platform.",
+              "id": "algolia",
+              "name": "Algolia",
+              "tier": "Native"
+            },
+            {
+              "an_score": 9.0,
+              "callable": true,
+              "category": "communication",
+              "description": "Twilio is the leading cloud communications platform \u2014 providing REST APIs for SMS, MMS, voice calls, WhatsApp, email (via SendGrid), video, and verification \u2014 enabling agents to send programmatic messages, make/receive calls, handle incoming SMS, and build voice-powered workflows at global scale.",
+              "id": "twilio",
+              "name": "Twilio",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.8,
+              "callable": true,
+              "category": "browser-automation",
+              "description": "Firecrawl is a web crawling and content extraction API optimized for LLM workflows, offering crawl, scrape, map, and extraction endpoints for turning websites into markdown, structured data, and search-ready content.",
+              "id": "firecrawl",
+              "name": "Firecrawl",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.8,
+              "callable": true,
+              "category": "crm",
+              "description": "HubSpot provides a CRM platform with REST APIs covering contacts, companies, deals, pipelines, meetings, emails, forms, marketing automation, and CMS \u2014 enabling agents to manage sales and marketing workflows, sync customer data, track deal progression, and trigger automated sequences programmatically.",
+              "id": "hubspot",
+              "name": "HubSpot",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.7,
+              "callable": true,
+              "category": "media",
+              "description": "Speech-to-text and text-to-speech AI API; real-time streaming transcription, batch transcription, speaker diarization, sentiment analysis, topic detection, and Nova model family.",
+              "id": "deepgram",
+              "name": "Deepgram",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.7,
+              "callable": true,
+              "category": "search",
+              "description": "Exa is an AI-native search API \u2014 providing neural search over the web optimized for LLM and agent use cases, with endpoints for searching by meaning (not just keywords), retrieving full page content, finding similar pages, and searching within specific domains. Agents use Exa to give LLM agents access to current web information with semantic search quality superior to keyword-based search.",
+              "id": "exa",
+              "name": "Exa",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.7,
+              "callable": true,
+              "category": "customer-support",
+              "description": "Intercom is a customer messaging platform providing a REST API for managing conversations, contacts, companies, articles (help center), and AI-powered inbox automation \u2014 enabling agents to create support conversations, update customer attributes, send targeted messages, and integrate support workflows with product and backend systems.",
+              "id": "intercom",
+              "name": "Intercom",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.7,
+              "callable": true,
+              "category": "customer-support",
+              "description": "Zendesk is the leading enterprise customer support platform \u2014 providing REST APIs for ticket management, user/organization management, Help Center articles, macros, automation triggers, and analytics. Agents use Zendesk to create tickets from monitoring alerts, update ticket fields from backend systems, query support analytics, and build custom support automation workflows.",
+              "id": "zendesk",
+              "name": "Zendesk",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.6,
+              "callable": true,
+              "category": "browser-automation",
+              "description": "Apify is a web scraping and browser automation platform providing a cloud runtime for Crawlee-based actors, a marketplace of ready-made actors, storage, scheduling, webhooks, and proxy management for data extraction pipelines.",
+              "id": "apify",
+              "name": "Apify",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.6,
+              "callable": true,
+              "category": "code-execution",
+              "description": "E2B is a cloud sandbox execution platform for AI agents \u2014 providing a Python/JavaScript SDK for spawning secure micro-VMs (sandboxes) where agents can run arbitrary code, execute shell commands, manage files, and run long-lived processes, with sub-second cold starts and full Linux environment access. Agents use E2B to safely execute LLM-generated code in isolated containers without security risk.",
+              "id": "e2b",
+              "name": "E2B",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.6,
+              "callable": true,
+              "category": "search",
+              "description": "Tavily is a search API built specifically for AI agents \u2014 providing a single REST API endpoint that searches the web, scrapes relevant content, and returns LLM-optimized context with source citations, along with a raw search mode for URL + snippet results. Agents use Tavily to retrieve up-to-date web information formatted for immediate injection into LLM context windows.",
+              "id": "tavily",
+              "name": "Tavily",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.5,
+              "callable": true,
+              "category": "crm",
+              "description": "Salesforce provides enterprise CRM APIs \u2014 REST API, Bulk API, Streaming API, and Metadata API \u2014 covering leads, contacts, accounts, opportunities, cases, custom objects, and workflow automation. Agents use Salesforce to query and mutate CRM data, trigger automations, sync records from external systems, and build integrations with the world's most widely deployed enterprise CRM.",
+              "id": "salesforce",
+              "name": "Salesforce",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.5,
+              "callable": true,
+              "category": "email",
+              "description": "SendGrid (Twilio) is a high-volume email delivery platform providing a REST API for sending transactional and marketing emails, managing email templates, handling inbound email parsing, tracking delivery/open/click events, and managing contact lists. Agents use SendGrid for transactional email delivery, dynamic template-based sends, and high-volume email automation workflows.",
+              "id": "sendgrid",
+              "name": "SendGrid",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.3,
+              "callable": true,
+              "category": "ai",
+              "description": "Replicate is a hosted model execution platform for running and calling machine learning models through an API \u2014 offering open-source and custom model deployment, prediction APIs, webhooks, and GPU-backed execution for image, video, audio, and language workloads.",
+              "id": "replicate",
+              "name": "Replicate",
+              "tier": "Native"
+            },
+            {
+              "an_score": 8.1,
+              "callable": true,
+              "category": "payments",
+              "description": "Stripe is the leading developer-first payment processing platform \u2014 providing a REST API for accepting payments, managing subscriptions, handling payouts, creating invoices, and running marketplace payments, with official client libraries in all major languages, a test mode for safe development, and comprehensive webhook coverage for payment lifecycle events.",
+              "id": "stripe",
+              "name": "Stripe",
+              "tier": "Native"
+            },
+            {
+              "an_score": 7.9,
+              "callable": true,
+              "category": "ai",
+              "description": "Gemini model API for text, vision, and multimodal tasks",
+              "id": "google-ai",
+              "name": "Google AI (Gemini)",
+              "tier": "Ready"
+            },
+            {
+              "an_score": 7.6,
+              "callable": true,
+              "category": "web-scraping",
+              "description": "Web scraping API that handles proxy rotation, CAPTCHA solving, and browser rendering \u2014 accepts a target URL and returns the raw HTML, with options for JavaScript rendering, geolocation selection, and structured data extraction.",
+              "id": "scraperapi",
+              "name": "ScraperAPI",
+              "tier": "Ready"
+            },
+            {
+              "an_score": 7.2,
+              "callable": true,
+              "category": "geolocation",
+              "description": "IP address geolocation, ASN, company, carrier, and abuse detection API. Trusted by major tech companies for IP intelligence.",
+              "id": "ipinfo",
+              "name": "IPinfo",
+              "tier": "Ready"
+            },
+            {
+              "an_score": 7.2,
+              "callable": true,
+              "category": "social",
+              "description": "Team communication and messaging platform with rich API",
+              "id": "slack",
+              "name": "Slack",
+              "tier": "Ready"
+            },
+            {
+              "an_score": 7.1,
+              "callable": true,
+              "category": "search",
+              "description": "Independent web search API with web, news, image, and video results. Privacy-focused with no tracking.",
+              "id": "brave-search-api",
+              "name": "Brave Search",
+              "tier": "Ready"
+            },
+            {
+              "an_score": 7.0,
+              "callable": true,
+              "category": "data-enrichment",
+              "description": "Person and company data enrichment API with search, enrichment, and matching capabilities across a large professional database.",
+              "id": "people-data-labs",
+              "name": "People Data Labs",
+              "tier": "Ready"
+            },
+            {
+              "an_score": 7.0,
+              "callable": true,
+              "category": "document-processing",
+              "description": "Document parsing and extraction API that converts PDFs, Word docs, images, and other unstructured content into structured data for AI/LLM pipelines.",
+              "id": "unstructured",
+              "name": "Unstructured",
+              "tier": "Ready"
+            },
+            {
+              "an_score": 6.5,
+              "callable": true,
+              "category": "data-enrichment",
+              "description": "Sales intelligence and engagement platform with B2B contact database, email sequencing, and enrichment API.",
+              "id": "apollo",
+              "name": "Apollo.io",
+              "tier": "Ready"
+            },
+            {
+              "an_score": null,
+              "callable": true,
+              "category": "warehouse",
+              "description": "Direct BigQuery capability execution.",
+              "id": "bigquery",
+              "name": "BigQuery",
+              "tier": "Direct"
+            },
+            {
+              "an_score": null,
+              "callable": true,
+              "category": "database",
+              "description": "Direct PostgreSQL capability execution.",
+              "id": "postgresql",
+              "name": "PostgreSQL",
+              "tier": "Direct"
+            }
+          ],
+          "total": 28
+        },
+        "error": null
+      },
+      "status": 200
+    },
+    "llms": {
+      "body_sample": "# Rhumb \u2014 Agent Gateway for Discovery and Governed Execution\n> https://rhumb.dev\n\n## What is Rhumb?\nRhumb is an agent gateway for discovery and governed execution.\nRhumb Index scores external services for AI-agent compatibility.\nRhumb Res",
+      "bytes_read": 31629,
+      "content_type": "text/plain; charset=utf-8",
+      "elapsed_ms": 86,
+      "ok": true,
+      "parsed": null,
+      "status": 200
+    },
+    "llms_full": {
+      "body_sample": "# Rhumb \u2014 Agent Gateway for Service Discovery and Governed Execution (Full Context)\n> https://rhumb.dev\n> This is the extended version of llms.txt with per-service scores and details.\n> Summary version: https://rhumb.dev/llms.txt\n\n## What",
+      "bytes_read": 105276,
+      "content_type": "text/plain; charset=utf-8",
+      "elapsed_ms": 91,
+      "ok": true,
+      "parsed": null,
+      "status": 200
+    },
+    "logo_png": {
+      "body_sample": "\ufffdPNG\r\n\u001a\n\u0000\u0000\u0000\rIHDR\u0000\u0000\u0002\u0000\u0000\u0000\u0002\u0000\b\u0006\u0000\u0000\u0000\ufffdx\ufffd\ufffd\u0000\u0000\u0015\ufffdIDATx\ufffd\ufffd\ufffd=H\ufffd\ufffd\u0019\u0006\ufffd\ufffdk\ufffd\ufffdF\ufffd\u0018Q\ufffd\u000f\ufffd\u001f\ufffd\ufffdBI\ufffd\b\n!6FRD\u0010\ufffdJ\u001b\ufffd\ufffd@\ufffd\"b\ufffd H,BD\ufffd\"\ufffdm\ufffd6X\u0007\ufffd`\u001d\ufffd\ufffd\u0006\ufffde\ufffd\t\u001fa\ufffd\ufffd3\u001e=\u007f\ufffd\ufffd\ufffdWq\ufffda\ufffd\ufffd\ufffd<\ufffd\u033d\ufffd|\ufffdOG\u0003\u0000\ufffd\ufffdw|\b\u0000 \u0000\u0000\u0000\u0002\u0000\u0000 \u0000\u0000\u0000\u0002\u0000\u0000 \u0000\u0000\u0000\u0002\u0000\u0000 \u0000\u0000\u0000\u0002\u0000\u0000 \u0000\u0000\u0000\u0002\u0000\u0000 \u0000\u0000\u0000\u0002\u0000\u0000 \u0000\u0000\u0000\u0002\u0000\u0000 \u0000\u0000\u0000\u0002\u0000\u0000 \u0000\u0000\ufffd\u0000\u0000\u0000\b\u0000\u0000\ufffd\u0000\u0000\u0000\b\u0000\u0000\ufffd\u0000\u0000\u0000\b\u0000\u0000\ufffd\u0000\u0000\u0000\b\u0000\u0000\ufffd\u0000\u0000\u0000\b",
+      "bytes_read": 5610,
+      "content_type": "image/png",
+      "elapsed_ms": 77,
+      "ok": true,
+      "parsed": null,
+      "status": 200
+    },
+    "logo_svg": {
+      "body_sample": "<svg role=\"img\" aria-labelledby=\"rhumb-logo-title rhumb-logo-desc\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\">\n  <title id=\"rhumb-logo-title\">Rhumb</title>\n  <desc id=\"rhumb-logo-desc\">Rhumb logo. A constant-bearing amber rhum",
+      "bytes_read": 938,
+      "content_type": "image/svg+xml",
+      "elapsed_ms": 82,
+      "ok": true,
+      "parsed": null,
+      "status": 200
+    },
+    "mcp_registry_latest": {
+      "body_sample": "{\"server\":{\"$schema\":\"https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json\",\"name\":\"io.github.supertrained/rhumb-mcp\",\"description\":\"Agent gateway for Index discovery, AN Score evaluation, and Resolve governed execut",
+      "bytes_read": 952,
+      "content_type": "application/json",
+      "elapsed_ms": 4743,
+      "ok": true,
+      "parsed": {
+        "_meta": {
+          "io.modelcontextprotocol.registry/official": {
+            "isLatest": true,
+            "publishedAt": "2026-04-25T10:06:39.597843Z",
+            "status": "active",
+            "statusChangedAt": "2026-04-25T10:06:39.597843Z",
+            "updatedAt": "2026-04-25T10:06:39.597843Z"
+          }
+        },
+        "server": {
+          "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+          "description": "Agent gateway for Index discovery, AN Score evaluation, and Resolve governed execution",
+          "name": "io.github.supertrained/rhumb-mcp",
+          "packages": [
+            {
+              "environmentVariables": [
+                {
+                  "description": "Governed API key for authenticated repeat traffic on X-Rhumb-Key (optional \u2014 discovery works without auth; execution otherwise needs x402 payment)",
+                  "format": "string",
+                  "isSecret": true,
+                  "name": "RHUMB_API_KEY"
+                }
+              ],
+              "identifier": "rhumb-mcp",
+              "registryType": "npm",
+              "transport": {
+                "type": "stdio"
+              },
+              "version": "0.8.2"
+            }
+          ],
+          "repository": {
+            "source": "github",
+            "subfolder": "packages/mcp",
+            "url": "https://github.com/supertrained/rhumb"
+          },
+          "version": "0.8.2"
+        }
+      },
+      "status": 200
+    },
+    "sitemap": {
+      "body_sample": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <url>\n    <loc>https://rhumb.dev/</loc>\n    <changefreq>daily</changefreq>\n    <priority>1</priority>\n  </url>\n  <url>\n    <loc>https://rh",
+      "bytes_read": 30704,
+      "content_type": "application/xml",
+      "elapsed_ms": 89,
+      "ok": true,
+      "parsed": null,
+      "status": 200
+    }
+  },
+  "purpose": "DC90 Month 1 pre-run drift check; not a 75-row answer-surface capture.",
+  "scorecard_rollup": {
+    "query_rows": {
+      "Q1": 5,
+      "Q10": 5,
+      "Q11": 5,
+      "Q12": 5,
+      "Q13": 5,
+      "Q14": 5,
+      "Q15": 5,
+      "Q2": 5,
+      "Q3": 5,
+      "Q4": 5,
+      "Q5": 5,
+      "Q6": 5,
+      "Q7": 5,
+      "Q8": 5,
+      "Q9": 5
+    },
+    "rhumb_mentions": 0,
+    "rhumb_mentions_reviewed_by_keel": 0,
+    "rows_completed": 0,
+    "rows_pending": 75,
+    "rows_total": 75,
+    "rows_with_existing_artifacts": 0,
+    "surface_rows": {
+      "Claude": 15,
+      "Copilot": 15,
+      "GPT-4": 15,
+      "Gemini": 15,
+      "Perplexity": 15
+    }
+  },
+  "scorecard_validation_errors": []
+}

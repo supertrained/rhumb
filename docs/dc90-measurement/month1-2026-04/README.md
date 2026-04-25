@@ -25,7 +25,20 @@ If a product UI forces a different mode, record the exact mode in `surface_mode`
 - `scorecard.csv` — all 15 queries × 5 selected surfaces, pre-expanded to 75 rows.
 - `scorecard.schema.json` — machine-readable schema for the CSV columns and allowed values.
 - `run_notes.md` — run metadata, drift checks, and review status.
+- `CAPTURE-PROCEDURE.md` — exact blocker and runnable procedure for finishing the browser/UI captures.
+- `preflight/` — public drift-check artifacts generated before interpreting a run.
 - `raw-artifacts/` — raw transcript, screenshot, or export files. Summaries without raw artifacts do not count.
+
+## Guardrail helper
+
+Run the repo helper before and after scorecard edits:
+
+```bash
+python3 scripts/dc90_month1_measurement.py --validate
+python3 scripts/dc90_month1_measurement.py --preflight
+```
+
+`--validate` checks the 75-row shape, required columns, allowed enum values, and artifact existence for completed rows. `--preflight` checks the public Rhumb drift surfaces (`llms`, sitemap, agent-capabilities, logos, MCP Registry latest, and live callable-provider count) and writes a timestamped JSON artifact under `preflight/`.
 
 ## Raw artifact naming
 
