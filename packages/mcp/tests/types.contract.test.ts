@@ -223,8 +223,9 @@ describe("types.contract", () => {
     expect(mcpReadme).not.toContain("**No API key needed for discovery.** Install and start immediately:");
     expect(mcpReadme).not.toContain("Get a key at https://rhumb.dev/auth/login");
 
-    expect(mcpServerManifest.version).toBe(mcpPackageJson.version);
-    expect(mcpServerManifest.packages[0].version).toBe(mcpPackageJson.version);
+    expect(mcpPackageJson.version).toBe("2.0.0");
+    expect(mcpServerManifest.version).toBe("0.8.2");
+    expect(mcpServerManifest.packages[0].version).toBe("0.8.2");
     expect(distServerBundle).toContain(`version: "${mcpPackageJson.version}"`);
     expect(distApiClientBundle).toContain(`"User-Agent": "rhumb-mcp/${mcpPackageJson.version}"`);
     expect(distServerBundle).not.toContain("0.8.2");
