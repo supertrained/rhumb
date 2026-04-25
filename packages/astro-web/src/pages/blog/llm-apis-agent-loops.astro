@@ -95,6 +95,13 @@ const MULTI_PROVIDER_CONTEXT_GUARDRAILS = [
   "Track usage and overflow by provider, model, and route so token explosions look like attributable loop failures instead of random latency or spend noise.",
 ];
 
+const PRE_RELEASE_MODEL_GUARDRAILS = [
+  "Separate announcement availability, third-party preview access, and direct first-party API availability in the runbook.",
+  "Treat new mode switches like instant versus reasoning or thinking as cost and latency branches, not harmless quality flags.",
+  "Do not assume an aggregator or preview endpoint preserves the final schema, error taxonomy, rate limits, or billing fields the production loop will see.",
+  "Gate production promotion on a contract test that exercises the exact first-party endpoint, response shape, pricing fields, and fallback behavior you will run unattended.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
@@ -390,6 +397,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           The same recovery pattern carries into <a href="/blog/agent-state-management-recovery-patterns" class="text-amber hover:text-amber-200 transition-colors">agent state management</a>: if model routing changes mid-workflow, the saved state needs to include enough provider context for the next worker to trim, resume, or fail closed deliberately.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Preview-model reliability drill</div>
+        <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+          Announced model modes are not a production contract yet
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          The fresh image-model integration chatter around token-priced image output, instant versus thinking modes, and third-party preview endpoints points at the same loop failure in a visual lane: a model can be announced, prototypable through an aggregator, and still not be the exact first-party contract your unattended agent will run in production.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {PRE_RELEASE_MODEL_GUARDRAILS.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          This is also a runtime-trust problem, not just model selection: preview access can validate UX direction, but <a href="/blog/static-mcp-scores-runtime-trust-overlays" class="text-amber hover:text-amber-200 transition-colors">runtime overlays</a> should be the place that proves the final endpoint, mode, cost, and fallback behavior before the loop is allowed to spend real budget.
         </p>
       </section>
 
