@@ -73,8 +73,10 @@ async def _sb_post(path: str, payload: dict[str, Any], *, prefer: str = "return=
     headers = {**_sb_headers(), "Prefer": prefer}
     async with httpx.AsyncClient() as client:
         resp = await client.post(_sb_url(path), headers=headers, json=payload, timeout=10.0)
-        if resp.status_code not in (200, 201):
+        if resp.status_code not in (200, 201, 204):
             logger.warning("Supabase POST %s failed: %s %s", path, resp.status_code, resp.text)
+            return None
+        if not resp.content:
             return None
         return resp.json()
 
@@ -379,7 +381,11 @@ async def handle_checkout_completed(session: dict[str, Any] | Any) -> bool:
     session_id = session_data.get("id", "")
     metadata = _stripe_to_dict(session_data.get("metadata"))
     org_id = metadata.get("org_id")
-    amount_cents = int(metadata.get("amount_cents", 0))
+    try:
+        amount_cents = int(metadata.get("amount_cents") or 0)
+    except (TypeError, ValueError):
+        logger.warning("Checkout session %s has invalid amount_cents metadata", session_id)
+        return False
     payment_intent_id = session_data.get("payment_intent")
     payment_method_id = await _lookup_payment_method_id(payment_intent_id)
 

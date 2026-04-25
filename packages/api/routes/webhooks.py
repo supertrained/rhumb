@@ -42,6 +42,9 @@ async def stripe_webhook(
     except stripe.SignatureVerificationError:
         logger.warning("Invalid Stripe webhook signature")
         raise HTTPException(status_code=400, detail="Invalid signature")
+    except (ValueError, AttributeError) as exc:
+        logger.warning("Invalid Stripe webhook payload: %s", exc)
+        raise HTTPException(status_code=400, detail="Invalid payload")
 
     # Dispatch by event type
     if event["type"] == "checkout.session.completed":

@@ -215,6 +215,24 @@ def test_webhook_missing_signature() -> None:
     assert resp.status_code == 422
 
 
+
+
+def test_webhook_rejects_malformed_signed_payload(webhook_client: TestClient) -> None:
+    with patch("config.settings.stripe_webhook_secret", WEBHOOK_SECRET):
+        with patch("stripe.Webhook.construct_event", side_effect=AttributeError("object")):
+            resp = webhook_client.post(
+                "/webhooks/stripe",
+                content=b'{"id":"evt_malformed"}',
+                headers={
+                    "Stripe-Signature": "t=123,v1=syntactically-present",
+                    "Content-Type": "application/json",
+                },
+            )
+
+    assert resp.status_code == 400
+    assert "Invalid payload" in resp.json()["detail"]
+
+
 @patch("routes.webhooks.handle_checkout_completed", new_callable=AsyncMock)
 def test_webhook_processes_checkout_completed(
     mock_handler: AsyncMock,
@@ -254,6 +272,62 @@ def test_webhook_processes_checkout_completed(
     mock_handler.assert_called_once()
     session_arg = mock_handler.call_args[0][0]
     assert session_arg["id"] == "cs_test_session_1"
+
+
+
+
+@pytest.mark.anyio
+async def test_sb_post_return_minimal_empty_body_does_not_raise() -> None:
+    """PostgREST return=minimal can return 201/204 with an empty body.
+
+    The Stripe webhook uses this path when auto-creating org_credits rows;
+    an unconditional resp.json() turned successful inserts into webhook 500s.
+    """
+    from services import stripe_billing
+
+    class _Resp:
+        status_code = 201
+        text = ""
+        content = b""
+
+        def json(self):  # pragma: no cover - must not be called
+            raise AssertionError("empty return=minimal response should not be parsed as JSON")
+
+    class _Client:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return _Resp()
+
+    with (
+        patch("services.stripe_billing.httpx.AsyncClient", return_value=_Client()),
+        patch("config.settings.supabase_url", "https://example.supabase.co"),
+        patch("config.settings.supabase_service_role_key", "service-role"),
+    ):
+        result = await stripe_billing._sb_post(
+            "org_credits",
+            {"org_id": "org_test", "balance_usd_cents": 0},
+            prefer="return=minimal",
+        )
+
+    assert result is None
+
+
+@pytest.mark.anyio
+async def test_handle_checkout_completed_acks_invalid_amount_metadata() -> None:
+    """Malformed checkout metadata should be skipped, not retried forever as 500."""
+    from services.stripe_billing import handle_checkout_completed
+
+    result = await handle_checkout_completed({
+        "id": "cs_test_bad_amount",
+        "metadata": {"org_id": "org_test", "amount_cents": "not-an-int"},
+    })
+
+    assert result is False
 
 
 # ── Service layer tests ──────────────────────────────────────────────
