@@ -1,0 +1,157 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const primitives = [
+  {
+    label: "Discover",
+    title: "Index tells the agent who is worth trusting.",
+    body: "Rhumb Index is the public intelligence layer: scores, failures, comparisons, and capability discovery across the service catalog.",
+  },
+  {
+    label: "Resolve",
+    title: "Resolve turns intent into a governed call.",
+    body: "The agent can ask for a capability and let Resolve choose the best-fit supported provider, or pin a supported provider path directly.",
+  },
+  {
+    label: "Control",
+    title: "The operator keeps the boundary explicit.",
+    body: "Credential path, budget, provider choice, and policy constraints are surfaced before execution instead of hidden behind magic routing.",
+  },
+];
+
+const notClaims = [
+  "Not a generic connector directory with a nicer UI.",
+  "Not a claim that every indexed service is executable today.",
+  "Not a blind top-score router that pretends quality, cost, and credentials are the same thing.",
+  "Not a demand that agents give up explicit provider control.",
+];
+
+const lifecycle = [
+  { step: "01", title: "Find the service or capability", body: "Use Index when you need vendor intelligence. Use capability discovery when you know the job but not the provider path." },
+  { step: "02", title: "Estimate the route", body: "Check readiness, credential mode, price, provider fit, and the explainable route before the agent spends money or touches a system." },
+  { step: "03", title: "Execute with receipts", body: "Call through governed API key, wallet-prefund, x402, BYOK, or Agent Vault depending on the job and trust boundary." },
+  { step: "04", title: "Inspect and constrain", body: "Use spend, budgets, route explanations, and provider attribution so repeat agent traffic stays operable." },
+];
+
+const jsonLdBlocks = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "What is Rhumb Resolve?",
+    url: PUBLIC_TRUTH.resolveWhatIsUrl,
+    description: "A plain-language explanation of Rhumb Resolve: governed execution for AI agents, best-fit routing, explicit provider control, credential paths, budgets, and receipts.",
+    isPartOf: { "@type": "WebSite", name: "Rhumb", url: "https://rhumb.dev" },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "What is Rhumb Resolve?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "Rhumb Resolve is Rhumb’s governed execution layer for AI agents. It routes supported capability calls to the best-fit provider by default, while also supporting explicit provider choice.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Is every service in Rhumb executable through Resolve?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: "No. Rhumb Index is broader than Resolve execution coverage. Resolve is currently strongest for research, extraction, generation, and narrow enrichment across 16 callable providers.",
+        },
+      },
+    ],
+  },
+];
+
+const agentContext = "What is Rhumb Resolve? Resolve is governed execution for AI agents. Index ranks the field. Resolve routes supported calls by task fit using AN Score, capability fit, provider health, credential mode, budget and policy constraints, while preserving explicit provider pinning.";
+---
+
+<Layout
+  title="What is Resolve? | Rhumb"
+  description="Rhumb Resolve is governed execution for AI agents: best-fit routing, explicit provider choice, credential paths, budgets, pricing, and receipts."
+  canonical="/resolve/what-is-resolve"
+  ogTitle="What is Rhumb Resolve?"
+  ogDescription="Index ranks. Resolve routes. A plain-language guide to Rhumb’s governed execution layer for AI agents."
+  ogUrl={PUBLIC_TRUTH.resolveWhatIsUrl}
+  jsonLdBlocks={jsonLdBlocks}
+  agentContext={agentContext}
+>
+  <div class="min-h-screen bg-navy text-slate-100">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-25 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-[560px] pointer-events-none" style="background: radial-gradient(circle at 12% 20%, rgba(245,158,11,0.16), transparent 34%), radial-gradient(circle at 78% 18%, rgba(16,185,129,0.12), transparent 32%), linear-gradient(115deg, rgba(15,23,42,0.2), transparent);"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-20 lg:py-24">
+        <p class="mb-4 text-xs font-mono uppercase tracking-[0.3em] text-amber">Resolve authority</p>
+        <h1 class="max-w-4xl font-display text-5xl font-bold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">What is Resolve?</h1>
+        <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+          Rhumb Resolve is the governed execution layer for AI agents. It lets an agent ask for the job, estimate the route, execute through a controlled rail, and explain which provider path was used.
+        </p>
+        <p class="mt-4 max-w-3xl text-base leading-7 text-slate-400">
+          The mental model is deliberately simple: <span class="text-slate-200">Index ranks. Resolve routes.</span> Index gives the agent service intelligence. Resolve turns supported work into auditable calls.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="/quickstart" class="rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-navy transition-colors hover:bg-amber-dark">Start with Resolve</a>
+          <a href="/resolve/routing" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-300 transition-colors hover:border-amber/40 hover:text-slate-100">How routing works</a>
+          <a href="/resolve/compare" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-300 transition-colors hover:border-amber/40 hover:text-slate-100">Compare alternatives</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-16">
+      <div class="grid gap-5 md:grid-cols-3">
+        {primitives.map((item) => (
+          <article class="rounded-[28px] border border-slate-800 bg-surface p-6 shadow-[0_18px_60px_rgba(2,6,23,0.26)]">
+            <p class="text-[11px] font-mono uppercase tracking-[0.26em] text-amber">{item.label}</p>
+            <h2 class="mt-3 font-display text-xl font-semibold text-slate-100">{item.title}</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-400">{item.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="border-y border-slate-800 bg-surface/35">
+      <div class="mx-auto grid max-w-6xl gap-8 px-6 py-16 lg:grid-cols-[0.92fr_1.08fr]">
+        <div>
+          <p class="text-xs font-mono uppercase tracking-[0.28em] text-emerald-300">Execution lifecycle</p>
+          <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-slate-100">Resolve starts before the call.</h2>
+          <p class="mt-4 text-sm leading-7 text-slate-400">
+            The product is not just the HTTP request. The product is the route decision, cost estimate, credential boundary, execution receipt, and operator controls around repeated agent traffic.
+          </p>
+        </div>
+        <div class="grid gap-4">
+          {lifecycle.map((item) => (
+            <div class="rounded-2xl border border-slate-800 bg-navy/75 p-5">
+              <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">{item.step}</p>
+              <h3 class="mt-2 font-display text-lg font-semibold text-slate-100">{item.title}</h3>
+              <p class="mt-2 text-sm leading-6 text-slate-400">{item.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-16">
+      <div class="grid gap-6 lg:grid-cols-2">
+        <div class="rounded-[30px] border border-amber/20 bg-amber/10 p-7">
+          <p class="text-xs font-mono uppercase tracking-[0.28em] text-amber">What it is not</p>
+          <h2 class="mt-3 font-display text-2xl font-bold text-slate-100">No magic layer. No overclaim.</h2>
+          <ul class="mt-5 space-y-3 text-sm leading-6 text-slate-300">
+            {notClaims.map((claim) => <li class="flex gap-3"><span class="text-amber">—</span><span>{claim}</span></li>)}
+          </ul>
+        </div>
+        <div class="rounded-[30px] border border-emerald-500/20 bg-emerald-500/10 p-7">
+          <p class="text-xs font-mono uppercase tracking-[0.28em] text-emerald-300">Current boundary</p>
+          <h2 class="mt-3 font-display text-2xl font-bold text-slate-100">Launchable where the route is real.</h2>
+          <p class="mt-4 text-sm leading-7 text-slate-300">
+            {PUBLIC_TRUTH.beachheadSummary} {PUBLIC_TRUTH.callableRealitySummary}
+          </p>
+          <a href="/capabilities" class="mt-5 inline-flex rounded-xl border border-emerald-500/30 px-4 py-2.5 text-sm font-medium text-emerald-200 hover:border-emerald-400/60">Browse executable capabilities &rarr;</a>
+        </div>
+      </div>
+    </section>
+  </div>
+</Layout>

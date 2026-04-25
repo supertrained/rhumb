@@ -1,0 +1,95 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const pricingInputs = [
+  { name: "Provider cost", body: "The upstream cost of the selected provider or route." },
+  { name: "Credential mode", body: "Rhumb-managed, BYOK, Agent Vault, wallet-prefund, and x402 rails have different economics and control boundaries." },
+  { name: "Route decision", body: "The cheapest provider is not always the best route; cost is disclosed as a constraint, not hidden inside quality." },
+  { name: "Operator policy", body: "Budgets, limits, and allowlists can constrain route choice before execution." },
+];
+
+const sequence = [
+  "Discover and resolve the capability.",
+  "Estimate route, readiness, and expected call cost.",
+  "Choose governed API key, wallet-prefund, x402, BYOK, or Agent Vault.",
+  "Execute only after the route and rail are explicit.",
+  "Inspect spend, selected provider, and alternatives considered after the call.",
+];
+
+const jsonLdBlocks = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Resolve per-call pricing explained",
+    url: PUBLIC_TRUTH.resolvePricingUrl,
+    description: "How Rhumb Resolve explains per-call pricing, route estimates, wallet-prefund, x402, governed API keys, and provider-control modes.",
+    isPartOf: { "@type": "WebSite", name: "Rhumb", url: "https://rhumb.dev" },
+  },
+];
+
+const agentContext = "Resolve per-call pricing: discovery is free; execution is pay-per-call. Agents should estimate route cost before execution, choose the correct rail, keep cost separate from AN Score quality, and inspect spend plus selected provider after the call.";
+---
+
+<Layout
+  title="Resolve per-call pricing | Rhumb"
+  description="How Rhumb Resolve prices governed execution calls: estimates, selected provider, credential rail, wallet-prefund, x402, BYOK, Agent Vault, and spend receipts."
+  canonical="/resolve/per-call-pricing"
+  ogTitle="Resolve per-call pricing"
+  ogDescription="Discovery is free. Execution is per-call. See how route estimates, credential rails, and provider costs shape Rhumb Resolve pricing."
+  ogUrl={PUBLIC_TRUTH.resolvePricingUrl}
+  jsonLdBlocks={jsonLdBlocks}
+  agentContext={agentContext}
+>
+  <div class="min-h-screen bg-navy text-slate-100">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-25 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-[520px] pointer-events-none" style="background: radial-gradient(circle at 18% 20%, rgba(245,158,11,0.17), transparent 34%), radial-gradient(circle at 76% 24%, rgba(16,185,129,0.11), transparent 34%);"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-20 lg:py-24">
+        <p class="mb-4 text-xs font-mono uppercase tracking-[0.3em] text-amber">Pricing authority</p>
+        <h1 class="max-w-5xl font-display text-5xl font-bold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">Per-call pricing only works if the route is explainable.</h1>
+        <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+          Discovery is free. Execution is per-call. Before an agent spends money, Resolve should explain the provider path, credential rail, estimate, and constraints that shaped the route.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="/pricing" class="rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-navy transition-colors hover:bg-amber-dark">Canonical pricing</a>
+          <a href="/resolve/keys" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-300 transition-colors hover:border-amber/40 hover:text-slate-100">Credential paths</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-16">
+      <div class="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        {pricingInputs.map((item) => (
+          <article class="rounded-[28px] border border-slate-800 bg-surface p-6">
+            <h2 class="font-display text-xl font-semibold text-slate-100">{item.name}</h2>
+            <p class="mt-3 text-sm leading-6 text-slate-400">{item.body}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="border-y border-slate-800 bg-surface/35">
+      <div class="mx-auto grid max-w-6xl gap-8 px-6 py-16 lg:grid-cols-[0.9fr_1.1fr]">
+        <div>
+          <p class="text-xs font-mono uppercase tracking-[0.28em] text-emerald-300">Call sequence</p>
+          <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-slate-100">Estimate first. Spend second.</h2>
+          <p class="mt-4 text-sm leading-7 text-slate-400">The agent should not discover price by surprise after execution. The estimate is part of the route contract.</p>
+        </div>
+        <ol class="grid gap-3">
+          {sequence.map((item, index) => (
+            <li class="rounded-2xl border border-slate-800 bg-navy/75 p-5 text-sm leading-6 text-slate-300"><span class="mr-3 font-mono text-xs uppercase tracking-[0.2em] text-amber">{String(index + 1).padStart(2, "0")}</span>{item}</li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-16">
+      <div class="rounded-[32px] border border-amber/20 bg-amber/10 p-7 md:p-9">
+        <p class="text-xs font-mono uppercase tracking-[0.28em] text-amber">Neutrality rule</p>
+        <h2 class="mt-3 max-w-3xl font-display text-3xl font-bold tracking-tight text-slate-100">Cost can change the route. Cost must not rewrite the score.</h2>
+        <p class="mt-4 max-w-3xl text-sm leading-7 text-slate-300">AN Score remains a quality prior. Cost is an execution constraint and should be disclosed in the route explanation, not smuggled into service quality.</p>
+      </div>
+    </section>
+  </div>
+</Layout>

@@ -59,7 +59,12 @@ Index ranks the field.
 Resolve routes each supported call to the best-fit provider for the call by default.
 AN Score is a major routing input, not the sole routing rule.
 Agents can also pin the supported provider path explicitly when they want direct control.
-Routing proof and factor explanation: ${PUBLIC_TRUTH.routingProofUrl}
+Supporting authority pages:
+- What is Resolve?: ${PUBLIC_TRUTH.resolveWhatIsUrl}
+- Routing proof and factor explanation: ${PUBLIC_TRUTH.routingProofUrl}
+- Resolve comparisons: ${PUBLIC_TRUTH.resolveCompareUrl}
+- Key management and credential paths: ${PUBLIC_TRUTH.resolveKeysUrl}
+- Per-call pricing explainer: ${PUBLIC_TRUTH.resolvePricingUrl}
 Current launchable scope: ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}.
 
 ## For Agents
@@ -113,7 +118,11 @@ Browse all ${totalCapabilities} capability definitions: https://rhumb.dev/capabi
 - Provider-control modes where supported: BYOK and Agent Vault
 - No subscriptions, no seat fees, no minimums
 - Live pricing and markup terms: https://rhumb.dev/pricing
+- What is Resolve?: ${PUBLIC_TRUTH.resolveWhatIsUrl}
 - Routing proof and route-factor explanation: ${PUBLIC_TRUTH.routingProofUrl}
+- Resolve comparisons: ${PUBLIC_TRUTH.resolveCompareUrl}
+- Key management: ${PUBLIC_TRUTH.resolveKeysUrl}
+- Per-call pricing explainer: ${PUBLIC_TRUTH.resolvePricingUrl}
 
 ## Categories
 ${categoryList}

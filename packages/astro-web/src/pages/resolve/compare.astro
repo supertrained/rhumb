@@ -1,0 +1,116 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const alternatives = [
+  {
+    name: "Composio",
+    posture: "Integration catalog",
+    good: "Useful when the main need is tool breadth and app/action coverage across many SaaS APIs.",
+    rhumb: "Rhumb is different when the agent needs neutral service intelligence, score-backed provider choice, route explanations, and governed execution rather than only a connector list.",
+  },
+  {
+    name: "Arcade",
+    posture: "Tool authorization layer",
+    good: "Useful when the job centers on user-authorized tools and permissioned actions in an agent app.",
+    rhumb: "Rhumb is different when the agent needs to choose between external providers, estimate cost, route by task fit, and keep Index/Resolve truth separate.",
+  },
+  {
+    name: "Nango",
+    posture: "OAuth and integration plumbing",
+    good: "Useful when the team needs sync/auth infrastructure for its own product integrations.",
+    rhumb: "Rhumb is different when the agent is the caller and needs a governed execution rail, public trust surface, and provider routing across supported capabilities.",
+  },
+];
+
+const decisionRows = [
+  ["Choose a provider", "Rhumb", "AN Score, failure modes, comparisons, and routing factors are first-class."],
+  ["Execute a supported capability", "Rhumb", "Best-fit-by-default routing plus explicit provider pinning and receipts."],
+  ["OAuth for your own app", "Nango / OAuth infra", "If you are just managing user auth plumbing, use the focused auth-sync layer."],
+  ["Huge catalog of app actions", "Connector catalog", "If breadth beats route quality, connector breadth can be the right starting point."],
+  ["User-authorized agent tools", "Arcade-style tool auth", "If the core surface is user-scoped permissioning, pick the auth/tool runtime."],
+];
+
+const jsonLdBlocks = [
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Rhumb Resolve vs Composio, Arcade, and Nango",
+    url: PUBLIC_TRUTH.resolveCompareUrl,
+    description: "A positioning page explaining when to use Rhumb Resolve versus connector catalogs, tool authorization layers, and OAuth integration infrastructure.",
+    isPartOf: { "@type": "WebSite", name: "Rhumb", url: "https://rhumb.dev" },
+  },
+];
+
+const agentContext = "Rhumb Resolve comparisons: use Rhumb when an agent needs neutral service intelligence plus governed execution and explainable routing. Use connector catalogs for action breadth, tool authorization layers for user-scoped tool permissions, and OAuth infrastructure for product integration plumbing.";
+---
+
+<Layout
+  title="Resolve vs Composio, Arcade, and Nango | Rhumb"
+  description="When to use Rhumb Resolve versus connector catalogs, tool authorization layers, and OAuth integration plumbing."
+  canonical="/resolve/compare"
+  ogTitle="Resolve vs Composio, Arcade, and Nango"
+  ogDescription="Rhumb is not just a connector catalog. It combines neutral service intelligence with governed, explainable execution for agents."
+  ogUrl={PUBLIC_TRUTH.resolveCompareUrl}
+  jsonLdBlocks={jsonLdBlocks}
+  agentContext={agentContext}
+>
+  <div class="min-h-screen bg-navy text-slate-100">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-25 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-[-160px] h-[560px] pointer-events-none" style="background: radial-gradient(circle at 30% 30%, rgba(245,158,11,0.18), transparent 36%), radial-gradient(circle at 70% 22%, rgba(99,102,241,0.14), transparent 36%);"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-20 lg:py-24">
+        <p class="mb-4 text-xs font-mono uppercase tracking-[0.3em] text-amber">Resolve comparisons</p>
+        <h1 class="max-w-5xl font-display text-5xl font-bold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">Resolve is not a connector catalog.</h1>
+        <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+          Composio, Arcade, and Nango point at real adjacent jobs. Rhumb’s wedge is different: neutral service intelligence plus governed execution for agents that need to choose, route, pay, and explain.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a href="/resolve/what-is-resolve" class="rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-navy transition-colors hover:bg-amber-dark">What is Resolve?</a>
+          <a href="/resolve/routing" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-300 transition-colors hover:border-amber/40 hover:text-slate-100">Routing proof</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-16">
+      <div class="grid gap-5 lg:grid-cols-3">
+        {alternatives.map((item) => (
+          <article class="rounded-[30px] border border-slate-800 bg-surface p-6">
+            <p class="text-xs font-mono uppercase tracking-[0.24em] text-slate-500">{item.posture}</p>
+            <h2 class="mt-3 font-display text-2xl font-semibold text-slate-100">{item.name}</h2>
+            <p class="mt-4 rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-400"><span class="text-slate-200">Good when:</span> {item.good}</p>
+            <p class="mt-3 rounded-2xl border border-amber/15 bg-amber/10 p-4 text-sm leading-6 text-slate-300"><span class="text-amber">Rhumb difference:</span> {item.rhumb}</p>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="border-y border-slate-800 bg-surface/35">
+      <div class="mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-8 max-w-3xl">
+          <p class="text-xs font-mono uppercase tracking-[0.28em] text-emerald-300">Decision table</p>
+          <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-slate-100">Pick by job, not category label.</h2>
+        </div>
+        <div class="overflow-hidden rounded-[28px] border border-slate-800 bg-navy/70">
+          {decisionRows.map(([job, pick, reason], index) => (
+            <div class={`grid gap-4 border-slate-800 p-5 md:grid-cols-[0.9fr_0.45fr_1.3fr] ${index === 0 ? "" : "border-t"}`}>
+              <div class="font-display text-lg font-semibold text-slate-100">{job}</div>
+              <div class="font-mono text-xs uppercase tracking-[0.18em] text-amber">{pick}</div>
+              <div class="text-sm leading-6 text-slate-400">{reason}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-16">
+      <div class="rounded-[32px] border border-emerald-500/20 bg-emerald-500/10 p-7 md:p-9">
+        <p class="text-xs font-mono uppercase tracking-[0.28em] text-emerald-300">Positioning rule</p>
+        <h2 class="mt-3 max-w-3xl font-display text-3xl font-bold tracking-tight text-slate-100">If the hard question is “which provider should my agent trust and call?”, Rhumb should be in the path.</h2>
+        <p class="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
+          If the hard question is only “how do I connect to this one app?”, Rhumb may not be the right layer. That honesty is part of the moat.
+        </p>
+      </div>
+    </section>
+  </div>
+</Layout>
