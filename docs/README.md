@@ -16,3 +16,4 @@
 - DC90 DEV.to quickstart pilot draft: `docs/DC90-DEVTO-QUICKSTART-PILOT-DRAFT-2026-04-25.md`
 - DC90 DEV.to connector-catalog draft: `docs/DC90-DEVTO-CONNECTOR-CATALOG-DRAFT-2026-04-25.md`
 - DC90 DEV.to per-call pricing draft: `docs/DC90-DEVTO-PER-CALL-PRICING-DRAFT-2026-04-25.md`
+- DC90 DEV.to routing + keys draft: `docs/DC90-DEVTO-ROUTING-KEYS-DRAFT-2026-04-25.md`
