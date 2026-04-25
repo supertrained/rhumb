@@ -10,3 +10,4 @@
 - Round 10 proxy core kickoff: `docs/PROXY-CORE-R10.md`
 - Package-level quickstart: `packages/api/README.md` (includes probe scheduler operator notes)
 - Product context: tracked in the parent workspace strategy docs
+- DC90 Resolve content + measurement pack: `docs/DC90-RESOLVE-CONTENT-MEASUREMENT-PACK-2026-04-25.md`
