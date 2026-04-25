@@ -42,10 +42,13 @@ const wellKnownAgentCapabilities = readFileSync(
 );
 const mcpPackageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
   description: string;
+  version: string;
 };
 const mcpServerManifest = JSON.parse(readFileSync(new URL("../server.json", import.meta.url), "utf8")) as {
   description: string;
+  version: string;
   packages: Array<{
+    version: string;
     environmentVariables: Array<{
       description: string;
       name: string;
@@ -56,12 +59,14 @@ const packageRoot = fileURLToPath(new URL("..", import.meta.url));
 const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
 let distServerBundle = "";
+let distApiClientBundle = "";
 let distTypesBundle = "";
 
 describe("types.contract", () => {
   beforeAll(() => {
     execFileSync(npmCommand, ["run", "build"], { cwd: packageRoot, stdio: "pipe" });
     distServerBundle = readFileSync(new URL("../dist/src/server.js", import.meta.url), "utf8");
+    distApiClientBundle = readFileSync(new URL("../dist/src/api-client.js", import.meta.url), "utf8");
     distTypesBundle = readFileSync(new URL("../dist/src/types.js", import.meta.url), "utf8");
   });
 
@@ -197,13 +202,25 @@ describe("types.contract", () => {
     expect(rootReadme).not.toContain("wallet-prefunded API key");
 
     expect(mcpReadme).toContain("**No governed API key needed for discovery.** Install and start immediately:");
+    expect(mcpReadme).toContain("Rhumb scores **999 services** and exposes **435 capability definitions**");
+    expect(mcpReadme).toContain("current governed execution is concentrated in **28 callable providers**");
     expect(mcpReadme).toContain("Default auth for repeat traffic** = governed API key or wallet-prefund on `X-Rhumb-Key`");
     expect(mcpReadme).toContain("Bring BYOK or Agent Vault** only when provider control is the point");
     expect(mcpReadme).toContain("Get a governed API key at https://rhumb.dev/auth/login");
+    expect(mcpReadme).not.toContain("1,038 services");
+    expect(mcpReadme).not.toContain("415 capability definitions");
+    expect(mcpReadme).not.toContain("16 callable providers");
     expect(mcpReadme).not.toContain("wallet-prefunded API key");
     expect(mcpReadme).not.toContain("`RHUMB_API_KEY` via governed account or wallet-prefund");
     expect(mcpReadme).not.toContain("**No API key needed for discovery.** Install and start immediately:");
     expect(mcpReadme).not.toContain("Get a key at https://rhumb.dev/auth/login");
+
+    expect(mcpServerManifest.version).toBe(mcpPackageJson.version);
+    expect(mcpServerManifest.packages[0].version).toBe(mcpPackageJson.version);
+    expect(distServerBundle).toContain(`version: "${mcpPackageJson.version}"`);
+    expect(distApiClientBundle).toContain(`"User-Agent": "rhumb-mcp/${mcpPackageJson.version}"`);
+    expect(distServerBundle).not.toContain("0.8.2");
+    expect(distApiClientBundle).not.toContain("rhumb-mcp/0.8");
 
     expect(mcpServerManifest.packages[0].environmentVariables[0].name).toBe("RHUMB_API_KEY");
     expect(mcpServerManifest.packages[0].environmentVariables[0].description).toContain("Governed API key for authenticated repeat traffic on X-Rhumb-Key");

@@ -57,7 +57,7 @@ export function createServer(apiClient?: RhumbApiClient): McpServer {
 
   const server = new McpServer({
     name: "rhumb",
-    version: "0.8.2"
+    version: "2.0.0"
   });
 
   // -- find_services -----------------------------------------------------

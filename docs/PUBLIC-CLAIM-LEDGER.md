@@ -14,6 +14,15 @@ Purpose: keep Rhumb's public authority copy aligned with live product truth befo
 | Agent-context / JSON-LD visible equivalence | verified | Audited homepage, Resolve authority pages, pricing, about, quickstart, trust, leaderboard, `/llms.txt`, and `/llms-full.txt`; machine-readable summaries now summarize visible claims rather than introducing hidden-only routing factors. | `docs/PUBLIC-SCHEMA-AGENT-CONTEXT-PARITY.md`; regression coverage in `packages/web/tests/public-authority.contract.test.ts`. |
 | Hard-coded callable count in DC90 machine surfaces | verified | DC90 machine-visible Resolve surfaces continue to use `PUBLIC_TRUTH.callableProvidersLabel` or shared summaries instead of literal stale counts. | `packages/web/tests/public-authority.contract.test.ts` blocks `16 callable providers` across audited DC90 machine surfaces. |
 
+## 2026-04-25 — DC90 MCP Registry / GitHub visibility pass
+
+| Claim area | Verdict | Public action | Evidence / source |
+| --- | --- | --- | --- |
+| MCP Registry version metadata | verified | Aligned `packages/mcp/server.json`, MCP server self-reported version, MCP `User-Agent`, and `packages/mcp/package-lock.json` to the npm package version `2.0.0`. | `docs/PUBLIC-DISTRIBUTION-SURFACE-PARITY.md`; `packages/mcp/tests/types.contract.test.ts`. |
+| GitHub/npm MCP README coverage counts | verified | Replaced stale `1,038` services, `415` capability definitions, and `16` callable providers in `packages/mcp/README.md` with current public truth: `999`, `435`, and `28`. | `packages/mcp/README.md`; generated truth check; `packages/mcp/tests/types.contract.test.ts`. |
+| Agent capability distribution JSON | verified | Regenerated root and well-known agent-capabilities JSON from shared public truth so GitHub and web machine surfaces stay byte-aligned. | `agent-capabilities.json`; `packages/astro-web/public/.well-known/agent-capabilities.json`; `scripts/generate_agent_capabilities.py --check`. |
+| Stale public guide count | qualified | Updated the static public failure-modes guide from `1,038` to `999` scored services without claiming improvement. | `packages/astro-web/public/guides/blog-api-failure-modes-engineering.md`. |
+
 ## 2026-04-25 — DC90 route-explanation parity pass
 
 | Claim area | Verdict | Public action | Evidence / source |

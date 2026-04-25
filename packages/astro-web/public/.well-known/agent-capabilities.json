@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "name": "Rhumb",
-  "description": "Agent-native tool intelligence for research, extraction, generation, and narrow enrichment \u2014 discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
+  "description": "Agent-native tool intelligence for research, extraction, generation, and narrow enrichment — discover, evaluate, and execute external tools with trust scores, failure modes, cost-aware routing, and managed credentials.",
   "homepage": "https://rhumb.dev",
   "api_base": "https://api.rhumb.dev/v1",
   "mcp_install": "npx rhumb-mcp@latest",
@@ -119,7 +119,7 @@
         },
         {
           "name": "usage_telemetry",
-          "description": "Get your execution analytics \u2014 calls, latency, errors, costs, and provider health for your Rhumb usage"
+          "description": "Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage"
         }
       ]
     }
