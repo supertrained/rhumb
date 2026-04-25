@@ -198,7 +198,10 @@ def test_export_audit_valid_category_normalizes_whitespace_and_case():
 def test_export_audit_invalid_format_uses_explicit_invalid_parameters():
     from app import create_app
 
-    with patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
+    ):
         resp = TestClient(create_app()).post(
             "/v2/audit/export?format=xml",
             headers={"X-Rhumb-Key": "rk_test"},
@@ -209,3 +212,30 @@ def test_export_audit_invalid_format_uses_explicit_invalid_parameters():
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'format' filter."
     assert "json, csv" in body["error"]["detail"]
+    get_audit_trail.assert_not_called()
+
+
+def test_export_audit_format_normalizes_whitespace_and_case():
+    from app import create_app
+
+    trail = MagicMock()
+    trail.export.return_value = MagicMock(
+        format="csv",
+        event_count=0,
+        chain_verified=True,
+        data="event_id,event_type\n",
+    )
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).post(
+            "/v2/audit/export?format=%20CSV%20",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/csv")
+    trail.export.assert_called_once()
+    assert trail.export.call_args.kwargs["format"] == "csv"

@@ -179,8 +179,9 @@ def _validated_timestamp(ts: str | None, *, field_name: str) -> datetime | None:
 
 
 def _validated_export_format(format: str) -> str:
-    if format in ("json", "csv"):
-        return format
+    normalized = format.strip().lower()
+    if normalized in ("json", "csv"):
+        return normalized
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -370,14 +371,14 @@ async def export_audit_trail(
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
-    trail = get_audit_trail()
-
     format = _validated_export_format(format)
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
     parsed_category = _validated_category(category)
     parsed_since = _validated_timestamp(since, field_name="since")
     parsed_until = _validated_timestamp(until, field_name="until")
+
+    trail = get_audit_trail()
 
     result = trail.export(
         format=format,
