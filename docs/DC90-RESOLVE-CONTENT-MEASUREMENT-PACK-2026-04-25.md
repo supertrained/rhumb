@@ -225,5 +225,5 @@ Helm pass summary: `resolve` and `estimate` work as anonymous preflight reads; `
 
 - Beacon can use `docs/DC90-DEVTO-QUICKSTART-PILOT-DRAFT-2026-04-25.md` as the final-copy source for exactly one DEV.to pilot post, not a wave.
 - Keel has passed the final adapted quickstart DEV.to copy; re-review only if Beacon changes the copy before external distribution.
-- The next internal content-floor draft exists at `docs/DC90-DEVTO-CONNECTOR-CATALOG-DRAFT-2026-04-25.md` for brief 2, **Resolve is not a connector catalog**. It remains internal and requires Keel review before any external use because it names adjacent vendors.
+- Internal content-floor drafts now exist for brief 2, **Resolve is not a connector catalog** (`docs/DC90-DEVTO-CONNECTOR-CATALOG-DRAFT-2026-04-25.md`), and brief 4, **Why per-call pricing needs explainable routes** (`docs/DC90-DEVTO-PER-CALL-PRICING-DRAFT-2026-04-25.md`). Both remain internal and require Keel review before any external use; Helm review is only needed if code snippets, live estimates, or receipt examples are added.
 - Beacon should finish exact browser/UI Month 1 capture when first-party access is available and store raw artifacts in the durable folder before summarizing.
