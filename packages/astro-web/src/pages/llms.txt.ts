@@ -31,6 +31,7 @@ export const GET: APIRoute = async () => {
 
 ## What is Rhumb?
 Rhumb is an agent gateway for discovery and governed execution.
+Mission: make the internet as agent-native as possible.
 Rhumb Index scores external services for AI-agent compatibility.
 Rhumb Resolve executes supported capabilities through governed execution and routes each call to the best-fit provider for the call by first matching the supported capability path, then using AN Score, provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints by default, while also allowing explicit provider choice when the agent wants direct control.
 
