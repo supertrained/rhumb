@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
@@ -224,6 +225,14 @@ const winner = services[0];
               <p class="text-sm text-slate-400">{s.agentFit}</p>
             </div>
           </section>
+
+      <ResolveComparisonCta
+        source="aws-s3-vs-cloudflare-r2-vs-backblaze-b2"
+        capability="object storage"
+        callableServices={[{ name: "AWS S3", href: "/service/aws-s3" }]}
+        discoveryOnlyServices={[{ name: "Cloudflare R2", href: "/service/cloudflare-r2" }, { name: "Backblaze B2", href: "/service/backblaze-b2" }]}
+      />
+
         ))}
       </div>
 

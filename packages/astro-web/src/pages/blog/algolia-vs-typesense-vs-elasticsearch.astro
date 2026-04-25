@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 import ScoreDisplay from "../../components/ScoreDisplay.astro";
 import TierBadge from "../../components/TierBadge.astro";
 import { getServiceScore } from "../../lib/api";
@@ -144,6 +145,14 @@ const desc =
           </div>
         ))}
       </section>
+
+      <ResolveComparisonCta
+        source="algolia-vs-typesense-vs-elasticsearch"
+        capability="application search"
+        callableServices={[{ name: "Algolia", href: "/service/algolia" }]}
+        discoveryOnlyServices={[{ name: "Typesense", href: "/service/typesense" }, { name: "Elasticsearch", href: "/service/elasticsearch" }]}
+      />
+
 
       <!-- Agent analysis per service -->
       <section class="mt-12 space-y-10" data-section="analysis">

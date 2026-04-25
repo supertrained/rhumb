@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 import ScoreDisplay from "../../components/ScoreDisplay.astro";
 import TierBadge from "../../components/TierBadge.astro";
 import { getServiceScore } from "../../lib/api";
@@ -268,6 +269,14 @@ const agentRules = [
         </div>
       </div>
     </section>
+
+      <ResolveComparisonCta
+        source="resend-vs-sendgrid-vs-postmark"
+        capability="transactional email"
+        callableServices={[{ name: "SendGrid", href: "/service/sendgrid" }]}
+        discoveryOnlyServices={[{ name: "Resend", href: "/service/resend" }, { name: "Postmark", href: "/service/postmark" }]}
+      />
+
 
     <section class="max-w-6xl mx-auto px-6 py-14">
       <div class="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">

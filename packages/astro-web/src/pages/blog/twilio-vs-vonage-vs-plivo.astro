@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 import ScoreDisplay from "../../components/ScoreDisplay.astro";
 import TierBadge from "../../components/TierBadge.astro";
 import { getServiceScore } from "../../lib/api";
@@ -207,6 +208,14 @@ const agentRules = [
         </div>
       </div>
     </section>
+
+      <ResolveComparisonCta
+        source="twilio-vs-vonage-vs-plivo"
+        capability="messaging and voice communications"
+        callableServices={[{ name: "Twilio", href: "/service/twilio" }]}
+        discoveryOnlyServices={[{ name: "Vonage", href: "/service/vonage" }, { name: "Plivo", href: "/service/plivo" }]}
+      />
+
 
     <!-- Score cards -->
     <section class="border-b border-slate-800/60">

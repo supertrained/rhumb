@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 import { getServiceScore } from "../../lib/api";
 import type { ServiceScoreViewModel } from "../../lib/types";
 
@@ -197,6 +198,14 @@ const compared: ComparedService[] = [
               </div>
             </div>
           </section>
+
+      <ResolveComparisonCta
+        source="github-actions-vs-gitlab-ci-vs-circleci"
+        capability="CI/CD workflow operations"
+        callableServices={[{ name: "GitHub Actions", href: "/service/github" }]}
+        discoveryOnlyServices={[{ name: "GitLab CI", href: "/service/gitlab" }, { name: "CircleCI", href: "/service/circleci" }]}
+      />
+
         ))}
       </div>
 

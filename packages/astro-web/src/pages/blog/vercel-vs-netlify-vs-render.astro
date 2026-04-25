@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 import ScoreDisplay from "../../components/ScoreDisplay.astro";
 import TierBadge from "../../components/TierBadge.astro";
 import { getServiceScore } from "../../lib/api";
@@ -239,6 +240,14 @@ const description =
           </p>
         </div>
       </section>
+
+      <ResolveComparisonCta
+        source="vercel-vs-netlify-vs-render"
+        capability="frontend deployment operations"
+        callableServices={[{ name: "Vercel", href: "/service/vercel" }]}
+        discoveryOnlyServices={[{ name: "Netlify", href: "/service/netlify" }, { name: "Render", href: "/service/render" }]}
+      />
+
 
       {
         compared.map((svc) => (

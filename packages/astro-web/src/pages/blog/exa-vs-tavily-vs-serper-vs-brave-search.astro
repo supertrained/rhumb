@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -188,6 +189,13 @@ const htmlContent = markdownToHtml(content);
           Search is the first primitive most agents touch. The real separation is not who returns one good result. It is which surface keeps retrieval structured, rate limits legible, and the contract honest once research loops run unattended.
         </p>
       </header>
+
+      <ResolveComparisonCta
+        source="exa-vs-tavily-vs-serper-vs-brave-search"
+        capability="web search and retrieval"
+        callableServices={[{ name: "Exa", href: "/service/exa" }, { name: "Tavily", href: "/service/tavily" }, { name: "Brave Search", href: "/service/brave-search-api" }]}
+        discoveryOnlyServices={[{ name: "Serper", href: "/service/serper" }]}
+      />
 
       <div class="prose-rhumb" set:html={htmlContent} />
 

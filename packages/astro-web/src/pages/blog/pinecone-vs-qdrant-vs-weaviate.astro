@@ -1,6 +1,7 @@
 ---
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
+import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -188,6 +189,13 @@ const htmlContent = markdownToHtml(content);
           Vector database choices look close on paper. The real separation appears when agents need to provision collections, recover from partial writes, and keep retrieval stable after the first unattended deploy.
         </p>
       </header>
+
+      <ResolveComparisonCta
+        source="pinecone-vs-qdrant-vs-weaviate"
+        capability="vector retrieval and RAG memory"
+        callableServices={[]}
+        discoveryOnlyServices={[{ name: "Pinecone", href: "/service/pinecone" }, { name: "Qdrant", href: "/service/qdrant" }, { name: "Weaviate", href: "/service/weaviate" }]}
+      />
 
       <div class="prose-rhumb" set:html={htmlContent} />
 

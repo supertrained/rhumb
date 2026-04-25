@@ -1,0 +1,104 @@
+---
+import { PUBLIC_TRUTH } from "../lib/public-truth";
+
+type ServiceLink = {
+  name: string;
+  href: string;
+};
+
+interface Props {
+  source: string;
+  capability?: string;
+  title?: string;
+  callableServices?: ServiceLink[];
+  discoveryOnlyServices?: ServiceLink[];
+}
+
+const {
+  source,
+  capability = "this workflow",
+  title = "Turn the comparison into a governed execution path",
+  callableServices = [],
+  discoveryOnlyServices = [],
+} = Astro.props;
+
+const hasCallableServices = callableServices.length > 0;
+const resolveHref = `/resolve?rhumb_experiment=dc90-4&rhumb_source=${encodeURIComponent(source)}`;
+const callableHref = `/leaderboard?rhumb_experiment=dc90-4&rhumb_source=${encodeURIComponent(source)}-callable-list`;
+---
+
+<section class="my-12 rounded-[28px] border border-amber/25 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.14),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(8,13,24,0.98))] p-6 sm:p-8 shadow-2xl shadow-black/20" aria-label="Resolve next step for this comparison">
+  <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+    <div class="max-w-2xl">
+      <div class="mb-3 inline-flex items-center gap-2 rounded-full border border-amber/30 bg-amber/10 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">
+        Index → Resolve
+      </div>
+      <h2 class="font-display text-2xl font-bold tracking-tight text-slate-100 sm:text-3xl">
+        {title}
+      </h2>
+      <p class="mt-3 text-sm leading-6 text-slate-300 sm:text-base">
+        This comparison helps choose the right service for {capability}. Rhumb Resolve is narrower: it can route and execute only the providers backed by live callable truth today. Everything else stays in Rhumb Index as discovery and evaluation until the execution rail exists.
+      </p>
+      <p class="mt-3 text-xs leading-5 text-slate-500">
+        {PUBLIC_TRUTH.callableRealitySummary} Current launchable strength: {PUBLIC_TRUTH.beachheadLabel} across {PUBLIC_TRUTH.callableProvidersLabel} callable providers.
+      </p>
+    </div>
+
+    <div class="grid min-w-0 gap-3 sm:grid-cols-2 lg:w-[420px] lg:grid-cols-1">
+      <a
+        data-rhumb-propagate
+        href={resolveHref}
+        class="inline-flex items-center justify-center rounded-xl bg-amber px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-amber/90"
+      >
+        See the Resolve path →
+      </a>
+      <a
+        data-rhumb-propagate
+        href={callableHref}
+        class="inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-display font-semibold text-slate-200 transition-colors duration-200 hover:border-amber/50 hover:text-amber"
+      >
+        Browse live callable providers
+      </a>
+    </div>
+  </div>
+
+  <div class="mt-6 grid gap-4 lg:grid-cols-2">
+    <div class:list={["rounded-2xl border p-4", hasCallableServices ? "border-emerald-500/25 bg-emerald-500/8" : "border-slate-800 bg-navy/45"]}>
+      <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-emerald-300">Callable through Resolve today</div>
+      {hasCallableServices ? (
+        <ul class="mt-3 flex flex-wrap gap-2">
+          {callableServices.map((service) => (
+            <li>
+              <a data-rhumb-propagate href={service.href} class="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-3 py-1 text-xs font-mono text-emerald-200 transition-colors hover:border-emerald-400/50 hover:text-emerald-100">
+                {service.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="mt-3 text-sm leading-6 text-slate-400">
+          None of the compared providers on this page are represented as callable-through-Resolve by this CTA. Use the comparison for service selection and check the callable list before promising execution.
+        </p>
+      )}
+    </div>
+
+    <div class="rounded-2xl border border-slate-800 bg-navy/45 p-4">
+      <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">Index discovery only for now</div>
+      {discoveryOnlyServices.length > 0 ? (
+        <ul class="mt-3 flex flex-wrap gap-2">
+          {discoveryOnlyServices.map((service) => (
+            <li>
+              <a data-rhumb-propagate href={service.href} class="inline-flex rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1 text-xs font-mono text-slate-300 transition-colors hover:border-slate-500 hover:text-slate-100">
+                {service.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p class="mt-3 text-sm leading-6 text-slate-400">
+          All compared providers listed in this CTA have a current callable path, but the route still depends on the requested capability, credential mode, budget, and operator constraints.
+        </p>
+      )}
+    </div>
+  </div>
+</section>
