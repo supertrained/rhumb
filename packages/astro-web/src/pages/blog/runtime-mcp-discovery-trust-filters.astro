@@ -71,6 +71,26 @@ const TRUST_FILTERS = [
   },
 ];
 
+
+const CURATED_REGISTRY_AUDIT = [
+  {
+    title: "Editorial inclusion",
+    body: "Who decided this entry belongs in the registry, what evidence did they inspect, and when was that evidence last refreshed?",
+  },
+  {
+    title: "Install and handshake truth",
+    body: "Does the advertised setup path still complete, and does the live handshake expose the same tools the listing describes?",
+  },
+  {
+    title: "Caller-specific auth viability",
+    body: "Can this principal authenticate with the intended scope now, or is the listing only proving that some maintainer once connected it?",
+  },
+  {
+    title: "Runtime narrowing",
+    body: "After policy, tenant, and trust-class filters run, is the server still visible to this caller — and are out-of-scope choices denied with typed evidence?",
+  },
+];
+
 const DISCOVERY_LADDER = [
   "Discoverable, the service exists in an index.",
   "Caller-visible, this principal can actually see it right now.",
@@ -84,7 +104,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful",
   datePublished: "2026-04-12T00:00:00Z",
-  dateModified: "2026-04-24T00:00:00Z",
+  dateModified: "2026-04-26T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Giant MCP indexes only become useful when trust class, auth shape, side-effect profile, caller visibility, and freshness narrow the pool before ranking.",
@@ -116,7 +136,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="uppercase tracking-widest text-amber">Runtime Discovery</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">April 12, 2026</span>
+          <span class="text-slate-500">Updated April 26, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -183,9 +203,27 @@ const ARTICLE_JSON_LD = {
                 Fresh curated-registry launch notes sharpen the same point. Curated is better than random, because editorial filtering can remove obvious dead ends before the model ever looks. It is still not runtime truth. A registry entry is inventory until the runtime re-applies caller visibility, trust class, auth viability, and freshness for the current lane.
               </p>
               <p>
+                The practical audit is whether curation hands the runtime a cleaner starting set, or whether it turns one editorial label into a false proof of current safety.
+              </p>
+              <p>
                 The harder problem is selection, and selection gets more dangerous as the candidate pool mixes more trust classes and side-effect profiles together.
               </p>
             </div>
+            <div class="mt-6 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Curated registry handoff audit</div>
+              <p class="mb-5 leading-relaxed text-slate-300">
+                A curated registry earns trust only when it preserves the separation between editorial review and runtime permission. Before an agent ranks a listed server, the discovery layer should be able to answer four questions without asking the model to infer them from prose.
+              </p>
+              <div class="grid gap-4 sm:grid-cols-2">
+                {CURATED_REGISTRY_AUDIT.map((item) => (
+                  <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4">
+                    <div class="mb-2 text-sm font-semibold text-slate-100">{item.title}</div>
+                    <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </section>
 
           <section>
