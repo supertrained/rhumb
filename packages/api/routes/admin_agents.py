@@ -67,6 +67,16 @@ def _validated_public_service_filter(service: Optional[str]) -> Optional[str]:
     return _public_service_label(cleaned)
 
 
+def _validated_usage_days(days: int) -> int:
+    """Reject invalid usage windows before opening usage aggregation reads."""
+    if 1 <= days <= 365:
+        return days
+    raise HTTPException(
+        status_code=400,
+        detail="Invalid days: use an integer between 1 and 365",
+    )
+
+
 def _canonicalize_usage_summary(summary: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """Merge alias-backed usage buckets onto canonical public service ids."""
     normalized = dict(summary or {})
@@ -451,6 +461,9 @@ async def get_agent_usage(
     days: int = Query(default=30),
 ) -> Dict[str, Any]:
     """Get usage summary for an agent."""
+    effective_days = _validated_usage_days(days)
+    canonical_service = _validated_public_service_filter(service)
+
     store = _get_identity_store()
     agent = await store.get_agent(agent_id)
 
@@ -458,9 +471,12 @@ async def get_agent_usage(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     analytics = _get_analytics()
-    canonical_service = _validated_public_service_filter(service)
     return _canonicalize_usage_summary(
-        await analytics.get_usage_summary(agent_id, service=canonical_service, days=days)
+        await analytics.get_usage_summary(
+            agent_id,
+            service=canonical_service,
+            days=effective_days,
+        )
     )
 
 
@@ -470,9 +486,13 @@ async def get_organization_usage(
     days: int = Query(default=30),
 ) -> Dict[str, Any]:
     """Get aggregated usage for an entire organization."""
+    effective_days = _validated_usage_days(days)
     analytics = _get_analytics()
     return _canonicalize_organization_usage(
-        await analytics.get_organization_usage(organization_id, days=days)
+        await analytics.get_organization_usage(
+            organization_id,
+            days=effective_days,
+        )
     )
 
 

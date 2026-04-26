@@ -1145,6 +1145,28 @@ class TestAdminRoutes:
         assert resp.json()["detail"] == "Invalid service: must not be blank"
         mock_analytics.get_usage_summary.assert_not_awaited()
 
+    @pytest.mark.parametrize("days", ["0", "366"])
+    def test_get_agent_usage_route_rejects_invalid_days_before_usage_read(
+        self, admin_client: TestClient, days: str
+    ) -> None:
+        """Invalid usage windows should fail before opening usage aggregation reads."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "usage-invalid-days", "organization_id": "org_usage_days"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+        mock_analytics = AsyncMock()
+        mock_analytics.get_usage_summary = AsyncMock(return_value={})
+
+        with patch("routes.admin_agents._get_analytics", return_value=mock_analytics):
+            resp = admin_client.get(
+                f"/v1/admin/agents/{agent_id}/usage?days={days}"
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Invalid days: use an integer between 1 and 365"
+        mock_analytics.get_usage_summary.assert_not_awaited()
+
     def test_get_organization_usage_route_canonicalizes_alias_backed_runtime_rows(
         self,
         admin_client: TestClient,
@@ -1224,6 +1246,23 @@ class TestAdminRoutes:
         assert data["agents"][agent_id]["services"] == {
             "people-data-labs": {"calls": 3, "success_rate": 0.6667},
         }
+
+    @pytest.mark.parametrize("days", ["0", "366"])
+    def test_get_organization_usage_route_rejects_invalid_days_before_usage_read(
+        self, admin_client: TestClient, days: str
+    ) -> None:
+        """Invalid organization usage windows should fail before opening usage aggregation reads."""
+        mock_analytics = AsyncMock()
+        mock_analytics.get_organization_usage = AsyncMock(return_value={})
+
+        with patch("routes.admin_agents._get_analytics", return_value=mock_analytics):
+            resp = admin_client.get(
+                f"/v1/admin/usage/organization/org_usage_days?days={days}"
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Invalid days: use an integer between 1 and 365"
+        mock_analytics.get_organization_usage.assert_not_awaited()
 
     def test_grant_and_revoke_access_route(self, admin_client: TestClient) -> None:
         """Grant then revoke service access via admin routes."""
