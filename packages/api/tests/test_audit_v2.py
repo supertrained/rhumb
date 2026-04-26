@@ -74,10 +74,14 @@ def test_get_audit_event_not_found_uses_explicit_error_code():
     assert "aevt_missing" in body["error"]["message"]
 
 
-def test_list_audit_events_invalid_event_type_uses_explicit_invalid_parameters():
+def test_list_audit_events_invalid_event_type_uses_explicit_invalid_parameters_before_auth():
     from app import create_app
 
-    with patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+    require_org = AsyncMock(return_value="org_test")
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=require_org),
+        patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
+    ):
         resp = TestClient(create_app()).get(
             "/v2/audit/events?event_type=not-real",
             headers={"X-Rhumb-Key": "rk_test"},
@@ -88,12 +92,18 @@ def test_list_audit_events_invalid_event_type_uses_explicit_invalid_parameters()
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'event_type' filter."
     assert "execution.started" in body["error"]["detail"]
+    require_org.assert_not_awaited()
+    get_audit_trail.assert_not_called()
 
 
-def test_list_audit_events_invalid_since_uses_explicit_invalid_parameters():
+def test_list_audit_events_invalid_since_uses_explicit_invalid_parameters_before_auth():
     from app import create_app
 
-    with patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")):
+    require_org = AsyncMock(return_value="org_test")
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=require_org),
+        patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
+    ):
         resp = TestClient(create_app()).get(
             "/v2/audit/events?since=definitely-not-iso",
             headers={"X-Rhumb-Key": "rk_test"},
@@ -104,6 +114,8 @@ def test_list_audit_events_invalid_since_uses_explicit_invalid_parameters():
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'since' filter."
     assert "ISO 8601" in body["error"]["detail"]
+    require_org.assert_not_awaited()
+    get_audit_trail.assert_not_called()
 
 
 def test_list_audit_events_normalizes_event_type_and_severity_filters_before_reads():
@@ -377,11 +389,12 @@ def test_export_audit_rejects_inverted_time_window_before_reads():
     get_audit_trail.assert_not_called()
 
 
-def test_export_audit_invalid_format_uses_explicit_invalid_parameters():
+def test_export_audit_invalid_format_uses_explicit_invalid_parameters_before_auth():
     from app import create_app
 
+    require_org = AsyncMock(return_value="org_test")
     with (
-        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2._require_org_or_401", new=require_org),
         patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
     ):
         resp = TestClient(create_app()).post(
@@ -394,6 +407,7 @@ def test_export_audit_invalid_format_uses_explicit_invalid_parameters():
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'format' filter."
     assert "json, csv" in body["error"]["detail"]
+    require_org.assert_not_awaited()
     get_audit_trail.assert_not_called()
 
 

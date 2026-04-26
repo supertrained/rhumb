@@ -201,8 +201,16 @@ def _validated_timestamp(ts: str | None, *, field_name: str) -> datetime | None:
     if ts is None:
         return None
 
+    normalized = ts.strip()
+    if not normalized:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' filter.",
+            detail="Use an ISO 8601 timestamp (for example 2026-04-22T12:34:56+00:00).",
+        )
+
     try:
-        dt = datetime.fromisoformat(ts)
+        dt = datetime.fromisoformat(normalized)
     except ValueError as exc:
         raise RhumbError(
             "INVALID_PARAMETERS",
@@ -280,10 +288,6 @@ async def list_audit_events(
 
     Returns events newest-first. Use offset/limit for pagination.
     """
-    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
-    if isinstance(org_id, JSONResponse):
-        return org_id
-
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
     parsed_category = _validated_category(category)
@@ -295,6 +299,10 @@ async def list_audit_events(
     )
     limit = _validated_events_limit(limit)
     offset = _validated_events_offset(offset)
+
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
 
     trail = get_audit_trail()
 
@@ -422,9 +430,6 @@ async def export_audit_trail(
     For SOC2 compliance — exports include chain verification status
     and all chain-hash fields for independent verification.
     """
-    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
-    if isinstance(org_id, JSONResponse):
-        return org_id
     format = _validated_export_format(format)
     parsed_type = _validated_event_type(event_type)
     parsed_severity = _validated_severity(severity)
@@ -435,6 +440,10 @@ async def export_audit_trail(
         _validated_timestamp(since, field_name="since"),
         _validated_timestamp(until, field_name="until"),
     )
+
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
 
     trail = get_audit_trail()
 
