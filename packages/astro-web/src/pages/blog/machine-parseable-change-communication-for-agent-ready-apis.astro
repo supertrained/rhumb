@@ -41,6 +41,14 @@ const LIVE_PROTOCOL_DRILL = [
   "Keep assertion suites close to the live wire format so protocol regressions surface before users discover them at transport time.",
 ];
 
+
+const LIVE_MEDIATED_CHANGE_DRILL = [
+  "Record which upstream contract, adapter version, policy bundle, and client-visible schema produced every tool result so drift can be localized instead of blamed on the whole agent stack.",
+  "When a gRPC bridge, policy proxy, or middleware spine changes a field, error code, timeout, or auth decision, classify that as mediated contract drift, not harmless implementation detail.",
+  "Keep adapter-level compatibility tests wired to real client validators, because a proxy can preserve the provider call while still breaking the agent-facing protocol shape.",
+  "Fail closed when the mediated path cannot prove original actor, enforced scope, typed denial semantics, and quota owner after a bridge or middleware upgrade.",
+];
+
 const LIVE_ENDPOINT_DRIFT_DRILL = [
   "Base URLs, regional hostnames, and vanity endpoints belong in the same contract inventory as schema fields because wrappers often pin them in config, tests, and failover logic.",
   "A hostname retirement should arrive with machine-readable deprecation dates and replacement targets, not just a prose announcement that humans might miss.",
@@ -118,7 +126,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-24T00:00:00Z",
+  dateModified: "2026-04-26T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "An API can be versioned and still be operationally unstable for agents. The real readiness test is whether non-human clients can detect drift in time to fail safely.",
@@ -151,7 +159,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-sky-400 uppercase tracking-widest">API Readiness</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">Updated April 24, 2026</span>
+          <span class="text-slate-500">Updated April 26, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -308,12 +316,30 @@ const ARTICLE_JSON_LD = {
                 Those layers make the model’s interface cleaner, but they create a second place where drift has to be absorbed. Now the wrapper owner has to manage upstream provider changes, internal contract stability, backward compatibility for the agent-facing layer, and failure semantics when upstream shape no longer matches downstream assumptions.
               </p>
               <p>
+                Transport upgrades make this sharper. A gRPC bridge, policy proxy, or middleware spine can improve packaging while quietly changing error shape, timeout behavior, identity propagation, or quota attribution. If that mediated hop cannot explain what changed in machine-readable form, the operator is still debugging drift through a black box.
+              </p>
+              <p>
                 That is why weak change communication creates disproportionate maintenance cost in agent systems. An API can be easy to integrate once and still be expensive to keep integrated.
               </p>
               <p>
                 For teams taking a <a href="/blog/capability-first-agent-onboarding" class="text-amber hover:text-amber-200 transition-colors">capability-first onboarding</a> path, this is the maturity test. The first managed lane can feel clean, but the expansion into customer systems only stays honest if downstream providers expose machine-readable change surfaces instead of pushing the drift tax back onto the wrapper owner after launch.
               </p>
             </div>
+            <div class="mt-6 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Mediated-hop drift test: bridges and middleware</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                The same rule applies when the provider call travels through a transport bridge, policy proxy, or MCP middleware stack. The mediated layer is now part of the contract. If it changes the caller-visible shape, auth decision, denial semantics, or quota owner, the agent needs that drift surfaced before the next side-effecting call.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {LIVE_MEDIATED_CHANGE_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 text-slate-300 leading-relaxed">
+                Pair this with <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">MCP observability</a>: change feeds say what should have changed, traces prove which mediated hop actually changed the runtime behavior.
+              </p>
+            </div>
+
           </section>
 
           <section>
