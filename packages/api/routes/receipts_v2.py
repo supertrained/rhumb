@@ -55,6 +55,28 @@ def _validated_receipt_status(status: str | None) -> str | None:
     )
 
 
+def _validated_int_range(value: int, *, field_name: str, minimum: int, maximum: int) -> int:
+    if minimum <= value <= maximum:
+        return value
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail=f"Provide an integer between {minimum} and {maximum}.",
+    )
+
+
+def _validated_non_negative_int(value: int, *, field_name: str) -> int:
+    if value >= 0:
+        return value
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail="Provide an integer greater than or equal to 0.",
+    )
+
+
 def _validate_chain_range(start_sequence: int | None, end_sequence: int | None) -> None:
     if start_sequence is not None and start_sequence < 1:
         raise RhumbError(
@@ -153,8 +175,8 @@ async def query_receipts(
     capability_id: Optional[str] = Query(default=None, description="Filter by capability ID"),
     provider_id: Optional[str] = Query(default=None, description="Filter by provider ID"),
     status: Optional[str] = Query(default=None, description="Filter by status (success, failure, timeout, rejected)"),
-    limit: int = Query(default=50, ge=1, le=200, description="Max results"),
-    offset: int = Query(default=0, ge=0, description="Pagination offset"),
+    limit: int = Query(default=50, description="Max results"),
+    offset: int = Query(default=0, description="Pagination offset"),
 ) -> dict[str, Any]:
     """Query execution receipts with optional filters."""
     agent_id = _validated_optional_filter(agent_id, field_name="agent_id")
@@ -162,6 +184,8 @@ async def query_receipts(
     capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
     provider_id = _validated_optional_filter(provider_id, field_name="provider_id")
     status = _validated_receipt_status(status)
+    limit = _validated_int_range(limit, field_name="limit", minimum=1, maximum=200)
+    offset = _validated_non_negative_int(offset, field_name="offset")
     service = get_receipt_service()
     receipts = await service.query_receipts(
         agent_id=agent_id,
@@ -187,7 +211,7 @@ async def query_receipts(
 async def verify_chain(
     start_sequence: Optional[int] = Query(default=None, description="Start chain sequence (inclusive)"),
     end_sequence: Optional[int] = Query(default=None, description="End chain sequence (inclusive)"),
-    limit: int = Query(default=100, ge=1, le=1000, description="Max receipts to check"),
+    limit: int = Query(default=100, description="Max receipts to check"),
 ) -> dict[str, Any]:
     """Verify the integrity of the receipt chain.
 
@@ -196,6 +220,7 @@ async def verify_chain(
     including any broken chain links detected.
     """
     _validate_chain_range(start_sequence, end_sequence)
+    limit = _validated_int_range(limit, field_name="limit", minimum=1, maximum=1000)
     service = get_receipt_service()
     result = await service.verify_chain(
         start_sequence=start_sequence,

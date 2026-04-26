@@ -180,6 +180,26 @@ def test_query_receipts_invalid_status_uses_explicit_invalid_parameters(client):
 
 
 @pytest.mark.parametrize(
+    ("query", "field", "detail"),
+    [
+        ("limit=0", "limit", "between 1 and 200"),
+        ("limit=201", "limit", "between 1 and 200"),
+        ("offset=-1", "offset", "greater than or equal to 0"),
+    ],
+)
+def test_query_receipts_rejects_invalid_pagination_before_reads(client, query, field, detail):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        resp = client.get(f"/v2/receipts?{query}")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == f"Invalid '{field}' filter."
+    assert detail in body["error"]["detail"]
+    assert mock_fetch.await_count == 0
+
+
+@pytest.mark.parametrize(
     ("field", "query"),
     [
         ("agent_id", "agent_id=%20%20"),
@@ -355,4 +375,17 @@ def test_verify_chain_invalid_range_uses_explicit_invalid_parameters(client):
     assert body["error"]["message"] == "Invalid receipt chain range."
     assert "start_sequence" in body["error"]["detail"]
     assert "end_sequence" in body["error"]["detail"]
+    assert mock_fetch.await_count == 0
+
+
+@pytest.mark.parametrize("query", ["limit=0", "limit=1001"])
+def test_verify_chain_rejects_invalid_limit_before_reads(client, query):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        resp = client.get(f"/v2/receipts/chain/verify?{query}")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'limit' filter."
+    assert "between 1 and 1000" in body["error"]["detail"]
     assert mock_fetch.await_count == 0
