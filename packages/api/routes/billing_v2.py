@@ -386,13 +386,13 @@ async def query_billing_events(
     Returns events from the structured billing event stream,
     newest first.
     """
-    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
-    if isinstance(org_id, JSONResponse):
-        return org_id
-
     parsed_type = _validated_event_type(event_type)
     parsed_since = _validated_since_timestamp(since)
     limit = _validated_events_limit(limit)
+
+    org_id = await _require_org_or_401(raw_request, x_rhumb_key)
+    if isinstance(org_id, JSONResponse):
+        return org_id
 
     stream = get_billing_event_stream()
 
@@ -424,10 +424,12 @@ async def billing_summary(
     Includes totals, breakdowns by provider and capability,
     and event counts.
     """
+    normalized_period = _validated_period_filter(period)
+
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
-    normalized_period = _validated_period_filter(period)
+
     stream = get_billing_event_stream()
     summary = stream.summarize(org_id=org_id, period=normalized_period)
 
