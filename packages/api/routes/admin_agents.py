@@ -29,13 +29,22 @@ router = APIRouter(tags=["admin-agents"])
 _AGENT_STATUSES = {"active", "disabled", "deleted"}
 
 
+def _validated_optional_text_filter(value: Optional[str], field: str) -> Optional[str]:
+    """Trim optional text filters and reject blanks before any broad read runs."""
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    if not normalized:
+        raise HTTPException(status_code=400, detail=f"Invalid {field}: must not be blank")
+    return normalized
+
+
 def _validated_agent_status(status: Optional[str]) -> Optional[str]:
     """Normalize and validate the public admin agent-status filter."""
-    if status is None:
+    normalized = _validated_optional_text_filter(status, "status")
+    if normalized is None:
         return None
-    normalized = str(status).strip().lower()
-    if not normalized:
-        return None
+    normalized = normalized.lower()
     if normalized not in _AGENT_STATUSES:
         raise HTTPException(
             status_code=400,
@@ -48,6 +57,14 @@ def _public_service_label(service: str) -> str:
     """Normalize admin-facing service ids onto canonical public slugs."""
     cleaned = str(service).strip().lower()
     return public_service_slug(cleaned) or cleaned
+
+
+def _validated_public_service_filter(service: Optional[str]) -> Optional[str]:
+    """Normalize optional usage service filters and reject blanks before broad reads."""
+    cleaned = _validated_optional_text_filter(service, "service")
+    if cleaned is None:
+        return None
+    return _public_service_label(cleaned)
 
 
 def _canonicalize_usage_summary(summary: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -278,10 +295,13 @@ async def list_agents(
     status: Optional[str] = Query(default=None),
 ) -> List[AgentListItem]:
     """List all agents with optional org/status filters."""
+    normalized_organization_id = _validated_optional_text_filter(
+        organization_id, "organization_id"
+    )
     normalized_status = _validated_agent_status(status)
     store = _get_identity_store()
     agents = await store.list_agents(
-        organization_id=organization_id,
+        organization_id=normalized_organization_id,
         status=normalized_status,
     )
 
@@ -438,7 +458,7 @@ async def get_agent_usage(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     analytics = _get_analytics()
-    canonical_service = _public_service_label(service) if service else None
+    canonical_service = _validated_public_service_filter(service)
     return _canonicalize_usage_summary(
         await analytics.get_usage_summary(agent_id, service=canonical_service, days=days)
     )

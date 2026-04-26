@@ -902,6 +902,23 @@ class TestAdminRoutes:
             status="disabled",
         )
 
+    def test_list_agents_route_trims_organization_filter(
+        self, admin_client: TestClient
+    ) -> None:
+        """GET /v1/admin/agents trims valid organization filters before listing."""
+        mock_store = AsyncMock()
+        mock_store.list_agents = AsyncMock(return_value=[])
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store):
+            resp = admin_client.get("/v1/admin/agents?organization_id=%20org_list%20")
+
+        assert resp.status_code == 200
+        assert resp.json() == []
+        mock_store.list_agents.assert_awaited_once_with(
+            organization_id="org_list",
+            status=None,
+        )
+
     def test_list_agents_route_rejects_invalid_status_filter(
         self, admin_client: TestClient
     ) -> None:
@@ -918,6 +935,24 @@ class TestAdminRoutes:
             == "Invalid status: use one of active, disabled, deleted"
         )
         mock_store.list_agents.assert_not_awaited()
+
+    def test_list_agents_route_rejects_blank_filters_before_store_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Blank admin list filters should fail before broadening agent reads."""
+        for query, field in (
+            ("organization_id=%20%20", "organization_id"),
+            ("status=%20%20", "status"),
+        ):
+            mock_store = AsyncMock()
+            mock_store.list_agents = AsyncMock(return_value=[])
+
+            with patch("routes.admin_agents._get_identity_store", return_value=mock_store):
+                resp = admin_client.get(f"/v1/admin/agents?{query}")
+
+            assert resp.status_code == 400
+            assert resp.json()["detail"] == f"Invalid {field}: must not be blank"
+            mock_store.list_agents.assert_not_awaited()
 
     def test_get_agent_details_route(self, admin_client: TestClient) -> None:
         """GET /v1/admin/agents/{id} returns full details."""
@@ -1081,13 +1116,34 @@ class TestAdminRoutes:
         set_test_stores(identity_store, _FakeBoundaryAnalytics(), acl)
 
         resp = admin_client.get(
-            f"/v1/admin/agents/{agent_id}/usage?service=Brave-Search-Api"
+            f"/v1/admin/agents/{agent_id}/usage?service=%20Brave-Search-Api%20"
         )
         assert resp.status_code == 200
         data = resp.json()
         assert data["services"] == {
             "brave-search-api": {"calls": 3, "success_rate": 0.6667},
         }
+
+    def test_get_agent_usage_route_rejects_blank_service_filter_before_usage_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Blank usage service filters should fail before broadening usage reads."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "usage-blank-filter", "organization_id": "org_usage_blank"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+        mock_analytics = AsyncMock()
+        mock_analytics.get_usage_summary = AsyncMock(return_value={})
+
+        with patch("routes.admin_agents._get_analytics", return_value=mock_analytics):
+            resp = admin_client.get(
+                f"/v1/admin/agents/{agent_id}/usage?service=%20%20"
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Invalid service: must not be blank"
+        mock_analytics.get_usage_summary.assert_not_awaited()
 
     def test_get_organization_usage_route_canonicalizes_alias_backed_runtime_rows(
         self,
