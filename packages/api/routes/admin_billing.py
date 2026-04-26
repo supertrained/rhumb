@@ -70,6 +70,14 @@ def _normalize_billing_month(month: str) -> str:
     return normalized
 
 
+def _normalize_billing_organization_id(organization_id: str) -> str:
+    """Validate and normalize public admin billing organization filters."""
+    normalized = str(organization_id).strip()
+    if not normalized:
+        raise HTTPException(status_code=400, detail="Invalid organization_id: provide a non-empty value")
+    return normalized
+
+
 def _normalize_settlement_batch_date(batch_date: str | None) -> str | None:
     """Validate and normalize public admin settlement batch dates."""
     if batch_date is None:
@@ -157,9 +165,10 @@ async def get_usage_report(
     month: str = Query(..., description="Month in YYYY-MM format"),
 ) -> Dict[str, Any]:
     """Return organization monthly usage report."""
-    usage_meter = _get_usage_meter()
+    normalized_organization_id = _normalize_billing_organization_id(organization_id)
     normalized_month = _normalize_billing_month(month)
-    usage = await usage_meter.get_org_monthly_usage(organization_id, normalized_month)
+    usage_meter = _get_usage_meter()
+    usage = await usage_meter.get_org_monthly_usage(normalized_organization_id, normalized_month)
 
     return {
         "organization_id": usage.organization_id,
@@ -180,8 +189,9 @@ async def get_usage_report(
 @router.get("/admin/billing/invoices")
 async def list_invoices(organization_id: str = Query(...)) -> List[Dict[str, Any]]:
     """List invoices for one organization."""
+    normalized_organization_id = _normalize_billing_organization_id(organization_id)
     aggregator = _get_billing_aggregator()
-    invoices = aggregator.list_invoices(organization_id)
+    invoices = aggregator.list_invoices(normalized_organization_id)
 
     return [
         {
@@ -202,9 +212,10 @@ async def list_invoices(organization_id: str = Query(...)) -> List[Dict[str, Any
 @router.post("/admin/billing/invoices/generate")
 async def generate_invoice(body: GenerateInvoiceRequest) -> Dict[str, Any]:
     """Generate a draft invoice for organization + month."""
-    aggregator = _get_billing_aggregator()
+    normalized_organization_id = _normalize_billing_organization_id(body.organization_id)
     normalized_month = _normalize_billing_month(body.month)
-    invoice = await aggregator.generate_invoice(body.organization_id, normalized_month)
+    aggregator = _get_billing_aggregator()
+    invoice = await aggregator.generate_invoice(normalized_organization_id, normalized_month)
 
     return {
         "invoice_id": invoice.invoice_id,
@@ -245,9 +256,10 @@ async def send_invoice(invoice_id: str) -> Dict[str, Any]:
 @router.get("/admin/billing/forecast")
 async def forecast_spend(organization_id: str = Query(...)) -> Dict[str, Any]:
     """Forecast monthly spend from trailing 7-day daily average."""
+    normalized_organization_id = _normalize_billing_organization_id(organization_id)
     usage_meter = _get_usage_meter()
     window_calls, daily_average_calls = await usage_meter.get_org_daily_average_calls(
-        organization_id=organization_id,
+        organization_id=normalized_organization_id,
         days=7,
     )
 
@@ -255,7 +267,7 @@ async def forecast_spend(organization_id: str = Query(...)) -> Dict[str, Any]:
     projected_monthly_spend = projected_monthly_calls * COST_PER_CALL_USD
 
     return {
-        "organization_id": organization_id,
+        "organization_id": normalized_organization_id,
         "window_days": 7,
         "window_calls": window_calls,
         "daily_average_calls": round(daily_average_calls, 4),

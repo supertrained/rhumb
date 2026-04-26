@@ -8,7 +8,7 @@ import uuid
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from typing import Generator
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -658,6 +658,26 @@ def test_get_usage_report_rejects_invalid_month_before_usage_meter_reads(
     fake_usage_meter.get_org_monthly_usage.assert_not_awaited()
 
 
+def test_get_usage_report_rejects_blank_organization_before_usage_meter_reads(
+    admin_client: TestClient,
+    billing_aggregator: BillingAggregator,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_usage_meter = SimpleNamespace(get_org_monthly_usage=AsyncMock())
+    set_test_billing_stores(fake_usage_meter, billing_aggregator, stripe_manager)
+
+    response = admin_client.get(
+        "/v1/admin/billing/usage",
+        params={"organization_id": "   ", "month": "2026-04"},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["detail"] == "Invalid organization_id: provide a non-empty value"
+    assert payload["error"] == "bad_request"
+    fake_usage_meter.get_org_monthly_usage.assert_not_awaited()
+
+
 def test_get_usage_report_normalizes_surrounding_whitespace_in_month_filter(
     admin_client: TestClient,
     billing_aggregator: BillingAggregator,
@@ -679,7 +699,7 @@ def test_get_usage_report_normalizes_surrounding_whitespace_in_month_filter(
 
     response = admin_client.get(
         "/v1/admin/billing/usage",
-        params={"organization_id": "org_route_usage_alias", "month": " 2026-04 "},
+        params={"organization_id": " org_route_usage_alias ", "month": " 2026-04 "},
     )
 
     assert response.status_code == 200
@@ -755,6 +775,26 @@ def test_generate_invoice_rejects_invalid_month_before_aggregator_reads(
     fake_billing_aggregator.generate_invoice.assert_not_awaited()
 
 
+def test_generate_invoice_rejects_blank_organization_before_aggregator_reads(
+    admin_client: TestClient,
+    usage_meter: UsageMeterEngine,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_billing_aggregator = SimpleNamespace(generate_invoice=AsyncMock())
+    set_test_billing_stores(usage_meter, fake_billing_aggregator, stripe_manager)
+
+    response = admin_client.post(
+        "/v1/admin/billing/invoices/generate",
+        json={"organization_id": "   ", "month": "2026-04"},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["detail"] == "Invalid organization_id: provide a non-empty value"
+    assert payload["error"] == "bad_request"
+    fake_billing_aggregator.generate_invoice.assert_not_awaited()
+
+
 def test_generate_invoice_normalizes_surrounding_whitespace_in_month_filter(
     admin_client: TestClient,
     usage_meter: UsageMeterEngine,
@@ -778,7 +818,7 @@ def test_generate_invoice_normalizes_surrounding_whitespace_in_month_filter(
 
     response = admin_client.post(
         "/v1/admin/billing/invoices/generate",
-        json={"organization_id": "org_invoice_alias", "month": " 2026-04 "},
+        json={"organization_id": " org_invoice_alias ", "month": " 2026-04 "},
     )
 
     assert response.status_code == 200
@@ -793,6 +833,26 @@ def test_list_invoices_empty(admin_client: TestClient) -> None:
     )
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_list_invoices_rejects_blank_organization_before_aggregator_reads(
+    admin_client: TestClient,
+    usage_meter: UsageMeterEngine,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_billing_aggregator = SimpleNamespace(list_invoices=Mock(return_value=[]))
+    set_test_billing_stores(usage_meter, fake_billing_aggregator, stripe_manager)
+
+    response = admin_client.get(
+        "/v1/admin/billing/invoices",
+        params={"organization_id": "\t  "},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["detail"] == "Invalid organization_id: provide a non-empty value"
+    assert payload["error"] == "bad_request"
+    fake_billing_aggregator.list_invoices.assert_not_called()
 
 
 def test_generate_invoice_endpoint(
@@ -852,6 +912,26 @@ def test_forecast_spend(
     payload = response.json()
     assert payload["window_calls"] == 14
     assert payload["projected_monthly_spend"] == pytest.approx((14 / 7) * 30 * COST_PER_CALL_USD)
+
+
+def test_forecast_spend_rejects_blank_organization_before_usage_meter_reads(
+    admin_client: TestClient,
+    billing_aggregator: BillingAggregator,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_usage_meter = SimpleNamespace(get_org_daily_average_calls=AsyncMock())
+    set_test_billing_stores(fake_usage_meter, billing_aggregator, stripe_manager)
+
+    response = admin_client.get(
+        "/v1/admin/billing/forecast",
+        params={"organization_id": "   "},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["detail"] == "Invalid organization_id: provide a non-empty value"
+    assert payload["error"] == "bad_request"
+    fake_usage_meter.get_org_daily_average_calls.assert_not_awaited()
 
 
 # ── E2E integration tests ────────────────────────────────────────────
