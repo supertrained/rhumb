@@ -36,6 +36,7 @@ const DEMO_FLAGS = [
   "tenant isolation mostly means deployment sprawl instead of policy design",
   "retry, idempotency, and quota behavior are unclear",
   "tool results invent ad-hoc content types or edge-case shapes that the protocol itself cannot validate",
+  "transport or middleware upgrades are treated as trust upgrades without proving the same boundaries",
   "audit trails do not map actions back to principals and scopes",
 ];
 
@@ -46,6 +47,7 @@ const CHECKLIST = [
   "Tenant model: how are identities, quotas, and data segmented?",
   "Governors: what stops runaway spend, writes, or token burn?",
   "Protocol contract: do tool results stay inside spec-valid types, mime metadata, and error shapes even on edge cases?",
+  "Transport and middleware: does the adapter preserve identity, scope, typed errors, and quota attribution?",
   "Recovery: after partial failure, how does the caller re-verify state?",
   "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
 ];
@@ -156,10 +158,10 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-24T00:00:00Z",
+  dateModified: "2026-04-25T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
-    "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, tenant isolation, governors, recovery, and auditability.",
+    "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, transport and middleware boundaries, tenant isolation, governors, recovery, and auditability.",
   url: "https://rhumb.dev/blog/remote-mcp-production-readiness-checklist",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   mainEntityOfPage: "https://rhumb.dev/blog/remote-mcp-production-readiness-checklist",
@@ -168,14 +170,14 @@ const ARTICLE_JSON_LD = {
 
 <Layout
   title="A Production Readiness Checklist for Remote MCP Servers | Rhumb"
-  description="Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, tenant isolation, governors, recovery, and auditability."
+  description="Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, transport and middleware boundaries, tenant isolation, governors, recovery, and auditability."
   canonical="/blog/remote-mcp-production-readiness-checklist"
   ogTitle="A Production Readiness Checklist for Remote MCP Servers"
   ogDescription="Remote MCP readiness depends on auth, scope, governors, recovery, and auditability, not just whether the endpoint responds."
   ogUrl="https://rhumb.dev/blog/remote-mcp-production-readiness-checklist"
   ogType="article"
   twitterTitle="A Production Readiness Checklist for Remote MCP Servers"
-  twitterDescription="Remote MCP is an auth, containment, and recovery problem before it is a convenience story."
+  twitterDescription="Remote MCP is an auth, containment, transport, and recovery problem before it is a convenience story."
   jsonLd={ARTICLE_JSON_LD}
 >
   <div class="bg-navy min-h-screen">
@@ -383,7 +385,24 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              8. What still counts as a demo, not infrastructure
+              8. Transport adapters and middleware stacks are not trust upgrades by themselves
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Fresh MCP packaging work keeps pushing toward richer transports, middleware layers, policy proxies, and protocol adapters. That can be useful. gRPC, interceptors, and middleware stacks can make schemas tighter, backpressure clearer, observability easier, and client integration less painful.
+              </p>
+              <p>
+                But transport shape is still packaging unless it preserves the same safety contract. A JSON-to-gRPC bridge can forward one broad credential. A middleware spine can log every call while still letting the wrong principal see the wrong tools. A policy proxy can fail open if typed errors, quota attribution, and scope checks disappear across the adapter hop.
+              </p>
+              <p>
+                The production test is whether the adapter fails closed, keeps per-call identity intact, preserves typed denials, carries tenant and quota attribution, and proves that the direct path and mediated path enforce the same boundary. If not, the stack got more sophisticated without becoming safer.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              9. What still counts as a demo, not infrastructure
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>
@@ -402,7 +421,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              9. The checklist in one page
+              10. The checklist in one page
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
