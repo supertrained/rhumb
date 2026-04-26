@@ -11,7 +11,7 @@ const QUICKSTART_JSON_LD = {
   "@type": "WebPage",
   name: "Quickstart — Rhumb",
   url: "https://rhumb.dev/quickstart",
-  description: "Make your first Rhumb API call in 30 seconds. Copy-paste examples for curl, JavaScript, Python, and MCP.",
+  description: "Make your first Rhumb API call in 30 seconds, or resolve and execute a managed web-search capability in three scoped calls.",
 };
 
 const DISCOVERY_TRACKS = [
@@ -43,16 +43,38 @@ const DISCOVERY_TRACKS = [
   },
 ];
 
+
+const WEB_SEARCH_QUICK_PATH = [
+  {
+    label: "1. Resolve the capability",
+    detail: "Free read. Confirms whether `search.query` has a current managed route before you write code around it.",
+    command: `curl "${API}/capabilities/search.query/resolve"`,
+  },
+  {
+    label: "2. Estimate the execution rail",
+    detail: "Free preflight. Checks the concrete provider, credential lane, and cost envelope before any paid call.",
+    command: `curl "${API}/capabilities/search.query/execute/estimate"`,
+  },
+  {
+    label: "3. Execute with a governed key",
+    detail: "Authorized execution. This is the side-effecting step, so keep it behind `X-Rhumb-Key` or an equivalent payment rail.",
+    command: `curl -X POST "${API}/capabilities/search.query/execute" \
+  -H "X-Rhumb-Key: rhumb_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"body": {"query": "best CRM for seed-stage B2B SaaS", "max_results": 5}}'`,
+  },
+];
+
 const agentContext =
   `Rhumb quickstart. Start with free discovery endpoints for services and capabilities, then move to Resolve only when the capability is supported. Read endpoints do not require signup; governed execution requires an appropriate credential or payment path.`;
 ---
 
 <Layout
   title="Quickstart — Rhumb"
-  description="Make your first Rhumb API call in 30 seconds. Copy-paste examples for curl, JavaScript, Python, and MCP."
+  description="Make your first Rhumb API call in 30 seconds, or resolve and execute a managed web-search capability in three scoped calls."
   canonical="https://rhumb.dev/quickstart"
   ogTitle="Rhumb Quickstart"
-  ogDescription="Zero to first API response in 30 seconds. No signup required for read endpoints."
+  ogDescription="Zero to first API response in 30 seconds, plus a scoped web-search Resolve path: resolve, estimate, execute."
   ogUrl="https://rhumb.dev/quickstart"
   jsonLd={QUICKSTART_JSON_LD}
 
@@ -102,6 +124,28 @@ const agentContext =
             <p class="text-sm text-slate-300 leading-6">
               If you are wiring multi-system back-office workflows, use Rhumb as capability infrastructure first. Don’t assume the current product is already a general business-automation layer.
             </p>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="mb-16 scroll-mt-28" id="web-search-resolve">
+        <div class="bg-surface border border-emerald-500/20 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl mb-6">
+            <p class="text-xs font-mono text-emerald-300 uppercase tracking-widest mb-2">Web-search Resolve path</p>
+            <h2 class="font-display font-bold text-2xl text-slate-100">Resolve a web-search capability in three calls</h2>
+            <p class="text-slate-400 text-sm mt-2 leading-relaxed">
+              If you came here for the `search.query` quickstart, use this bounded path: resolve first, estimate second, execute only after you have a governed key or payment rail. The first two calls are read/preflight checks; the third is the paid or authorized execution step.
+            </p>
+          </div>
+          <div class="grid gap-4 lg:grid-cols-3">
+            {WEB_SEARCH_QUICK_PATH.map((step) => (
+              <div class="rounded-xl border border-slate-800 bg-navy p-5">
+                <p class="text-xs font-mono text-emerald-300 uppercase tracking-wider mb-2">{step.label}</p>
+                <p class="text-sm text-slate-400 leading-6 mb-4">{step.detail}</p>
+                <pre class="rounded-lg border border-slate-800 bg-surface px-4 py-3 text-xs font-mono text-slate-300 overflow-x-auto"><code>{step.command}</code></pre>
+              </div>
+            ))}
           </div>
         </div>
       </section>
