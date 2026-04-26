@@ -907,6 +907,21 @@ async def test_estimate_rejects_invalid_credential_mode_parameter(app):
 
 
 @pytest.mark.anyio
+async def test_estimate_rejects_blank_provider_filter_before_reads(app):
+    with patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/execute/estimate",
+                params={"provider": "   ", "credential_mode": "byok"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Invalid 'provider' parameter. Provide a non-empty provider slug."
+    assert mock_fetch.await_count == 0
+
+
+@pytest.mark.anyio
 async def test_estimate_accepts_canonical_alias_for_proxy_mapped_provider(app):
     """Estimate should accept canonical aliases like brave-search-api."""
 

@@ -1681,6 +1681,19 @@ def _canonicalize_credential_mode(credential_mode: str | None) -> str | None:
     return normalized
 
 
+def _validated_provider_filter(provider: str | None) -> str | None:
+    """Normalize optional public provider filters before any backing reads."""
+    if provider is None:
+        return None
+    normalized = str(provider).strip()
+    if not normalized:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid 'provider' parameter. Provide a non-empty provider slug.",
+        )
+    return normalized
+
+
 def _parse_credential_modes(raw_modes: Any) -> list[str]:
     """Normalize credential_modes from Supabase into a list of strings."""
     if isinstance(raw_modes, str):
@@ -3890,6 +3903,7 @@ async def estimate_capability(
     provider, cost, and circuit state but omits budget-specific fields.
     This lets x402 agents discover pricing before paying.
     """
+    provider = _validated_provider_filter(provider)
     normalized_credential_mode = _canonicalize_credential_mode(credential_mode)
     if (
         normalized_credential_mode is None
