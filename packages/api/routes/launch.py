@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Literal
 from urllib.parse import urlsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -11,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from routes._supabase import supabase_fetch, supabase_insert
 from routes.admin_auth import require_launch_dashboard_access
+from services.error_envelope import RhumbError
 from services.launch_dashboard import SUPPORTED_WINDOWS, build_launch_dashboard
 from services.service_slugs import public_service_slug
 
@@ -40,6 +40,19 @@ class ClickEventRequest(BaseModel):
     utm_medium: str | None = Field(default=None)
     utm_campaign: str | None = Field(default=None)
     utm_content: str | None = Field(default=None)
+
+
+def _validated_dashboard_window(window: str) -> str:
+    normalized = str(window or "").strip().lower()
+    if normalized in SUPPORTED_WINDOWS:
+        return normalized
+
+    allowed = ", ".join(sorted(SUPPORTED_WINDOWS))
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'window' filter.",
+        detail=f"Use one of: {allowed}.",
+    )
 
 
 def _extract_destination_domain(destination_url: str) -> str:
@@ -96,12 +109,11 @@ async def capture_click_event(body: ClickEventRequest, request: Request) -> dict
 
 @router.get("/admin/launch/dashboard")
 async def get_launch_dashboard(
-    window: Literal["24h", "7d", "launch"] = Query(default="7d"),
+    window: str = Query(default="7d"),
     _: None = Depends(require_launch_dashboard_access),
 ) -> dict:
     """Return the internal launch dashboard payload."""
-    if window not in SUPPORTED_WINDOWS:
-        raise HTTPException(status_code=400, detail="Unsupported dashboard window.")
+    effective_window = _validated_dashboard_window(window)
 
     query_logs = await supabase_fetch(
         "query_logs?select=created_at,source,query_type,query_text,query_params,agent_id,user_agent"
@@ -122,6 +134,6 @@ async def get_launch_dashboard(
         click_events=click_events or [],
         execution_rows=executions or [],
         service_rows=services or [],
-        window=window,
+        window=effective_window,
     )
     return {"data": data, "error": None}

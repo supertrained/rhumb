@@ -1119,6 +1119,37 @@ def test_launch_dashboard_route_accepts_dashboard_key(
     assert response.json()["error"] is None
 
 
+def test_launch_dashboard_rejects_invalid_window_before_dashboard_reads(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    async def fail_fetch(path: str):
+        raise AssertionError(f"Dashboard read should not run for invalid window: {path}")
+
+    monkeypatch.setattr("routes.launch.supabase_fetch", fail_fetch)
+    monkeypatch.setattr("routes.admin_auth.settings.rhumb_admin_secret", None)
+    monkeypatch.setattr(
+        "routes.admin_auth.settings.rhumb_launch_dashboard_key",
+        "launch-dashboard-test-secret",
+    )
+
+    response = client.get(
+        "/v1/admin/launch/dashboard?window=%20month%20",
+        headers={
+            "X-Rhumb-Admin-Key": "wrong-admin-key",
+            "X-Rhumb-Launch-Dashboard-Key": "launch-dashboard-test-secret",
+        },
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'window' filter."
+    assert "24h" in payload["error"]["detail"]
+    assert "7d" in payload["error"]["detail"]
+    assert "launch" in payload["error"]["detail"]
+
+
 def test_launch_dashboard_route_requires_configured_key(
     client: TestClient,
     monkeypatch,
