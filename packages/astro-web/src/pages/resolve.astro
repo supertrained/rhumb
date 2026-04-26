@@ -242,8 +242,8 @@ const agentContext =
           </p>
 
           <div class="mt-8 flex flex-wrap gap-3">
-            <a data-rhumb-propagate href="/quickstart" class="px-5 py-3 rounded-xl bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200">
-              Start with Resolve &rarr;
+            <a data-rhumb-propagate href="/quickstart#web-search-resolve" class="px-5 py-3 rounded-xl bg-amber text-navy font-display font-semibold text-sm hover:bg-amber-dark transition-colors duration-200">
+              Run the web-search quickstart &rarr;
             </a>
             <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=resolve-hero" class="px-5 py-3 rounded-xl border border-emerald-500/30 text-sm text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200">
               Start managed execution
@@ -266,6 +266,7 @@ const agentContext =
             <pre class="overflow-x-auto px-5 py-4 text-sm leading-6 text-slate-200"><code>{readinessCurl}</code></pre>
             <div class="border-t border-white/10 px-5 py-4 text-sm leading-6 text-slate-400">
               This returns provider readiness for <code class="rounded bg-navy px-1.5 py-0.5 font-mono text-amber">email.send</code> before any side effect. Use it to inspect the route, credential modes, circuit state, and execute readiness before choosing a paid execution rail.
+              For the narrower web-search pilot, follow the <a data-rhumb-propagate href="/quickstart#web-search-resolve" class="text-amber hover:underline underline-offset-2">three-call <code class="rounded bg-navy px-1.5 py-0.5 font-mono text-amber">search.query</code> path</a>: resolve, estimate, then execute only with a governed key or payment rail.
             </div>
           </div>
         </div>
