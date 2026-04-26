@@ -135,6 +135,26 @@ def _validated_ledger_event_type(event_type: str | None) -> str | None:
     return normalized
 
 
+def _validated_ledger_limit(limit: int) -> int:
+    if 1 <= limit <= 200:
+        return limit
+
+    raise HTTPException(
+        status_code=400,
+        detail="Invalid limit: provide an integer between 1 and 200",
+    )
+
+
+def _validated_ledger_offset(offset: int) -> int:
+    if offset >= 0:
+        return offset
+
+    raise HTTPException(
+        status_code=400,
+        detail="Invalid offset: provide an integer greater than or equal to 0",
+    )
+
+
 async def _load_wallet_topup(
     *,
     wallet_identity_id: str,
@@ -688,11 +708,13 @@ async def get_balance(
 @router.get("/billing/ledger")
 async def get_ledger(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
+    limit: int = Query(50),
+    offset: int = Query(0),
     event_type: str | None = Query(None),
 ) -> dict:
     """Return paginated, optionally filtered ledger entries for the org."""
+    limit = _validated_ledger_limit(limit)
+    offset = _validated_ledger_offset(offset)
     org_id = await _require_org(x_rhumb_key)
     normalized_event_type = _validated_ledger_event_type(event_type)
 

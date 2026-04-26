@@ -310,21 +310,39 @@ class TestGetLedger:
         fetch_mock.assert_not_awaited()
         count_mock.assert_not_awaited()
 
-    def test_limit_validation_max(self, client: TestClient) -> None:
-        resp = client.get(
-            "/v1/billing/ledger",
-            params={"limit": 999},
-            headers=_auth_headers(),
-        )
-        assert resp.status_code == 422  # Pydantic validation
+    @pytest.mark.parametrize(
+        ("params", "detail"),
+        [
+            ({"limit": 999}, "Invalid limit: provide an integer between 1 and 200"),
+            ({"limit": 0}, "Invalid limit: provide an integer between 1 and 200"),
+            ({"offset": -1}, "Invalid offset: provide an integer greater than or equal to 0"),
+        ],
+    )
+    def test_invalid_pagination_rejected_before_supabase_reads(
+        self,
+        client: TestClient,
+        params: dict[str, int],
+        detail: str,
+    ) -> None:
+        fetch_mock = AsyncMock()
+        count_mock = AsyncMock()
 
-    def test_limit_validation_min(self, client: TestClient) -> None:
-        resp = client.get(
-            "/v1/billing/ledger",
-            params={"limit": 0},
-            headers=_auth_headers(),
-        )
-        assert resp.status_code == 422
+        with (
+            patch("routes.billing.supabase_fetch", fetch_mock),
+            patch("routes.billing.supabase_count", count_mock),
+        ):
+            resp = client.get(
+                "/v1/billing/ledger",
+                params=params,
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"] == "bad_request"
+        assert payload["detail"] == detail
+        fetch_mock.assert_not_awaited()
+        count_mock.assert_not_awaited()
 
     def test_empty_ledger(self, client: TestClient) -> None:
         with (
