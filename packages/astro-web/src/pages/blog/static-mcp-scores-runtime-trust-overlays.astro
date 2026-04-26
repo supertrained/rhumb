@@ -56,6 +56,7 @@ const REGISTRY_FIELDS = [
   "trust-class-aware runtime evidence",
   "manifest and gateway-policy drift when caller-visible scope no longer matches the baseline claim",
   "claim-validation probes for endpoint, schema, price, and artifact assertions",
+  "preview-contract probes for first-party endpoint, response shape, mode-specific cost, and fallback behavior",
   "drift alerts when current behavior diverges from the baseline model",
 ];
 
@@ -66,12 +67,19 @@ const VALIDATION_DRILL = [
   "Treat failed validation as trust-overlay drift, not a docs nit, because the bad claim is already part of the runtime risk story.",
 ];
 
+const PREVIEW_CONTRACT_DRILL = [
+  "Separate announcement access, third-party proxy access, and the first-party production endpoint before the model enters an agent loop.",
+  "Verify the exact response schema, tool or media fields, mode switches, usage accounting, and rate-limit headers under the route the agent will actually call.",
+  "Attach price and latency observations to the specific mode used, because instant, thinking, image, and enrichment paths can carry different operator budgets.",
+  "Demote the route to sandbox-only when fallback behavior, typed errors, or production availability are still inferred from preview docs instead of observed calls.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-24T00:00:00Z",
+  dateModified: "2026-04-26T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Static MCP scoring and runtime trust are not competing systems. The useful operator model is baseline evaluation plus live overlays that catch drift, auth breakage, and caller-visible failure patterns.",
@@ -242,7 +250,7 @@ const ARTICLE_JSON_LD = {
                 If directories and trust registries want to become genuinely useful, they should stop collapsing everything into stars, metadata, or one summary score. Operators need a baseline plus a freshness-aware overlay.
               </p>
               <p>
-                The adjacent validation-server signal sharpens what that overlay should contain. Consensus, reviews, and confident summaries still miss confabulated facts when every agent repeats the same wrong endpoint status, price, commit, or schema claim. A useful registry surface needs room for reality checks, not just opinions about likely quality.
+                The adjacent validation-server signal sharpens what that overlay should contain. Consensus, reviews, and confident summaries still miss confabulated facts when every agent repeats the same wrong endpoint status, price, commit, or schema claim. Preview model launches add a second version of the same risk: a working demo or proxy endpoint can sound production-ready before the first-party contract, mode behavior, and usage accounting are stable enough for unattended loops. A useful registry surface needs room for reality checks, not just opinions about likely quality.
               </p>
             </div>
             <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">
@@ -263,6 +271,21 @@ const ARTICLE_JSON_LD = {
                   <li>{item}</li>
                 ))}
               </ul>
+            </div>
+
+            <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Preview-contract drill</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                New model APIs should enter the overlay as conditional routes, not permanent infrastructure. If the only proof is a launch post, a proxy integration, or a sample app, the overlay has to test whether the production contract exists yet.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {PREVIEW_CONTRACT_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="text-slate-300 leading-relaxed mt-4">
+                That keeps preview enthusiasm in the discovery layer until <a href="/blog/llm-apis-agent-loops" class="text-amber hover:underline underline-offset-2">loop budgets</a> and <a href="/blog/api-reliability-checklist" class="text-amber hover:underline underline-offset-2">reliability checks</a> prove the route is safe to promote.
+              </p>
             </div>
           </section>
 

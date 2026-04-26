@@ -11,12 +11,19 @@ const RETIRED_DEPENDENCY_GUARDRAILS = [
   "Fail closed when the workflow cannot prove compatibility yet, especially in auth checks and health checks that otherwise burn time before the real call even starts.",
 ];
 
+const PREVIEW_MODEL_CONTRACT_GATES = [
+  "Prove the first-party production endpoint exists; do not treat a proxy, playground, or SDK preview as the contract your agent will run on.",
+  "Capture the exact response shape, usage fields, tool-call semantics, media fields, and error envelopes before wiring the route into retries.",
+  "Measure mode-specific price, latency, and rate limits for the path you use, not the cheapest headline model price.",
+  "Keep a fallback or quarantine path when preview docs omit typed failures, quota behavior, regional availability, or deprecation windows.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-04-24T00:00:00Z",
+  dateModified: "2026-04-26T00:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -50,7 +57,7 @@ const RELATED_READING = [
     href: "/blog/machine-parseable-change-communication-for-agent-ready-apis",
     label: "Change Discipline",
     title: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
-    description: "Why retired model IDs and shifting parameter rules belong in the same operator checklist as retries, idempotency, and error quality.",
+    description: "Why retired model IDs, preview endpoints, and shifting parameter rules belong in the same operator checklist as retries, idempotency, and error quality.",
   },
   {
     href: "/blog/remote-mcp-production-readiness-checklist",
@@ -223,7 +230,7 @@ const htmlContent = markdownToHtml(content);
             <span class="text-slate-700">&middot;</span>
             <span class="text-xs font-mono text-slate-500">March 28, 2026</span>
             <span class="text-slate-700">&middot;</span>
-            <span class="text-xs font-mono text-emerald-400/70">Updated April 24, 2026</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated April 26, 2026</span>
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.97] tracking-tight text-slate-100 max-w-5xl text-balance">
@@ -263,6 +270,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           This is where <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:underline underline-offset-2">machine-parseable change communication</a> and <a href="/blog/llm-apis-agent-loops" class="text-amber hover:underline underline-offset-2">loop-reliability design</a> stop being separate topics and become part of the same pre-flight checklist.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Preview model gate</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          A preview model is not reliable until the production contract is observable
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Preview access creates a tempting false positive for agents: the demo works, the sample code returns output, and the launch post publishes pricing hints. None of that proves the route is ready for unattended retries. Reliability starts when the exact endpoint, response shape, usage accounting, rate limits, and fallback behavior are visible on the path your workflow will actually call.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {PREVIEW_MODEL_CONTRACT_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          Treat preview launches as <a href="/blog/static-mcp-scores-runtime-trust-overlays" class="text-amber hover:underline underline-offset-2">runtime-trust drift candidates</a> until the loop can prove the first-party contract, the cost envelope, and the failure semantics under real execution.
         </p>
       </section>
 
