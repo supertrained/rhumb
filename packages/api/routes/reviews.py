@@ -157,7 +157,10 @@ def _validated_evidence_kind(kind: str | None) -> str | None:
 
     normalized = kind.strip().lower()
     if not normalized:
-        return None
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid kind: provide a non-empty evidence kind",
+        )
 
     if normalized not in _VALID_EVIDENCE_KIND_SET:
         valid_kinds = ", ".join(_VALID_EVIDENCE_KINDS)

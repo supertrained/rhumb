@@ -322,6 +322,28 @@ def test_get_service_evidence_rejects_invalid_kind_before_query(
     assert payload.get("request_id")
 
 
+def test_get_service_evidence_rejects_blank_kind_before_query(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank evidence kind filters should not broaden evidence reads."""
+
+    async def _unexpected_fetch(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("_cached_fetch should not run for blank evidence kind filters")
+
+    monkeypatch.setattr(reviews_module, "_cached_fetch", _unexpected_fetch)
+
+    response = client.get("/v1/services/stripe/evidence", params={"kind": "   "})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["status"] == 400
+    assert payload["error"] == "bad_request"
+    assert payload["detail"] == "Invalid kind: provide a non-empty evidence kind"
+    assert payload["resolution"] == "Check the request parameters and try again."
+    assert payload.get("request_id")
+
+
 
 def test_get_service_evidence_returns_filtered_rows_and_utc_freshness(
     client: TestClient,
