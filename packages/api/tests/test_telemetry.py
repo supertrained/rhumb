@@ -408,6 +408,49 @@ def test_recent_endpoint_rejects_invalid_limit_before_reads(client: TestClient) 
     mock_fetch.assert_not_called()
 
 
+def test_recent_endpoint_rejects_invalid_success_filter_before_reads(client: TestClient) -> None:
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get("/v1/telemetry/recent", params={"success": "maybe"})
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'success' filter."
+    assert body["error"]["detail"] == "Provide true or false, or omit the filter."
+    mock_fetch.assert_not_called()
+
+
+def test_recent_endpoint_normalizes_success_filter_before_query(client: TestClient) -> None:
+    captured: dict[str, str] = {}
+
+    async def _fetch(path: str):
+        captured["path"] = path
+        return [
+            _execution_row(
+                execution_id="exec_recent_failed",
+                success=False,
+                upstream_status=502,
+            )
+        ]
+
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock, side_effect=_fetch),
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get("/v1/telemetry/recent", params={"success": " OFF "})
+
+    assert response.status_code == 200
+    assert "success=eq.false" in captured["path"]
+    assert response.json()["data"][0]["success"] is False
+
+
 def test_recent_endpoint_canonicalizes_alias_backed_error_messages(client: TestClient) -> None:
     row = _execution_row(
         execution_id="exec_recent_error_alias",

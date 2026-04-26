@@ -103,6 +103,25 @@ def _validated_int_range(value: int, *, field_name: str, minimum: int, maximum: 
     )
 
 
+def _validated_success_filter(value: Any) -> bool | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if normalized in {"true", "1", "yes", "on"}:
+        return True
+    if normalized in {"false", "0", "no", "off"}:
+        return False
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'success' filter.",
+        detail="Provide true or false, or omit the filter.",
+    )
+
+
 def _canonicalize_known_provider_aliases(text: Any) -> str | None:
     if text is None:
         return None
@@ -564,7 +583,7 @@ async def get_recent_executions(
     request: Request,
     limit: int = Query(20, description="Maximum number of recent executions."),
     capability_id: str | None = Query(None, description="Filter to a capability ID."),
-    success: bool | None = Query(None, description="Filter by success/failure."),
+    success: str | bool | None = Query(None, description="Filter by success/failure."),
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
     """Return recent execution records for the authenticated agent."""
@@ -580,6 +599,7 @@ async def get_recent_executions(
         )
     capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
     limit = _validated_int_range(limit, field_name="limit", minimum=1, maximum=100)
+    success = _validated_success_filter(success)
     rows = await supabase_fetch(
         _build_usage_query(
             agent_id=agent_id,
