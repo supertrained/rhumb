@@ -45,7 +45,7 @@ const FAILURE_PATTERNS = [
 const CHECKLIST = [
   "Does authentication narrow the visible tool manifest, or only open the front door?",
   "Can one authenticated workflow discover tools it should never be allowed to plan with?",
-  "Which backend credential or downstream principal actually performs the action after auth succeeds?",
+  "Which backend credential, downstream principal, and quota owner actually perform or absorb the action after auth succeeds?",
   "Can the runtime emit typed denials when requested authority exceeds policy?",
   "Can operators reconstruct the full authority chain from caller to backend side effect?",
   "Does the same model still hold under shared-team or multi-tenant remote use?",
@@ -56,10 +56,10 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Remote MCP Auth Proves Caller Identity, Not Tool Authority",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-04-26T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
-    "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, denial semantics, and evidence.",
+    "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, quota attribution, denial semantics, and evidence.",
   url: "https://rhumb.dev/blog/remote-mcp-auth-identity-vs-authority",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   mainEntityOfPage: "https://rhumb.dev/blog/remote-mcp-auth-identity-vs-authority",
@@ -68,7 +68,7 @@ const ARTICLE_JSON_LD = {
 
 <Layout
   title="Remote MCP Auth Proves Caller Identity, Not Tool Authority | Rhumb"
-  description="Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, denial semantics, and evidence."
+  description="Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, quota attribution, denial semantics, and evidence."
   canonical="/blog/remote-mcp-auth-identity-vs-authority"
   ogTitle="Remote MCP Auth Proves Caller Identity, Not Tool Authority"
   ogDescription="Authentication is only the front door. The hard part is what authority survives after auth succeeds."
@@ -182,6 +182,23 @@ const ARTICLE_JSON_LD = {
               <p>
                 This gets worse in shared-team and multi-tenant deployments. If many callers authenticate separately but all writes happen through one service account, you have convenience, not separation. The meaningful question is which downstream credential or principal the tool call actually uses.
               </p>
+              <p>
+                Secret storage does not fix that collapse by itself. A vault, environment variable, or credential broker can protect the token at rest while still giving every agent the same runtime authority and the same upstream quota owner. Production auth has to bind the caller to the action lane, the backend principal, and the budget bucket that will absorb retries.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3.5 Secret storage is not an authority model
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A common remote-MCP shortcut is to declare the system safe because secrets are centralized. Centralization can reduce leakage, but it does not answer the operational question: which caller is allowed to spend that credential, on which tool, under which scope, and against whose rate-limit budget.
+              </p>
+              <p>
+                Treat the credential store as supply, not policy. The runtime still needs a per-call decision that names the original actor, the selected credential lane, the enforced scope, and the quota owner. Without that binding, a shared account turns auth into a receipt for who knocked on the door, not proof of who was authorized to act.
+              </p>
             </div>
           </section>
 
@@ -208,7 +225,7 @@ const ARTICLE_JSON_LD = {
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
-                Remote auth becomes trustworthy when the system can reconstruct the full chain after execution: caller principal, visible tool set, requested action, policy decision, backend credential, and downstream effect. That is what turns identity plus policy into governable infrastructure instead of a hopeful claim.
+                Remote auth becomes trustworthy when the system can reconstruct the full chain after execution: caller principal, visible tool set, requested action, policy decision, backend credential, quota owner, and downstream effect. That is what turns identity plus policy into governable infrastructure instead of a hopeful claim.
               </p>
               <p>
                 This is also where receipts and audit trails fit. Better evidence does not replace narrow authority. It proves whether narrow authority actually held when the call crossed the remote boundary.
@@ -231,7 +248,7 @@ const ARTICLE_JSON_LD = {
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
-                A useful remote-MCP evaluation does not stop at whether auth exists. It should measure whether identity maps cleanly to discovery scope, tool authority, backend credential choice, typed denials, tenant-aware governors, and proof-quality evidence after execution.
+                A useful remote-MCP evaluation does not stop at whether auth exists. It should measure whether identity maps cleanly to discovery scope, tool authority, backend credential choice, quota owner, typed denials, tenant-aware governors, and proof-quality evidence after execution.
               </p>
               <p>
                 That is the difference between transport readiness and production readiness. Auth support is a prerequisite. Authority separation is the control plane.
