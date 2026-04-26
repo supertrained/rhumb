@@ -1,5 +1,6 @@
 """Test leaderboard and search endpoints."""
 
+import asyncio
 import pytest
 import re
 import sys
@@ -561,6 +562,34 @@ async def test_get_leaderboard_limit(mock_catalog_supabase):
     assert result["data"]["count"] <= 1
 
 
+def test_get_leaderboard_rejects_out_of_range_limit_before_reads():
+    """Out-of-range leaderboard limits should fail before catalog/cache reads."""
+    with patch("routes.leaderboard._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        with pytest.raises(RhumbError) as exc_info:
+            asyncio.run(get_leaderboard("email", limit=0))
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'limit' filter."
+    assert exc_info.value.detail == "Use a limit between 1 and 50."
+    cached_fetch.assert_not_awaited()
+
+
+def test_leaderboard_http_rejects_out_of_range_limit_with_canonical_envelope():
+    """HTTP callers should get a canonical 400 envelope for invalid leaderboard limits."""
+    from app import create_app
+
+    with patch("routes.leaderboard._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        client = TestClient(create_app())
+        response = client.get("/v1/leaderboard/email", params={"limit": 0})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'limit' filter."
+    assert payload["error"]["detail"] == "Use a limit between 1 and 50."
+    cached_fetch.assert_not_awaited()
+
+
 @pytest.mark.asyncio
 async def test_search_by_slug(mock_catalog_supabase):
     """Test search by service slug."""
@@ -723,6 +752,34 @@ async def test_search_limit(mock_catalog_supabase):
     """Test search limit parameter works."""
     result = await search_services("api", limit=1)
     assert len(result["data"]["results"]) <= 1
+
+
+def test_search_rejects_out_of_range_limit_before_reads():
+    """Out-of-range search limits should fail before service/score reads."""
+    with patch("routes.search._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        with pytest.raises(RhumbError) as exc_info:
+            asyncio.run(search_services("api", limit=51))
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'limit' filter."
+    assert exc_info.value.detail == "Use a limit between 1 and 50."
+    cached_fetch.assert_not_awaited()
+
+
+def test_search_http_rejects_out_of_range_limit_with_canonical_envelope():
+    """HTTP callers should get a canonical 400 envelope for invalid search limits."""
+    from app import create_app
+
+    with patch("routes.search._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        client = TestClient(create_app())
+        response = client.get("/v1/search", params={"q": "api", "limit": 51})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'limit' filter."
+    assert payload["error"]["detail"] == "Use a limit between 1 and 50."
+    cached_fetch.assert_not_awaited()
 
 
 @pytest.mark.asyncio

@@ -181,10 +181,21 @@ def _validated_leaderboard_category(
     )
 
 
+def _validated_leaderboard_limit(limit: int) -> int:
+    if 1 <= limit <= 50:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Use a limit between 1 and 50.",
+    )
+
+
 @router.get("/leaderboard/{category}")
 async def get_leaderboard(
     category: str,
-    limit: Optional[int] = Query(default=10, ge=1, le=50),
+    limit: Optional[int] = Query(default=10),
 ) -> dict:
     """Fetch ranked services by category.
 
@@ -194,6 +205,10 @@ async def get_leaderboard(
 
     Returns leaderboard items ranked by aggregate AN Score.
     """
+    if not isinstance(limit, int):
+        limit = getattr(limit, "default", 10)
+    limit = _validated_leaderboard_limit(limit)
+
     scored_rows = await _cached_fetch("scores", "scores?select=service_slug")
     if scored_rows is None:
         return {

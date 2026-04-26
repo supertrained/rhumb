@@ -168,10 +168,21 @@ def _validated_search_query(query: str) -> str:
     )
 
 
+def _validated_search_limit(limit: int) -> int:
+    if 1 <= limit <= 50:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Use a limit between 1 and 50.",
+    )
+
+
 @router.get("/search")
 async def search_services(
     q: str,
-    limit: int = Query(default=10, ge=1, le=50),
+    limit: int = Query(default=10),
 ) -> dict:
     """Search services by free-text query (slug, name, category, description).
 
@@ -186,6 +197,7 @@ async def search_services(
     # value instead of an integer — extract .default in that case.
     if not isinstance(limit, int):
         limit = getattr(limit, "default", 10)
+    limit = _validated_search_limit(limit)
     query_lower = _validated_search_query(q)
 
     # Use Supabase PostgREST ilike filter for text search
