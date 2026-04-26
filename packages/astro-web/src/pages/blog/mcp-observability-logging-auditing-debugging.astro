@@ -72,6 +72,7 @@ const OBSERVABILITY_CHECKLIST = [
   "Error logs include typed class, recovery hint, and retry-safety semantics instead of raw strings only.",
   "Session summaries record side effects, spend, and terminal state for post-incident review.",
   "Credential mode logging makes the active identity path visible on every consequential call.",
+  "Gateway trace configuration preserves caller identity, policy version, adapter hop, and redacted input shape rather than only exporting span IDs.",
   "Checkpoints let the caller resume from a known-good state instead of replaying the whole workflow blind.",
   "Each tool or lane has a reversibility or permanence class so rollback strategy is not improvised during an incident.",
 ];
@@ -79,6 +80,7 @@ const OBSERVABILITY_CHECKLIST = [
 const GATEWAY_DRILL_CHECKS = [
   "Does each principal actually see a filtered tool surface before execution, not just a denial after it was already discovered?",
   "When a tool is blocked, does the trace emit a typed denial tied to tenant, policy, and requested capability?",
+  "Does the trace name the policy bundle and adapter version that shaped the call, or only the generic gateway service?",
   "If one lane burns shared quota, can the operator attribute the spend and quarantine only that lane?",
   "When a transport bridge or middleware spine sits in the middle, does the trace preserve both the original actor and the mediated hop?",
   "Can you rehearse credential expiry, rate-limit exhaustion, and kill-switch recovery without losing who caused what?",
@@ -167,7 +169,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-04-26T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production MCP observability means principal-aware tool logs, typed errors, mediated-hop attribution, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
@@ -363,6 +365,9 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 The same rule applies when the path runs through a gRPC bridge, policy proxy, or middleware spine. A mediated hop can make transport nicer without making the system safer. The trace still has to preserve the original actor, the adapter identity, the enforced scope, the typed denial, and the per-call quota owner so the operator can prove the bridge did not blur the boundary it was supposed to protect.
+              </p>
+              <p>
+                Fresh gateway-tracing examples make the implementation detail feel concrete: exporting tool spans is only the first move. A useful gateway trace also has to carry the policy bundle, adapter version, redacted input class, caller-visible tool surface, and downstream credential lane that shaped the call. Otherwise the trace says the gateway handled a request while hiding the exact authority boundary operators need to audit.
               </p>
             </div>
             <div class="mt-6 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
