@@ -57,6 +57,7 @@ const REGISTRY_FIELDS = [
   "manifest and gateway-policy drift when caller-visible scope no longer matches the baseline claim",
   "claim-validation probes for endpoint, schema, price, and artifact assertions",
   "preview-contract probes for first-party endpoint, response shape, mode-specific cost, and fallback behavior",
+  "context-portability probes for tokenizer, reasoning-mode, usage-accounting, and checkpoint drift across fallback providers",
   "drift alerts when current behavior diverges from the baseline model",
 ];
 
@@ -72,6 +73,13 @@ const PREVIEW_CONTRACT_DRILL = [
   "Verify the exact response schema, tool or media fields, mode switches, usage accounting, and rate-limit headers under the route the agent will actually call.",
   "Attach price and latency observations to the specific mode used, because instant, thinking, image, and enrichment paths can carry different operator budgets.",
   "Demote the route to sandbox-only when fallback behavior, typed errors, or production availability are still inferred from preview docs instead of observed calls.",
+];
+
+const CONTEXT_PORTABILITY_DRILL = [
+  "Record which tokenizer, context window, reasoning mode, and output format shaped the current checkpoint before a fallback route inherits it.",
+  "Compare usage accounting and truncation behavior by provider, because a valid summary in one model lane can become a lossy or over-budget state transfer in another.",
+  "Require the recovery plan to name what can be replayed, recompressed, or discarded before the next side-effecting tool call.",
+  "Demote cross-provider fallback to human review when the overlay cannot explain which model contract shaped the saved state.",
 ];
 
 const ARTICLE_JSON_LD = {
@@ -264,13 +272,29 @@ const ARTICLE_JSON_LD = {
             <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 mt-6">
               <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Reality-check drill</div>
               <p class="text-slate-300 leading-relaxed mb-4">
-                Runtime overlays get much more useful once they test risky claims against the world outside the model. That does not require one universal harness. It requires scenario-specific checks that turn &ldquo;looks plausible&rdquo; into observed truth or observed drift.
+                Runtime overlays get much more useful once they test risky claims against the world outside the model. That does not require one universal harness. It requires scenario-specific checks that turn &ldquo;looks plausible&rdquo; into observed truth or observed drift. Multi-model workflows add one more risky claim: that saved context and reasoning state remain safe when the next step runs through a different provider contract.
               </p>
               <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
                 {VALIDATION_DRILL.map((item) => (
                   <li>{item}</li>
                 ))}
               </ul>
+            </div>
+
+
+            <div class="rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Context-portability drill</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                Runtime trust has to follow the state handoff, not just the tool endpoint. A fallback from one model provider to another can preserve the user task while changing tokenization, reasoning controls, usage accounting, and what the checkpoint actually means.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {CONTEXT_PORTABILITY_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="text-slate-300 leading-relaxed mt-4">
+                That turns <a href="/blog/agent-state-management-recovery-patterns" class="text-violet-200 hover:underline underline-offset-2">agent-state recovery</a> and <a href="/blog/llm-apis-agent-loops" class="text-violet-200 hover:underline underline-offset-2">loop-budget routing</a> into runtime-overlay checks instead of separate reliability chores.
+              </p>
             </div>
 
             <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6 mt-6">
