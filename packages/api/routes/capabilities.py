@@ -133,13 +133,28 @@ def _canonicalize_capability_domain(domain: str | None) -> str | None:
     return normalized or None
 
 
+def _validated_capability_domain_before_reads(domain: str | None) -> str | None:
+    if domain is None:
+        return None
+
+    normalized = _canonicalize_capability_domain(domain)
+    if normalized is not None:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'domain' filter.",
+        detail="Provide a non-empty domain or omit the filter.",
+    )
+
+
 def _validated_capability_domain_filter(
     domain: str | None,
     *,
     available_domains: set[str],
     validate: bool,
 ) -> str | None:
-    normalized = _canonicalize_capability_domain(domain)
+    normalized = _validated_capability_domain_before_reads(domain)
     if normalized is None:
         return None
     if not validate or not available_domains or normalized in available_domains:
@@ -2901,6 +2916,7 @@ async def list_capabilities(
     """
     effective_limit = _validated_capability_list_limit(limit)
     effective_offset = _validated_capability_list_offset(offset)
+    effective_domain = _validated_capability_domain_before_reads(domain)
     effective_search = _validated_capability_search_filter(search)
 
     # Pull the lightweight capability registry and rank/filter in Python so
@@ -2924,7 +2940,7 @@ async def list_capabilities(
         if (normalized_domain := _canonicalize_capability_domain(capability.get("domain")))
     }
     normalized_domain = _validated_capability_domain_filter(
-        domain,
+        effective_domain,
         available_domains=available_domains,
         validate=degraded_error is None,
     )
