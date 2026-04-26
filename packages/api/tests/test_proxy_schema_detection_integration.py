@@ -427,3 +427,19 @@ class TestProxySchemaIntegration:
         assert blank_service.json()["detail"] == "Service filter cannot be blank"
         assert blank_severity.status_code == 400
         assert blank_severity.json()["detail"] == "Severity filter cannot be blank"
+
+    def test_admin_schema_alerts_reject_invalid_limit_before_read(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def fail_if_alert_store_opens():
+            raise AssertionError("schema alert store opened before limit validation")
+
+        monkeypatch.setattr(proxy_module, "get_schema_alert_dispatcher", fail_if_alert_store_opens)
+
+        too_small = client.get("/v1/admin/schema-alerts?limit=0")
+        too_large = client.get("/v1/admin/schema-alerts?limit=101")
+
+        assert too_small.status_code == 400
+        assert too_small.json()["detail"] == "Invalid limit: provide an integer between 1 and 100"
+        assert too_large.status_code == 400
+        assert too_large.json()["detail"] == "Invalid limit: provide an integer between 1 and 100"

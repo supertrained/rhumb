@@ -430,6 +430,17 @@ def _validated_schema_alert_service(service: str | None) -> str | None:
     return _normalize_proxy_service_name(service)
 
 
+def _validated_schema_alert_limit(limit: int) -> int:
+    """Validate the public admin schema-alert limit before opening the alert store."""
+    if 1 <= limit <= 100:
+        return limit
+
+    raise HTTPException(
+        status_code=400,
+        detail="Invalid limit: provide an integer between 1 and 100",
+    )
+
+
 def _canonicalize_scoped_service_key(key: str) -> str:
     """Normalize ``service:agent`` proxy metric keys onto public service ids."""
     service, sep, rest = key.partition(":")
@@ -1119,16 +1130,17 @@ async def get_schema_snapshot(
 async def list_schema_alerts(
     service: str | None = Query(default=None),
     severity: str | None = Query(default=None),
-    limit: int = Query(default=10, ge=1, le=100),
+    limit: int = Query(default=10),
 ) -> dict[str, Any]:
     """Query recent schema alerts (in-app channel)."""
     proxy_service = _validated_schema_alert_service(service)
     normalized_severity = _validated_schema_alert_severity(severity)
+    validated_limit = _validated_schema_alert_limit(limit)
     dispatcher = get_schema_alert_dispatcher()
     alerts = dispatcher.query_alerts(
         service=proxy_service,
         severity=normalized_severity,
-        limit=limit,
+        limit=validated_limit,
     )
 
     return {
