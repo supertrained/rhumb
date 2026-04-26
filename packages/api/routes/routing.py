@@ -28,7 +28,7 @@ def _normalize_spend_period(period: str | None) -> str | None:
 
     normalized = str(period).strip()
     if not normalized:
-        return None
+        raise HTTPException(status_code=400, detail="Invalid period: use YYYY-MM")
 
     try:
         datetime.strptime(normalized, "%Y-%m")

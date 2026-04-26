@@ -357,6 +357,19 @@ class TestRoutingRoutes:
         assert resp.json()["detail"] == "Invalid period: use YYYY-MM"
         mock_engine.get_spend_summary.assert_not_awaited()
 
+    def test_get_spend_rejects_blank_period_filter_before_querying_engine(self):
+        with patch("routes.routing._engine") as mock_engine:
+            mock_engine.get_spend_summary = AsyncMock()
+            resp = self.client.get(
+                "/v1/agent/spend",
+                params={"period": "   "},
+                headers={"X-Rhumb-Key": "test_key"},
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Invalid period: use YYYY-MM"
+        mock_engine.get_spend_summary.assert_not_awaited()
+
     def test_get_spend_normalizes_valid_period_before_querying_engine(self):
         with patch("routes.routing._engine") as mock_engine:
             mock_engine.get_spend_summary = AsyncMock(return_value={
