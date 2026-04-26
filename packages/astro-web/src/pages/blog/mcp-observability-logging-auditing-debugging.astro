@@ -80,6 +80,7 @@ const GATEWAY_DRILL_CHECKS = [
   "Does each principal actually see a filtered tool surface before execution, not just a denial after it was already discovered?",
   "When a tool is blocked, does the trace emit a typed denial tied to tenant, policy, and requested capability?",
   "If one lane burns shared quota, can the operator attribute the spend and quarantine only that lane?",
+  "When a transport bridge or middleware spine sits in the middle, does the trace preserve both the original actor and the mediated hop?",
   "Can you rehearse credential expiry, rate-limit exhaustion, and kill-switch recovery without losing who caused what?",
 ];
 
@@ -169,7 +170,7 @@ const ARTICLE_JSON_LD = {
   dateModified: "2026-04-23T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
-    "Production MCP observability means principal-aware tool logs, typed errors, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
+    "Production MCP observability means principal-aware tool logs, typed errors, mediated-hop attribution, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
   url: "https://rhumb.dev/blog/mcp-observability-logging-auditing-debugging",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   mainEntityOfPage: "https://rhumb.dev/blog/mcp-observability-logging-auditing-debugging",
@@ -178,14 +179,14 @@ const ARTICLE_JSON_LD = {
 
 <Layout
   title="MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production | Rhumb"
-  description="Production MCP observability means principal-aware tool logs, typed errors, session trails, spend attribution, and checkpoints that make partial failure recoverable."
+  description="Production MCP observability means principal-aware tool logs, typed errors, mediated-hop attribution, session trails, spend attribution, and checkpoints that make partial failure recoverable."
   canonical="/blog/mcp-observability-logging-auditing-debugging"
   ogTitle="MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production"
   ogDescription="The useful observability question is not whether a tool call happened. It is whether you can reconstruct principal, auth mode, side effects, spend, and retry safety after failure."
   ogUrl="https://rhumb.dev/blog/mcp-observability-logging-auditing-debugging"
   ogType="article"
   twitterTitle="MCP Observability: Logging, Auditing, and Debugging"
-  twitterDescription="Production MCP needs typed errors, session trails, spend attribution, and checkpoints, not thin transport logs."
+  twitterDescription="Production MCP needs typed errors, mediated-hop attribution, spend trails, and checkpoints, not thin transport logs."
   jsonLd={ARTICLE_JSON_LD}
 >
   <div class="min-h-screen bg-navy">
@@ -359,6 +360,9 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 Useful chaos engineering for MCP is not random outage theater. It is rehearsing the exact failures you are claiming to contain: manifest drift, credential expiry, rate-limit exhaustion, broad backend fallback, and kill-switch recovery. If the exercise ends with generic 403s and finance surprise after the fact, the gateway improved packaging more than operations.
+              </p>
+              <p>
+                The same rule applies when the path runs through a gRPC bridge, policy proxy, or middleware spine. A mediated hop can make transport nicer without making the system safer. The trace still has to preserve the original actor, the adapter identity, the enforced scope, the typed denial, and the per-call quota owner so the operator can prove the bridge did not blur the boundary it was supposed to protect.
               </p>
             </div>
             <div class="mt-6 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
