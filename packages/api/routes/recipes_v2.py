@@ -158,6 +158,28 @@ def _validated_recipe_category_before_reads(category: str | None) -> str | None:
     )
 
 
+def _validated_recipe_list_limit(limit: int) -> int:
+    if 1 <= limit <= 200:
+        return limit
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 200.",
+    )
+
+
+def _validated_recipe_list_offset(offset: int) -> int:
+    if offset >= 0:
+        return offset
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'offset' filter.",
+        detail="Provide an integer greater than or equal to 0.",
+    )
+
+
 async def _available_recipe_categories() -> set[str]:
     rows = await supabase_fetch("recipes?select=category&published=eq.true") or []
     return {
@@ -928,9 +950,11 @@ async def _persist_execution(
 async def list_recipes(
     category: str | None = Query(default=None, description="Filter by recipe category"),
     stability: str | None = Query(default=None, description="Filter by recipe stability (stable, beta, all)"),
-    limit: int = Query(default=50, ge=1, le=200),
-    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=50),
+    offset: int = Query(default=0),
 ) -> JSONResponse:
+    limit = _validated_recipe_list_limit(limit)
+    offset = _validated_recipe_list_offset(offset)
     normalized_stability = _validated_recipe_stability_filter(stability)
     requested_category = _validated_recipe_category_before_reads(category)
     normalized_category = None

@@ -225,6 +225,28 @@ async def test_list_recipes_rejects_blank_category_filter_before_query(app):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("params", "field", "detail"),
+    [
+        ({"limit": 0}, "limit", "between 1 and 200"),
+        ({"limit": 201}, "limit", "between 1 and 200"),
+        ({"offset": -1}, "offset", "greater than or equal to 0"),
+    ],
+)
+async def test_list_recipes_rejects_invalid_pagination_before_query(app, params, field, detail):
+    with patch("routes.recipes_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v2/recipes", params=params)
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == f"Invalid '{field}' filter."
+    assert detail in body["error"]["detail"]
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_list_recipes_normalizes_category_filter_casing_and_whitespace(app):
     queries: list[str] = []
 
