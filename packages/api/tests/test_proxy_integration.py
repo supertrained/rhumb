@@ -438,6 +438,15 @@ class TestIntegrationStats:
         assert data["latency"]["service"] == "people-data-labs"
         assert data["latency"]["count"] >= 1
 
+    def test_metrics_endpoint_rejects_blank_agent_filter_before_metric_reads(self, client) -> None:
+        """Blank agent filters should not silently read the default metrics bucket."""
+        with patch("routes.proxy.get_latency_tracker") as mock_tracker:
+            response = client.get("/proxy/metrics/stripe?agent_id=%20%20")
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Agent id filter cannot be blank"
+        mock_tracker.assert_not_called()
+
     def test_metrics_endpoint_invalid_service(self, client) -> None:
         """Metrics endpoint for invalid service returns 400."""
         response = client.get("/proxy/metrics/nonexistent")

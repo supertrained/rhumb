@@ -450,6 +450,15 @@ def _validated_schema_snapshot_agent_id(agent_id: str) -> str:
     raise HTTPException(status_code=400, detail="Agent id filter cannot be blank")
 
 
+def _validated_proxy_metrics_agent_id(agent_id: str) -> str:
+    """Normalize and validate the public proxy-metrics agent filter."""
+    normalized = str(agent_id).strip()
+    if normalized:
+        return normalized
+
+    raise HTTPException(status_code=400, detail="Agent id filter cannot be blank")
+
+
 def _validated_schema_snapshot_limit(limit: int) -> int:
     """Validate the admin schema-snapshot history limit before detector reads."""
     if 1 <= limit <= 50:
@@ -1055,13 +1064,14 @@ async def proxy_metrics(service: str, agent_id: str = "default") -> dict:
     """
     proxy_service = _normalize_proxy_service_name(service)
     _get_service_config(proxy_service)  # Validate service exists
+    validated_agent_id = _validated_proxy_metrics_agent_id(agent_id)
 
     tracker = get_latency_tracker()
-    snapshot = tracker.get_snapshot(proxy_service, agent_id)
+    snapshot = tracker.get_snapshot(proxy_service, validated_agent_id)
     breaker_reg = get_breaker_registry()
-    breaker = breaker_reg.get(proxy_service, agent_id)
+    breaker = breaker_reg.get(proxy_service, validated_agent_id)
     pool = get_pool_manager()
-    pool_metrics = pool.get_metrics(proxy_service, agent_id)
+    pool_metrics = pool.get_metrics(proxy_service, validated_agent_id)
 
     latency_payload = snapshot.to_dict()
     latency_payload["service"] = _public_proxy_service_name(latency_payload.get("service"))
