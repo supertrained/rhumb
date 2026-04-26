@@ -166,6 +166,50 @@ class TestProxySchemaIntegration:
         assert data["latest_fingerprint"]["hash"] is not None
         assert len(data["changes"]) >= 1
 
+    def test_admin_schema_endpoint_trims_valid_agent_id(
+        self, client: TestClient, httpx_mock
+    ) -> None:
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/trimmed-agent-schema",
+            json={"id": "pi_1", "amount": 1000},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        client.post(
+            "/v1/proxy/",
+            json={"service": "stripe", "method": "GET", "path": "/trimmed-agent-schema"},
+        )
+
+        admin = client.get(
+            f"/v1/admin/schema/stripe/trimmed-agent-schema?agent_id=%20{_BYPASS_AGENT_ID}%20"
+        )
+
+        assert admin.status_code == 200
+        data = admin.json()["data"]
+        assert data["agent_id"] == _BYPASS_AGENT_ID
+        assert data["latest_fingerprint"]["hash"] is not None
+
+    def test_admin_schema_endpoint_rejects_invalid_filters_before_read(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def fail_if_schema_detector_opens():
+            raise AssertionError("schema detector opened before snapshot filter validation")
+
+        monkeypatch.setattr(proxy_module, "get_schema_detector", fail_if_schema_detector_opens)
+
+        blank_agent = client.get("/v1/admin/schema/stripe/customers?agent_id=%20%20")
+        too_small = client.get("/v1/admin/schema/stripe/customers?limit=0")
+        too_large = client.get("/v1/admin/schema/stripe/customers?limit=51")
+
+        assert blank_agent.status_code == 400
+        assert blank_agent.json()["detail"] == "Agent id filter cannot be blank"
+        assert too_small.status_code == 400
+        assert too_small.json()["detail"] == "Invalid limit: provide an integer between 1 and 50"
+        assert too_large.status_code == 400
+        assert too_large.json()["detail"] == "Invalid limit: provide an integer between 1 and 50"
+
     def test_admin_schema_routes_accept_canonical_alias_backed_service_ids(
         self, client: TestClient, httpx_mock
     ) -> None:

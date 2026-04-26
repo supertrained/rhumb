@@ -441,6 +441,26 @@ def _validated_schema_alert_limit(limit: int) -> int:
     )
 
 
+def _validated_schema_snapshot_agent_id(agent_id: str) -> str:
+    """Normalize and validate the admin schema-snapshot agent filter."""
+    normalized = str(agent_id).strip()
+    if normalized:
+        return normalized
+
+    raise HTTPException(status_code=400, detail="Agent id filter cannot be blank")
+
+
+def _validated_schema_snapshot_limit(limit: int) -> int:
+    """Validate the admin schema-snapshot history limit before detector reads."""
+    if 1 <= limit <= 50:
+        return limit
+
+    raise HTTPException(
+        status_code=400,
+        detail="Invalid limit: provide an integer between 1 and 50",
+    )
+
+
 def _canonicalize_scoped_service_key(key: str) -> str:
     """Normalize ``service:agent`` proxy metric keys onto public service ids."""
     service, sep, rest = key.partition(":")
@@ -1066,14 +1086,16 @@ async def get_schema_snapshot(
     service: str,
     endpoint: str,
     agent_id: str = Query(default="default"),
-    limit: int = Query(default=5, ge=1, le=50),
+    limit: int = Query(default=5),
 ) -> dict[str, Any]:
     """Return latest schema fingerprint and recent change history."""
     proxy_service = _normalize_proxy_service_name(service)
     _get_service_config(proxy_service)
+    validated_agent_id = _validated_schema_snapshot_agent_id(agent_id)
+    validated_limit = _validated_schema_snapshot_limit(limit)
 
     detector = get_schema_detector()
-    schema_endpoint = _schema_endpoint_key(agent_id, endpoint)
+    schema_endpoint = _schema_endpoint_key(validated_agent_id, endpoint)
     fingerprint = detector.get_latest_fingerprint(
         proxy_service,
         schema_endpoint,
@@ -1082,7 +1104,7 @@ async def get_schema_snapshot(
     history = detector.get_change_history(
         proxy_service,
         schema_endpoint,
-        limit=limit,
+        limit=validated_limit,
         status_code=200,
     )
 
@@ -1090,13 +1112,13 @@ async def get_schema_snapshot(
         event
         for event in reversed(_schema_events)
         if event.get("service") == proxy_service and event.get("endpoint") == schema_endpoint
-    ][:limit]
+    ][:validated_limit]
 
     return {
         "data": {
             "service": _public_proxy_service_name(proxy_service),
             "endpoint": endpoint,
-            "agent_id": agent_id,
+            "agent_id": validated_agent_id,
             "latest_fingerprint": {
                 "hash": fingerprint.fingerprint_hash if fingerprint else None,
                 "schema_tree": fingerprint.schema_tree if fingerprint else None,
