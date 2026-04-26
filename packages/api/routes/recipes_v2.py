@@ -143,6 +143,21 @@ def _canonicalize_recipe_category(category: str | None) -> str | None:
     return normalized or None
 
 
+def _validated_recipe_category_before_reads(category: str | None) -> str | None:
+    if category is None:
+        return None
+
+    normalized = category.strip().lower()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'category' filter.",
+        detail="Provide a non-empty category filter.",
+    )
+
+
 async def _available_recipe_categories() -> set[str]:
     rows = await supabase_fetch("recipes?select=category&published=eq.true") or []
     return {
@@ -917,10 +932,11 @@ async def list_recipes(
     offset: int = Query(default=0, ge=0),
 ) -> JSONResponse:
     normalized_stability = _validated_recipe_stability_filter(stability)
+    requested_category = _validated_recipe_category_before_reads(category)
     normalized_category = None
-    if category is not None:
+    if requested_category is not None:
         normalized_category = _validated_recipe_category(
-            category,
+            requested_category,
             available_categories=await _available_recipe_categories(),
         )
 

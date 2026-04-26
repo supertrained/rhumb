@@ -211,6 +211,20 @@ async def test_list_recipes_rejects_invalid_category_filter_before_list_query(ap
 
 
 @pytest.mark.anyio
+async def test_list_recipes_rejects_blank_category_filter_before_query(app):
+    with patch("routes.recipes_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v2/recipes", params={"category": "   "})
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'category' filter."
+    assert body["error"]["detail"] == "Provide a non-empty category filter."
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_list_recipes_normalizes_category_filter_casing_and_whitespace(app):
     queries: list[str] = []
 
