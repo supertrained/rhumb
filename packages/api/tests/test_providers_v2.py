@@ -587,6 +587,17 @@ class TestListProviders:
         assert body["error"]["detail"] == "Use one of: ai."
         assert mock_fetch.await_count == 2
 
+    def test_list_rejects_blank_category_filter_before_reads(self, client):
+        with patch("routes.providers_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+            resp = client.get("/v2/providers?category=%20%20")
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'category' filter."
+        assert body["error"]["detail"] == "Use one of the categories returned by GET /v2/providers."
+        mock_fetch.assert_not_awaited()
+
     def test_list_normalizes_category_filter_casing(self, client):
         with (
             patch.dict("routes.providers_v2.SERVICE_REGISTRY", {"brave-search": {}}, clear=True),

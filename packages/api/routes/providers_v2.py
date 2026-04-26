@@ -303,6 +303,21 @@ def _validated_provider_list_category(
     )
 
 
+def _validated_provider_list_category_query(category: str | None) -> str | None:
+    if category is None:
+        return None
+
+    normalized = category.strip().lower()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'category' filter.",
+        detail="Use one of the categories returned by GET /v2/providers.",
+    )
+
+
 def _validated_provider_list_capability_query(capability: str | None) -> str | None:
     if capability is None:
         return None
@@ -843,6 +858,7 @@ async def list_providers(
     """
     status_filter = _validated_provider_list_status(status_filter)
     capability = _validated_provider_list_capability_query(capability)
+    category = _validated_provider_list_category_query(category)
     effective_limit = _validated_provider_list_limit(limit)
     effective_offset = _validated_provider_list_offset(offset)
 
