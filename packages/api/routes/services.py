@@ -79,6 +79,21 @@ def _canonicalize_service_list_category(category: str | None) -> str | None:
     return normalized or None
 
 
+def _validated_requested_service_list_category(category: str | None) -> str | None:
+    if category is None:
+        return None
+
+    normalized = category.strip().lower()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'category' filter.",
+        detail="Provide a non-empty category or omit the filter.",
+    )
+
+
 def _validated_service_list_category(
     category: str | None,
     *,
@@ -417,6 +432,7 @@ async def list_services(
     """
     effective_limit = _validated_service_list_limit(limit)
     effective_offset = _validated_service_list_offset(offset)
+    requested_category = _validated_requested_service_list_category(category)
 
     # Fetch the set of slugs that actually have scores.
     scored_rows = await _cached_fetch("scores", "scores?select=service_slug")
@@ -467,7 +483,7 @@ async def list_services(
 
     items = _canonicalize_service_rows(data)
     normalized_category = _validated_service_list_category(
-        category,
+        requested_category,
         available_categories={
             normalized_category
             for item in items

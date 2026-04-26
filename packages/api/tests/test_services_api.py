@@ -1042,6 +1042,25 @@ def test_services_rejects_invalid_category_filter(client) -> None:
     assert payload["error"]["detail"] == "Use one of: email, payments."
 
 
+def test_services_rejects_blank_category_filter_before_reads(client) -> None:
+    mock_fetch = AsyncMock(side_effect=_mock_supabase_fetch)
+    mock_count = AsyncMock(side_effect=_mock_supabase_count)
+
+    with (
+        patch("routes.services.supabase_fetch", mock_fetch),
+        patch("routes.services.supabase_count", mock_count),
+    ):
+        resp = client.get("/v1/services", params={"category": "   "})
+
+    assert resp.status_code == 400
+    payload = resp.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'category' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty category or omit the filter."
+    assert mock_fetch.await_count == 0
+    assert mock_count.await_count == 0
+
+
 def test_services_normalizes_category_filter_casing_and_whitespace(client) -> None:
     with (
         patch(
