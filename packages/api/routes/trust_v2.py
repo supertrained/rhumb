@@ -144,10 +144,10 @@ async def trust_summary(
     Aggregates execution count, success rate, total spend, provider
     diversity, and trust posture for the authenticated org.
     """
+    normalized_period = _validated_period_filter(period)
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
-    normalized_period = _validated_period_filter(period)
     stream = get_billing_event_stream()
     summary = stream.summarize(org_id=org_id, period=normalized_period)
 
@@ -215,10 +215,10 @@ async def trust_providers(
     Shows which providers were used, their execution counts,
     success rates, and current AN Scores.
     """
+    normalized_period = _validated_period_filter(period)
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
-    normalized_period = _validated_period_filter(period)
     stream = get_billing_event_stream()
     cache = get_score_cache()
 
@@ -296,10 +296,10 @@ async def trust_costs(
 
     Shows where money is going — aggregated by provider and by capability.
     """
+    normalized_period = _validated_period_filter(period)
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
-    normalized_period = _validated_period_filter(period)
     stream = get_billing_event_stream()
     summary = stream.summarize(org_id=org_id, period=normalized_period)
 
@@ -366,10 +366,10 @@ async def trust_reliability(
     Helps agents understand which providers are reliable and which
     are causing failures.
     """
+    normalized_period = _validated_period_filter(period)
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
-    normalized_period = _validated_period_filter(period)
     stream = get_billing_event_stream()
 
     all_events = stream.query(org_id=org_id, limit=100_000)

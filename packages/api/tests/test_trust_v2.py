@@ -190,6 +190,37 @@ class TestTrustV2Endpoints:
         assert body["error"]["message"] == "Invalid 'period' filter."
         assert "YYYY-MM" in body["error"]["detail"]
 
+    def test_trust_period_filters_validate_before_auth_or_event_reads(self):
+        from app import create_app
+        from fastapi.testclient import TestClient
+
+        auth = AsyncMock(return_value="org_test")
+        client = TestClient(create_app())
+
+        with (
+            patch("routes.trust_v2._require_org_or_401", new=auth),
+            patch("routes.trust_v2.get_billing_event_stream") as event_stream,
+            patch("routes.trust_v2.get_score_cache") as score_cache,
+        ):
+            responses = [
+                client.get(path, headers={"X-Rhumb-Key": "rk_test"})
+                for path in (
+                    "/v2/trust/summary?period=%20%20",
+                    "/v2/trust/providers?period=%20%20",
+                    "/v2/trust/costs?period=%20%20",
+                    "/v2/trust/reliability?period=%20%20",
+                )
+            ]
+
+        assert [resp.status_code for resp in responses] == [400, 400, 400, 400]
+        assert all(
+            resp.json()["error"]["code"] == "INVALID_PARAMETERS"
+            for resp in responses
+        )
+        auth.assert_not_awaited()
+        event_stream.assert_not_called()
+        score_cache.assert_not_called()
+
     def test_summary_counts_alias_and_public_provider_as_one_provider(self, client):
         stream = BillingEventStream()
         stream.emit(
