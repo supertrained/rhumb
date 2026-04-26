@@ -241,7 +241,18 @@ def _validated_credential_mode_filter(credential_mode: str | None) -> str | None
 
 
 def _validated_estimate_credential_mode(credential_mode: str | None) -> str:
-    raw_value = str(credential_mode or "").strip()
+    if credential_mode is None:
+        raw_value = "auto"
+    else:
+        raw_value = str(credential_mode).strip()
+
+    if not raw_value:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'credential_mode' parameter.",
+            detail="Use one of: auto, byok, rhumb_managed, agent_vault. Legacy 'byo' is accepted as 'byok'.",
+        )
+
     normalized = v1_execute._canonicalize_credential_mode(raw_value) or "auto"
     if normalized in _VALID_ESTIMATE_CREDENTIAL_MODES:
         return normalized

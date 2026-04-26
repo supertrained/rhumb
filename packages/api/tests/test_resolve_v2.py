@@ -1064,6 +1064,26 @@ async def test_v2_estimate_rejects_invalid_credential_mode_before_forward(app):
 
 
 @pytest.mark.anyio
+async def test_v2_estimate_rejects_blank_credential_mode_before_forward(app):
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/email.send/execute/estimate",
+                params={"credential_mode": "   ", "provider": "sendgrid"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'credential_mode' parameter."
+    assert body["error"]["detail"] == (
+        "Use one of: auto, byok, rhumb_managed, agent_vault. Legacy 'byo' is accepted as 'byok'."
+    )
+    mock_forward.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_estimate_rewrites_direct_execute_readiness_handoff(app):
     estimate_resp = MagicMock(spec=httpx.Response)
     estimate_resp.status_code = 200
