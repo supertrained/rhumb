@@ -120,7 +120,10 @@ def _validated_ledger_event_type(event_type: str | None) -> str | None:
 
     normalized = event_type.strip()
     if not normalized:
-        return None
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid event_type: provide a non-empty event_type or omit the filter",
+        )
 
     if normalized not in VALID_LEDGER_EVENT_TYPES:
         valid_types = ", ".join(VALID_LEDGER_EVENT_TYPES)

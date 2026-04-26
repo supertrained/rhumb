@@ -289,6 +289,27 @@ class TestGetLedger:
         fetch_mock.assert_not_awaited()
         count_mock.assert_not_awaited()
 
+    def test_blank_event_type_rejected_before_supabase_reads(self, client: TestClient) -> None:
+        fetch_mock = AsyncMock()
+        count_mock = AsyncMock()
+
+        with (
+            patch("routes.billing.supabase_fetch", fetch_mock),
+            patch("routes.billing.supabase_count", count_mock),
+        ):
+            resp = client.get(
+                "/v1/billing/ledger",
+                params={"event_type": "   "},
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"] == "bad_request"
+        assert payload["detail"] == "Invalid event_type: provide a non-empty event_type or omit the filter"
+        fetch_mock.assert_not_awaited()
+        count_mock.assert_not_awaited()
+
     def test_limit_validation_max(self, client: TestClient) -> None:
         resp = client.get(
             "/v1/billing/ledger",
