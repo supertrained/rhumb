@@ -152,6 +152,16 @@ def _cached_score_for_provider_id(provider_id: str) -> CachedScore | None:
     return None
 
 
+def _validated_history_limit(limit: int) -> int:
+    if 1 <= limit <= 200:
+        return limit
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Use a limit between 1 and 200 for score history reads.",
+    )
+
+
 @router.get("/{provider_id}")
 async def get_provider_score(provider_id: str) -> dict[str, Any]:
     """Get the current AN Score for a provider.
@@ -183,7 +193,7 @@ async def get_provider_score_history(
 
     Returns chain-hashed audit entries for verifiable score history.
     """
-    safe_limit = max(1, min(limit, 200))
+    safe_limit = _validated_history_limit(limit)
     chain = get_audit_chain()
     entries = chain.history(service_slug=public_service_slug_candidates(provider_id), limit=safe_limit)
     cached_score = _cached_score_for_provider_id(provider_id)
