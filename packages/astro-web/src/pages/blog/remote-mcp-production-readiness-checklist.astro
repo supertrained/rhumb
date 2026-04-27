@@ -37,6 +37,7 @@ const DEMO_FLAGS = [
   "retry, idempotency, and quota behavior are unclear",
   "tool results invent ad-hoc content types or edge-case shapes that the protocol itself cannot validate",
   "transport or middleware upgrades are treated as trust upgrades without proving the same boundaries",
+  "gateway traces show span IDs but omit the policy, adapter, scope, credential, and quota context that shaped the call",
   "audit trails do not map actions back to principals and scopes",
 ];
 
@@ -49,6 +50,7 @@ const CHECKLIST = [
   "Protocol contract: do tool results stay inside spec-valid types, mime metadata, and error shapes even on edge cases?",
   "Transport and middleware: does the adapter preserve identity, scope, typed errors, and quota attribution?",
   "Recovery: after partial failure, how does the caller re-verify state?",
+  "Trace evidence: does every gateway trace carry the original actor, adapter version, policy bundle, redacted input class, caller-visible surface, downstream credential lane, and quota owner?",
   "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
 ];
 
@@ -158,7 +160,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-25T00:00:00Z",
+  dateModified: "2026-04-27T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, transport and middleware boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -380,12 +382,32 @@ const ARTICLE_JSON_LD = {
               <p>
                 This is not just for compliance theatre. It is what makes the system debuggable after something weird happens.
               </p>
+              <p>
+                Fresh gateway trace work makes the readiness bar sharper. A trace that only says <span class="text-slate-100">gateway.service</span> handled a request proves traffic passed through a hop, not that the hop preserved authority. Operator-grade traces have to carry the original actor, adapter version, policy bundle, redacted input class, caller-visible tool surface, downstream credential lane, and quota owner so a mediated call can be audited as the same authority decision the direct path would have enforced.
+              </p>
+              <p>
+                If those fields vanish at the gateway, auditability becomes span plumbing. You can count calls, but you cannot prove which policy narrowed discovery, which scope denied the write, or whose shared budget the loop burned.
+              </p>
             </div>
           </section>
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              8. Transport adapters and middleware stacks are not trust upgrades by themselves
+              8. Gateway traces have to preserve authority context
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Treat gateway traces as part of the production contract, not as a nice-to-have observability export. The trace is where a remote-MCP operator should be able to prove that identity, scope, typed denials, tenant attribution, and downstream credentials survived the mediated hop.
+              </p>
+              <p>
+                The useful drill is simple: replay the same authorized read, denied write, and quota-limited call through the direct path and the gateway path. If the gateway trace cannot name the policy bundle, adapter version, visible surface, denial type, credential lane, and quota owner for each call, the gateway has hidden the exact evidence operators need when the agent acts unattended.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              9. Transport adapters and middleware stacks are not trust upgrades by themselves
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -402,7 +424,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              9. What still counts as a demo, not infrastructure
+              10. What still counts as a demo, not infrastructure
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>

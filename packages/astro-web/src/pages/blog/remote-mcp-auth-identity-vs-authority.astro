@@ -48,6 +48,7 @@ const CHECKLIST = [
   "Which backend credential, downstream principal, and quota owner actually perform or absorb the action after auth succeeds?",
   "Can the runtime emit typed denials when requested authority exceeds policy?",
   "Can operators reconstruct the full authority chain from caller to backend side effect?",
+  "Do gateway traces preserve policy bundle, adapter version, visible tool surface, credential lane, typed denial, and quota owner for each mediated call?",
   "Does the same model still hold under shared-team or multi-tenant remote use?",
 ];
 
@@ -56,7 +57,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Remote MCP Auth Proves Caller Identity, Not Tool Authority",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-26T00:00:00Z",
+  dateModified: "2026-04-27T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, quota attribution, denial semantics, and evidence.",
@@ -226,6 +227,9 @@ const ARTICLE_JSON_LD = {
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
                 Remote auth becomes trustworthy when the system can reconstruct the full chain after execution: caller principal, visible tool set, requested action, policy decision, backend credential, quota owner, and downstream effect. That is what turns identity plus policy into governable infrastructure instead of a hopeful claim.
+              </p>
+              <p>
+                Gateway traces are the easiest place to lose that chain. If the trace only shows a generic gateway span, it proves routing, not authority. A useful mediated-call trace carries the policy bundle, adapter version, redacted input class, caller-visible tool surface, downstream credential lane, typed denial, and quota owner beside the original actor.
               </p>
               <p>
                 This is also where receipts and audit trails fit. Better evidence does not replace narrow authority. It proves whether narrow authority actually held when the call crossed the remote boundary.
