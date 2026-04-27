@@ -514,6 +514,10 @@ async def get_usage_telemetry(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
     """Return per-agent usage analytics from execution logs."""
+    capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
+    provider = _validated_optional_filter(provider, field_name="provider")
+    days = _validated_int_range(days, field_name="days", minimum=1, maximum=90)
+    group_by = _validated_group_by_filter(group_by)
     try:
         agent_id, _org_id = await _require_agent(x_rhumb_key)
     except _TelemetryAuthError as exc:
@@ -524,10 +528,6 @@ async def get_usage_telemetry(
             message=str(exc),
             resolution="Provide a valid governed API key via X-Rhumb-Key header.",
         )
-    capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
-    provider = _validated_optional_filter(provider, field_name="provider")
-    days = _validated_int_range(days, field_name="days", minimum=1, maximum=90)
-    group_by = _validated_group_by_filter(group_by)
     start_at = _utcnow() - timedelta(days=days)
     rows = await supabase_fetch(
         _build_usage_query(
@@ -603,6 +603,9 @@ async def get_recent_executions(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
     """Return recent execution records for the authenticated agent."""
+    capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
+    limit = _validated_int_range(limit, field_name="limit", minimum=1, maximum=100)
+    success = _validated_success_filter(success)
     try:
         agent_id, _org_id = await _require_agent(x_rhumb_key)
     except _TelemetryAuthError as exc:
@@ -613,9 +616,6 @@ async def get_recent_executions(
             message=str(exc),
             resolution="Provide a valid governed API key via X-Rhumb-Key header.",
         )
-    capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
-    limit = _validated_int_range(limit, field_name="limit", minimum=1, maximum=100)
-    success = _validated_success_filter(success)
     rows = await supabase_fetch(
         _build_usage_query(
             agent_id=agent_id,
