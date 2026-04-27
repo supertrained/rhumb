@@ -1,0 +1,33 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout
+  title="Billing success | Rhumb"
+  description="Your Rhumb API credit checkout completed."
+  noindex={true}
+>
+  <main class="min-h-screen bg-midnight px-4 py-20">
+    <section class="mx-auto max-w-xl rounded-2xl border border-score-native/25 bg-slate-900/70 p-8 shadow-2xl shadow-score-native/5">
+      <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-score-native/15 text-score-native">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-score-native">Checkout complete</p>
+      <h1 class="mb-3 font-display text-3xl font-bold text-white">Rhumb credits are being applied</h1>
+      <p class="mb-6 text-sm leading-6 text-slate-300">
+        Stripe accepted the payment. Your credit balance should update as soon as the checkout webhook is processed.
+        If you started from the dashboard, it will refresh the latest billing state there.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a href="/dashboard?checkout=success" class="inline-flex items-center rounded-lg bg-score-native px-5 py-2.5 text-sm font-semibold text-midnight transition hover:bg-score-native/90">
+          Open dashboard
+        </a>
+        <a href="/docs" class="inline-flex items-center rounded-lg border border-slate-700 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500">
+          Read docs
+        </a>
+      </div>
+    </section>
+  </main>
+</Layout>

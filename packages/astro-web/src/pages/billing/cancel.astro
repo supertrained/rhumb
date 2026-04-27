@@ -1,0 +1,32 @@
+---
+import Layout from "../../layouts/Layout.astro";
+---
+
+<Layout
+  title="Billing canceled | Rhumb"
+  description="Your Rhumb API credit checkout was canceled."
+  noindex={true}
+>
+  <main class="min-h-screen bg-midnight px-4 py-20">
+    <section class="mx-auto max-w-xl rounded-2xl border border-slate-700 bg-slate-900/70 p-8 shadow-2xl shadow-black/20">
+      <div class="mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-slate-800 text-slate-300">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </div>
+      <p class="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Checkout canceled</p>
+      <h1 class="mb-3 font-display text-3xl font-bold text-white">No credits were added</h1>
+      <p class="mb-6 text-sm leading-6 text-slate-300">
+        The Stripe checkout was canceled before payment. You can return to the dashboard and start another top-up whenever you are ready.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <a href="/dashboard?checkout=cancel" class="inline-flex items-center rounded-lg bg-score-native px-5 py-2.5 text-sm font-semibold text-midnight transition hover:bg-score-native/90">
+          Back to dashboard
+        </a>
+        <a href="/docs" class="inline-flex items-center rounded-lg border border-slate-700 px-5 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500">
+          Read docs
+        </a>
+      </div>
+    </section>
+  </main>
+</Layout>
