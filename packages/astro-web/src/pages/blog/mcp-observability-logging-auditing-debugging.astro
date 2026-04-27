@@ -73,6 +73,7 @@ const OBSERVABILITY_CHECKLIST = [
   "Session summaries record side effects, spend, and terminal state for post-incident review.",
   "Credential mode logging makes the active identity path visible on every consequential call.",
   "Gateway trace configuration preserves caller identity, policy version, adapter hop, and redacted input shape rather than only exporting span IDs.",
+  "Transport adapter traces record the pre-adapter request shape, post-adapter result shape, typed error mapping, and quota owner before the bridge is trusted as production-ready.",
   "Checkpoints let the caller resume from a known-good state instead of replaying the whole workflow blind.",
   "Each tool or lane has a reversibility or permanence class so rollback strategy is not improvised during an incident.",
 ];
@@ -84,6 +85,13 @@ const GATEWAY_DRILL_CHECKS = [
   "If one lane burns shared quota, can the operator attribute the spend and quarantine only that lane?",
   "When a transport bridge or middleware spine sits in the middle, does the trace preserve both the original actor and the mediated hop?",
   "Can you rehearse credential expiry, rate-limit exhaustion, and kill-switch recovery without losing who caused what?",
+];
+
+const TRANSPORT_ADAPTER_TRACE_CHECKS = [
+  "Capture the protocol shape before and after the adapter so a gRPC bridge, JSON shim, or middleware spine cannot silently rewrite the caller-visible contract.",
+  "Map upstream failures into stable typed errors instead of leaking transport-specific exceptions that the orchestrator cannot classify.",
+  "Preserve cost, rate-limit, and quota-owner fields across the adapter hop so cheaper transport does not hide the budget lane that actually burned.",
+  "Diff direct-path and mediated-path traces on authorized reads, denied writes, and timeout recovery before treating a transport upgrade as production readiness.",
 ];
 
 const TOOL_CALL_LOG_SAMPLE = `{
@@ -374,6 +382,17 @@ const ARTICLE_JSON_LD = {
               <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Gateway drill questions</div>
               <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
                 {GATEWAY_DRILL_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300">Transport adapter trace test</div>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                Transport upgrades like gRPC bridges can reduce JSON pain while still making operations worse if the adapter hides which result shape, error class, or budget lane reached the agent. Treat the adapter as observable production surface, not plumbing.
+              </p>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {TRANSPORT_ADAPTER_TRACE_CHECKS.map((item) => (
                   <li>{item}</li>
                 ))}
               </ul>
