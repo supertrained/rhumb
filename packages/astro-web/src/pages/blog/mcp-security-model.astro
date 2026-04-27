@@ -30,8 +30,8 @@ const TWO_MINUTE_FIX = [
     link: { href: "/blog/read-only-mcp-trust-class", label: "Read-Only MCP as a Trust Class" },
   },
   {
-    title: "Add allowlists where the damage is",
-    body: "Bound file paths, repo targets, URL hosts, and write destinations with explicit allowlisted prefixes at execution time.",
+    title: "Make empty allowlists fail closed",
+    body: "Bound file paths, repo targets, URL hosts, and write destinations with explicit allowlisted prefixes. Empty policy should mean deny-all, not allow-all.",
     link: { href: "/blog/mcp-prompt-injection-scope-constraints", label: "Scope Constraints and Blast Radius" },
   },
   {
@@ -51,7 +51,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Has a Security Model: Scope, Principals, and Evidence",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-04-27T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "MCP security is not a protocol checkbox. It is bounded tool scope, scoped principals, and post-call evidence that operators can audit.",
@@ -132,7 +132,11 @@ const ARTICLE_JSON_LD = {
           <li class="leading-relaxed">Constrain filesystem tools to explicit prefixes and resolve paths safely.</li>
           <li class="leading-relaxed">Constrain network tools to explicit host allowlists, not open URLs.</li>
           <li class="leading-relaxed">Constrain write tools to explicit targets and require typed, schema-validated inputs.</li>
+          <li class="leading-relaxed">Make empty allowlists fail closed. A blank policy should not silently mean every network, path, or caller is allowed.</li>
         </ul>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          Endpoint families need the same rule. If `/mcp` is authenticated but the message endpoint, streaming endpoint, or callback endpoint can invoke tools without the same check, the security model is whatever the weakest path permits. The operator test is endpoint-auth parity: every route that can trigger a tool call must enforce the same principal and scope policy.
+        </p>
 
         <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">2. Principals must be real</h2>
         <p class="text-slate-400 leading-relaxed mb-4">

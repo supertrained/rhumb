@@ -40,12 +40,18 @@ const FAILURE_MODES = [
     title: "Unverifiable enforcement",
     body: "Without structured audit trails, operators cannot confirm which principal saw which tools, attempted which calls, or was denied why.",
   },
+  {
+    title: "Endpoint-family drift",
+    body: "One MCP endpoint has the right auth middleware, while the message or callback endpoint quietly accepts broad traffic by default.",
+  },
 ];
 
 const SCOPING_CHECKLIST = [
   "Does each caller receive a tool manifest filtered to only the tools it should know about?",
   "Are tool calls checked against role or scope at execution time, not just at connection time?",
   "Are high-risk arguments constrained by policy, or can the model supply arbitrary paths, URLs, repo names, tenants, or write targets?",
+  "Do all endpoints in the MCP family enforce the same authentication and authorization policy, including message, callback, and streaming endpoints?",
+  "Do empty allowlists fail closed, or does the default accidentally mean allow-all?",
   "Can one low-risk workflow discover or invoke higher-risk tools such as deploy, delete, or write actions?",
   "Do denied calls emit typed policy errors instead of generic runtime failures?",
   "Are caller identity, tool name, policy decision, and outcome all captured in the audit trail?",
@@ -237,7 +243,24 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              6. Audit proof is the dependency most teams skip
+              6. Endpoint-family parity is part of authorization
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A server can authenticate the visible MCP endpoint and still fail open on the companion path that actually carries tool messages. The recent nginx-ui MCP incident is the clean warning: one endpoint had the intended checks, while the message endpoint missed authentication and an empty IP allowlist meant allow-all.
+              </p>
+              <p>
+                Treat every endpoint in the MCP family as part of the same permission boundary: session creation, message delivery, streaming, callbacks, health-adjacent tool paths, and any management routes that can mutate state. If one path can invoke tools, it needs the same principal, scope, tenant, and policy checks as the front door.
+              </p>
+              <p>
+                The default should fail closed. An empty allowlist should mean no network is allowed until configured, not every network is trusted until someone remembers to tighten it.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              7. Audit proof is the dependency most teams skip
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -263,7 +286,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              7. Secure by design means narrow authority before the first tool call
+              8. Secure by design means narrow authority before the first tool call
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
