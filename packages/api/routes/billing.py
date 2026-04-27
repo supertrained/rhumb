@@ -160,6 +160,26 @@ def _validated_ledger_offset(offset: int) -> int:
     )
 
 
+async def _require_saved_payment_method_for_auto_reload(org_id: str) -> None:
+    """Require a saved Stripe payment method before enabling auto-reload."""
+    rows = await supabase_fetch(
+        f"org_credits?org_id=eq.{quote(org_id)}"
+        f"&select=stripe_payment_method_id"
+        f"&limit=1"
+    )
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="Org credits not found")
+
+    payment_method_id = rows[0].get("stripe_payment_method_id")
+    if not payment_method_id:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Auto-reload requires a saved payment method.",
+            detail="Add funds once to save a card before enabling auto-reload.",
+        )
+
+
 async def _load_wallet_topup(
     *,
     wallet_identity_id: str,
@@ -784,6 +804,7 @@ async def update_auto_reload(
                 status_code=400,
                 detail="amount_usd must be >= 5.0 when auto-reload is enabled",
             )
+        await _require_saved_payment_method_for_auto_reload(org_id)
 
     payload: dict = {
         "auto_reload_enabled": body.enabled,

@@ -389,7 +389,14 @@ class TestAutoReload:
             "auto_reload_threshold_cents": 1000,
             "auto_reload_amount_cents": 2500,
         }
-        with patch("routes.billing.supabase_patch", new_callable=AsyncMock, return_value=[returned_row]):
+        with (
+            patch(
+                "routes.billing.supabase_fetch",
+                new_callable=AsyncMock,
+                return_value=[{"stripe_payment_method_id": "pm_saved"}],
+            ),
+            patch("routes.billing.supabase_patch", new_callable=AsyncMock, return_value=[returned_row]),
+        ):
             resp = client.put(
                 "/v1/billing/auto-reload",
                 json={"enabled": True, "threshold_usd": 10.0, "amount_usd": 25.0},
@@ -456,8 +463,53 @@ class TestAutoReload:
         )
         assert resp.status_code == 400
 
-    def test_404_when_org_not_found(self, client: TestClient) -> None:
-        with patch("routes.billing.supabase_patch", new_callable=AsyncMock, return_value=None):
+    def test_enable_requires_saved_payment_method_before_patch(self, client: TestClient) -> None:
+        patch_mock = AsyncMock()
+        with (
+            patch(
+                "routes.billing.supabase_fetch",
+                new_callable=AsyncMock,
+                return_value=[{"stripe_payment_method_id": None}],
+            ),
+            patch("routes.billing.supabase_patch", patch_mock),
+        ):
+            resp = client.put(
+                "/v1/billing/auto-reload",
+                json={"enabled": True, "threshold_usd": 5.0, "amount_usd": 10.0},
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Auto-reload requires a saved payment method."
+        assert payload["error"]["detail"] == "Add funds once to save a card before enabling auto-reload."
+        patch_mock.assert_not_awaited()
+
+    def test_404_when_org_not_found_before_patch(self, client: TestClient) -> None:
+        patch_mock = AsyncMock()
+        with (
+            patch("routes.billing.supabase_fetch", new_callable=AsyncMock, return_value=[]),
+            patch("routes.billing.supabase_patch", patch_mock),
+        ):
+            resp = client.put(
+                "/v1/billing/auto-reload",
+                json={"enabled": True, "threshold_usd": 5.0, "amount_usd": 10.0},
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 404
+        patch_mock.assert_not_awaited()
+
+    def test_404_when_patch_returns_no_rows(self, client: TestClient) -> None:
+        with (
+            patch(
+                "routes.billing.supabase_fetch",
+                new_callable=AsyncMock,
+                return_value=[{"stripe_payment_method_id": "pm_saved"}],
+            ),
+            patch("routes.billing.supabase_patch", new_callable=AsyncMock, return_value=None),
+        ):
             resp = client.put(
                 "/v1/billing/auto-reload",
                 json={"enabled": True, "threshold_usd": 5.0, "amount_usd": 10.0},
@@ -466,8 +518,15 @@ class TestAutoReload:
 
         assert resp.status_code == 404
 
-    def test_404_when_empty_list_returned(self, client: TestClient) -> None:
-        with patch("routes.billing.supabase_patch", new_callable=AsyncMock, return_value=[]):
+    def test_404_when_empty_patch_list_returned(self, client: TestClient) -> None:
+        with (
+            patch(
+                "routes.billing.supabase_fetch",
+                new_callable=AsyncMock,
+                return_value=[{"stripe_payment_method_id": "pm_saved"}],
+            ),
+            patch("routes.billing.supabase_patch", new_callable=AsyncMock, return_value=[]),
+        ):
             resp = client.put(
                 "/v1/billing/auto-reload",
                 json={"enabled": True, "threshold_usd": 5.0, "amount_usd": 10.0},
@@ -484,7 +543,14 @@ class TestAutoReload:
             captured_payloads.append(payload)
             return [{"auto_reload_enabled": True, "auto_reload_threshold_cents": 750, "auto_reload_amount_cents": 5000}]
 
-        with patch("routes.billing.supabase_patch", side_effect=_capture_patch):
+        with (
+            patch(
+                "routes.billing.supabase_fetch",
+                new_callable=AsyncMock,
+                return_value=[{"stripe_payment_method_id": "pm_saved"}],
+            ),
+            patch("routes.billing.supabase_patch", side_effect=_capture_patch),
+        ):
             resp = client.put(
                 "/v1/billing/auto-reload",
                 json={"enabled": True, "threshold_usd": 7.50, "amount_usd": 50.0},
