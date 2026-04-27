@@ -47,6 +47,18 @@ def test_get_receipt_found(client):
         assert body["error"] is None
 
 
+def test_get_receipt_rejects_blank_receipt_id_before_reads(client):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        resp = client.get("/v2/receipts/%20%20")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'receipt_id' path parameter."
+    assert "non-empty receipt_id" in body["error"]["detail"]
+    assert mock_fetch.await_count == 0
+
+
 def test_get_receipt_canonicalizes_legacy_provider_text(client):
     receipt_data = {
         "receipt_id": "rcpt_test123",
@@ -306,6 +318,18 @@ def test_query_receipts_canonicalizes_same_provider_alias_text_when_structured_f
         assert "brave-search-api-api" not in body["data"]["receipts"][0]["provider_name"]
         assert "brave-search-api-api" not in body["data"]["receipts"][0]["error_message"]
         assert "brave-search-api-api" not in body["data"]["receipts"][0]["winner_reason"]
+
+
+def test_get_receipt_explanation_rejects_blank_receipt_id_before_reads(client):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        resp = client.get("/v2/receipts/%09/explanation")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'receipt_id' path parameter."
+    assert "non-empty receipt_id" in body["error"]["detail"]
+    assert mock_fetch.await_count == 0
 
 
 def test_get_receipt_explanation_uses_persisted_receipt_link(client):

@@ -25,6 +25,18 @@ router = APIRouter()
 _VALID_RECEIPT_STATUSES = frozenset({"success", "failure", "timeout", "rejected"})
 
 
+def _validated_receipt_id(receipt_id: str) -> str:
+    normalized = str(receipt_id or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'receipt_id' path parameter.",
+        detail="Provide a non-empty receipt_id from an execution response.",
+    )
+
+
 def _validated_optional_filter(value: str | None, *, field_name: str) -> str | None:
     if value is None:
         return None
@@ -101,6 +113,7 @@ def _validate_chain_range(start_sequence: int | None, end_sequence: int | None) 
 @router.get("/receipts/{receipt_id}")
 async def get_receipt(receipt_id: str) -> dict[str, Any]:
     """Fetch a single execution receipt by ID."""
+    receipt_id = _validated_receipt_id(receipt_id)
     service = get_receipt_service()
     receipt = await service.get_receipt(receipt_id)
     if receipt is None:
@@ -118,6 +131,7 @@ async def get_receipt_explanation(receipt_id: str) -> dict[str, Any]:
 
     Layer 1 receipts do not have explanations — the agent chose the provider.
     """
+    receipt_id = _validated_receipt_id(receipt_id)
     # Verify the receipt exists first
     service = get_receipt_service()
     receipt = await service.get_receipt(receipt_id)
