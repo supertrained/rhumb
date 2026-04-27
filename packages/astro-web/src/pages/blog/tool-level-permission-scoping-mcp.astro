@@ -45,6 +45,7 @@ const FAILURE_MODES = [
 const SCOPING_CHECKLIST = [
   "Does each caller receive a tool manifest filtered to only the tools it should know about?",
   "Are tool calls checked against role or scope at execution time, not just at connection time?",
+  "Are high-risk arguments constrained by policy, or can the model supply arbitrary paths, URLs, repo names, tenants, or write targets?",
   "Can one low-risk workflow discover or invoke higher-risk tools such as deploy, delete, or write actions?",
   "Do denied calls emit typed policy errors instead of generic runtime failures?",
   "Are caller identity, tool name, policy decision, and outcome all captured in the audit trail?",
@@ -56,7 +57,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Tool-Level Permission Scoping in MCP: Why Server Authentication Isn't Enough",
   datePublished: "2026-04-04T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-04-27T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Server authentication and tool authorization are different layers. Production MCP needs caller-scoped manifests, typed denials, and auditable tool boundaries.",
@@ -219,7 +220,24 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              5. Audit proof is the dependency most teams skip
+              5. Argument scope is tool authorization too
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The latest MCP security failures keep returning to the same shape: the tool name looks narrow, but the arguments are broad enough to carry arbitrary paths, URLs, repository names, tenant IDs, or write targets. A filesystem tool scoped only by its name is still a broad authority surface if the model can supply any path.
+              </p>
+              <p>
+                Treat dangerous arguments as part of tool authorization. The policy layer should bind allowed prefixes, domains, resource IDs, tenant scope, and write destinations before invocation, then reject out-of-lane values with a typed policy denial. That keeps prompt injection from turning a legitimate tool into a generic execution primitive.
+              </p>
+              <p>
+                The operator test is simple: can the same principal call the same tool with a safe argument and a dangerous argument, and can the trace prove why one passed and the other failed? If not, the permission model is still too coarse.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              6. Audit proof is the dependency most teams skip
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -245,7 +263,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              6. Secure by design means narrow authority before the first tool call
+              7. Secure by design means narrow authority before the first tool call
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
