@@ -385,6 +385,18 @@ def _public_provider_slug(provider_id: str | None) -> str:
     return public_service_slug(provider_id) or str(provider_id or "").strip().lower()
 
 
+def _validated_provider_path_id(provider_id: str) -> str:
+    public_provider_id = _public_provider_slug(provider_id)
+    if public_provider_id:
+        return public_provider_id
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'provider_id' path parameter.",
+        detail="Provide a non-empty provider id from GET /v2/providers.",
+    )
+
+
 def _canonicalize_known_provider_aliases(
     text: Any,
     *,
@@ -1027,7 +1039,8 @@ async def list_providers(
 @router.get("/providers/{provider_id}")
 async def get_provider(provider_id: str) -> dict[str, Any]:
     """Get provider detail including available capabilities."""
-    public_provider_id = _public_provider_slug(provider_id)
+    provider_id = _validated_provider_path_id(provider_id)
+    public_provider_id = provider_id
     detail = await _resolve_provider_detail(provider_id)
     if detail is None:
         raise RhumbError(
@@ -1091,7 +1104,8 @@ async def execute_on_provider(
     t_start = time.monotonic()
 
     # ── Validate the provider exists ──────────────────────────────────
-    public_provider_id = _public_provider_slug(provider_id)
+    provider_id = _validated_provider_path_id(provider_id)
+    public_provider_id = provider_id
     detail = await _resolve_provider_detail(provider_id)
     if detail is None:
         raise RhumbError(

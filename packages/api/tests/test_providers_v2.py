@@ -965,6 +965,17 @@ class TestGetProvider:
         assert data["an_score"] == 8.6
         assert data["tier"] == "Native"
 
+    def test_get_provider_rejects_blank_provider_id_before_reads(self, client):
+        with patch("routes.providers_v2._resolve_provider_detail", new_callable=AsyncMock) as mock_detail:
+            resp = client.get("/v2/providers/%20%20")
+
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid 'provider_id' path parameter."
+        assert "non-empty provider id" in error["detail"]
+        assert mock_detail.await_count == 0
+
     def test_get_nonexistent_provider(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch):
             resp = client.get("/v2/providers/nonexistent")
@@ -987,6 +998,20 @@ class TestExecuteOnProvider:
     def _mock_v1_estimate(self, query: str):
         """Mock for the supabase calls during estimation."""
         return _mock_supabase_fetch(query)
+
+    def test_execute_rejects_blank_provider_id_before_reads(self, client):
+        with patch("routes.providers_v2._resolve_provider_detail", new_callable=AsyncMock) as mock_detail:
+            resp = client.post(
+                "/v2/providers/%20%20/execute",
+                json={"capability": _TEST_CAPABILITY, "parameters": {}},
+            )
+
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid 'provider_id' path parameter."
+        assert "non-empty provider id" in error["detail"]
+        assert mock_detail.await_count == 0
 
     @patch("routes.providers_v2._resolve_agent_for_budget", new_callable=AsyncMock, return_value=None)
     @patch("routes.providers_v2.get_receipt_service")
