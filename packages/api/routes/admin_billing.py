@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from services.billing_aggregation import BillingAggregator, get_billing_aggregator
+from services.error_envelope import RhumbError
 from services.settlement import (
     create_daily_settlement_batch,
     get_pending_batches,
@@ -66,7 +67,11 @@ def _normalize_billing_month(month: str) -> str:
     try:
         datetime.strptime(normalized, "%Y-%m")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid month: use YYYY-MM") from exc
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'month' filter.",
+            detail="Use YYYY-MM.",
+        ) from exc
     return normalized
 
 
@@ -74,7 +79,11 @@ def _normalize_billing_organization_id(organization_id: str) -> str:
     """Validate and normalize public admin billing organization filters."""
     normalized = str(organization_id).strip()
     if not normalized:
-        raise HTTPException(status_code=400, detail="Invalid organization_id: provide a non-empty value")
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'organization_id' filter.",
+            detail="Provide a non-empty organization_id value.",
+        )
     return normalized
 
 
@@ -87,7 +96,11 @@ def _normalize_settlement_batch_date(batch_date: str | None) -> str | None:
     try:
         datetime.strptime(normalized, "%Y-%m-%d")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid batch_date: use YYYY-MM-DD") from exc
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'batch_date' filter.",
+            detail="Use YYYY-MM-DD.",
+        ) from exc
     return normalized
 
 

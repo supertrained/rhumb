@@ -653,8 +653,9 @@ def test_get_usage_report_rejects_invalid_month_before_usage_meter_reads(
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["detail"] == "Invalid month: use YYYY-MM"
-    assert payload["error"] == "bad_request"
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'month' filter."
+    assert payload["error"]["detail"] == "Use YYYY-MM."
     fake_usage_meter.get_org_monthly_usage.assert_not_awaited()
 
 
@@ -673,8 +674,9 @@ def test_get_usage_report_rejects_blank_organization_before_usage_meter_reads(
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["detail"] == "Invalid organization_id: provide a non-empty value"
-    assert payload["error"] == "bad_request"
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'organization_id' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty organization_id value."
     fake_usage_meter.get_org_monthly_usage.assert_not_awaited()
 
 
@@ -770,8 +772,9 @@ def test_generate_invoice_rejects_invalid_month_before_aggregator_reads(
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["detail"] == "Invalid month: use YYYY-MM"
-    assert payload["error"] == "bad_request"
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'month' filter."
+    assert payload["error"]["detail"] == "Use YYYY-MM."
     fake_billing_aggregator.generate_invoice.assert_not_awaited()
 
 
@@ -790,8 +793,9 @@ def test_generate_invoice_rejects_blank_organization_before_aggregator_reads(
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["detail"] == "Invalid organization_id: provide a non-empty value"
-    assert payload["error"] == "bad_request"
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'organization_id' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty organization_id value."
     fake_billing_aggregator.generate_invoice.assert_not_awaited()
 
 
@@ -850,8 +854,9 @@ def test_list_invoices_rejects_blank_organization_before_aggregator_reads(
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["detail"] == "Invalid organization_id: provide a non-empty value"
-    assert payload["error"] == "bad_request"
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'organization_id' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty organization_id value."
     fake_billing_aggregator.list_invoices.assert_not_called()
 
 
@@ -929,8 +934,9 @@ def test_forecast_spend_rejects_blank_organization_before_usage_meter_reads(
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["detail"] == "Invalid organization_id: provide a non-empty value"
-    assert payload["error"] == "bad_request"
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'organization_id' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty organization_id value."
     fake_usage_meter.get_org_daily_average_calls.assert_not_awaited()
 
 

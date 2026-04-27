@@ -402,7 +402,10 @@ class TestSettlementAdminRoutes:
             )
 
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "Invalid batch_date: use YYYY-MM-DD"
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'batch_date' filter."
+        assert payload["error"]["detail"] == "Use YYYY-MM-DD."
         mock_create.assert_not_awaited()
 
     def test_run_settlement_normalizes_batch_date_whitespace(self, client: TestClient) -> None:
