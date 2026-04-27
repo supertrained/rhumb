@@ -743,6 +743,33 @@ class RhumbManagedExecutor:
             params = self._rename_field(params, "index_name", "indexName")
             body = self._rename_field(body, "index_name", "indexName")
 
+            if capability_id == "document.search":
+                # The Rhumb-managed Algolia credential is scoped to the
+                # Rhumb-owned smoke fixture index.  Public/basic smoke payloads
+                # have historically omitted the index or used the natural
+                # placeholder `services`, but the live account only has
+                # `rhumb_test`.  Normalize that read-only document search path
+                # onto the safe fixture before path interpolation rather than
+                # sending callers to a provider 404.
+                fixture_index = "rhumb_test"
+                index_value = None
+                if body and "indexName" in body:
+                    index_value = body.get("indexName")
+                elif params and "indexName" in params:
+                    index_value = params.get("indexName")
+
+                should_use_fixture = index_value in (None, "")
+                if isinstance(index_value, str) and index_value.strip() in {"", "services"}:
+                    should_use_fixture = True
+
+                if should_use_fixture:
+                    if body is not None:
+                        body = dict(body)
+                        body["indexName"] = fixture_index
+                    else:
+                        params = dict(params) if params else {}
+                        params["indexName"] = fixture_index
+
         if service_slug == "brave-search" and capability_id in {"search.query", "search.web_search"}:
             params = self._rename_field(params, "query", "q")
             body = self._rename_field(body, "query", "q")
