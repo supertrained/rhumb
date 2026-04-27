@@ -34,6 +34,18 @@ def _public_provider_slug(provider_id: str | None) -> str:
     return public_service_slug(provider_id) or str(provider_id or "").strip().lower()
 
 
+def _validated_provider_path_id(provider_id: str | None) -> str:
+    public_provider_id = _public_provider_slug(provider_id)
+    if public_provider_id:
+        return public_provider_id
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'provider_id' path parameter.",
+        detail="Provide a non-empty provider id from GET /v2/providers.",
+    )
+
+
 def _canonicalize_known_provider_aliases(
     text: Any,
     *,
@@ -168,10 +180,10 @@ async def get_provider_score(provider_id: str) -> dict[str, Any]:
 
     Reads exclusively from the score cache — no direct DB access.
     """
-    entry = _cached_score_for_provider_id(provider_id)
+    public_provider_id = _validated_provider_path_id(provider_id)
+    entry = _cached_score_for_provider_id(public_provider_id)
 
     if entry is None:
-        public_provider_id = _public_provider_slug(provider_id)
         raise RhumbError(
             "SCORE_NOT_FOUND",
             message=f"No cached AN Score for provider '{public_provider_id}'.",
@@ -193,13 +205,13 @@ async def get_provider_score_history(
 
     Returns chain-hashed audit entries for verifiable score history.
     """
+    public_provider_id = _validated_provider_path_id(provider_id)
     safe_limit = _validated_history_limit(limit)
     chain = get_audit_chain()
-    entries = chain.history(service_slug=public_service_slug_candidates(provider_id), limit=safe_limit)
-    cached_score = _cached_score_for_provider_id(provider_id)
+    entries = chain.history(service_slug=public_service_slug_candidates(public_provider_id), limit=safe_limit)
+    cached_score = _cached_score_for_provider_id(public_provider_id)
 
     if cached_score is None and not entries:
-        public_provider_id = _public_provider_slug(provider_id)
         raise RhumbError(
             "SCORE_NOT_FOUND",
             message=f"No cached AN Score for provider '{public_provider_id}'.",
@@ -211,9 +223,9 @@ async def get_provider_score_history(
 
     return {
         "data": {
-            "service_slug": _public_provider_slug(provider_id),
+            "service_slug": public_provider_id,
             "entries": [
-                _audit_entry_to_response(e, response_provider_id=provider_id)
+                _audit_entry_to_response(e, response_provider_id=public_provider_id)
                 for e in entries
             ],
             "chain_verified": chain.verify_chain(),

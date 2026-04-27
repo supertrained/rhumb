@@ -50,6 +50,19 @@ def test_get_score_found_returns_cached_score():
     assert body["data"]["an_score"] == 74.2
 
 
+def test_get_score_rejects_blank_provider_id_before_cache_read():
+    from app import create_app
+
+    with patch("routes.scores_v2.get_score_cache", side_effect=AssertionError("score cache read opened")):
+        client = TestClient(create_app())
+        resp = client.get("/v2/scores/%20%20")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert "provider_id" in body["error"]["message"]
+
+
 def test_get_score_history_not_found_uses_explicit_score_code():
     from app import create_app
 
@@ -94,6 +107,22 @@ def test_get_score_history_found_returns_empty_entries_for_cached_provider():
     assert body["data"]["service_slug"] == "brave-search-api"
     assert body["data"]["entries"] == []
     assert body["data"]["chain_verified"] is True
+
+
+def test_get_score_history_rejects_blank_provider_id_before_reads():
+    from app import create_app
+
+    with (
+        patch("routes.scores_v2.get_score_cache", side_effect=AssertionError("score cache read opened")),
+        patch("routes.scores_v2.get_audit_chain", side_effect=AssertionError("audit chain read opened")),
+    ):
+        client = TestClient(create_app())
+        resp = client.get("/v2/scores/%20%20/history")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert "provider_id" in body["error"]["message"]
 
 
 def test_get_score_history_rejects_invalid_limit_before_reads():
