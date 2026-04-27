@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import asyncio
 from importlib import import_module
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -196,6 +197,39 @@ async def test_ticket_search_rejects_missing_support_ref_env(
         _mock_supabase_writes,
         status_code=400,
         error_code="support_ref_invalid",
+    )
+
+
+def test_ticket_search_rejects_non_object_body_before_support_reads(
+    app,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    async def _run():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post(
+                "/v1/capabilities/ticket.search/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json=["not", "an", "object"],
+            )
+
+    with (
+        patch.object(support_execute_route, "resolve_zendesk_support_bundle") as mock_resolve,
+        patch.object(support_execute_route, "search_tickets", new=AsyncMock()) as mock_search,
+    ):
+        response = asyncio.run(_run())
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "support_request_invalid"
+    assert body["message"] == "JSON body must be an object"
+    mock_resolve.assert_not_called()
+    mock_search.assert_not_called()
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="support_request_invalid",
     )
 
 

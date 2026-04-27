@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import asyncio
 from importlib import import_module
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -197,6 +198,42 @@ async def test_warehouse_execute_rejects_missing_bundle(
     body = response.json()
     assert body["error"] == "warehouse_ref_invalid"
     assert body["warehouse_ref"] == "bq_main"
+
+
+def test_warehouse_execute_rejects_non_object_body_before_warehouse_reads(
+    app,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    async def _run():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post(
+                "/v1/capabilities/warehouse.query.read/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json=["not", "an", "object"],
+            )
+
+    with (
+        patch.object(warehouse_execute_route, "resolve_warehouse_bundle") as mock_resolve,
+        patch.object(warehouse_execute_route, "execute_read_query", new=AsyncMock()) as mock_execute,
+    ):
+        response = asyncio.run(_run())
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "warehouse_request_invalid"
+    assert response.json()["message"] == "JSON body must be an object"
+    mock_resolve.assert_not_called()
+    mock_execute.assert_not_called()
+
+    _mock_receipt_service.create_receipt.assert_called_once()
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.status == "failure"
+    assert receipt_input.error_code == "warehouse_request_invalid"
+
+    table_name, payload = _mock_supabase_writes.await_args.args
+    assert table_name == "capability_executions"
+    assert payload["upstream_status"] == 400
+    assert payload["success"] is False
 
 
 @pytest.mark.asyncio
