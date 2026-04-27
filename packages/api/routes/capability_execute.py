@@ -1663,13 +1663,36 @@ async def _resolve_managed_provider_mapping(
         return None
 
     managed_slug = managed_config["service_slug"]
-    return next(
+    existing_mapping = next(
         (
             m for m in mappings
             if _service_slug_matches(m.get("service_slug"), managed_slug)
         ),
         None,
     )
+    if existing_mapping is not None:
+        return existing_mapping
+
+    # `rhumb_managed_capabilities` is the execution authority for Mode 2.
+    # Older/stale `capability_services` rows can lag the managed catalog (the
+    # live ScraperAPI/IPinfo pilot smokes exposed this), but a configured and
+    # enabled managed row already contains the concrete provider, method, path,
+    # and credential env keys needed by RhumbManagedExecutor.  Synthesize the
+    # minimal mapping shape used by the execute/estimate control plane so safe
+    # managed rails are not blocked by catalog drift.
+    method = str(managed_config.get("default_method") or "").strip().upper()
+    path = str(managed_config.get("default_path") or "").strip()
+    endpoint_pattern = f"{method} {path}".strip() if method or path else None
+    return {
+        "capability_id": managed_config.get("capability_id") or capability_id,
+        "service_slug": managed_slug,
+        "credential_modes": ["rhumb_managed"],
+        "auth_method": "rhumb_managed",
+        "endpoint_pattern": endpoint_pattern,
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+    }
 
 
 def _canonicalize_credential_mode(credential_mode: str | None) -> str | None:
@@ -1778,7 +1801,15 @@ async def _resolve_auto_credential_mode(
     )
 
     managed_mapping: dict | None = None
-    if managed_advertised:
+    if managed_advertised or not candidate_mappings:
+        managed_mapping = await _resolve_managed_provider_mapping(
+            capability_id=capability_id,
+            mappings=mappings,
+            requested_provider=requested_provider,
+        )
+    elif requested_provider:
+        # A requested provider may be present in the managed catalog even when
+        # the older capability_services row does not advertise rhumb_managed.
         managed_mapping = await _resolve_managed_provider_mapping(
             capability_id=capability_id,
             mappings=mappings,
@@ -3967,11 +3998,6 @@ async def estimate_capability(
         return await _capability_not_found_response(raw_request, capability_id)
 
     mappings = await _get_capability_services(capability_id)
-    if not mappings:
-        raise HTTPException(
-            status_code=503,
-            detail=f"No providers configured for capability '{capability_id}'",
-        )
 
     requested_credential_mode = credential_mode
     credential_mode, managed_mapping = await _resolve_auto_credential_mode(
@@ -3980,6 +4006,12 @@ async def estimate_capability(
         mappings=mappings,
         requested_provider=provider,
     )
+
+    if not mappings and credential_mode != "rhumb_managed":
+        raise HTTPException(
+            status_code=503,
+            detail=f"No providers configured for capability '{capability_id}'",
+        )
 
     chosen: Optional[dict] = None
     if credential_mode == "rhumb_managed":

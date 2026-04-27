@@ -287,6 +287,77 @@ async def test_get_service_domain_accepts_canonical_alias_for_runtime_service_ro
     ]
 
 
+@pytest.mark.anyio
+async def test_resolve_managed_provider_mapping_synthesizes_when_catalog_mapping_lags():
+    """Enabled managed configs should not be blocked by stale capability_services rows."""
+    mock_executor = MagicMock()
+    mock_executor.get_managed_config = AsyncMock(
+        return_value={
+            "capability_id": "data.enrich",
+            "service_slug": "ipinfo",
+            "default_method": "GET",
+            "default_path": "/{ip}",
+        }
+    )
+
+    with patch("services.rhumb_managed.get_managed_executor", return_value=mock_executor):
+        mapping = await capability_execute._resolve_managed_provider_mapping(
+            capability_id="data.enrich",
+            mappings=[
+                {
+                    "capability_id": "data.enrich",
+                    "service_slug": "people-data-labs",
+                    "credential_modes": ["byok"],
+                    "endpoint_pattern": "GET /v5/person/enrich",
+                    "cost_per_call": "0.10",
+                }
+            ],
+            requested_provider="ipinfo",
+        )
+
+    assert mapping == {
+        "capability_id": "data.enrich",
+        "service_slug": "ipinfo",
+        "credential_modes": ["rhumb_managed"],
+        "auth_method": "rhumb_managed",
+        "endpoint_pattern": "GET /{ip}",
+        "cost_per_call": None,
+        "cost_currency": "USD",
+        "free_tier_calls": None,
+    }
+
+
+@pytest.mark.anyio
+async def test_resolve_managed_provider_mapping_prefers_existing_catalog_mapping():
+    """Fresh capability_services metadata should win when it already exists."""
+    existing_mapping = {
+        "capability_id": "scrape.extract",
+        "service_slug": "scraperapi",
+        "credential_modes": ["byok", "rhumb_managed"],
+        "auth_method": "api_key",
+        "endpoint_pattern": "GET /",
+        "cost_per_call": "0.001",
+    }
+    mock_executor = MagicMock()
+    mock_executor.get_managed_config = AsyncMock(
+        return_value={
+            "capability_id": "scrape.extract",
+            "service_slug": "scraperapi",
+            "default_method": "GET",
+            "default_path": "/",
+        }
+    )
+
+    with patch("services.rhumb_managed.get_managed_executor", return_value=mock_executor):
+        mapping = await capability_execute._resolve_managed_provider_mapping(
+            capability_id="scrape.extract",
+            mappings=[existing_mapping],
+            requested_provider="scraperapi",
+        )
+
+    assert mapping is existing_mapping
+
+
 def _mock_supabase_with_stale_direct_db_mapping(path: str):
     """Return a stale proxy row for a direct DB capability."""
     if path.startswith("capabilities?") and "id=eq.db.query.read" in path:
