@@ -71,6 +71,7 @@ const CHECKLIST = [
   "Does the capability surface narrow authority around the job, or mostly mirror a broad upstream API?",
   "Can the intended caller authenticate cleanly, with the right principal and scope?",
   "Does the install path preserve principal, scope, and budget attribution after setup, or only make the server easy to launch?",
+  "If a package manager writes config across several clients, can each client still keep its own authority, rollback, and trace evidence?",
   "If the server advertises a permission manifest or governance layer, does that declared boundary match the tools this caller can actually see and invoke?",
   "Which high-risk claims still need reality checks against live endpoints, schemas, repos, or pricing before promotion?",
   "What happens on timeout, retry, partial success, or auth expiry?",
@@ -328,7 +329,10 @@ const ARTICLE_JSON_LD = {
                 This is especially important for remote MCP. A global directory entry or a successful handshake says very little if the server is bound to the wrong principal, the wrong tenant, or a scope the actual workflow cannot use safely. That is why <a href="/blog/remote-mcp-liveness-vs-production-readiness" class="text-amber hover:text-amber-200 transition-colors">production readiness</a> is a stronger frame than uptime alone, and why <a href="/blog/remote-mcp-auth-identity-vs-authority" class="text-amber hover:text-amber-200 transition-colors">identity versus authority</a> is the useful follow-up question once remote auth appears to work.
               </p>
               <p>
-                Fresh operator signal this week also makes the install story more suspicious in a useful way. A deployment blueprint, one-click install, or marketplace card tells you setup got easier. It still does not answer which principal the runtime acts as after launch, which tools stay hidden until that principal exists, or whose quota burns when several agents share one upstream account.
+                Fresh operator signal this week also makes the install story more suspicious in a useful way. A deployment blueprint, one-click install, marketplace card, or MCP package manager tells you setup got easier. It still does not answer which principal the runtime acts as after launch, which tools stay hidden until that principal exists, or whose quota burns when several agents share one upstream account.
+              </p>
+              <p>
+                The package-manager version is sharper because it can copy the same server into Claude Code, Gemini CLI, Codex, Copilot, and other clients at once. That is only safe if config automation preserves each client&apos;s authority model, credential lane, rollback path, and trace evidence instead of making one convenient install look trusted everywhere.
               </p>
             </div>
             <div class="rounded-[28px] border border-slate-800 bg-surface/70 p-6 mt-6">

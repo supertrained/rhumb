@@ -38,6 +38,7 @@ const DEMO_FLAGS = [
   "tool results invent ad-hoc content types or edge-case shapes that the protocol itself cannot validate",
   "transport or middleware upgrades are treated as trust upgrades without proving the same boundaries",
   "gateway traces show span IDs but omit the policy, adapter, scope, credential, and quota context that shaped the call",
+  "package managers write shared config into many clients without preserving per-client authority, rollback, and trace context",
   "audit trails do not map actions back to principals and scopes",
 ];
 
@@ -49,6 +50,7 @@ const CHECKLIST = [
   "Governors: what stops runaway spend, writes, or token burn?",
   "Protocol contract: do tool results stay inside spec-valid types, mime metadata, and error shapes even on edge cases?",
   "Transport and middleware: does the adapter preserve identity, scope, typed errors, and quota attribution?",
+  "Install automation: when a package manager writes config across clients, does each client keep distinct authority, credentials, rollback, and trace evidence?",
   "Recovery: after partial failure, how does the caller re-verify state?",
   "Trace evidence: does every gateway trace carry the original actor, adapter version, policy bundle, redacted input class, caller-visible surface, downstream credential lane, and quota owner?",
   "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
@@ -424,7 +426,21 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              10. What still counts as a demo, not infrastructure
+              10. Package managers make install convenience part of the authority surface
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                A fresh MCP package-manager signal makes the install layer harder to dismiss as mere setup. When one command writes a server into Claude Code, Gemini CLI, Codex, Copilot, and other clients, the installer is now shaping several agent trust boundaries at once.
+              </p>
+              <p>
+                The readiness test is not whether config landed everywhere. It is whether each client still has the right principal, credential lane, scope filter, rollback path, and trace context after automation runs. If the package manager fans one broad server config across every client without preserving those fields, convenience has widened authority before the operator ever reviewed the first tool call.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              11. What still counts as a demo, not infrastructure
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>
@@ -443,7 +459,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              10. The checklist in one page
+              12. The checklist in one page
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
