@@ -264,6 +264,21 @@ def _validated_estimate_credential_mode(credential_mode: str | None) -> str:
     )
 
 
+def _validated_estimate_provider_filter(provider: str | None) -> str | None:
+    if provider is None:
+        return None
+
+    normalized = str(provider).strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'provider' filter.",
+        detail="Provide a non-empty provider slug or omit the filter.",
+    )
+
+
 def _compat_meta() -> dict[str, Any]:
     return {
         "api_version": "v2-alpha",
@@ -944,20 +959,21 @@ async def estimate_capability_v2(
     provider: str | None = Query(default=None),
 ) -> JSONResponse:
     canonical_credential_mode = _validated_estimate_credential_mode(credential_mode)
+    canonical_provider = _validated_estimate_provider_filter(provider)
     estimate_response = await _forward_internal(
         raw_request,
         method="GET",
         path=f"/v1/capabilities/{capability_id}/execute/estimate",
         params={
             "credential_mode": canonical_credential_mode,
-            **({"provider": provider} if provider else {}),
+            **({"provider": canonical_provider} if canonical_provider else {}),
         },
     )
 
     body = _rewrite_navigation_urls(estimate_response.json())
     body = _canonicalize_execute_body_provider_fields(
         body,
-        provider_slug=provider,
+        provider_slug=canonical_provider,
     )
     if estimate_response.status_code == 200 and isinstance(body.get("data"), dict):
         if body["data"].get("credential_mode") is not None:
