@@ -695,6 +695,43 @@ class RhumbManagedExecutor:
             payload = self._rename_field(payload, "files", "document") or payload
             return None, None, payload or None
 
+        if service_slug == "google-ai" and capability_id in {"ai.embed", "embed.text"}:
+            payload: dict[str, Any] = dict(params) if params else {}
+            if body:
+                payload.update(body)
+
+            raw_model = payload.get("model") or payload.get("m") or payload.get("embedding_model")
+            model = str(raw_model).strip() if raw_model not in (None, "") else ""
+            if model.startswith("models/"):
+                model = model.removeprefix("models/")
+            if model in {"", "embedding-001", "text-embedding-004"}:
+                # `embedding-001` and `text-embedding-004` are stale for the
+                # current Google Generative Language managed rail.  Normalize
+                # public smoke-test style requests onto the working Gemini
+                # embedding endpoint before path interpolation.
+                model = "gemini-embedding-001"
+            payload["model"] = model
+            payload.pop("m", None)
+            payload.pop("embedding_model", None)
+
+            if "task_type" in payload and "taskType" not in payload:
+                payload["taskType"] = payload.pop("task_type")
+            if "output_dimensionality" in payload and "outputDimensionality" not in payload:
+                payload["outputDimensionality"] = payload.pop("output_dimensionality")
+
+            if "content" not in payload:
+                text = None
+                for text_key in ("text", "input", "query"):
+                    if text_key in payload:
+                        text = payload.pop(text_key)
+                        break
+                if "parts" in payload:
+                    payload["content"] = {"parts": payload.pop("parts")}
+                elif text is not None:
+                    payload["content"] = {"parts": [{"text": str(text)}]}
+
+            return None, None, payload or None
+
         if service_slug == "algolia" and capability_id in {
             "search.index",
             "search.autocomplete",
