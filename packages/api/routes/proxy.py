@@ -458,7 +458,11 @@ def _validated_schema_snapshot_agent_id(agent_id: str) -> str:
     if normalized:
         return normalized
 
-    raise HTTPException(status_code=400, detail="Agent id filter cannot be blank")
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'agent_id' filter.",
+        detail="Provide a non-empty agent_id value or omit the filter.",
+    )
 
 
 def _validated_schema_snapshot_endpoint(endpoint: str) -> str:
@@ -467,7 +471,11 @@ def _validated_schema_snapshot_endpoint(endpoint: str) -> str:
     if normalized:
         return normalized
 
-    raise HTTPException(status_code=400, detail="Endpoint filter cannot be blank")
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'endpoint' filter.",
+        detail="Provide a non-empty endpoint path.",
+    )
 
 
 def _validated_proxy_metrics_agent_id(agent_id: str) -> str:
@@ -484,9 +492,10 @@ def _validated_schema_snapshot_limit(limit: int) -> int:
     if 1 <= limit <= 50:
         return limit
 
-    raise HTTPException(
-        status_code=400,
-        detail="Invalid limit: provide an integer between 1 and 50",
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 50.",
     )
 
 

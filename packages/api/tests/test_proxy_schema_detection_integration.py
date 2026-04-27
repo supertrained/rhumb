@@ -208,13 +208,28 @@ class TestProxySchemaIntegration:
         too_large = client.get("/v1/admin/schema/stripe/customers?limit=51")
 
         assert blank_agent.status_code == 400
-        assert blank_agent.json()["detail"] == "Agent id filter cannot be blank"
+        blank_agent_payload = blank_agent.json()
+        assert blank_agent_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert blank_agent_payload["error"]["message"] == "Invalid 'agent_id' filter."
+        assert (
+            blank_agent_payload["error"]["detail"]
+            == "Provide a non-empty agent_id value or omit the filter."
+        )
         assert blank_endpoint.status_code == 400
-        assert blank_endpoint.json()["detail"] == "Endpoint filter cannot be blank"
+        blank_endpoint_payload = blank_endpoint.json()
+        assert blank_endpoint_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert blank_endpoint_payload["error"]["message"] == "Invalid 'endpoint' filter."
+        assert blank_endpoint_payload["error"]["detail"] == "Provide a non-empty endpoint path."
         assert too_small.status_code == 400
-        assert too_small.json()["detail"] == "Invalid limit: provide an integer between 1 and 50"
+        too_small_payload = too_small.json()
+        assert too_small_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert too_small_payload["error"]["message"] == "Invalid 'limit' filter."
+        assert too_small_payload["error"]["detail"] == "Provide an integer between 1 and 50."
         assert too_large.status_code == 400
-        assert too_large.json()["detail"] == "Invalid limit: provide an integer between 1 and 50"
+        too_large_payload = too_large.json()
+        assert too_large_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert too_large_payload["error"]["message"] == "Invalid 'limit' filter."
+        assert too_large_payload["error"]["detail"] == "Provide an integer between 1 and 50."
 
     def test_admin_schema_endpoint_trims_valid_endpoint(
         self, client: TestClient, httpx_mock
