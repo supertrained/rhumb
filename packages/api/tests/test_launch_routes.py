@@ -86,6 +86,54 @@ def test_capture_click_event_canonicalizes_alias_backed_service_slug(
     assert payload["service_slug"] == "brave-search-api"
 
 
+def test_capture_click_event_rejects_invalid_event_before_write(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    async def fail_insert(table: str, payload: dict[str, object]) -> bool:
+        raise AssertionError("Click write should not run for invalid event type")
+
+    monkeypatch.setattr("routes.launch.supabase_insert", fail_insert)
+
+    response = client.post(
+        "/v1/clicks",
+        json={
+            "event_type": "page_view",
+            "destination_url": "https://stripe.com/docs",
+        },
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'event_type' field."
+    assert "provider_click" in payload["error"]["detail"]
+
+
+def test_capture_click_event_rejects_invalid_destination_before_write(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    async def fail_insert(table: str, payload: dict[str, object]) -> bool:
+        raise AssertionError("Click write should not run for invalid destination")
+
+    monkeypatch.setattr("routes.launch.supabase_insert", fail_insert)
+
+    response = client.post(
+        "/v1/clicks",
+        json={
+            "event_type": "provider_click",
+            "destination_url": "javascript:alert(1)",
+        },
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'destination_url' field."
+    assert "http" in payload["error"]["detail"]
+
+
 def test_build_launch_dashboard_canonicalizes_alias_backed_service_slugs() -> None:
     payload = build_launch_dashboard(
         query_logs=[

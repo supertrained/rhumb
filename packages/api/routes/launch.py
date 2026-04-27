@@ -58,16 +58,28 @@ def _validated_dashboard_window(window: str) -> str:
 def _extract_destination_domain(destination_url: str) -> str:
     parsed = urlsplit(destination_url)
     if parsed.scheme not in ALLOWED_DESTINATION_SCHEMES:
-        raise HTTPException(status_code=400, detail="Unsupported destination URL scheme.")
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'destination_url' field.",
+            detail="Use an http, https, or mailto destination URL.",
+        )
 
     if parsed.scheme == "mailto":
         address = parsed.path.rsplit("@", maxsplit=1)
         if len(address) != 2 or not address[1]:
-            raise HTTPException(status_code=400, detail="Invalid mailto destination.")
+            raise RhumbError(
+                "INVALID_PARAMETERS",
+                message="Invalid 'destination_url' field.",
+                detail="Use a valid mailto destination with a recipient domain.",
+            )
         return address[1].lower()
 
     if not parsed.netloc:
-        raise HTTPException(status_code=400, detail="Destination URL must include a hostname.")
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'destination_url' field.",
+            detail="HTTP destination URLs must include a hostname.",
+        )
     return parsed.netloc.lower()
 
 
@@ -75,7 +87,11 @@ def _extract_destination_domain(destination_url: str) -> str:
 async def capture_click_event(body: ClickEventRequest, request: Request) -> dict:
     """Capture an outbound click event for launch tracking."""
     if body.event_type not in ALLOWED_CLICK_EVENTS:
-        raise HTTPException(status_code=400, detail="Unsupported click event type.")
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'event_type' field.",
+            detail=f"Use one of: {', '.join(sorted(ALLOWED_CLICK_EVENTS))}.",
+        )
 
     destination_domain = _extract_destination_domain(body.destination_url)
     referer = request.headers.get("referer")
