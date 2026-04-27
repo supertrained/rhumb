@@ -450,6 +450,15 @@ def _validated_schema_snapshot_agent_id(agent_id: str) -> str:
     raise HTTPException(status_code=400, detail="Agent id filter cannot be blank")
 
 
+def _validated_schema_snapshot_endpoint(endpoint: str) -> str:
+    """Normalize and validate the admin schema-snapshot endpoint path."""
+    normalized = str(endpoint).strip().lstrip("/")
+    if normalized:
+        return normalized
+
+    raise HTTPException(status_code=400, detail="Endpoint filter cannot be blank")
+
+
 def _validated_proxy_metrics_agent_id(agent_id: str) -> str:
     """Normalize and validate the public proxy-metrics agent filter."""
     normalized = str(agent_id).strip()
@@ -1100,12 +1109,13 @@ async def get_schema_snapshot(
 ) -> dict[str, Any]:
     """Return latest schema fingerprint and recent change history."""
     proxy_service = _normalize_proxy_service_name(service)
-    _get_service_config(proxy_service)
+    validated_endpoint = _validated_schema_snapshot_endpoint(endpoint)
     validated_agent_id = _validated_schema_snapshot_agent_id(agent_id)
     validated_limit = _validated_schema_snapshot_limit(limit)
+    _get_service_config(proxy_service)
 
     detector = get_schema_detector()
-    schema_endpoint = _schema_endpoint_key(validated_agent_id, endpoint)
+    schema_endpoint = _schema_endpoint_key(validated_agent_id, validated_endpoint)
     fingerprint = detector.get_latest_fingerprint(
         proxy_service,
         schema_endpoint,
@@ -1127,7 +1137,7 @@ async def get_schema_snapshot(
     return {
         "data": {
             "service": _public_proxy_service_name(proxy_service),
-            "endpoint": endpoint,
+            "endpoint": validated_endpoint,
             "agent_id": validated_agent_id,
             "latest_fingerprint": {
                 "hash": fingerprint.fingerprint_hash if fingerprint else None,
