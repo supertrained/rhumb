@@ -202,7 +202,7 @@ describe("types.contract", () => {
     expect(rootReadme).not.toContain("wallet-prefunded API key");
 
     expect(mcpReadme).toContain("**No governed API key needed for discovery.** Install and start immediately:");
-    expect(rootReadme).toContain("**Rhumb is an agent gateway for external tools.**");
+    expect(rootReadme).toContain("Rhumb is an agent gateway for external tools");
     expect(rootReadme).toContain("**Index ranks. Resolve routes.**");
     expect(rootReadme).toContain("### Repository visibility map");
     expect(rootReadme).toContain("Broad discovery is not the same as execution readiness");
