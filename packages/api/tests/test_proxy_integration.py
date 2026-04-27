@@ -27,6 +27,7 @@ from routes.proxy import (
     router as proxy_router,
 )
 from services.proxy_breaker import BreakerRegistry, BreakerState
+from services.error_envelope import RhumbError, rhumb_error_handler
 from services.proxy_latency import LatencyTracker
 from services.proxy_pool import PoolManager
 
@@ -62,6 +63,7 @@ def fresh_state():
 def app(fresh_state):
     """Create test FastAPI app with proxy router."""
     test_app = FastAPI()
+    test_app.add_exception_handler(RhumbError, rhumb_error_handler)
     test_app.include_router(proxy_router, prefix="/proxy")
     return test_app
 
@@ -444,7 +446,10 @@ class TestIntegrationStats:
             response = client.get("/proxy/metrics/stripe?agent_id=%20%20")
 
         assert response.status_code == 400
-        assert response.json()["detail"] == "Agent id filter cannot be blank"
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'agent_id' filter."
+        assert payload["error"]["detail"] == "Provide a non-empty agent_id value or omit the filter."
         mock_tracker.assert_not_called()
 
     def test_metrics_endpoint_invalid_service(self, client) -> None:

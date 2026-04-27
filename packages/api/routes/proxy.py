@@ -484,7 +484,11 @@ def _validated_proxy_metrics_agent_id(agent_id: str) -> str:
     if normalized:
         return normalized
 
-    raise HTTPException(status_code=400, detail="Agent id filter cannot be blank")
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'agent_id' filter.",
+        detail="Provide a non-empty agent_id value or omit the filter.",
+    )
 
 
 def _validated_schema_snapshot_limit(limit: int) -> int:
