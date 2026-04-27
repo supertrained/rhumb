@@ -294,6 +294,38 @@ def test_usage_endpoint_rejects_invalid_days_before_reads(client: TestClient) ->
     mock_fetch.assert_not_called()
 
 
+def test_usage_endpoint_rejects_invalid_group_by_before_reads(client: TestClient) -> None:
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get("/v1/telemetry/usage", params={"group_by": "minute"})
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'group_by' filter."
+    assert body["error"]["detail"] == "Use one of: capability, provider, day, hour."
+    mock_fetch.assert_not_called()
+
+
+def test_usage_endpoint_normalizes_group_by_filter(client: TestClient) -> None:
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock, return_value=[]),
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get("/v1/telemetry/usage", params={"group_by": " HOUR "})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["error"] is None
+    assert body["data"]["by_time"] == []
+
+
 def test_provider_health_canonicalizes_alias_backed_provider_ids() -> None:
     now = datetime.now(timezone.utc)
     rows = [

@@ -122,6 +122,21 @@ def _validated_success_filter(value: Any) -> bool | None:
     )
 
 
+def _validated_group_by_filter(value: str | None) -> Literal["capability", "provider", "day", "hour"] | None:
+    if value is None:
+        return None
+
+    normalized = value.strip().lower()
+    if normalized in {"capability", "provider", "day", "hour"}:
+        return normalized  # type: ignore[return-value]
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'group_by' filter.",
+        detail="Use one of: capability, provider, day, hour.",
+    )
+
+
 def _canonicalize_known_provider_aliases(text: Any) -> str | None:
     if text is None:
         return None
@@ -492,9 +507,9 @@ async def get_usage_telemetry(
     days: int = Query(7, description="Lookback window in days."),
     capability_id: str | None = Query(None, description="Filter to a capability ID."),
     provider: str | None = Query(None, description="Filter to a provider."),
-    group_by: Literal["capability", "provider", "day", "hour"] | None = Query(
+    group_by: str | None = Query(
         None,
-        description="Primary aggregation axis.",
+        description="Primary aggregation axis: capability, provider, day, or hour.",
     ),
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
@@ -512,6 +527,7 @@ async def get_usage_telemetry(
     capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
     provider = _validated_optional_filter(provider, field_name="provider")
     days = _validated_int_range(days, field_name="days", minimum=1, maximum=90)
+    group_by = _validated_group_by_filter(group_by)
     start_at = _utcnow() - timedelta(days=days)
     rows = await supabase_fetch(
         _build_usage_query(
