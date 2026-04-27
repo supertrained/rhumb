@@ -312,14 +312,13 @@ def test_get_service_evidence_rejects_invalid_kind_before_query(
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["status"] == 400
-    assert payload["error"] == "bad_request"
-    assert payload["detail"] == (
-        "Invalid kind: use one of failure_mode, latency_snapshot, circuit_state, "
-        "schema_change, credential_lifecycle, support_state, usage_summary"
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'kind' filter."
+    assert payload["error"]["detail"] == (
+        "Use one of: failure_mode, latency_snapshot, circuit_state, "
+        "schema_change, credential_lifecycle, support_state, usage_summary."
     )
-    assert payload["resolution"] == "Check the request parameters and try again."
-    assert payload.get("request_id")
+    assert payload["error"].get("request_id")
 
 
 def test_get_service_evidence_rejects_blank_kind_before_query(
@@ -337,12 +336,52 @@ def test_get_service_evidence_rejects_blank_kind_before_query(
 
     assert response.status_code == 400
     payload = response.json()
-    assert payload["status"] == 400
-    assert payload["error"] == "bad_request"
-    assert payload["detail"] == "Invalid kind: provide a non-empty evidence kind"
-    assert payload["resolution"] == "Check the request parameters and try again."
-    assert payload.get("request_id")
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'kind' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty evidence kind or omit the filter."
+    assert payload["error"].get("request_id")
 
+
+def test_get_service_reviews_rejects_blank_slug_before_query(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank service slugs should fail before opening review reads."""
+
+    async def _unexpected_fetch(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("_cached_fetch should not run for blank service slugs")
+
+    monkeypatch.setattr(reviews_module, "_cached_fetch", _unexpected_fetch)
+
+    response = client.get("/v1/services/%20%20%20/reviews")
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'slug' path parameter."
+    assert payload["error"]["detail"] == "Provide a non-empty service slug."
+    assert payload["error"].get("request_id")
+
+
+def test_get_service_evidence_rejects_blank_slug_before_query(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank service slugs should fail before opening evidence reads."""
+
+    async def _unexpected_fetch(*_args: Any, **_kwargs: Any) -> Any:
+        raise AssertionError("_cached_fetch should not run for blank service slugs")
+
+    monkeypatch.setattr(reviews_module, "_cached_fetch", _unexpected_fetch)
+
+    response = client.get("/v1/services/%20%20%20/evidence", params={"kind": "failure_mode"})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'slug' path parameter."
+    assert payload["error"]["detail"] == "Provide a non-empty service slug."
+    assert payload["error"].get("request_id")
 
 
 def test_get_service_evidence_returns_filtered_rows_and_utc_freshness(

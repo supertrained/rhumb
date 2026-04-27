@@ -7,10 +7,11 @@ from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse
 
 from routes._supabase import cached_query, supabase_fetch
+from services.error_envelope import RhumbError
 from services.service_slugs import (
     CANONICAL_TO_PROXY,
     public_service_slug,
@@ -65,6 +66,18 @@ async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECO
 
 def _public_service_input_slug(service_slug: str | None) -> str:
     return public_service_slug(service_slug) or str(service_slug or "").strip().lower()
+
+
+def _validated_service_path_slug(service_slug: str | None) -> str:
+    canonical_slug = _public_service_input_slug(service_slug)
+    if canonical_slug:
+        return canonical_slug
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'slug' path parameter.",
+        detail="Provide a non-empty service slug.",
+    )
 
 
 async def _service_exists(service_slug: str) -> bool:
@@ -157,16 +170,18 @@ def _validated_evidence_kind(kind: str | None) -> str | None:
 
     normalized = kind.strip().lower()
     if not normalized:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid kind: provide a non-empty evidence kind",
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'kind' filter.",
+            detail="Provide a non-empty evidence kind or omit the filter.",
         )
 
     if normalized not in _VALID_EVIDENCE_KIND_SET:
         valid_kinds = ", ".join(_VALID_EVIDENCE_KINDS)
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid kind: use one of {valid_kinds}",
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'kind' filter.",
+            detail=f"Use one of: {valid_kinds}.",
         )
 
     return normalized
@@ -356,8 +371,8 @@ async def _fetch_review_evidence(review_ids: list[str]) -> tuple[dict[str, list[
 @router.get("/services/{slug}/reviews")
 async def get_service_reviews(slug: str, raw_request: Request) -> dict[str, Any]:
     """Return published reviews for one service."""
-    canonical_slug = _public_service_input_slug(slug)
-    slug_candidates = public_service_slug_candidates(slug)
+    canonical_slug = _validated_service_path_slug(slug)
+    slug_candidates = public_service_slug_candidates(canonical_slug)
     reviews = await _cached_fetch(
         "service_reviews",
         "service_reviews"
@@ -440,8 +455,8 @@ async def get_service_evidence(
 ) -> dict[str, Any]:
     """Return evidence records for one service."""
     normalized_kind = _validated_evidence_kind(kind)
-    canonical_slug = _public_service_input_slug(slug)
-    slug_candidates = public_service_slug_candidates(slug)
+    canonical_slug = _validated_service_path_slug(slug)
+    slug_candidates = public_service_slug_candidates(canonical_slug)
     path = (
         "evidence_records"
         f"?service_slug=in.({_postgrest_in(slug_candidates)})"
