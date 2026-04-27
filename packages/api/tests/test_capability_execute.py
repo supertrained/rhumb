@@ -902,7 +902,27 @@ async def test_estimate_rejects_invalid_credential_mode_parameter(app):
             )
 
     assert resp.status_code == 400
-    assert "credential_mode" in resp.json()["detail"]
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'credential_mode' filter."
+    assert mock_fetch.await_count == 0
+
+
+@pytest.mark.anyio
+async def test_estimate_rejects_blank_credential_mode_before_auth_or_reads(app, _mock_identity_store):
+    with patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/execute/estimate",
+                params={"credential_mode": "   "},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'credential_mode' filter."
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
     assert mock_fetch.await_count == 0
 
 
@@ -917,7 +937,9 @@ async def test_estimate_rejects_blank_provider_filter_before_reads(app):
             )
 
     assert resp.status_code == 400
-    assert resp.json()["detail"] == "Invalid 'provider' parameter. Provide a non-empty provider slug."
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'provider' filter."
     assert mock_fetch.await_count == 0
 
 

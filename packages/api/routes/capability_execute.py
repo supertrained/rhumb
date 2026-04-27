@@ -91,6 +91,7 @@ from services.service_slugs import (
     public_service_slug_candidates,
 )
 from services.db_connection_registry import AgentVaultDsnError, issue_agent_vault_dsn_token
+from services.error_envelope import RhumbError
 
 _budget_enforcer = BudgetEnforcer()
 _credit_deduction = CreditDeductionService()
@@ -1687,11 +1688,39 @@ def _validated_provider_filter(provider: str | None) -> str | None:
         return None
     normalized = str(provider).strip()
     if not normalized:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid 'provider' parameter. Provide a non-empty provider slug.",
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'provider' filter.",
+            detail="Provide a non-empty provider slug or omit the filter.",
         )
     return normalized
+
+
+def _validated_estimate_credential_mode(credential_mode: str | None) -> str:
+    """Normalize estimate credential-mode filters before auth or backing reads."""
+    normalized_input = str(credential_mode or "").strip()
+    if not normalized_input:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'credential_mode' filter.",
+            detail=(
+                "Use one of: auto, byok, rhumb_managed, agent_vault. "
+                "Legacy 'byo' is accepted as 'byok'."
+            ),
+        )
+
+    normalized = _canonicalize_credential_mode(normalized_input)
+    if normalized in _VALID_EXECUTE_CREDENTIAL_MODES:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'credential_mode' filter.",
+        detail=(
+            "Use one of: auto, byok, rhumb_managed, agent_vault. "
+            "Legacy 'byo' is accepted as 'byok'."
+        ),
+    )
 
 
 def _parse_credential_modes(raw_modes: Any) -> list[str]:
@@ -3904,19 +3933,7 @@ async def estimate_capability(
     This lets x402 agents discover pricing before paying.
     """
     provider = _validated_provider_filter(provider)
-    normalized_credential_mode = _canonicalize_credential_mode(credential_mode)
-    if (
-        normalized_credential_mode is None
-        and str(credential_mode or "").strip()
-    ) or normalized_credential_mode not in _VALID_EXECUTE_CREDENTIAL_MODES:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Invalid 'credential_mode' parameter. Use one of: auto, byok, rhumb_managed, agent_vault. "
-                "Legacy 'byo' is accepted as 'byok'."
-            ),
-        )
-    credential_mode = normalized_credential_mode or "auto"
+    credential_mode = _validated_estimate_credential_mode(credential_mode)
 
     # Authenticate if API key provided; otherwise allow anonymous estimate
     agent_id: Optional[str] = None
