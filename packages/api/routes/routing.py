@@ -153,8 +153,8 @@ async def get_spend(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Get spend breakdown for the authenticated agent."""
-    agent_id = await _extract_agent_id(x_rhumb_key)
     normalized_period = _normalize_spend_period(period)
+    agent_id = await _extract_agent_id(x_rhumb_key)
     summary = await _engine.get_spend_summary(agent_id, normalized_period)
     return SpendResponse(
         **{
