@@ -41,7 +41,10 @@ def fresh_schema_state() -> None:
 
 @pytest.fixture
 def app(fresh_schema_state) -> FastAPI:
+    from services.error_envelope import RhumbError, rhumb_error_handler
+
     test_app = FastAPI()
+    test_app.add_exception_handler(RhumbError, rhumb_error_handler)
     test_app.include_router(proxy_router, prefix="/v1/proxy")
     test_app.include_router(proxy_admin_router, prefix="/v1")
     test_app.include_router(leaderboard_router, prefix="/v1")
@@ -479,10 +482,10 @@ class TestProxySchemaIntegration:
         response = client.get("/v1/admin/schema-alerts?severity=offline")
 
         assert response.status_code == 400
-        assert (
-            response.json()["detail"]
-            == "Invalid severity: use one of advisory, non_breaking, breaking"
-        )
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'severity' filter."
+        assert payload["error"]["detail"] == "Use one of: advisory, non_breaking, breaking."
 
     def test_admin_schema_alerts_reject_blank_filters_before_read(
         self, client: TestClient, monkeypatch: pytest.MonkeyPatch
@@ -496,9 +499,21 @@ class TestProxySchemaIntegration:
         blank_severity = client.get("/v1/admin/schema-alerts?severity=%20%20")
 
         assert blank_service.status_code == 400
-        assert blank_service.json()["detail"] == "Service filter cannot be blank"
+        blank_service_payload = blank_service.json()
+        assert blank_service_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert blank_service_payload["error"]["message"] == "Invalid 'service' filter."
+        assert (
+            blank_service_payload["error"]["detail"]
+            == "Provide a non-empty service value or omit the filter."
+        )
         assert blank_severity.status_code == 400
-        assert blank_severity.json()["detail"] == "Severity filter cannot be blank"
+        blank_severity_payload = blank_severity.json()
+        assert blank_severity_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert blank_severity_payload["error"]["message"] == "Invalid 'severity' filter."
+        assert (
+            blank_severity_payload["error"]["detail"]
+            == "Provide a non-empty severity value or omit the filter."
+        )
 
     def test_admin_schema_alerts_reject_invalid_limit_before_read(
         self, client: TestClient, monkeypatch: pytest.MonkeyPatch
@@ -512,6 +527,12 @@ class TestProxySchemaIntegration:
         too_large = client.get("/v1/admin/schema-alerts?limit=101")
 
         assert too_small.status_code == 400
-        assert too_small.json()["detail"] == "Invalid limit: provide an integer between 1 and 100"
+        too_small_payload = too_small.json()
+        assert too_small_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert too_small_payload["error"]["message"] == "Invalid 'limit' filter."
+        assert too_small_payload["error"]["detail"] == "Provide an integer between 1 and 100."
         assert too_large.status_code == 400
-        assert too_large.json()["detail"] == "Invalid limit: provide an integer between 1 and 100"
+        too_large_payload = too_large.json()
+        assert too_large_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert too_large_payload["error"]["message"] == "Invalid 'limit' filter."
+        assert too_large_payload["error"]["detail"] == "Provide an integer between 1 and 100."

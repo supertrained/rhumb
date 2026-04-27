@@ -46,6 +46,7 @@ from schemas.agent_identity import (
 )
 from services.agent_access_control import AgentAccessControl, get_agent_access_control
 from services.agent_rate_limit import AgentRateLimitChecker, get_agent_rate_limit_checker
+from services.error_envelope import RhumbError
 from services.proxy_auth import AuthInjectionRequest, AuthInjector, get_auth_injector
 from services.proxy_credentials import get_credential_store
 from services.proxy_finalizer import (
@@ -407,13 +408,18 @@ def _validated_schema_alert_severity(severity: str | None) -> str | None:
 
     normalized = severity.strip().lower()
     if not normalized:
-        raise HTTPException(status_code=400, detail="Severity filter cannot be blank")
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'severity' filter.",
+            detail="Provide a non-empty severity value or omit the filter.",
+        )
 
     if normalized not in _SCHEMA_ALERT_SEVERITY_SET:
         valid_severities = ", ".join(_SCHEMA_ALERT_SEVERITIES)
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid severity: use one of {valid_severities}",
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'severity' filter.",
+            detail=f"Use one of: {valid_severities}.",
         )
 
     return normalized
@@ -425,7 +431,11 @@ def _validated_schema_alert_service(service: str | None) -> str | None:
         return None
 
     if not str(service).strip():
-        raise HTTPException(status_code=400, detail="Service filter cannot be blank")
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'service' filter.",
+            detail="Provide a non-empty service value or omit the filter.",
+        )
 
     return _normalize_proxy_service_name(service)
 
@@ -435,9 +445,10 @@ def _validated_schema_alert_limit(limit: int) -> int:
     if 1 <= limit <= 100:
         return limit
 
-    raise HTTPException(
-        status_code=400,
-        detail="Invalid limit: provide an integer between 1 and 100",
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 100.",
     )
 
 
