@@ -397,6 +397,36 @@ def _public_proxy_service_name(service: str | None) -> str | None:
     return canonicalize_service_slug(str(service).strip()) if service else None
 
 
+def _valid_public_proxy_service_names() -> list[str]:
+    """Return public proxy service ids accepted by proxy/admin path surfaces."""
+    public_names = {
+        _public_proxy_service_name(service) or service
+        for service in SERVICE_REGISTRY
+    }
+    return sorted(name for name in public_names if name)
+
+
+def _validated_proxy_service_path(service: str) -> str:
+    """Normalize and validate proxy path service ids before metric/schema reads."""
+    public_service = _public_proxy_service_name(service)
+    if not public_service:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'service' path parameter.",
+            detail="Provide a non-empty service id.",
+        )
+
+    proxy_service = normalize_proxy_slug(public_service)
+    if proxy_service in SERVICE_REGISTRY:
+        return proxy_service
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'service' path parameter.",
+        detail=f"Use one of: {', '.join(_valid_public_proxy_service_names())}.",
+    )
+
+
 _SCHEMA_ALERT_SEVERITIES = ("advisory", "non_breaking", "breaking")
 _SCHEMA_ALERT_SEVERITY_SET = set(_SCHEMA_ALERT_SEVERITIES)
 
@@ -1095,8 +1125,7 @@ async def proxy_metrics(service: str, agent_id: str = "default") -> dict:
     Returns:
         Latency snapshot with P50/P95/P99 percentiles.
     """
-    proxy_service = _normalize_proxy_service_name(service)
-    _get_service_config(proxy_service)  # Validate service exists
+    proxy_service = _validated_proxy_service_path(service)
     validated_agent_id = _validated_proxy_metrics_agent_id(agent_id)
 
     tracker = get_latency_tracker()
@@ -1132,11 +1161,10 @@ async def get_schema_snapshot(
     limit: int = Query(default=5),
 ) -> dict[str, Any]:
     """Return latest schema fingerprint and recent change history."""
-    proxy_service = _normalize_proxy_service_name(service)
+    proxy_service = _validated_proxy_service_path(service)
     validated_endpoint = _validated_schema_snapshot_endpoint(endpoint)
     validated_agent_id = _validated_schema_snapshot_agent_id(agent_id)
     validated_limit = _validated_schema_snapshot_limit(limit)
-    _get_service_config(proxy_service)
 
     detector = get_schema_detector()
     schema_endpoint = _schema_endpoint_key(validated_agent_id, validated_endpoint)

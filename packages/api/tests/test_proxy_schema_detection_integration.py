@@ -202,11 +202,23 @@ class TestProxySchemaIntegration:
 
         monkeypatch.setattr(proxy_module, "get_schema_detector", fail_if_schema_detector_opens)
 
+        blank_service = client.get(f"/v1/admin/schema/%20%20/customers?agent_id={_BYPASS_AGENT_ID}")
+        invalid_service = client.get(f"/v1/admin/schema/not-a-service/customers?agent_id={_BYPASS_AGENT_ID}")
         blank_agent = client.get("/v1/admin/schema/stripe/customers?agent_id=%20%20")
         blank_endpoint = client.get(f"/v1/admin/schema/stripe/%20%20?agent_id={_BYPASS_AGENT_ID}")
         too_small = client.get("/v1/admin/schema/stripe/customers?limit=0")
         too_large = client.get("/v1/admin/schema/stripe/customers?limit=51")
 
+        assert blank_service.status_code == 400
+        blank_service_payload = blank_service.json()
+        assert blank_service_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert blank_service_payload["error"]["message"] == "Invalid 'service' path parameter."
+        assert blank_service_payload["error"]["detail"] == "Provide a non-empty service id."
+        assert invalid_service.status_code == 400
+        invalid_service_payload = invalid_service.json()
+        assert invalid_service_payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert invalid_service_payload["error"]["message"] == "Invalid 'service' path parameter."
+        assert "stripe" in invalid_service_payload["error"]["detail"]
         assert blank_agent.status_code == 400
         blank_agent_payload = blank_agent.json()
         assert blank_agent_payload["error"]["code"] == "INVALID_PARAMETERS"

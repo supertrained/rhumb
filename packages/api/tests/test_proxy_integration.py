@@ -453,9 +453,28 @@ class TestIntegrationStats:
         mock_tracker.assert_not_called()
 
     def test_metrics_endpoint_invalid_service(self, client) -> None:
-        """Metrics endpoint for invalid service returns 400."""
-        response = client.get("/proxy/metrics/nonexistent")
+        """Metrics endpoint for invalid service returns a canonical envelope."""
+        with patch("routes.proxy.get_latency_tracker") as mock_tracker:
+            response = client.get("/proxy/metrics/nonexistent")
+
         assert response.status_code == 400
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'service' path parameter."
+        assert "stripe" in payload["error"]["detail"]
+        mock_tracker.assert_not_called()
+
+    def test_metrics_endpoint_rejects_blank_service_before_metric_reads(self, client) -> None:
+        """Blank service path values should not open proxy metric stores."""
+        with patch("routes.proxy.get_latency_tracker") as mock_tracker:
+            response = client.get("/proxy/metrics/%20%20")
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'service' path parameter."
+        assert payload["error"]["detail"] == "Provide a non-empty service id."
+        mock_tracker.assert_not_called()
 
 
 class TestIntegrationErrorCascade:
