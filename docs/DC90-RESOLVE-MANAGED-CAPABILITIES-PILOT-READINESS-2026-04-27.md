@@ -118,4 +118,4 @@ The execute call is a paid/authorized managed execution. Run it with a dogfood g
 - **Go:** controlled trusted-user pilot for `search.query` managed execution through governed keys.
 - **No-go:** public launch, broad unmanaged system-of-record pilot, or “all managed capabilities are ready” claim.
 - **Remaining action before invites:** run a final `search.query` governed execute smoke immediately before issuing keys, then mint capped keys for named trusted users. The broader managed-capability proof above is sufficient to update pilot positioning, but it does not remove the final per-invite smoke requirement.
-- **Next expansion action:** define safe fixtures for skipped side-effect/resource/cost-bearing managed surfaces before testing or offering them.
+- **Next expansion action:** use `docs/DC90-MANAGED-CAPABILITY-SAFE-FIXTURES-2026-04-27.md` to run green fixtures one at a time, and keep amber/red side-effect/resource/cost-bearing surfaces skipped until their gates are satisfied.
