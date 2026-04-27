@@ -279,6 +279,18 @@ def _validated_estimate_provider_filter(provider: str | None) -> str | None:
     )
 
 
+def _validated_capability_path_id(capability_id: str) -> str:
+    normalized = str(capability_id or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'capability_id' path parameter.",
+        detail="Provide a non-empty capability id from GET /v2/capabilities.",
+    )
+
+
 def _compat_meta() -> dict[str, Any]:
     return {
         "api_version": "v2-alpha",
@@ -838,6 +850,7 @@ async def resolve_capability_v2(
         description="Filter by credential mode (byok, rhumb_managed, agent_vault; legacy byo accepted).",
     ),
 ) -> JSONResponse:
+    capability_id = _validated_capability_path_id(capability_id)
     canonical_credential_mode = _validated_credential_mode_filter(credential_mode)
     resolve_response = await _forward_internal(
         raw_request,
@@ -867,6 +880,7 @@ async def get_credential_modes_v2(
     capability_id: str,
     raw_request: Request,
 ) -> JSONResponse:
+    capability_id = _validated_capability_path_id(capability_id)
     modes_response = await _forward_internal(
         raw_request,
         method="GET",
@@ -958,6 +972,7 @@ async def estimate_capability_v2(
     ),
     provider: str | None = Query(default=None),
 ) -> JSONResponse:
+    capability_id = _validated_capability_path_id(capability_id)
     canonical_credential_mode = _validated_estimate_credential_mode(credential_mode)
     canonical_provider = _validated_estimate_provider_filter(provider)
     estimate_response = await _forward_internal(

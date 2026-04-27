@@ -806,6 +806,28 @@ async def test_list_capabilities_rejects_blank_search_before_registry_reads(app)
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v1/capabilities/%20%20%20",
+        "/v1/capabilities/%20%20%20/resolve",
+        "/v1/capabilities/%20%20%20/credential-modes",
+    ],
+)
+async def test_capability_path_reads_reject_blank_ids_before_catalog_reads(app, path):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(path)
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'capability_id' path parameter."
+    assert body["error"]["detail"] == "Provide a non-empty capability id from GET /v1/capabilities."
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_list_capabilities_intent_search_matches_spaced_queries(app):
     """Intent-style searches should match dotted/underscored capability IDs."""
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_intent_supabase):

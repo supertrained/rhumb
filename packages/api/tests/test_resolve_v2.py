@@ -518,6 +518,28 @@ async def test_v2_resolve_rejects_invalid_credential_mode_filter_before_forward(
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/v2/capabilities/%20%20%20/resolve",
+        "/v2/capabilities/%20%20%20/credential-modes",
+        "/v2/capabilities/%20%20%20/execute/estimate",
+    ],
+)
+async def test_v2_capability_path_reads_reject_blank_ids_before_forward(app, path):
+    with patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(path)
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'capability_id' path parameter."
+    assert body["error"]["detail"] == "Provide a non-empty capability id from GET /v2/capabilities."
+    mock_forward.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_rewrites_nested_recovery_urls_for_alternate_handoff(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

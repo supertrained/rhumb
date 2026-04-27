@@ -1696,6 +1696,19 @@ def _validated_provider_filter(provider: str | None) -> str | None:
     return normalized
 
 
+def _validated_capability_path_id(capability_id: str) -> str:
+    """Normalize capability path identifiers before auth or backing reads."""
+    normalized = str(capability_id or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'capability_id' path parameter.",
+        detail="Provide a non-empty capability id from GET /v1/capabilities.",
+    )
+
+
 def _validated_estimate_credential_mode(credential_mode: str | None) -> str:
     """Normalize estimate credential-mode filters before auth or backing reads."""
     normalized_input = str(credential_mode or "").strip()
@@ -3932,6 +3945,7 @@ async def estimate_capability(
     provider, cost, and circuit state but omits budget-specific fields.
     This lets x402 agents discover pricing before paying.
     """
+    capability_id = _validated_capability_path_id(capability_id)
     provider = _validated_provider_filter(provider)
     credential_mode = _validated_estimate_credential_mode(credential_mode)
 

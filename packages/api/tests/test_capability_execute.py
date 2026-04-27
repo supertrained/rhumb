@@ -944,6 +944,25 @@ async def test_estimate_rejects_blank_provider_filter_before_reads(app):
 
 
 @pytest.mark.anyio
+async def test_estimate_rejects_blank_capability_id_before_auth_or_reads(app, _mock_identity_store):
+    with patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/%20%20%20/execute/estimate",
+                params={"credential_mode": "byok"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'capability_id' path parameter."
+    assert body["error"]["detail"] == "Provide a non-empty capability id from GET /v1/capabilities."
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
+    assert mock_fetch.await_count == 0
+
+
+@pytest.mark.anyio
 async def test_estimate_accepts_canonical_alias_for_proxy_mapped_provider(app):
     """Estimate should accept canonical aliases like brave-search-api."""
 

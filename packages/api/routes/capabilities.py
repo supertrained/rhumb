@@ -204,6 +204,18 @@ def _validated_capability_search_filter(search: str | None) -> str | None:
     )
 
 
+def _validated_capability_path_id(capability_id: str) -> str:
+    normalized = str(capability_id or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'capability_id' path parameter.",
+        detail="Provide a non-empty capability id from GET /v1/capabilities.",
+    )
+
+
 def _canonicalize_known_provider_aliases(
     text: Any,
     *,
@@ -3258,6 +3270,8 @@ async def list_rhumb_managed() -> dict:
 @router.get("/capabilities/{capability_id}")
 async def get_capability(capability_id: str, raw_request: Request):
     """Get a single capability with full provider details."""
+    capability_id = _validated_capability_path_id(capability_id)
+
     caps = await _cached_fetch(
         "capabilities",
         f"capabilities?id=eq.{quote(capability_id)}"
@@ -3451,6 +3465,7 @@ async def resolve_capability(
     Includes circuit breaker state and execute_hint for direct execution.
     """
     credential_mode = _validated_resolve_credential_mode_filter(credential_mode)
+    capability_id = _validated_capability_path_id(capability_id)
 
     agent_id = x_rhumb_key or "anonymous"
     # Verify capability exists
@@ -3705,6 +3720,8 @@ async def get_credential_modes(
     Shows which modes each provider supports AND which the agent currently
     has configured. Agents use this to decide which mode to use at execution time.
     """
+    capability_id = _validated_capability_path_id(capability_id)
+
     agent_id = x_rhumb_key or "anonymous"
 
     # Verify capability
