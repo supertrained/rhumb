@@ -180,6 +180,18 @@ def _validated_recipe_list_offset(offset: int) -> int:
     )
 
 
+def _validated_recipe_path_id(recipe_id: str) -> str:
+    normalized = str(recipe_id or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'recipe_id' path parameter.",
+        detail="Provide a non-empty recipe_id from GET /v2/recipes.",
+    )
+
+
 async def _available_recipe_categories() -> set[str]:
     rows = await supabase_fetch("recipes?select=category&published=eq.true") or []
     return {
@@ -994,6 +1006,7 @@ async def list_recipes(
 
 @router.get("/recipes/{recipe_id}")
 async def get_recipe(recipe_id: str) -> JSONResponse:
+    recipe_id = _validated_recipe_path_id(recipe_id)
     row = await _fetch_recipe_row(recipe_id)
     if row is None:
         raise RhumbError(
@@ -1012,6 +1025,7 @@ async def execute_recipe(
     raw_request: Request,
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
+    recipe_id = _validated_recipe_path_id(recipe_id)
     api_key = raw_request.headers.get("X-Rhumb-Key")
     if not api_key:
         raise RhumbError(

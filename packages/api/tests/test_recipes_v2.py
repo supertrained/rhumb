@@ -318,6 +318,20 @@ async def test_get_recipe_returns_compiled_definition(app):
 
 
 @pytest.mark.anyio
+async def test_get_recipe_rejects_blank_recipe_id_before_reads(app):
+    with patch("routes.recipes_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v2/recipes/%20%20%20")
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'recipe_id' path parameter."
+    assert body["error"]["detail"] == "Provide a non-empty recipe_id from GET /v2/recipes."
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_execute_recipe_requires_valid_governed_api_key(app):
     with patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -337,6 +351,28 @@ async def test_execute_recipe_requires_valid_governed_api_key(app):
     assert body["error"]["code"] == "CREDENTIAL_MISSING"
     assert body["error"]["message"] == "Recipe execution requires a valid governed API key."
     assert body["error"]["detail"] == "Provide X-Rhumb-Key for Layer 3 recipe execution."
+
+
+@pytest.mark.anyio
+async def test_execute_recipe_rejects_blank_recipe_id_before_auth_or_reads(app):
+    with (
+        patch("routes.recipes_v2._resolve_policy_agent", new=AsyncMock()) as mock_resolve_agent,
+        patch("routes.recipes_v2.supabase_fetch", new=AsyncMock()) as mock_fetch,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v2/recipes/%20%20%20/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={"inputs": {}},
+            )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'recipe_id' path parameter."
+    assert body["error"]["detail"] == "Provide a non-empty recipe_id from GET /v2/recipes."
+    mock_resolve_agent.assert_not_awaited()
+    mock_fetch.assert_not_awaited()
 
 
 @pytest.mark.anyio
