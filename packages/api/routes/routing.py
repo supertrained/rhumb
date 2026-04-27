@@ -13,6 +13,7 @@ from typing import Optional
 from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from services.error_envelope import RhumbError
 from services.routing_engine import RoutingEngine
 from services.service_slugs import public_service_slug
 
@@ -28,12 +29,20 @@ def _normalize_spend_period(period: str | None) -> str | None:
 
     normalized = str(period).strip()
     if not normalized:
-        raise HTTPException(status_code=400, detail="Invalid period: use YYYY-MM")
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'period' filter.",
+            detail="Provide a period in YYYY-MM format or omit the filter.",
+        )
 
     try:
         datetime.strptime(normalized, "%Y-%m")
     except ValueError as exc:
-        raise HTTPException(status_code=400, detail="Invalid period: use YYYY-MM") from exc
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'period' filter.",
+            detail="Provide a period in YYYY-MM format or omit the filter.",
+        ) from exc
 
     return normalized
 

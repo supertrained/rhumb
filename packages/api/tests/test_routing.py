@@ -354,7 +354,10 @@ class TestRoutingRoutes:
             )
 
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "Invalid period: use YYYY-MM"
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid 'period' filter."
+        assert error["detail"] == "Provide a period in YYYY-MM format or omit the filter."
         mock_engine.get_spend_summary.assert_not_awaited()
 
     def test_get_spend_rejects_blank_period_filter_before_querying_engine(self):
@@ -367,7 +370,10 @@ class TestRoutingRoutes:
             )
 
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "Invalid period: use YYYY-MM"
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid 'period' filter."
+        assert error["detail"] == "Provide a period in YYYY-MM format or omit the filter."
         mock_engine.get_spend_summary.assert_not_awaited()
 
     def test_get_spend_rejects_invalid_period_filter_before_auth(self):
@@ -378,7 +384,10 @@ class TestRoutingRoutes:
             )
 
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "Invalid period: use YYYY-MM"
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid 'period' filter."
+        assert error["detail"] == "Provide a period in YYYY-MM format or omit the filter."
         mock_extract.assert_not_awaited()
 
     def test_get_spend_normalizes_valid_period_before_querying_engine(self):
