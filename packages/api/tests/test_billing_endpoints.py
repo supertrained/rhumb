@@ -281,10 +281,11 @@ class TestGetLedger:
 
         assert resp.status_code == 400
         payload = resp.json()
-        assert payload["error"] == "bad_request"
-        assert payload["detail"] == (
-            "Invalid event_type: use one of auto_reload_triggered, credit_added, debit, "
-            "reservation_released, wallet_topup, wallet_topup_added, x402_payment"
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'event_type' filter."
+        assert payload["error"]["detail"] == (
+            "Use one of: auto_reload_triggered, credit_added, debit, "
+            "reservation_released, wallet_topup, wallet_topup_added, x402_payment."
         )
         fetch_mock.assert_not_awaited()
         count_mock.assert_not_awaited()
@@ -305,23 +306,25 @@ class TestGetLedger:
 
         assert resp.status_code == 400
         payload = resp.json()
-        assert payload["error"] == "bad_request"
-        assert payload["detail"] == "Invalid event_type: provide a non-empty event_type or omit the filter"
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'event_type' filter."
+        assert payload["error"]["detail"] == "Provide a non-empty event_type or omit the filter."
         fetch_mock.assert_not_awaited()
         count_mock.assert_not_awaited()
 
     @pytest.mark.parametrize(
-        ("params", "detail"),
+        ("params", "field", "detail"),
         [
-            ({"limit": 999}, "Invalid limit: provide an integer between 1 and 200"),
-            ({"limit": 0}, "Invalid limit: provide an integer between 1 and 200"),
-            ({"offset": -1}, "Invalid offset: provide an integer greater than or equal to 0"),
+            ({"limit": 999}, "limit", "Provide an integer between 1 and 200."),
+            ({"limit": 0}, "limit", "Provide an integer between 1 and 200."),
+            ({"offset": -1}, "offset", "Provide an integer greater than or equal to 0."),
         ],
     )
     def test_invalid_pagination_rejected_before_supabase_reads(
         self,
         client: TestClient,
         params: dict[str, int],
+        field: str,
         detail: str,
     ) -> None:
         fetch_mock = AsyncMock()
@@ -339,8 +342,9 @@ class TestGetLedger:
 
         assert resp.status_code == 400
         payload = resp.json()
-        assert payload["error"] == "bad_request"
-        assert payload["detail"] == detail
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == f"Invalid '{field}' filter."
+        assert payload["error"]["detail"] == detail
         fetch_mock.assert_not_awaited()
         count_mock.assert_not_awaited()
 

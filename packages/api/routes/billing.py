@@ -25,6 +25,7 @@ from routes._supabase import (
 )
 from routes.auth_wallet import _require_wallet_session
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
+from services.error_envelope import RhumbError
 from services.payment_health import get_payment_health
 from services.payment_requests import PaymentRequestService
 from services.stripe_billing import create_checkout_session
@@ -120,16 +121,18 @@ def _validated_ledger_event_type(event_type: str | None) -> str | None:
 
     normalized = event_type.strip()
     if not normalized:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid event_type: provide a non-empty event_type or omit the filter",
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'event_type' filter.",
+            detail="Provide a non-empty event_type or omit the filter.",
         )
 
     if normalized not in VALID_LEDGER_EVENT_TYPES:
         valid_types = ", ".join(VALID_LEDGER_EVENT_TYPES)
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid event_type: use one of {valid_types}",
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'event_type' filter.",
+            detail=f"Use one of: {valid_types}.",
         )
 
     return normalized
@@ -139,9 +142,10 @@ def _validated_ledger_limit(limit: int) -> int:
     if 1 <= limit <= 200:
         return limit
 
-    raise HTTPException(
-        status_code=400,
-        detail="Invalid limit: provide an integer between 1 and 200",
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' filter.",
+        detail="Provide an integer between 1 and 200.",
     )
 
 
@@ -149,9 +153,10 @@ def _validated_ledger_offset(offset: int) -> int:
     if offset >= 0:
         return offset
 
-    raise HTTPException(
-        status_code=400,
-        detail="Invalid offset: provide an integer greater than or equal to 0",
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'offset' filter.",
+        detail="Provide an integer greater than or equal to 0.",
     )
 
 
