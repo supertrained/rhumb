@@ -15,6 +15,19 @@ from services.route_explanation import get_explanation, get_persisted_explanatio
 router = APIRouter()
 
 
+def _validated_explanation_id(explanation_id: str) -> str:
+    """Normalize and validate explanation path ids before opening explanation reads."""
+    normalized = str(explanation_id).strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'explanation_id' parameter.",
+        detail="Provide a non-empty explanation_id path value.",
+    )
+
+
 @router.get("/explanations/{explanation_id}")
 async def get_route_explanation(explanation_id: str) -> dict[str, Any]:
     """Retrieve a stored route explanation by ID.
@@ -23,6 +36,7 @@ async def get_route_explanation(explanation_id: str) -> dict[str, Any]:
     in-memory for query.  Layer 1 explanations are trivial (agent pinned)
     and also queryable here.
     """
+    explanation_id = _validated_explanation_id(explanation_id)
     explanation = get_explanation(explanation_id)
     if explanation is None:
         explanation = await get_persisted_explanation(explanation_id)

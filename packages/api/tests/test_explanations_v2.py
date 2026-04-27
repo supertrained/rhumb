@@ -110,3 +110,23 @@ def test_get_explanation_not_found_uses_explanation_code():
     body = resp.json()
     assert body["error"]["code"] == "EXPLANATION_NOT_FOUND"
     assert "rexp_missing" in body["error"]["message"]
+
+
+def test_get_explanation_rejects_blank_id_before_reads():
+    from app import create_app
+
+    client = TestClient(create_app())
+
+    with (
+        patch("routes.explanations_v2.get_explanation") as mock_hot_get,
+        patch("routes.explanations_v2.get_persisted_explanation", new_callable=AsyncMock) as mock_persisted_get,
+    ):
+        resp = client.get("/v2/explanations/%20%20")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'explanation_id' parameter."
+    assert body["error"]["detail"] == "Provide a non-empty explanation_id path value."
+    mock_hot_get.assert_not_called()
+    mock_persisted_get.assert_not_awaited()
