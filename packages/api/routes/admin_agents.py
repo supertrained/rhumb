@@ -22,6 +22,7 @@ from schemas.agent_identity import (
 from services.agent_access_control import AgentAccessControl, get_agent_access_control
 from services.agent_usage_analytics import AgentUsageAnalytics, get_usage_analytics
 from services.evidence_ingestion import EvidenceIngestionAdapter
+from services.error_envelope import RhumbError
 from services.service_slugs import public_service_slug
 
 router = APIRouter(tags=["admin-agents"])
@@ -35,7 +36,11 @@ def _validated_optional_text_filter(value: Optional[str], field: str) -> Optiona
         return None
     normalized = str(value).strip()
     if not normalized:
-        raise HTTPException(status_code=400, detail=f"Invalid {field}: must not be blank")
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field}' filter.",
+            detail=f"Provide a non-empty '{field}' value or omit the filter.",
+        )
     return normalized
 
 
@@ -46,9 +51,10 @@ def _validated_agent_status(status: Optional[str]) -> Optional[str]:
         return None
     normalized = normalized.lower()
     if normalized not in _AGENT_STATUSES:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid status: use one of active, disabled, deleted",
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'status' filter.",
+            detail="Use one of: active, disabled, deleted.",
         )
     return normalized
 
@@ -71,9 +77,10 @@ def _validated_usage_days(days: int) -> int:
     """Reject invalid usage windows before opening usage aggregation reads."""
     if 1 <= days <= 365:
         return days
-    raise HTTPException(
-        status_code=400,
-        detail="Invalid days: use an integer between 1 and 365",
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'days' filter.",
+        detail="Provide an integer between 1 and 365.",
     )
 
 

@@ -930,10 +930,10 @@ class TestAdminRoutes:
             resp = admin_client.get("/v1/admin/agents?status=offline")
 
         assert resp.status_code == 400
-        assert (
-            resp.json()["detail"]
-            == "Invalid status: use one of active, disabled, deleted"
-        )
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'status' filter."
+        assert payload["error"]["detail"] == "Use one of: active, disabled, deleted."
         mock_store.list_agents.assert_not_awaited()
 
     def test_list_agents_route_rejects_blank_filters_before_store_read(
@@ -951,7 +951,10 @@ class TestAdminRoutes:
                 resp = admin_client.get(f"/v1/admin/agents?{query}")
 
             assert resp.status_code == 400
-            assert resp.json()["detail"] == f"Invalid {field}: must not be blank"
+            payload = resp.json()
+            assert payload["error"]["code"] == "INVALID_PARAMETERS"
+            assert payload["error"]["message"] == f"Invalid '{field}' filter."
+            assert payload["error"]["detail"] == f"Provide a non-empty '{field}' value or omit the filter."
             mock_store.list_agents.assert_not_awaited()
 
     def test_get_agent_details_route(self, admin_client: TestClient) -> None:
@@ -1142,7 +1145,10 @@ class TestAdminRoutes:
             )
 
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "Invalid service: must not be blank"
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'service' filter."
+        assert payload["error"]["detail"] == "Provide a non-empty 'service' value or omit the filter."
         mock_analytics.get_usage_summary.assert_not_awaited()
 
     @pytest.mark.parametrize("days", ["0", "366"])
@@ -1164,7 +1170,10 @@ class TestAdminRoutes:
             )
 
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "Invalid days: use an integer between 1 and 365"
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'days' filter."
+        assert payload["error"]["detail"] == "Provide an integer between 1 and 365."
         mock_analytics.get_usage_summary.assert_not_awaited()
 
     def test_get_organization_usage_route_canonicalizes_alias_backed_runtime_rows(
@@ -1261,7 +1270,10 @@ class TestAdminRoutes:
             )
 
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "Invalid days: use an integer between 1 and 365"
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'days' filter."
+        assert payload["error"]["detail"] == "Provide an integer between 1 and 365."
         mock_analytics.get_organization_usage.assert_not_awaited()
 
     def test_grant_and_revoke_access_route(self, admin_client: TestClient) -> None:
