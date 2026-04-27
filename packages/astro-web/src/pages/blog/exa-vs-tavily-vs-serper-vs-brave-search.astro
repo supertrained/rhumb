@@ -33,7 +33,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Exa vs Tavily vs Serper vs Brave Search for AI Agents",
   datePublished: "2026-03-30T00:00:00Z",
-  dateModified: "2026-04-18T00:00:00Z",
+  dateModified: "2026-04-26T00:00:00Z",
   author: {
     "@type": "Person",
     name: "Pedro Nunes",
@@ -177,7 +177,7 @@ const htmlContent = markdownToHtml(content);
             March 30, 2026
           </span>
           <span class="text-slate-700">&middot;</span>
-          <span class="text-xs font-mono text-emerald-400/70">Updated April 18, 2026</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated April 26, 2026</span>
           <span class="text-slate-700">&middot;</span>
           <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
         </div>
@@ -196,6 +196,23 @@ const htmlContent = markdownToHtml(content);
         callableServices={[{ name: "Exa", href: "/service/exa" }, { name: "Tavily", href: "/service/tavily" }, { name: "Brave Search", href: "/service/brave-search-api" }]}
         discoveryOnlyServices={[{ name: "Serper", href: "/service/serper" }]}
       />
+
+      <section class="mb-10 rounded-[28px] border border-amber/25 bg-amber/8 p-6 sm:p-7" data-section="web-search-resolve-handoff">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Runnable preflight</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Try the same web-search capability through Resolve before you pick a vendor
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          This comparison tells you how Exa, Tavily, Serper, and Brave differ as search surfaces. If you want to test Rhumb's current governed route, use the scoped <code class="font-mono text-sm bg-navy px-1.5 py-0.5 rounded text-amber">search.query</code> path: resolve first, estimate second, execute only with a governed key or payment rail.
+        </p>
+        <a
+          data-rhumb-propagate
+          href="/quickstart#web-search-resolve"
+          class="inline-flex items-center justify-center rounded-xl bg-amber px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-amber-dark transition-colors duration-200"
+        >
+          Run the web-search Resolve quickstart &rarr;
+        </a>
+      </section>
 
       <div class="prose-rhumb" set:html={htmlContent} />
 
