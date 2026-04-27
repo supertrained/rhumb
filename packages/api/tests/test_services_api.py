@@ -1061,6 +1061,31 @@ def test_services_rejects_blank_category_filter_before_reads(client) -> None:
     assert mock_count.await_count == 0
 
 
+@pytest.mark.parametrize(
+    ("method", "path"),
+    [
+        ("GET", "/v1/services/%20"),
+        ("GET", "/v1/services/%20/score"),
+        ("GET", "/v1/services/%20/failures"),
+        ("GET", "/v1/services/%20/history"),
+        ("GET", "/v1/services/%20/schema"),
+        ("POST", "/v1/services/%20/report"),
+    ],
+)
+def test_service_path_routes_reject_blank_slug_before_reads(client, method: str, path: str) -> None:
+    mock_fetch = AsyncMock(side_effect=_mock_supabase_fetch)
+
+    with patch("routes.services.supabase_fetch", mock_fetch):
+        resp = client.request(method, path)
+
+    assert resp.status_code == 400
+    payload = resp.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'slug' path parameter."
+    assert payload["error"]["detail"] == "Provide a non-empty service slug."
+    assert mock_fetch.await_count == 0
+
+
 def test_services_normalizes_category_filter_casing_and_whitespace(client) -> None:
     with (
         patch(

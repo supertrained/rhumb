@@ -149,6 +149,18 @@ def _public_service_input_slug(service_slug: str | None) -> str:
     return public_service_slug(service_slug) or str(service_slug or "").strip().lower()
 
 
+def _validated_service_path_slug(service_slug: str | None) -> str:
+    canonical_slug = _public_service_input_slug(service_slug)
+    if canonical_slug:
+        return canonical_slug
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'slug' path parameter.",
+        detail="Provide a non-empty service slug.",
+    )
+
+
 def _canonicalize_known_service_aliases(
     text: Any,
     *,
@@ -526,7 +538,7 @@ async def list_services(
 @router.get("/services/{slug}")
 async def get_service(slug: str, raw_request: Request):
     """Fetch a service profile by slug, including latest score."""
-    canonical_slug = _public_service_input_slug(slug)
+    canonical_slug = _validated_service_path_slug(slug)
 
     # Get service info
     services = _canonicalize_service_rows(
@@ -646,7 +658,7 @@ async def get_service(slug: str, raw_request: Request):
 @router.get("/services/{slug}/score", response_model=None)
 async def get_service_score(slug: str, raw_request: Request):
     """Get the latest AN score for a service (Supabase REST)."""
-    canonical_slug = _public_service_input_slug(slug)
+    canonical_slug = _validated_service_path_slug(slug)
     service_rows = _canonicalize_service_rows(
         await _cached_fetch(
             "services",
@@ -786,7 +798,7 @@ async def get_service_score(slug: str, raw_request: Request):
 @router.get("/services/{slug}/failures")
 async def get_failures(slug: str, raw_request: Request):
     """Fetch active failure modes for a service."""
-    canonical_slug = _public_service_input_slug(slug)
+    canonical_slug = _validated_service_path_slug(slug)
     failure_query_slugs = _score_query_slugs([canonical_slug])
     failures = await _cached_fetch(
         "failure_modes",
@@ -844,7 +856,7 @@ async def get_failures(slug: str, raw_request: Request):
 @router.get("/services/{slug}/history")
 async def get_history(slug: str, raw_request: Request, limit: int = Query(default=20)):
     """Fetch historical AN score entries for a service."""
-    canonical_slug = _public_service_input_slug(slug)
+    canonical_slug = _validated_service_path_slug(slug)
     effective_limit = _validated_service_history_limit(limit)
     score_query_slugs = _score_query_slugs([canonical_slug])
     scores = await _cached_fetch(
@@ -887,7 +899,7 @@ async def get_history(slug: str, raw_request: Request, limit: int = Query(defaul
 @router.get("/services/{slug}/schema")
 async def get_schema(slug: str, raw_request: Request) -> dict:
     """Fetch the latest schema snapshot for a service."""
-    canonical_slug = _public_service_input_slug(slug)
+    canonical_slug = _validated_service_path_slug(slug)
     if not await _service_exists(canonical_slug):
         return _not_found_response(
             raw_request,
@@ -902,7 +914,7 @@ async def get_schema(slug: str, raw_request: Request) -> dict:
 @router.post("/services/{slug}/report")
 async def report_failure(slug: str, raw_request: Request) -> dict:
     """Submit a failure report for a service."""
-    canonical_slug = _public_service_input_slug(slug)
+    canonical_slug = _validated_service_path_slug(slug)
     if not await _service_exists(canonical_slug):
         return _not_found_response(
             raw_request,
