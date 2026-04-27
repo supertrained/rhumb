@@ -46,8 +46,10 @@ Fresh hosted dogfood smokes on 2026-04-27 expanded the readiness proof beyond th
 | `document.search` | `algolia` | HTTP 200, upstream 200, one `services` index hit returned | `rcpt_9eee236d3706468fbe566407` | `artifacts/dc90-algolia-document-search-smoke-20260427T213807Z.json` |
 | `scrape.extract` | `scraperapi` | HTTP 200, upstream 200, `https://example.com` HTML returned | `rcpt_7cdb0b94414e47739742e1df` | `artifacts/dc90-scraperapi-scrape-extract-smoke-post-4a6aefb-20260427T214448Z.json` |
 | `data.enrich` | `ipinfo` | HTTP 200, upstream 200, `8.8.8.8` enrichment returned | `rcpt_29b420541d5f492f9f28a980` | `artifacts/dc90-ipinfo-data-enrich-smoke-post-4a6aefb-20260427T214448Z.json` |
+| `ai.generate_text` | `replicate` | HTTP 200, upstream 201, async prediction accepted after default-version normalization | `rcpt_eb888ecd4fd24df49f3ea77e` | `artifacts/dc90-replicate-ai-generate-text-smoke-20260427T223542Z.json` |
+| `ai.generate_text` | `google-ai` | HTTP 200, upstream 200, `dc90-google-ai-text-ok` returned using `gemini-2.5-flash` | `rcpt_1374ba9b2b6d486695e2da7b` | `artifacts/dc90-google-ai-generate-text-smoke-gemini-25-flash-final-20260427T223651Z.json` |
 
-Interpretation: the trusted-user pilot can honestly say that Rhumb-managed execution has fresh hosted proof across search-adjacent, embedding, document search, scraping, and IP enrichment rails. This is still **first-wave proof**, not a universal claim that all 68 managed configs work.
+Interpretation: the trusted-user pilot can honestly say that Rhumb-managed execution has fresh hosted proof across search-adjacent, embedding, document search, scraping, IP enrichment, and text-generation rails. This is still **first-wave proof**, not a universal claim that all 68 managed configs work.
 
 ## Pilot boundary
 
@@ -73,7 +75,7 @@ Recommended first cohort:
 - 2-5 trusted users or friend agents.
 - Each gets a capped governed key, not provider credentials.
 - Suggested initial cap: `$5-$10/month`, `60 qpm`.
-- Start with `search.query` only for the first invite unless the user has an explicit need for one of the freshly proven rails (`ai.embed`, `document.search`, `scrape.extract`, or `data.enrich`).
+- Start with `search.query` only for the first invite unless the user has an explicit need for one of the freshly proven rails (`ai.embed`, `ai.generate_text`, `document.search`, `scrape.extract`, or `data.enrich`).
 - Expand only after at least one complete run includes: resolve artifact, estimate artifact, execution result, receipt/error, and user friction notes.
 - Keep side-effect/resource/cost-bearing managed surfaces skipped until safe recipients, channels, indexes, sandboxes, or spend ceilings are explicitly defined.
 
@@ -117,5 +119,5 @@ The execute call is a paid/authorized managed execution. Run it with a dogfood g
 
 - **Go:** controlled trusted-user pilot for `search.query` managed execution through governed keys.
 - **No-go:** public launch, broad unmanaged system-of-record pilot, or “all managed capabilities are ready” claim.
-- **Remaining action before invites:** run a final `search.query` governed execute smoke immediately before issuing keys, then mint capped keys for named trusted users. The broader managed-capability proof above is sufficient to update pilot positioning, but it does not remove the final per-invite smoke requirement.
+- **Remaining action before invites:** run a final `search.query` governed execute smoke immediately before issuing keys, then mint capped keys for named trusted users. The broader managed-capability proof above is sufficient to update pilot positioning, but it does not remove the final per-invite smoke requirement. Google AI text should use `gemini-2.5-flash` rather than stale `gemini-2.0-flash`; Replicate text proof is async prediction-acceptance proof.
 - **Next expansion action:** use `docs/DC90-MANAGED-CAPABILITY-SAFE-FIXTURES-2026-04-27.md` to run green fixtures one at a time, and keep amber/red side-effect/resource/cost-bearing surfaces skipped until their gates are satisfied.

@@ -17,7 +17,7 @@ This file defines the next safe fixture set for managed capabilities that were s
 
 ## Follow-up classification from the 2026-04-27 matrix
 
-- **Replicate `ai.generate_text`: real fixture gap, now safe to retry after code deploy.** The failing smoke sent only `input.prompt` to `POST /v1/predictions`; Replicate requires an immutable `version`. The managed executor now defaults bare `ai.generate_text` smokes to the same low-cost text model version used by prior runtime-review harnesses, while preserving explicit caller versions.
+- **Replicate `ai.generate_text`: real fixture gap, now safe to retry after code deploy.** The failing smoke sent only `input.prompt` to `POST /v1/predictions`; Replicate requires an immutable `version`. The managed executor now defaults bare `ai.generate_text` smokes to the same low-cost text model version used by prior runtime-review harnesses, while preserving explicit caller versions. Fresh hosted proof exists at `artifacts/dc90-replicate-ai-generate-text-smoke-20260427T223542Z.json`: Rhumb returned HTTP 200, Replicate accepted the prediction with upstream 201, and receipt `rcpt_eb888ecd4fd24df49f3ea77e` was emitted. Treat this as async prediction-acceptance proof, not completed text-output proof.
 - **E2B fake `agent.get_status`: expected negative, not provider failure.** `sandboxId=sbx_rhumb_smoke_missing` correctly reached E2B and returned upstream `400 Invalid sandbox ID`. A real pass requires creating a short-lived sandbox, reading its status, and deleting it in `finally`; do not classify a missing sandbox as a managed-execution failure.
 - **PDL `data.enrich_person`: expected negative no-match, not provider failure.** `not-a-real-person@rhumb.dev` reached People Data Labs and returned upstream `404 No records were found matching your request` after debiting about `$0.12`. It proves Rhumb credits/auth/path work, but it is not a green positive-match fixture and should not be rerun casually.
 - **Known PDL match caveat:** older runtime-review scripts use `https://www.linkedin.com/in/satyanadella/` as a known public match. That is an existing documented fixture, but it is not a Rhumb-owned/consented internal person. For pilot-safe positive proof, use a consented internal test person already visible to PDL, or get explicit approval for a public-person lookup before spending more PDL credits.
@@ -41,6 +41,10 @@ This file defines the next safe fixture set for managed capabilities that were s
 ## Green fixtures — safe next candidates
 
 These are the next lowest-risk managed rails because they use public/synthetic inputs and avoid writes to external recipients.
+
+### Gemini 2.0 text model caveat
+
+`gemini-2.0-flash` now returns upstream `404 NOT_FOUND` for the hosted managed credential. Use `gemini-2.5-flash` plus `generationConfig.thinkingConfig.thinkingBudget=0` for tiny deterministic smokes; otherwise Gemini 2.5 can spend a low output cap on thinking tokens and return `MAX_TOKENS` without text.
 
 ### Perplexity text generation
 
@@ -76,7 +80,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 ```json
 {
   "body": {
-    "model": "gemini-2.0-flash",
+    "model": "gemini-2.5-flash",
     "contents": [
       {
         "role": "user",
@@ -85,13 +89,14 @@ These are the next lowest-risk managed rails because they use public/synthetic i
     ],
     "generationConfig": {
       "temperature": 0,
-      "maxOutputTokens": 16
+      "maxOutputTokens": 64,
+      "thinkingConfig": {"thinkingBudget": 0}
     }
   }
 }
 ```
 
-- Pass condition: HTTP 200, upstream 200, response contains `dc90-google-ai-text-ok`, receipt id present.
+- Pass condition: HTTP 200, upstream 200, response contains `dc90-google-ai-text-ok`, receipt id present. Fresh hosted proof exists at `artifacts/dc90-google-ai-generate-text-smoke-gemini-25-flash-final-20260427T223651Z.json` with receipt `rcpt_1374ba9b2b6d486695e2da7b`.
 - Stop condition: model/path mismatch, provider unavailable, or response omits generated text.
 
 ### Emailable single-email verification

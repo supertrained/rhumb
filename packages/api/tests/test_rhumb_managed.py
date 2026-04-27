@@ -1394,6 +1394,91 @@ async def test_managed_executor_google_ai_uses_x_goog_api_key(monkeypatch):
 
 
 @pytest.mark.anyio
+async def test_managed_executor_google_ai_text_normalizes_stale_flash_model(monkeypatch):
+    """Google AI text smokes should not fail on stale Gemini Flash examples."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY", "gemini_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "id": 1000,
+                    "capability_id": "ai.generate_text",
+                    "service_slug": "google-ai",
+                    "description": "Managed Google AI text generation",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY"],
+                    "default_method": "POST",
+                    "default_path": "/v1beta/models/{model}:generateContent",
+                    "default_headers": {"Content-Type": "application/json"},
+                    "daily_limit_per_agent": None,
+                }
+            ]
+        if "services?slug=eq.google-ai" in path:
+            return [{"api_domain": "generativelanguage.googleapis.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 200
+
+        def json(self):
+            return {"candidates": [{"content": {"parts": [{"text": "ok"}]}}]}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["url"] = url
+            captured["json"] = json
+            return DummyResponse()
+
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="ai.generate_text",
+            agent_id="agent_google_text_test",
+            body={
+                "model": "models/gemini-2.0-flash",
+                "contents": [{"parts": [{"text": "Say ok"}]}],
+                "generationConfig": {"temperature": 0, "maxOutputTokens": 16},
+            },
+            service_slug="google-ai",
+        )
+
+    assert result["provider_used"] == "google-ai"
+    assert captured["url"] == "/v1beta/models/gemini-2.5-flash:generateContent"
+    assert captured["json"] == {
+        "contents": [{"parts": [{"text": "Say ok"}]}],
+        "generationConfig": {
+            "temperature": 0,
+            "maxOutputTokens": 16,
+            "thinkingConfig": {"thinkingBudget": 0},
+        },
+    }
+
+
+@pytest.mark.anyio
 async def test_managed_executor_google_ai_embeddings_normalize_legacy_model_and_text(monkeypatch):
     """Google AI embedding smokes should not fail on stale public model aliases."""
     monkeypatch.setenv("RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY", "gemini_test_secret")

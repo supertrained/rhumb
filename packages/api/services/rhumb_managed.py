@@ -752,6 +752,35 @@ class RhumbManagedExecutor:
             payload = self._rename_field(payload, "files", "document") or payload
             return None, None, payload or None
 
+        if service_slug == "google-ai" and capability_id in {"ai.generate_text", "ai.classify"}:
+            payload: dict[str, Any] = dict(params) if params else {}
+            if body:
+                payload.update(body)
+
+            raw_model = payload.get("model") or payload.get("m")
+            model = str(raw_model).strip() if raw_model not in (None, "") else ""
+            if model.startswith("models/"):
+                model = model.removeprefix("models/")
+            if model in {"", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-pro"}:
+                # `gemini-2.0-flash` now returns NOT_FOUND for this managed
+                # credential in live hosted smokes. Normalize common public
+                # examples onto the current low-cost Flash text model before
+                # path interpolation while preserving explicit newer models.
+                model = "gemini-2.5-flash"
+            payload["model"] = model
+            payload.pop("m", None)
+
+            if "generation_config" in payload and "generationConfig" not in payload:
+                payload["generationConfig"] = payload.pop("generation_config")
+            generation_config = payload.get("generationConfig")
+            if isinstance(generation_config, dict) and model == "gemini-2.5-flash":
+                # Gemini 2.5 can spend tiny smoke-test output caps on thinking
+                # tokens and return MAX_TOKENS without text. Disable thinking
+                # unless the caller explicitly provides a thinking config.
+                generation_config.setdefault("thinkingConfig", {"thinkingBudget": 0})
+
+            return None, None, payload or None
+
         if service_slug == "google-ai" and capability_id in {"ai.embed", "embed.text"}:
             payload: dict[str, Any] = dict(params) if params else {}
             if body:
