@@ -41,6 +41,13 @@ from services.service_slugs import (
 logger = logging.getLogger(__name__)
 
 
+# Public, low-cost Replicate text smoke fixture used by the managed execution
+# review harnesses. Replicate's `/v1/predictions` API requires an immutable
+# model `version`; bare capability-level text payloads otherwise fail upstream
+# with 422 `version is required` before proving the managed rail.
+REPLICATE_DEFAULT_TEXT_VERSION = "5a6809ca6288247d06daf6365557e5e429063f32a21146b2a807c682652136b8"
+
+
 # ---------------------------------------------------------------------------
 # Singleton
 # ---------------------------------------------------------------------------
@@ -661,6 +668,50 @@ class RhumbManagedExecutor:
         path_override = "/api/push/validate" if validate_only else None
         return path_override, None, payload or None
 
+    def _normalize_replicate_inputs(
+        self,
+        capability_id: str,
+        params: dict | None,
+        body: dict | None,
+    ) -> tuple[str | None, dict | None, dict | None]:
+        payload: dict[str, Any] = dict(params) if params else {}
+        if body:
+            payload.update(body)
+
+        if capability_id == "ai.generate_text":
+            model_version = payload.pop("model_version", None)
+            version_value = payload.get("version")
+            version_missing = version_value is None or (
+                isinstance(version_value, str) and not version_value.strip()
+            )
+            model_version_text = str(model_version).strip() if model_version is not None else ""
+            if version_missing and model_version_text:
+                payload["version"] = model_version_text
+                version_missing = False
+
+            raw_model = payload.get("model")
+            raw_model_text = str(raw_model).strip() if raw_model is not None else ""
+            if version_missing:
+                if len(raw_model_text) == 64:
+                    payload["version"] = raw_model_text
+                    payload.pop("model", None)
+                elif raw_model is None or raw_model_text.lower() in {"", "default"}:
+                    payload["version"] = (
+                        os.environ.get("RHUMB_REPLICATE_TEXT_MODEL_VERSION")
+                        or REPLICATE_DEFAULT_TEXT_VERSION
+                    )
+
+            if not isinstance(payload.get("input"), dict):
+                prompt = None
+                for prompt_key in ("prompt", "text", "query"):
+                    if prompt_key in payload:
+                        prompt = payload.pop(prompt_key)
+                        break
+                if prompt is not None:
+                    payload["input"] = {"prompt": str(prompt)}
+
+        return None, None, payload or None
+
     def _normalize_capability_inputs(
         self,
         capability_id: str,
@@ -683,6 +734,12 @@ class RhumbManagedExecutor:
             "email.batch_verify",
         }:
             return self._normalize_emailable_inputs(capability_id, params, body)
+
+        if service_slug == "replicate" and capability_id in {
+            "ai.generate_text",
+            "ai.generate_image",
+        }:
+            return self._normalize_replicate_inputs(capability_id, params, body)
 
         if service_slug == "mindee" and capability_id in {
             "document.extract_fields",

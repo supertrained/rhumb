@@ -1586,6 +1586,174 @@ async def test_managed_executor_perplexity_uses_bearer_auth_and_chat_completions
 
 
 @pytest.mark.anyio
+async def test_managed_executor_replicate_text_defaults_version_for_basic_smoke(
+    monkeypatch,
+):
+    """Replicate text smokes should not fail upstream with `version is required`."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_REPLICATE_API_TOKEN", "r8_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "id": 1201,
+                    "capability_id": "ai.generate_text",
+                    "service_slug": "replicate",
+                    "description": "Managed Replicate text generation",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_REPLICATE_API_TOKEN"],
+                    "default_method": "POST",
+                    "default_path": "/v1/predictions",
+                    "default_headers": {"Content-Type": "application/json"},
+                    "daily_limit_per_agent": None,
+                }
+            ]
+        if "services?slug=eq.replicate" in path:
+            return [{"api_domain": "api.replicate.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 201
+
+        def json(self):
+            return {"id": "pred_rhumb_smoke", "status": "starting"}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            captured["base_url"] = kwargs.get("base_url")
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["method"] = method
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            captured["params"] = params
+            return DummyResponse()
+
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
+        from services.rhumb_managed import (
+            REPLICATE_DEFAULT_TEXT_VERSION,
+            RhumbManagedExecutor,
+        )
+
+        executor = RhumbManagedExecutor()
+        result = await executor.execute(
+            capability_id="ai.generate_text",
+            agent_id="agent_replicate_text_test",
+            body={"input": {"prompt": "Reply OK only."}},
+            service_slug="replicate",
+        )
+
+    assert result["provider_used"] == "replicate"
+    assert captured["base_url"] == "https://api.replicate.com"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "/v1/predictions"
+    assert captured["params"] == {}
+    assert captured["headers"]["Authorization"] == "Bearer r8_test_secret"
+    assert captured["headers"]["Content-Type"] == "application/json"
+    assert captured["json"] == {
+        "version": REPLICATE_DEFAULT_TEXT_VERSION,
+        "input": {"prompt": "Reply OK only."},
+    }
+
+
+@pytest.mark.anyio
+async def test_managed_executor_replicate_text_preserves_explicit_version(
+    monkeypatch,
+):
+    """Explicit Replicate versions should keep caller/provider fixture intent."""
+    monkeypatch.setenv("RHUMB_CREDENTIAL_REPLICATE_API_TOKEN", "r8_test_secret")
+
+    async def mock_fetch(path):
+        if "rhumb_managed_capabilities?" in path:
+            return [
+                {
+                    "id": 1202,
+                    "capability_id": "ai.generate_text",
+                    "service_slug": "replicate",
+                    "description": "Managed Replicate text generation",
+                    "credential_env_keys": ["RHUMB_CREDENTIAL_REPLICATE_API_TOKEN"],
+                    "default_method": "POST",
+                    "default_path": "/v1/predictions",
+                    "default_headers": {},
+                    "daily_limit_per_agent": None,
+                }
+            ]
+        if "services?slug=eq.replicate" in path:
+            return [{"api_domain": "api.replicate.com"}]
+        return []
+
+    async def mock_insert(table, payload):
+        return {"id": payload.get("id")}
+
+    async def mock_patch(path, payload):
+        return [payload]
+
+    captured: dict = {}
+
+    class DummyResponse:
+        status_code = 201
+
+        def json(self):
+            return {"id": "pred_explicit", "status": "starting"}
+
+    class DummyAsyncClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc, tb):
+            return False
+
+        async def request(self, method, url, headers=None, json=None, params=None):
+            captured["json"] = json
+            return DummyResponse()
+
+    explicit_version = "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+
+    with (
+        patch("services.rhumb_managed.supabase_fetch", side_effect=mock_fetch),
+        patch("services.rhumb_managed.supabase_insert", side_effect=mock_insert),
+        patch("services.rhumb_managed.supabase_patch", side_effect=mock_patch),
+        patch("services.rhumb_managed.httpx.AsyncClient", DummyAsyncClient),
+    ):
+        from services.rhumb_managed import RhumbManagedExecutor
+
+        executor = RhumbManagedExecutor()
+        await executor.execute(
+            capability_id="ai.generate_text",
+            agent_id="agent_replicate_explicit_version_test",
+            body={"version": explicit_version, "prompt": "Reply OK only."},
+            service_slug="replicate",
+        )
+
+    assert captured["json"] == {
+        "version": explicit_version,
+        "input": {"prompt": "Reply OK only."},
+    }
+
+
+@pytest.mark.anyio
 async def test_managed_executor_algolia_accepts_index_alias_and_strips_path_param_from_body(
     monkeypatch,
 ):

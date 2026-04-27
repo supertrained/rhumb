@@ -15,6 +15,13 @@ Fresh hosted proof now exists for the first safe managed rails:
 
 This file defines the next safe fixture set for managed capabilities that were skipped because they can create side effects, touch customer resources, burn unbounded cost, or require tenant-owned files/indexes/channels/sandboxes. Do **not** run these until the fixture’s gate is satisfied.
 
+## Follow-up classification from the 2026-04-27 matrix
+
+- **Replicate `ai.generate_text`: real fixture gap, now safe to retry after code deploy.** The failing smoke sent only `input.prompt` to `POST /v1/predictions`; Replicate requires an immutable `version`. The managed executor now defaults bare `ai.generate_text` smokes to the same low-cost text model version used by prior runtime-review harnesses, while preserving explicit caller versions.
+- **E2B fake `agent.get_status`: expected negative, not provider failure.** `sandboxId=sbx_rhumb_smoke_missing` correctly reached E2B and returned upstream `400 Invalid sandbox ID`. A real pass requires creating a short-lived sandbox, reading its status, and deleting it in `finally`; do not classify a missing sandbox as a managed-execution failure.
+- **PDL `data.enrich_person`: expected negative no-match, not provider failure.** `not-a-real-person@rhumb.dev` reached People Data Labs and returned upstream `404 No records were found matching your request` after debiting about `$0.12`. It proves Rhumb credits/auth/path work, but it is not a green positive-match fixture and should not be rerun casually.
+- **Known PDL match caveat:** older runtime-review scripts use `https://www.linkedin.com/in/satyanadella/` as a known public match. That is an existing documented fixture, but it is not a Rhumb-owned/consented internal person. For pilot-safe positive proof, use a consented internal test person already visible to PDL, or get explicit approval for a public-person lookup before spending more PDL credits.
+
 ## Safety classes
 
 | Class | Meaning | Run posture |
@@ -129,13 +136,13 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 
 - Capability/providers: `search.autocomplete`, `ecommerce.search_products` / `algolia`
 - Safety class: `amber`
-- Required sandbox: Rhumb-owned read-only index with stable fixture records. Current proven index: `services`; do not mutate it.
+- Required sandbox: Rhumb-owned read-only index with stable fixture records. Current proven index: `rhumb_test`; do not mutate stable fixture records. (`document.search` also normalizes the placeholder `services` to `rhumb_test`, but autocomplete/product search fixtures should name `rhumb_test` directly.)
 - Payload template:
 
 ```json
 {
   "body": {
-    "index": "services",
+    "index": "rhumb_test",
     "query": "rh",
     "hitsPerPage": 1
   }
@@ -184,10 +191,30 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 
 ### E2B code/sandbox rails
 
-- Capability/providers: `compute.execute_code`, `code.format`, `code.lint` / `e2b`
+- Capability/providers: `agent.spawn`, `agent.get_status` / `e2b` for the next lifecycle proof; `compute.execute_code`, `code.format`, and `code.lint` remain later because the current managed configs map through sandbox creation rather than a proven code-exec adapter.
 - Safety class: `amber`
-- Required sandbox: hard cost ceiling and no network/file side effects.
-- Payload template:
+- Required sandbox: hard cost ceiling, short TTL, direct cleanup, and no network/file side effects.
+- Proposed short-TTL helper flow:
+
+1. Estimate `agent.spawn` with provider `e2b` and `credential_mode=rhumb_managed`.
+2. Execute `agent.spawn` once with a tiny base template body:
+
+```json
+{
+  "body": {
+    "templateID": "base",
+    "timeout": 60
+  }
+}
+```
+
+3. Extract `sandboxID` from the upstream response.
+4. Execute `agent.get_status` once with that `sandboxID`.
+5. In a `finally` block, delete `https://api.e2b.app/sandboxes/{sandboxID}` directly with the E2B key. Record the delete status in the artifact.
+6. Stop immediately if create fails or no `sandboxID` is returned; never create a second sandbox in the same run.
+
+- Existing cleanup pattern: `scripts/runtime_review_e2b_depth11_20260403.py` already creates, status-checks, and directly deletes Rhumb/direct E2B sandboxes. Reuse that lifecycle shape with the shorter `timeout=60` and without direct-control duplication for a dogfood smoke helper.
+- Future code-exec payload, after lifecycle cleanup is proven:
 
 ```json
 {
@@ -199,8 +226,20 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 }
 ```
 
-- Pass condition: HTTP 200, output contains `dc90-e2b-ok`, receipt id present, sandbox terminates.
-- Do not run `compute.create_sandbox`, `agent.spawn`, or long-lived status checks until lifecycle cleanup is proven.
+- Pass condition: create returns upstream 201, status returns upstream 200, receipt ids are present for both Rhumb calls, and direct delete returns 200/204/404.
+- Do not run arbitrary code execution or long-lived agent variants until the lifecycle helper has a fresh cleanup artifact.
+
+## Side-effect/resource fixture inventory
+
+| Surface | Can test with existing owned fixture now? | Minimal safe fixture / blocker |
+| --- | --- | --- |
+| `email.send`, `email.template` / Resend or Postmark | **No.** Keys are configured and `email.track` passed, but no committed owned recipient/template fixture is documented here. | Named Rhumb-owned recipient inbox, verified sender/domain, exact subject/body, idempotency key, and one-message cap. |
+| `communication.send_message` / Slack | **Not yet.** Prior Slack runtime reviews prove `auth.test`; no dedicated channel ID is documented for managed send. | Rhumb-owned smoke channel, bot membership, explicit channel ID, single `[dc90-smoke]` message, delete/update cleanup if supported. |
+| `search.index` / Algolia | **Yes, cautiously.** The owned `rhumb_test` index exists and read fixtures are proven. | Write objectID `dc90-smoke-{timestamp}` into `rhumb_test`, read it back, then delete the object and verify cleanup. Do not mutate existing fixture records. |
+| `media.transcribe`, `video.subtitle` / Deepgram | **No committed fixture yet.** Credential path exists, but no tiny owned audio/video file is committed. | Add a sub-5-second public-domain or Rhumb-generated WAV/MP3 fixture, pass it via the supported body/multipart shape, assert a tiny transcript, and delete any stored artifact. |
+| `media.generate_speech` / ElevenLabs/OpenAI/Deepgram | **Partially.** ElevenLabs tiny TTS has fresh proof; broader speech rails still need provider-specific caps. | Tiny text (`"OK"`), fixed low-cost voice/model, max one generation, artifact retention/deletion policy. |
+| `ai.generate_image`, `ai.edit_image` / OpenAI, Google AI, Replicate | **No.** No low-cost image prompt/reference/storage policy is committed. | One 512/1024px safe prompt, one image max, explicit budget ceiling, artifact storage/deletion plan, and no external publication. |
+| PDL/Apollo person/contact enrichment | **No positive consented fixture.** Synthetic PDL no-match is expected negative; public Satya Nadella fixture exists in runtime scripts but is not consented/internal. | Consented internal test person with known match, or explicit approval for a named public-person lookup; no private prospect search by default. |
 
 ## Red fixtures — do not run without exact approval
 
@@ -210,9 +249,9 @@ These can notify real users, mutate external systems, create durable resources, 
 | --- | --- | --- |
 | `email.send`, `email.template` / Resend or Postmark | Sends external email. | Named Rhumb-owned recipient, subject/body, and send window. |
 | `push_notification.send`, `push_notification.send_to_user`, `push_topic.publish` / Airship | Sends push notifications or touches messaging audiences. | Rhumb-owned app/channel, test audience/tag, validation-only flag or explicit send approval. |
-| `search.index` / Algolia | Writes to an index. | Disposable index name, fixture object, cleanup command, max writes. |
+| `search.index` / Algolia | Writes to an index. | Use the amber `rhumb_test` disposable object fixture above; no production/customer indexes. |
 | `scrape.crawl`, `browser.crawl` / Firecrawl, Apify, ScraperAPI | Multi-page crawl/spend risk. | Domain allowlist, max pages/depth, robots/policy check, spend ceiling. |
-| `ai.generate_image`, `ai.edit_image`, speech/transcription rails | Media generation/upload and cost/safety risk. | Prompt/file fixture, content policy check, max tokens/duration/size. |
+| `ai.generate_image`, `ai.edit_image`, speech rails | Media generation/upload and cost/safety risk. | Prompt/file fixture, content policy check, max tokens/duration/size. |
 | Apollo/PDL person/company/contact search | Personal/company data enrichment. | Synthetic or explicitly approved lookup target; no private person lookup by default. |
 | Google Maps/Places directions/search | External quota and location sensitivity. | Public fixture addresses, max result count, no real user addresses. |
 | Long-lived E2B agent/sandbox rails | Durable compute/resource leak. | Sandbox lifecycle cleanup proof and spend ceiling. |
