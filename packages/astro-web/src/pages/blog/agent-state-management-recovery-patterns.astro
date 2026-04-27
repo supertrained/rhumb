@@ -67,6 +67,14 @@ const STATE_CATEGORIES = [
   },
 ];
 
+
+const CHAINED_BUG_RECOVERY_DRILL = [
+  "Preserve the last verified good state before applying a fix so the next failure has a clean comparison point.",
+  "Record which symptom the fix targeted, which provider route changed, and which downstream side effect must be rechecked.",
+  "Do not collapse chained failures into one incident note; store each handoff so recovery can distinguish root cause from the next exposed weakness.",
+  "Link recovery evidence to observability traces and loop budgets, because the next bug is often hidden in cost, retries, or stale route context.",
+];
+
 const MULTI_LLM_STATE_DRILL = [
   "Checkpoint which provider and model were active when context was counted, trimmed, summarized, or compressed.",
   "Do not reuse one token estimate across providers; tokenizer mismatch can turn a safe resume into a silent overflow.",
@@ -138,7 +146,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Agent State Management: How to Build Workflows That Recover Without You",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-24T00:00:00Z",
+  dateModified: "2026-04-26T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production agent reliability depends on checkpointing, verification, bounded work units, and explicit recovery paths, not just whether an API usually returns 200.",
@@ -267,6 +275,26 @@ const ARTICLE_JSON_LD = {
                   <li>{item}</li>
                 ))}
               </ul>
+            </div>
+          </section>
+
+          <section>
+            <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Chained bug recovery</div>
+              <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+                Fixing one agent bug should leave evidence for the next one
+              </h2>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                Fresh operator debugging stories keep showing the same pattern: the first fix does not end the incident, it reveals the next weak boundary. A sales-chatbot bug turns into a retrieval issue, then a stale session issue, then a retry or escalation issue. Treat each fix as a state transition, not a cleanup note, or the next failure starts from folklore.
+              </p>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {CHAINED_BUG_RECOVERY_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 leading-relaxed text-slate-300">
+                The follow-through belongs in <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">observability traces</a> and <a href="/blog/llm-apis-agent-loops" class="text-amber hover:text-amber-200 transition-colors">loop-budget evidence</a>, not just in a prompt changelog.
+              </p>
             </div>
           </section>
 
