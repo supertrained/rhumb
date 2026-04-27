@@ -18,12 +18,19 @@ const PREVIEW_MODEL_CONTRACT_GATES = [
   "Keep a fallback or quarantine path when preview docs omit typed failures, quota behavior, regional availability, or deprecation windows.",
 ];
 
+const IDEMPOTENCY_REPLAY_GATES = [
+  "Generate the idempotency key before the first attempt and persist it with the workflow step, not only inside the HTTP client retry wrapper.",
+  "Reuse the same key after timeouts, worker restarts, queue redelivery, or model replanning so the provider can collapse duplicates into one side effect.",
+  "Record the provider response, resource ID, and replay result in trace context so operators can prove a retry reused the original attempt instead of issuing a second command.",
+  "Fail closed when a side-effecting route has no idempotency contract; quarantine the lane or require a human decision instead of letting the agent guess.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-04-26T00:00:00Z",
+  dateModified: "2026-04-27T00:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -230,7 +237,7 @@ const htmlContent = markdownToHtml(content);
             <span class="text-slate-700">&middot;</span>
             <span class="text-xs font-mono text-slate-500">March 28, 2026</span>
             <span class="text-slate-700">&middot;</span>
-            <span class="text-xs font-mono text-emerald-400/70">Updated April 26, 2026</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated April 27, 2026</span>
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.97] tracking-tight text-slate-100 max-w-5xl text-balance">
@@ -288,6 +295,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           Treat preview launches as <a href="/blog/static-mcp-scores-runtime-trust-overlays" class="text-amber hover:underline underline-offset-2">runtime-trust drift candidates</a> until the loop can prove the first-party contract, the cost envelope, and the failure semantics under real execution.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Side-effect replay gate</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Idempotency keys are agent memory for side effects
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Duplicate prevention is not just a nice API header. In an unattended loop, the idempotency key is the durable memory that lets a retry prove it is continuing the same side effect rather than starting a new one. If the key disappears when the worker restarts, the model replans, or a queue redelivers the job, the agent has no safe way to tell a completed-but-unacknowledged write from work that never happened.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {IDEMPOTENCY_REPLAY_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          The practical test is simple: kill the worker after the provider commits but before your agent receives the response, then replay the job. A production-ready route should return the original result or a typed duplicate outcome, not create a second charge, email, ticket, or database row.
         </p>
       </section>
 
