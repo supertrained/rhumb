@@ -51,7 +51,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Has a Security Model: Scope, Principals, and Evidence",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-27T00:00:00Z",
+  dateModified: "2026-04-28T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "MCP security is not a protocol checkbox. It is bounded tool scope, scoped principals, and post-call evidence that operators can audit.",
@@ -137,6 +137,19 @@ const ARTICLE_JSON_LD = {
         <p class="text-slate-400 leading-relaxed mb-4">
           Endpoint families need the same rule. If `/mcp` is authenticated but the message endpoint, streaming endpoint, or callback endpoint can invoke tools without the same check, the security model is whatever the weakest path permits. The operator test is endpoint-auth parity: every route that can trigger a tool call must enforce the same principal and scope policy.
         </p>
+
+        <div class="my-8 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Negative-case fixture</div>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">A security model should ship both the allowed call and the denied neighbor.</h3>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            The fastest way to catch unconstrained parameter drift is to keep a paired test for every high-risk tool: one value that should pass and one adjacent value that must fail. A filesystem read should prove an allowed prefix and reject `../`. A browser or scraping tool should prove an approved host and reject an internal address. A repo tool should prove the intended owner/repo and reject a sibling target outside policy.
+          </p>
+          <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+            <li>Store the raw value, normalized value, caller, tool, endpoint family, and policy rule in the trace.</li>
+            <li>Make the denied neighbor a first-class regression test, not a one-time manual audit.</li>
+            <li>Treat a generic 500, silent retry, or partial execution as a failing security fixture.</li>
+          </ul>
+        </div>
 
         <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">2. Principals must be real</h2>
         <p class="text-slate-400 leading-relaxed mb-4">
