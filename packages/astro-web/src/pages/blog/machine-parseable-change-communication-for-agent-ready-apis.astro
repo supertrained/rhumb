@@ -56,6 +56,13 @@ const LIVE_ENDPOINT_DRIFT_DRILL = [
   "Retry logic should classify dead endpoints as deterministic drift and fail closed fast instead of producing noisy transient-error churn.",
 ];
 
+const LIVE_SECURITY_DEFAULT_DRILL = [
+  "Treat security-default fields as side-effecting policy, not decorative metadata. If a retired field disappears from reads and is ignored on writes, the caller needs a typed stale-policy result instead of a clean-looking success.",
+  "A 200 response from the old endpoint is not proof that the new repository, workspace, or tenant inherited the intended guardrail. Follow the write with a read from the replacement policy object before declaring the lane safe.",
+  "Terraform state, setup scripts, and compliance dashboards need drift tests that compare intended security posture with the live enforcement surface, not only API convergence or audit-log presence.",
+  "Replacement APIs that change the model from org booleans to attached configuration objects are contract migrations. Agents should pause side effects until they can name which object now owns the policy.",
+];
+
 const GOOD_PROPERTIES = [
   {
     title: "Structured, not buried",
@@ -126,7 +133,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-26T00:00:00Z",
+  dateModified: "2026-04-28T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "An API can be versioned and still be operationally unstable for agents. The real readiness test is whether non-human clients can detect drift in time to fail safely.",
@@ -159,7 +166,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-sky-400 uppercase tracking-widest">API Readiness</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">Updated April 26, 2026</span>
+          <span class="text-slate-500">Updated April 28, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -300,6 +307,20 @@ const ARTICLE_JSON_LD = {
               </ul>
               <p class="mt-4 text-slate-300 leading-relaxed">
                 If a provider retires a base URL and the only warning is prose, the wrapper owner still has to answer whether the replacement keeps the same geography, fallback, and auth assumptions. That is exactly the kind of change surface agents need to diff before retry logic turns a deterministic endpoint failure into noisy reliability churn.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Live silent-write drift test: retired security defaults</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                Fresh API signal: GitHub retired several organization-level security-default fields that platform teams used to harden newly created repositories. The dangerous shape is not a loud 410. The old write path can still look successful while the retired fields no longer apply the intended policy, so a setup script reports convergence while new repos quietly miss the guardrail.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {LIVE_SECURITY_DEFAULT_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 text-slate-300 leading-relaxed">
+                This is the same agent-readiness problem in a sharper form: write acknowledgement, IaC state, and audit-log presence are not enough when the contract changed underneath a safety control. A machine-parseable change surface should tell the caller which old fields are inert, which replacement object owns the policy now, and whether the next side-effecting workflow must stop until enforcement is re-proven.
               </p>
             </div>
           </section>
