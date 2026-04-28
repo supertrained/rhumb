@@ -29,6 +29,30 @@ def _normalize_service_slug(service_slug: str | None) -> str | None:
     return cleaned or None
 
 
+def _validated_profile(profile: str | None) -> str:
+    normalized = str(profile or "").strip().lower()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'profile' field.",
+        detail="Provide a non-empty tester-fleet profile value.",
+    )
+
+
+def _validated_trigger_source(trigger_source: str | None) -> str:
+    normalized = str(trigger_source or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'trigger_source' field.",
+        detail="Provide a non-empty trigger_source value.",
+    )
+
+
 def _batteries_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "batteries"
 
@@ -71,8 +95,10 @@ async def run_tester_fleet_battery(payload: BatteryRunRequestSchema) -> BatteryR
             message="Invalid 'service_slug' field.",
             detail="Provide a non-empty service_slug value.",
         )
+    normalized_profile = _validated_profile(payload.profile)
+    trigger_source = _validated_trigger_source(payload.trigger_source)
 
-    battery_file = _resolve_battery_file(normalized_service_slug, payload.profile)
+    battery_file = _resolve_battery_file(normalized_service_slug, normalized_profile)
     if battery_file is None:
         raise HTTPException(
             status_code=404,
@@ -113,7 +139,7 @@ async def run_tester_fleet_battery(payload: BatteryRunRequestSchema) -> BatteryR
             persisted = BatteryProbeBridge(probe_repository).persist(
                 artifact,
                 artifact_path=artifact_path,
-                trigger_source=payload.trigger_source,
+                trigger_source=trigger_source,
             )
             persisted_probe_ids = [str(probe.id) for probe in persisted]
             persisted_probe_types = [probe.probe_type for probe in persisted]

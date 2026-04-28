@@ -99,6 +99,68 @@ def test_run_tester_fleet_battery_rejects_blank_service_slug_before_battery_look
     assert payload["error"]["detail"] == "Provide a non-empty service_slug value."
 
 
+def test_run_tester_fleet_battery_rejects_blank_profile_before_battery_lookup(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank profiles should not broaden into the default seeded-battery lookup."""
+    from routes import tester_fleet as tester_fleet_routes
+
+    def fail_lookup(service_slug, profile):  # pragma: no cover - should not run
+        raise AssertionError("battery lookup should not be opened")
+
+    monkeypatch.setattr(tester_fleet_routes, "_resolve_battery_file", fail_lookup)
+
+    response = client.post(
+        "/v1/tester-fleet/run",
+        json={"service_slug": "stripe", "profile": "   "},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'profile' field."
+    assert payload["error"]["detail"] == "Provide a non-empty tester-fleet profile value."
+
+
+def test_run_tester_fleet_battery_rejects_blank_trigger_source_before_run(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Blank trigger_source values should fail before running or persisting probes."""
+    from routes import tester_fleet as tester_fleet_routes
+
+    battery_file = tmp_path / "stripe-health.yaml"
+    _seed_battery_file(battery_file)
+
+    class FailingRunner:
+        def run_battery(self, battery):  # pragma: no cover - should not run
+            raise AssertionError("battery runner should not be opened")
+
+    monkeypatch.setattr(
+        tester_fleet_routes,
+        "_resolve_battery_file",
+        lambda service_slug, profile: battery_file,
+    )
+    monkeypatch.setattr(tester_fleet_routes, "BatteryRunner", FailingRunner)
+
+    response = client.post(
+        "/v1/tester-fleet/run",
+        json={
+            "service_slug": "stripe",
+            "profile": "default",
+            "trigger_source": "   ",
+        },
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'trigger_source' field."
+    assert payload["error"]["detail"] == "Provide a non-empty trigger_source value."
+
+
 def test_run_tester_fleet_battery_runs_and_persists_probe_bridge(
     client,
     monkeypatch: pytest.MonkeyPatch,
