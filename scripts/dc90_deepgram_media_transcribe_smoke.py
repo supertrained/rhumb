@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Run a bounded DC90 Deepgram managed media-transcribe smoke.
 
-The fixture is a tiny Rhumb-generated WAV committed under the public web app so
-Deepgram can fetch it by URL. Secrets are loaded from 1Password at runtime and
-are never written to artifacts.
+The fixture is a tiny Rhumb-generated WAV committed under the public web app.
+The helper defaults to GitHub's raw URL so Deepgram can fetch it immediately
+even if the static site deploy has not converged yet. Secrets are loaded from
+1Password at runtime and are never written to artifacts.
 """
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 BASE_URL = "https://api.rhumb.dev"
-DEFAULT_FIXTURE_URL = "https://rhumb.dev/fixtures/dc90/dc90-deepgram-transcribe-ok.wav"
+DEFAULT_FIXTURE_URL = "https://raw.githubusercontent.com/supertrained/rhumb/main/packages/astro-web/public/fixtures/dc90/dc90-deepgram-transcribe-ok.wav"
 VAULT = "OpenClaw Agents"
 RHUMB_KEY_ITEMS = (
     "Rhumb API Key - pedro-dogfood",
