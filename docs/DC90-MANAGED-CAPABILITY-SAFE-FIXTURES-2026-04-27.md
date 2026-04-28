@@ -131,7 +131,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 - Capability/provider: `email.verify` / `emailable`
 - Safety class: `green`
 - Gate: use only non-deliverable documentation domains; do not verify real user addresses.
-- Status: still blocked on hosted managed-catalog visibility as of the 2026-04-28 `scripts/dc90_managed_fixture_smoke.py` rerun. Resolve returned HTTP 200 with no `rhumb_managed` providers and estimate returned HTTP 503 `provider_not_available`; no execute was run. Latest artifact: `artifacts/dc90-emailable-recheck-20260428T0838Z.json`. Migration `0164_emailable_managed_visibility_repair.sql` re-asserts the Emailable managed rows; rerun this fixture only after deploy/migration convergence.
+- Status: still blocked on hosted managed-catalog visibility as of the 2026-04-28T12:46:22Z `scripts/dc90_managed_fixture_smoke.py --skip-algolia` rerun. Resolve returned HTTP 200 with no Emailable `rhumb_managed` provider; the helper skipped estimate/execute before spending another auth/estimate call, so no execute was run. Latest artifact: `artifacts/dc90-managed-fixture-smoke-20260428T124622Z.json`. Migration `0164_emailable_managed_visibility_repair.sql` re-asserts the Emailable managed rows; rerun this fixture only after deploy/migration convergence.
 - Payload:
 
 ```json
@@ -350,7 +350,7 @@ These can notify real users, mutate external systems, create durable resources, 
 
 ## Expansion sequence recommendation
 
-1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the latest 2026-04-28 gated recheck still showed no managed provider on resolve and skipped estimate/execute, so do not count it as proof.
+1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the latest 2026-04-28T12:46:22Z gated recheck still showed no managed provider on resolve and skipped estimate/execute, so do not count it as proof.
 2. Add successful receipts/artifacts back to the pilot readiness packet.
 3. The disposable Algolia `search.index` write/read/delete fixture, E2B short-TTL create/status/cleanup lifecycle fixture, Unstructured `document.parse` tiny synthetic-file fixture, Deepgram `media.transcribe` tiny audio fixture, Deepgram `video.subtitle` subtitle-shaped timing fixture, Firecrawl `scrape.screenshot` one-page fixture, and ElevenLabs one-word `media.generate_speech` fixture are now proved. Next amber target should be a consented side-effect fixture only if exact target/resource/cleanup controls exist; do not run uncontrolled external sends, arbitrary code execution, customer documents, long-lived compute, broader speech/media variants, or multi-page crawls.
 4. Keep red fixtures skipped until there is a named human-approved target and payload.
