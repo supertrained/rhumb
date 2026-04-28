@@ -46,6 +46,7 @@ Fresh hosted dogfood smokes on 2026-04-27 and 2026-04-28 expanded the readiness 
 | `document.search` | `algolia` | HTTP 200, upstream 200, one `services` index hit returned | `rcpt_9eee236d3706468fbe566407` | `artifacts/dc90-algolia-document-search-smoke-20260427T213807Z.json` |
 | `search.autocomplete` | `algolia` | HTTP 200, upstream 200, read-only `rhumb_test` autocomplete fixture returned | `rcpt_2a697ac7913b478884ca1acd` | `artifacts/dc90-algolia-search-autocomplete-smoke-20260428T023421Z.json` |
 | `ecommerce.search_products` | `algolia` | HTTP 200, upstream 200, read-only `rhumb_test` product-search fixture returned | `rcpt_67a673c149274a3699470fd9` | `artifacts/dc90-algolia-ecommerce-search_products-smoke-20260428T023421Z.json` |
+| `search.index` | `algolia` | HTTP 200, upstream 201, disposable `rhumb_test` object written, read back directly, deleted, and cleanup-verified 404 | `rcpt_ba598de8c9ec4cdd9dc045f3` | `artifacts/dc90-managed-fixture-smoke-20260428T033602Z.json` |
 | `scrape.extract` | `scraperapi` | HTTP 200, upstream 200, `https://example.com` HTML returned | `rcpt_7cdb0b94414e47739742e1df` | `artifacts/dc90-scraperapi-scrape-extract-smoke-post-4a6aefb-20260427T214448Z.json` |
 | `data.enrich` | `ipinfo` | HTTP 200, upstream 200, `8.8.8.8` enrichment returned | `rcpt_29b420541d5f492f9f28a980` | `artifacts/dc90-ipinfo-data-enrich-smoke-post-4a6aefb-20260427T214448Z.json` |
 | `ai.generate_text` | `replicate` | HTTP 200, upstream 201, async prediction accepted after default-version normalization | `rcpt_eb888ecd4fd24df49f3ea77e` | `artifacts/dc90-replicate-ai-generate-text-smoke-20260427T223542Z.json` |
@@ -55,9 +56,9 @@ Fresh hosted dogfood smokes on 2026-04-27 and 2026-04-28 expanded the readiness 
 | `identity.lookup` | `ipinfo` | HTTP 200, upstream 200, `8.8.8.8` identity response returned | `rcpt_943805616c38406eb0b6f46a` | `artifacts/dc90-ipinfo-identity-lookup-smoke-20260428T013346Z.json` |
 | `timezone.get_info` | `ipinfo` | HTTP 200, upstream 200, `8.8.8.8` timezone response returned | `rcpt_70b5a400a1f9473690225863` | `artifacts/dc90-ipinfo-timezone-get-info-smoke-20260428T013346Z.json` |
 
-Emailable `email.verify` was attempted as a green fixture on 2026-04-28, but estimate returned HTTP 503 `provider_not_available` before execution because the hosted managed catalog did not expose `email.verify` / `emailable`. A later recheck after `0164` had been pushed still showed no `rhumb_managed` providers on resolve and `provider_not_available` on estimate, so Emailable remains pending until deploy/migration convergence exposes the rows.
+Emailable `email.verify` was attempted as a green fixture on 2026-04-28, but estimate returned HTTP 503 `provider_not_available` before execution because the hosted managed catalog did not expose `email.verify` / `emailable`. A later recheck after `0164` had been pushed, and the latest `scripts/dc90_managed_fixture_smoke.py` rerun at `artifacts/dc90-managed-fixture-smoke-20260428T033602Z.json`, still showed no `rhumb_managed` providers on resolve and `provider_not_available` on estimate, so Emailable remains pending until deploy/migration convergence exposes the rows.
 
-Interpretation: the trusted-user pilot can honestly say that Rhumb-managed execution has fresh hosted proof across search-adjacent, embedding, Algolia read-only search/autocomplete/product-search, scraping, IP enrichment, IP lookup aliases, and text-generation rails. This is still **first-wave proof**, not a universal claim that all managed configs work.
+Interpretation: the trusted-user pilot can honestly say that Rhumb-managed execution has fresh hosted proof across search-adjacent, embedding, Algolia read-only search/autocomplete/product-search plus one disposable index-write fixture, scraping, IP enrichment, IP lookup aliases, and text-generation rails. This is still **first-wave proof**, not a universal claim that all managed configs work.
 
 ## Pilot boundary
 
@@ -83,7 +84,7 @@ Recommended first cohort:
 - 2-5 trusted users or friend agents.
 - Each gets a capped governed key, not provider credentials.
 - Suggested initial cap: `$5-$10/month`, `60 qpm`.
-- Start with `search.query` only for the first invite unless the user has an explicit need for one of the freshly proven rails (`ai.embed`, `ai.generate_text`, `document.search`, `search.autocomplete`, `ecommerce.search_products`, `scrape.extract`, `data.enrich`, `geo.lookup`, `identity.lookup`, or `timezone.get_info`).
+- Start with `search.query` only for the first invite unless the user has an explicit need for one of the freshly proven rails (`ai.embed`, `ai.generate_text`, `document.search`, `search.autocomplete`, `ecommerce.search_products`, disposable `search.index`, `scrape.extract`, `data.enrich`, `geo.lookup`, `identity.lookup`, or `timezone.get_info`).
 - Expand only after at least one complete run includes: resolve artifact, estimate artifact, execution result, receipt/error, and user friction notes.
 - Keep side-effect/resource/cost-bearing managed surfaces skipped until safe recipients, channels, indexes, sandboxes, or spend ceilings are explicitly defined.
 
@@ -128,4 +129,4 @@ The execute call is a paid/authorized managed execution. Run it with a dogfood g
 - **Go:** controlled trusted-user pilot for `search.query` managed execution through governed keys.
 - **No-go:** public launch, broad unmanaged system-of-record pilot, or “all managed capabilities are ready” claim.
 - **Remaining action before invites:** run a final `search.query` governed execute smoke immediately before issuing keys, then mint capped keys for named trusted users. The broader managed-capability proof above is sufficient to update pilot positioning, but it does not remove the final per-invite smoke requirement. Google AI text should use `gemini-2.5-flash` rather than stale `gemini-2.0-flash`; Replicate text proof is async prediction-acceptance proof.
-- **Next expansion action:** after `0164_emailable_managed_visibility_repair.sql` deploys, rerun Emailable `email.verify`; otherwise move to named amber fixtures with explicit sandbox/cleanup, not uncontrolled side-effect surfaces.
+- **Next expansion action:** after `0164_emailable_managed_visibility_repair.sql` deploys, rerun Emailable `email.verify`; otherwise the next named amber fixture is the E2B create/status/delete lifecycle helper with explicit sandbox cleanup, not uncontrolled side-effect surfaces.

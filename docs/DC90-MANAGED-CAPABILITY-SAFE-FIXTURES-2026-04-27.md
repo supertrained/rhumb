@@ -9,7 +9,7 @@ Scope: fixtures for the next trusted-user managed-capability proof wave. This is
 Fresh hosted proof now exists for the first safe managed rails:
 
 - `ai.embed` via `google-ai`
-- `document.search`, `search.autocomplete`, and `ecommerce.search_products` via `algolia`
+- `document.search`, `search.autocomplete`, `ecommerce.search_products`, and disposable `search.index` via `algolia`
 - `scrape.extract` via `scraperapi`
 - `data.enrich` via `ipinfo`
 - `ai.generate_text` via `replicate`, `google-ai`, and `perplexity`
@@ -107,7 +107,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 - Capability/provider: `email.verify` / `emailable`
 - Safety class: `green`
 - Gate: use only non-deliverable documentation domains; do not verify real user addresses.
-- Status: blocked on hosted managed-catalog visibility as of 2026-04-28. Estimate returned HTTP 503 `provider_not_available` before execution and artifact `artifacts/dc90-emailable-email-verify-smoke-20260428T013346Z.json` records the failure. Migration `0164_emailable_managed_visibility_repair.sql` re-asserts the Emailable managed rows; rerun this fixture after deploy.
+- Status: still blocked on hosted managed-catalog visibility as of the 2026-04-28 `scripts/dc90_managed_fixture_smoke.py` rerun. Resolve returned HTTP 200 with no `rhumb_managed` providers and estimate returned HTTP 503 `provider_not_available`; no execute was run. Latest artifact: `artifacts/dc90-managed-fixture-smoke-20260428T033602Z.json`. Migration `0164_emailable_managed_visibility_repair.sql` re-asserts the Emailable managed rows; rerun this fixture only after deploy/migration convergence.
 - Payload:
 
 ```json
@@ -142,12 +142,12 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 
 ## Amber fixtures — require named sandbox/resource first
 
-### Algolia autocomplete / product search
+### Algolia autocomplete / product search / disposable index write
 
-- Capability/providers: `search.autocomplete`, `ecommerce.search_products` / `algolia`
+- Capability/providers: `search.autocomplete`, `ecommerce.search_products`, `search.index` / `algolia`
 - Safety class: `amber`
 - Required sandbox: Rhumb-owned read-only index with stable fixture records. Current proven index: `rhumb_test`; do not mutate stable fixture records. (`document.search` also normalizes the placeholder `services` to `rhumb_test`, but autocomplete/product search fixtures should name `rhumb_test` directly.)
-- Status: fresh hosted proof exists for both read-only amber fixtures. `search.autocomplete` passed at `artifacts/dc90-algolia-search-autocomplete-smoke-20260428T023421Z.json` with receipt `rcpt_2a697ac7913b478884ca1acd`; `ecommerce.search_products` passed at `artifacts/dc90-algolia-ecommerce-search_products-smoke-20260428T023421Z.json` with receipt `rcpt_67a673c149274a3699470fd9`.
+- Status: fresh hosted proof exists for both read-only amber fixtures and one disposable write fixture. `search.autocomplete` passed at `artifacts/dc90-algolia-search-autocomplete-smoke-20260428T023421Z.json` with receipt `rcpt_2a697ac7913b478884ca1acd`; `ecommerce.search_products` passed at `artifacts/dc90-algolia-ecommerce-search_products-smoke-20260428T023421Z.json` with receipt `rcpt_67a673c149274a3699470fd9`; `search.index` passed via `scripts/dc90_managed_fixture_smoke.py` at `artifacts/dc90-managed-fixture-smoke-20260428T033602Z.json` with receipt `rcpt_ba598de8c9ec4cdd9dc045f3`, direct readback of object `dc90-smoke-20260428t033602z`, direct delete, and cleanup verification HTTP 404.
 - Payload template:
 
 ```json
@@ -160,8 +160,9 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 }
 ```
 
-- Pass condition: HTTP 200, one or more fixture hits, receipt id present.
-- Do not run `search.index` until a disposable index name and cleanup step are defined.
+- Pass condition for read fixtures: HTTP 200, one or more fixture hits, receipt id present.
+- Pass condition for `search.index`: estimate HTTP 200; Rhumb execute HTTP 200 with receipt; direct Algolia readback returns the disposable `objectID`; direct delete succeeds; cleanup verification returns HTTP 404.
+- `search.index` is now proved only through `scripts/dc90_managed_fixture_smoke.py`; do not run arbitrary index writes or mutate stable fixture records.
 
 ### Firecrawl scrape / screenshot
 
@@ -246,7 +247,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 | --- | --- | --- |
 | `email.send`, `email.template` / Resend or Postmark | **No.** Keys are configured and `email.track` passed, but no committed owned recipient/template fixture is documented here. | Named Rhumb-owned recipient inbox, verified sender/domain, exact subject/body, idempotency key, and one-message cap. |
 | `communication.send_message` / Slack | **Not yet.** Prior Slack runtime reviews prove `auth.test`; no dedicated channel ID is documented for managed send. | Rhumb-owned smoke channel, bot membership, explicit channel ID, single `[dc90-smoke]` message, delete/update cleanup if supported. |
-| `search.index` / Algolia | **Yes, cautiously.** The owned `rhumb_test` index exists and read fixtures are proven, including fresh read-only amber proof for `search.autocomplete` and `ecommerce.search_products`. | Write objectID `dc90-smoke-{timestamp}` into `rhumb_test`, read it back, then delete the object and verify cleanup. Do not mutate existing fixture records. |
+| `search.index` / Algolia | **Yes, through helper only.** The owned `rhumb_test` index exists; read fixtures and one disposable write/read/delete pass are proven. | Use `scripts/dc90_managed_fixture_smoke.py` to write objectID `dc90-smoke-{timestamp}` into `rhumb_test`, read it back, delete it, and verify cleanup. Do not mutate existing fixture records. |
 | `media.transcribe`, `video.subtitle` / Deepgram | **No committed fixture yet.** Credential path exists, but no tiny owned audio/video file is committed. | Add a sub-5-second public-domain or Rhumb-generated WAV/MP3 fixture, pass it via the supported body/multipart shape, assert a tiny transcript, and delete any stored artifact. |
 | `media.generate_speech` / ElevenLabs/OpenAI/Deepgram | **Partially.** ElevenLabs tiny TTS has fresh proof; broader speech rails still need provider-specific caps. | Tiny text (`"OK"`), fixed low-cost voice/model, max one generation, artifact retention/deletion policy. |
 | `ai.generate_image`, `ai.edit_image` / OpenAI, Google AI, Replicate | **No.** No low-cost image prompt/reference/storage policy is committed. | One 512/1024px safe prompt, one image max, explicit budget ceiling, artifact storage/deletion plan, and no external publication. |
@@ -271,7 +272,7 @@ These can notify real users, mutate external systems, create durable resources, 
 
 1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the 2026-04-28 recheck still showed no managed providers on resolve and `provider_not_available` on estimate, so do not count it as proof.
 2. Add successful receipts/artifacts back to the pilot readiness packet.
-3. Next amber target should be either a disposable Algolia `search.index` write/read/delete fixture or the E2B create/status/delete lifecycle helper, not uncontrolled side-effect/resource surfaces.
+3. The disposable Algolia `search.index` write/read/delete fixture is now proved. Next amber target should be the E2B create/status/delete lifecycle helper, not uncontrolled side-effect/resource surfaces.
 4. Keep red fixtures skipped until there is a named human-approved target and payload.
 
 ## Claim guardrail
