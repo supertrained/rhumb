@@ -48,6 +48,26 @@ This file defines the next safe fixture set for managed capabilities that were s
 
 These are the next lowest-risk managed rails because they use public/synthetic inputs and avoid writes to external recipients.
 
+### Search query trusted-user pilot smoke
+
+- Capability/provider: `search.query` / `brave-search-api`
+- Safety class: `green`
+- Gate: estimate returns HTTP 200 with selected provider `brave-search-api` and `credential_mode=rhumb_managed`.
+- Status: final pre-invite governed smoke passed on 2026-04-28T08:44:47Z via `scripts/dc90_search_query_pilot_smoke.py`; artifact `artifacts/dc90-search-query-pilot-smoke-20260428T084447Z.json`; receipt `rcpt_e4e7040fd30e438a9d9f9a44`; upstream 200; observed 20 web results; estimate `$0.003`.
+- Payload:
+
+```json
+{
+  "body": {
+    "query": "best tools for agent web search",
+    "max_results": 3
+  }
+}
+```
+
+- Pass condition: HTTP 200, `provider_used=brave-search-api`, `credential_mode=rhumb_managed`, upstream 200, receipt id present, and at least one observed result.
+- Stop condition: invalid dogfood key, estimate failure, selected provider mismatch, missing receipt, or empty result evidence.
+
 ### Gemini 2.0 text model caveat
 
 `gemini-2.0-flash` now returns upstream `404 NOT_FOUND` for the hosted managed credential. Use `gemini-2.5-flash` plus `generationConfig.thinkingConfig.thinkingBudget=0` for tiny deterministic smokes; otherwise Gemini 2.5 can spend a low output cap on thinking tokens and return `MAX_TOKENS` without text.

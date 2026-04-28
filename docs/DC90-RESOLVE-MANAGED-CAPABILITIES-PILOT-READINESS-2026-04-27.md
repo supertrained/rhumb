@@ -42,6 +42,7 @@ Fresh hosted dogfood smokes on 2026-04-27 and 2026-04-28 expanded the readiness 
 
 | Capability | Provider | Result | Receipt | Artifact |
 | --- | --- | --- | --- | --- |
+| `search.query` | `brave-search-api` | Final pre-invite governed smoke passed: resolve HTTP 200, estimate `$0.003`, execute HTTP 200 / upstream 200, 20 observed web results | `rcpt_e4e7040fd30e438a9d9f9a44` | `artifacts/dc90-search-query-pilot-smoke-20260428T084447Z.json` |
 | `ai.embed` | `google-ai` | HTTP 200, upstream 200, 64-dim embedding returned | `rcpt_87fc313e37ea426c970a14a8` | `artifacts/dc90-google-ai-embed-smoke-20260427T213328Z.json` |
 | `document.search` | `algolia` | HTTP 200, upstream 200, one `services` index hit returned | `rcpt_9eee236d3706468fbe566407` | `artifacts/dc90-algolia-document-search-smoke-20260427T213807Z.json` |
 | `search.autocomplete` | `algolia` | HTTP 200, upstream 200, read-only `rhumb_test` autocomplete fixture returned | `rcpt_2a697ac7913b478884ca1acd` | `artifacts/dc90-algolia-search-autocomplete-smoke-20260428T023421Z.json` |
@@ -115,24 +116,19 @@ For each trusted user:
 
 ## Fresh smoke required before sending keys
 
-Before issuing real pilot keys, run one final governed-key smoke:
+Latest final governed-key smoke: **passed on 2026-04-28T08:44:47Z** via `scripts/dc90_search_query_pilot_smoke.py`. Artifact: `artifacts/dc90-search-query-pilot-smoke-20260428T084447Z.json`; receipt: `rcpt_e4e7040fd30e438a9d9f9a44`; provider: `brave-search-api`; credential mode: `rhumb_managed`; upstream status: `200`; observed results: `20`; estimate: `$0.003`.
+
+Use the helper for the next pre-invite freshness check rather than hand-editing curl snippets:
 
 ```bash
-API="https://api.rhumb.dev/v1"
-
-curl "${API}/capabilities/search.query/resolve"
-curl "${API}/capabilities/search.query/execute/estimate"
-curl -X POST "${API}/capabilities/search.query/execute" \
-  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"body":{"query":"best tools for agent web search","max_results":3}}'
+python3 scripts/dc90_search_query_pilot_smoke.py
 ```
 
-The execute call is a paid/authorized managed execution. Run it with a dogfood governed key immediately before issuing pilot keys; store the result as the fresh readiness artifact.
+The execute call is a paid/authorized managed execution. If pilot keys are not issued soon after the latest smoke, rerun the helper with a dogfood governed key immediately before sending keys and store the fresh readiness artifact.
 
 ## Current go / no-go
 
 - **Go:** controlled trusted-user pilot for `search.query` managed execution through governed keys.
 - **No-go:** public launch, broad unmanaged system-of-record pilot, or “all managed capabilities are ready” claim.
-- **Remaining action before invites:** run a final `search.query` governed execute smoke immediately before issuing keys, then mint capped keys for named trusted users. The broader managed-capability proof above is sufficient to update pilot positioning, but it does not remove the final per-invite smoke requirement. Google AI text should use `gemini-2.5-flash` rather than stale `gemini-2.0-flash`; Replicate text proof is async prediction-acceptance proof.
+- **Remaining action before invites:** the final `search.query` governed execute smoke passed on 2026-04-28T08:44:47Z. If invites happen promptly, the next action is minting capped keys for named trusted users; if not, rerun `scripts/dc90_search_query_pilot_smoke.py` immediately before sending keys. Google AI text should use `gemini-2.5-flash` rather than stale `gemini-2.0-flash`; Replicate text proof is async prediction-acceptance proof.
 - **Next expansion action:** after `0164_emailable_managed_visibility_repair.sql` deploys, rerun Emailable `email.verify`. If that remains blocked, move only to a consented side-effect fixture with exact target/resource/cleanup controls. E2B create/status/cleanup lifecycle, Unstructured `document.parse`, Deepgram `media.transcribe`, Deepgram `video.subtitle`, Firecrawl `scrape.screenshot`, and ElevenLabs one-word `media.generate_speech` are now proved, but arbitrary E2B code execution, long-lived sandboxes, customer documents, broader document variants, multi-page crawls, video-container subtitle export, broader speech/media variants, and uncontrolled external sends remain out of scope until separate fixture/spend/cleanup gates exist.
