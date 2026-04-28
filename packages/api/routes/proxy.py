@@ -521,6 +521,19 @@ def _validated_proxy_metrics_agent_id(agent_id: str) -> str:
     )
 
 
+def _validated_proxy_request_service(service: str) -> str:
+    """Reject malformed proxy request service ids before auth or routing reads."""
+    normalized = str(service).strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'service' field.",
+        detail="Provide a non-empty service value.",
+    )
+
+
 def _validated_schema_snapshot_limit(limit: int) -> int:
     """Validate the admin schema-snapshot history limit before detector reads."""
     if 1 <= limit <= 50:
@@ -710,6 +723,8 @@ async def proxy_request(
     response_body: Any = None
 
     try:
+        _validated_proxy_request_service(request.service)
+
         if not x_rhumb_key:
             raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
 
@@ -953,6 +968,9 @@ async def proxy_request(
 
     except HTTPException as exc:
         status_code = exc.status_code
+        raise
+    except RhumbError:
+        status_code = 400
         raise
     except Exception as e:
         status_code = 500

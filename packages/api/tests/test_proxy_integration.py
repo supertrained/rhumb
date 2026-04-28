@@ -263,6 +263,25 @@ class TestIntegrationProxyRequest:
         # The bypass agent has no grant for "nonexistent", so 403 is correct.
         assert response.status_code == 403
 
+    def test_proxy_request_rejects_blank_service_before_auth(self, client) -> None:
+        """Blank service bodies should not open governed-key auth or routing reads."""
+        with patch("routes.proxy._get_identity_store") as mock_identity_store:
+            response = client.post(
+                "/proxy/",
+                json={
+                    "service": "  ",
+                    "method": "GET",
+                    "path": "/v1/customers",
+                },
+            )
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'service' field."
+        assert payload["error"]["detail"] == "Provide a non-empty service value."
+        mock_identity_store.assert_not_called()
+
     def test_route_uses_service_timeout_threshold_override(
         self, client, httpx_mock, monkeypatch: pytest.MonkeyPatch
     ) -> None:
