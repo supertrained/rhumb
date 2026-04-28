@@ -14,7 +14,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-04-28T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Prompt injection hits harder in MCP when tools expose unconstrained parameters and the server leaves the blast radius wide open.",
@@ -118,6 +118,20 @@ const ARTICLE_JSON_LD = {
           The vulnerability is not that the model followed a bad instruction. The vulnerability is that the tool boundary was broad enough for that instruction to become a real action.
         </p>
 
+        <div class="my-8 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Execution-time boundary test</div>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">Schemas describe input. Enforcement must reject the dangerous value.</h3>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            A JSON schema that says <code class="rounded bg-slate-950/70 px-1.5 py-0.5 text-xs text-rose-200">path: string</code> or <code class="rounded bg-slate-950/70 px-1.5 py-0.5 text-xs text-rose-200">url: string</code> is not a containment boundary. It helps the model format a call; it does not prove the server will refuse <code class="rounded bg-slate-950/70 px-1.5 py-0.5 text-xs text-rose-200">../</code>, internal hosts, unexpected repositories, cross-tenant IDs, or write targets outside the declared lane.
+          </p>
+          <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+            <li>Normalize first, then compare against the allowlisted filesystem, repository, tenant, or domain scope.</li>
+            <li>Fail closed when the normalized value falls outside that scope, even if it matches the tool schema.</li>
+            <li>Return a typed policy denial that preserves the caller, tool, raw value, normalized value, and rule that blocked execution.</li>
+            <li>Trace the refusal as an expected safety outcome, not as a generic runtime error the agent may retry around.</li>
+          </ul>
+        </div>
+
         <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">2. Remote MCP turns a bad call into an operator problem</h2>
         <p class="text-slate-400 leading-relaxed mb-4">
           Local stdio MCP on your own machine is still risky, but the blast radius is usually easier to reason about. The affected machine, files, and credentials are at least legible to one operator.
@@ -158,6 +172,7 @@ const ARTICLE_JSON_LD = {
         <ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">
           <li class="leading-relaxed">Filesystem paths restricted to explicit allowlisted prefixes</li>
           <li class="leading-relaxed">Structured strings validated against expected shape before execution, not merely hinted at in the tool schema</li>
+          <li class="leading-relaxed">Normalized values compared against allowlisted filesystem, repository, tenant, domain, and write-target scope before the side effect runs</li>
           <li class="leading-relaxed">URLs and browser targets restricted to explicit domains or egress policy before navigation runs</li>
           <li class="leading-relaxed">Numeric inputs bounded to documented ranges</li>
         </ul>
@@ -203,7 +218,8 @@ const ARTICLE_JSON_LD = {
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Minimal audit</div>
           <ol class="list-decimal list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
             <li>Check whether the server validates tool parameters in server-side code, not only in the exposed schema.</li>
-            <li>Look for explicit normalization plus allowlist guards on files, repos, URLs, browser targets, and write paths.</li>
+            <li>Look for explicit normalization plus allowlist guards on files, repos, URLs, browser targets, tenant IDs, and write paths.</li>
+            <li>Send one out-of-scope value and verify the server returns a typed policy denial rather than executing, retrying, or hiding the refusal as a generic error.</li>
             <li>Confirm the runtime can use scoped credentials rather than one broad backend identity.</li>
             <li>Inspect whether tool calls preserve caller, parameters, result, policy context, and typed denials instead of collapsing everything into generic failure.</li>
             <li>Ask what happens to other tenants or sessions if one agent is compromised. The honest answer should be "nothing material."</li>
