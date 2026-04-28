@@ -14,6 +14,7 @@ Fresh hosted proof now exists for the first safe managed rails:
 - `data.enrich` via `ipinfo`
 - `ai.generate_text` via `replicate`, `google-ai`, and `perplexity`
 - IPinfo aliases: `geo.lookup`, `identity.lookup`, and `timezone.get_info`
+- `media.transcribe` and `video.subtitle` via `deepgram` on a tiny Rhumb-generated audio fixture
 
 This file defines the next safe fixture set for managed capabilities that were skipped because they can create side effects, touch customer resources, burn unbounded cost, or require tenant-owned files/indexes/channels/sandboxes. Do **not** run these until the fixture’s gate is satisfied.
 
@@ -268,10 +269,20 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 | `communication.send_message` / Slack | **Not yet.** Prior Slack runtime reviews prove `auth.test`; no dedicated channel ID is documented for managed send. | Rhumb-owned smoke channel, bot membership, explicit channel ID, single `[dc90-smoke]` message, delete/update cleanup if supported. |
 | `search.index` / Algolia | **Yes, through helper only.** The owned `rhumb_test` index exists; read fixtures and one disposable write/read/delete pass are proven. | Use `scripts/dc90_managed_fixture_smoke.py` to write objectID `dc90-smoke-{timestamp}` into `rhumb_test`, read it back, delete it, and verify cleanup. Do not mutate existing fixture records. |
 | `document.parse` / Unstructured | **Yes, through helper only.** The helper generates a 96-byte synthetic text fixture in-memory and verifies the returned text token. | Use `scripts/dc90_unstructured_document_parse_smoke.py`; do not upload customer documents. `pdf.extract_text`, `file.convert`, and other document variants still need separate tiny fixtures. |
-| `media.transcribe`, `video.subtitle` / Deepgram | **Partially proved.** `media.transcribe` now has a Rhumb-generated 2.45s WAV fixture committed at `packages/astro-web/public/fixtures/dc90/dc90-deepgram-transcribe-ok.wav` and proved through `scripts/dc90_deepgram_media_transcribe_smoke.py` using the raw GitHub URL while static-site deploy was still returning 404. | For `media.transcribe`, use the helper only; pass condition is upstream 200, receipt id present, and transcript contains `deepgram` + `transcribe`. `video.subtitle` still needs a subtitle-shaped fixture/output assertion before counting as proved. |
+| `media.transcribe`, `video.subtitle` / Deepgram | **Yes, through helpers only.** The Rhumb-generated 2.45s WAV fixture is committed at `packages/astro-web/public/fixtures/dc90/dc90-deepgram-transcribe-ok.wav`; both helpers default to the raw GitHub URL while static-site deploy convergence can lag. | For `media.transcribe`, use `scripts/dc90_deepgram_media_transcribe_smoke.py`; pass condition is upstream 200, receipt id present, and transcript contains `deepgram` + `transcribe`. For `video.subtitle`, use `scripts/dc90_deepgram_video_subtitle_smoke.py`; pass condition is upstream 200, receipt id present, transcript contains `deepgram` + `transcribe`, and the response includes word-level start/end timings that can form a VTT cue. |
 | `media.generate_speech` / ElevenLabs/OpenAI/Deepgram | **Partially.** ElevenLabs tiny TTS has fresh proof; broader speech rails still need provider-specific caps. | Tiny text (`"OK"`), fixed low-cost voice/model, max one generation, artifact retention/deletion policy. |
 | `ai.generate_image`, `ai.edit_image` / OpenAI, Google AI, Replicate | **No.** No low-cost image prompt/reference/storage policy is committed. | One 512/1024px safe prompt, one image max, explicit budget ceiling, artifact storage/deletion plan, and no external publication. |
 | PDL/Apollo person/contact enrichment | **No positive consented fixture.** Synthetic PDL no-match is expected negative; public Satya Nadella fixture exists in runtime scripts but is not consented/internal. | Consented internal test person with known match, or explicit approval for a named public-person lookup; no private prospect search by default. |
+
+### Deepgram video subtitles
+
+- Capability/provider: `video.subtitle` / `deepgram`
+- Safety class: `amber`
+- Required sandbox: the same tiny Rhumb-generated audio fixture used for `media.transcribe`; no customer media.
+- Status: fresh hosted proof exists at `artifacts/dc90-deepgram-video-subtitle-smoke-20260428T064106Z.json` with receipt `rcpt_629073223cf14f3096166635`. The response included five word-level timing entries and the helper generated a VTT-shaped preview: `00:00:00.118 --> 00:00:02.243` / `dc ninety deepgram transcribe okay`.
+- Helper: `scripts/dc90_deepgram_video_subtitle_smoke.py`
+- Pass condition: HTTP 200, `provider_used=deepgram`, upstream 200, receipt id present, transcript contains `deepgram` + `transcribe`, and at least two words include monotonic `start` / `end` timestamps.
+- Boundary: this proves subtitle-shaped timing output from a tiny audio fixture only. It is not proof of video container ingest, SRT/VTT file export, long-media readiness, diarization quality, or customer media readiness.
 
 ## Red fixtures — do not run without exact approval
 
@@ -292,7 +303,7 @@ These can notify real users, mutate external systems, create durable resources, 
 
 1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the 2026-04-28 recheck still showed no managed providers on resolve and `provider_not_available` on estimate, so do not count it as proof.
 2. Add successful receipts/artifacts back to the pilot readiness packet.
-3. The disposable Algolia `search.index` write/read/delete fixture, E2B short-TTL create/status/cleanup lifecycle fixture, Unstructured `document.parse` tiny synthetic-file fixture, and Deepgram `media.transcribe` tiny audio fixture are now proved. Next amber target should be `video.subtitle` only if the route can return subtitle-shaped output from the same tiny asset, or a consented side-effect fixture; do not run uncontrolled external sends, arbitrary code execution, customer documents, or long-lived compute.
+3. The disposable Algolia `search.index` write/read/delete fixture, E2B short-TTL create/status/cleanup lifecycle fixture, Unstructured `document.parse` tiny synthetic-file fixture, Deepgram `media.transcribe` tiny audio fixture, and Deepgram `video.subtitle` subtitle-shaped timing fixture are now proved. Next amber target should be a consented side-effect fixture only if exact target/resource/cleanup controls exist; do not run uncontrolled external sends, arbitrary code execution, customer documents, or long-lived compute.
 4. Keep red fixtures skipped until there is a named human-approved target and payload.
 
 ## Claim guardrail
