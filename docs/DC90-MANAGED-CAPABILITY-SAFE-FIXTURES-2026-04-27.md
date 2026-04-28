@@ -16,6 +16,7 @@ Fresh hosted proof now exists for the first safe managed rails:
 - `ai.generate_text` via `replicate`, `google-ai`, and `perplexity`
 - IPinfo aliases: `geo.lookup`, `identity.lookup`, and `timezone.get_info`
 - `media.transcribe` and `video.subtitle` via `deepgram` on a tiny Rhumb-generated audio fixture
+- `media.generate_speech` via `elevenlabs` on a one-word `OK` text-to-speech fixture, with no audio bytes persisted
 
 This file defines the next safe fixture set for managed capabilities that were skipped because they can create side effects, touch customer resources, burn unbounded cost, or require tenant-owned files/indexes/channels/sandboxes. Do **not** run these until the fixture’s gate is satisfied.
 
@@ -110,7 +111,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 - Capability/provider: `email.verify` / `emailable`
 - Safety class: `green`
 - Gate: use only non-deliverable documentation domains; do not verify real user addresses.
-- Status: still blocked on hosted managed-catalog visibility as of the 2026-04-28 `scripts/dc90_managed_fixture_smoke.py` rerun. Resolve returned HTTP 200 with no `rhumb_managed` providers and estimate returned HTTP 503 `provider_not_available`; no execute was run. Latest artifact: `artifacts/dc90-managed-fixture-smoke-20260428T033602Z.json`. Migration `0164_emailable_managed_visibility_repair.sql` re-asserts the Emailable managed rows; rerun this fixture only after deploy/migration convergence.
+- Status: still blocked on hosted managed-catalog visibility as of the 2026-04-28 `scripts/dc90_managed_fixture_smoke.py` rerun. Resolve returned HTTP 200 with no `rhumb_managed` providers and estimate returned HTTP 503 `provider_not_available`; no execute was run. Latest artifact: `artifacts/dc90-emailable-recheck-20260428T0838Z.json`. Migration `0164_emailable_managed_visibility_repair.sql` re-asserts the Emailable managed rows; rerun this fixture only after deploy/migration convergence.
 - Payload:
 
 ```json
@@ -276,9 +277,31 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 | `document.parse` / Unstructured | **Yes, through helper only.** The helper generates a 96-byte synthetic text fixture in-memory and verifies the returned text token. | Use `scripts/dc90_unstructured_document_parse_smoke.py`; do not upload customer documents. `pdf.extract_text`, `file.convert`, and other document variants still need separate tiny fixtures. |
 | `media.transcribe`, `video.subtitle` / Deepgram | **Yes, through helpers only.** The Rhumb-generated 2.45s WAV fixture is committed at `packages/astro-web/public/fixtures/dc90/dc90-deepgram-transcribe-ok.wav`; both helpers default to the raw GitHub URL while static-site deploy convergence can lag. | For `media.transcribe`, use `scripts/dc90_deepgram_media_transcribe_smoke.py`; pass condition is upstream 200, receipt id present, and transcript contains `deepgram` + `transcribe`. For `video.subtitle`, use `scripts/dc90_deepgram_video_subtitle_smoke.py`; pass condition is upstream 200, receipt id present, transcript contains `deepgram` + `transcribe`, and the response includes word-level start/end timings that can form a VTT cue. |
 | `scrape.screenshot` / Firecrawl | **Yes, through helper only.** The helper screenshots the public static `https://example.com` page exactly once and stores only compact screenshot evidence. | Use `scripts/dc90_firecrawl_screenshot_smoke.py`; pass condition is upstream 200, receipt id present, page title `Example Domain`, and hashed screenshot URL evidence. Do not run multi-page crawl variants from this fixture. |
-| `media.generate_speech` / ElevenLabs/OpenAI/Deepgram | **Partially.** ElevenLabs tiny TTS has fresh proof; broader speech rails still need provider-specific caps. | Tiny text (`"OK"`), fixed low-cost voice/model, max one generation, artifact retention/deletion policy. |
+| `media.generate_speech` / ElevenLabs/OpenAI/Deepgram | **Yes for ElevenLabs through helper only.** Broader speech rails still need provider-specific caps. | Use `scripts/dc90_elevenlabs_tts_smoke.py` for ElevenLabs: tiny text (`"OK"`), fixed low-cost voice/model, max one generation, compact artifact with audio hash/length only. Do not persist audio bytes or run broader speech variants from this fixture. |
 | `ai.generate_image`, `ai.edit_image` / OpenAI, Google AI, Replicate | **No.** No low-cost image prompt/reference/storage policy is committed. | One 512/1024px safe prompt, one image max, explicit budget ceiling, artifact storage/deletion plan, and no external publication. |
 | PDL/Apollo person/contact enrichment | **No positive consented fixture.** Synthetic PDL no-match is expected negative; public Satya Nadella fixture exists in runtime scripts but is not consented/internal. | Consented internal test person with known match, or explicit approval for a named public-person lookup; no private prospect search by default. |
+
+### ElevenLabs tiny speech generation
+
+- Capability/provider: `media.generate_speech` / `elevenlabs`
+- Safety class: `amber`
+- Required sandbox: one-word synthetic text fixture only; no customer text, no external publication, no persisted audio bytes.
+- Status: fresh hosted proof exists at `artifacts/dc90-elevenlabs-tts-smoke-20260428T084043Z.json` with receipt `rcpt_392a0721a07049d9b527f1e1`. The helper estimated `$0.03`, executed once through Rhumb-managed ElevenLabs, returned upstream 200, and stored only compact audio evidence (`len=12456`, hash `ba461b6c8d8db8bf`).
+- Helper: `scripts/dc90_elevenlabs_tts_smoke.py`
+- Payload template:
+
+```json
+{
+  "body": {
+    "voice_id": "21m00Tcm4TlvDq8ikWAM",
+    "text": "OK",
+    "model_id": "eleven_multilingual_v2"
+  }
+}
+```
+
+- Pass condition: HTTP 200, `provider_used=elevenlabs`, upstream 200, receipt id present, and compact audio evidence length/hash present.
+- Boundary: this proves a one-word ElevenLabs TTS generation only. It is not proof of broader speech rails, voice cloning, long-form generation, storage/retention policy, or customer-content readiness.
 
 ### Deepgram video subtitles
 
@@ -300,16 +323,16 @@ These can notify real users, mutate external systems, create durable resources, 
 | `push_notification.send`, `push_notification.send_to_user`, `push_topic.publish` / Airship | Sends push notifications or touches messaging audiences. | Rhumb-owned app/channel, test audience/tag, validation-only flag or explicit send approval. |
 | `search.index` / Algolia | Writes to an index. | Use the amber `rhumb_test` disposable object fixture above; no production/customer indexes. |
 | `scrape.crawl`, `browser.crawl` / Firecrawl, Apify, ScraperAPI | Multi-page crawl/spend risk. | Domain allowlist, max pages/depth, robots/policy check, spend ceiling. |
-| `ai.generate_image`, `ai.edit_image`, speech rails | Media generation/upload and cost/safety risk. | Prompt/file fixture, content policy check, max tokens/duration/size. |
+| `ai.generate_image`, `ai.edit_image`, broader speech rails | Media generation/upload and cost/safety risk. | Prompt/file fixture, content policy check, max tokens/duration/size. ElevenLabs one-word TTS is proved only through the amber helper above. |
 | Apollo/PDL person/company/contact search | Personal/company data enrichment. | Synthetic or explicitly approved lookup target; no private person lookup by default. |
 | Google Maps/Places directions/search | External quota and location sensitivity. | Public fixture addresses, max result count, no real user addresses. |
 | Long-lived E2B agent/sandbox rails | Durable compute/resource leak. | Lifecycle proof now exists for 10-second sandbox create/status/cleanup; arbitrary code execution and long-lived variants still need a separate spend/cleanup gate. |
 
 ## Expansion sequence recommendation
 
-1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the 2026-04-28 recheck still showed no managed providers on resolve and `provider_not_available` on estimate, so do not count it as proof.
+1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the latest 2026-04-28 gated recheck still showed no managed provider on resolve and skipped estimate/execute, so do not count it as proof.
 2. Add successful receipts/artifacts back to the pilot readiness packet.
-3. The disposable Algolia `search.index` write/read/delete fixture, E2B short-TTL create/status/cleanup lifecycle fixture, Unstructured `document.parse` tiny synthetic-file fixture, Deepgram `media.transcribe` tiny audio fixture, Deepgram `video.subtitle` subtitle-shaped timing fixture, and Firecrawl `scrape.screenshot` one-page fixture are now proved. Next amber target should be a consented side-effect fixture only if exact target/resource/cleanup controls exist; do not run uncontrolled external sends, arbitrary code execution, customer documents, long-lived compute, or multi-page crawls.
+3. The disposable Algolia `search.index` write/read/delete fixture, E2B short-TTL create/status/cleanup lifecycle fixture, Unstructured `document.parse` tiny synthetic-file fixture, Deepgram `media.transcribe` tiny audio fixture, Deepgram `video.subtitle` subtitle-shaped timing fixture, Firecrawl `scrape.screenshot` one-page fixture, and ElevenLabs one-word `media.generate_speech` fixture are now proved. Next amber target should be a consented side-effect fixture only if exact target/resource/cleanup controls exist; do not run uncontrolled external sends, arbitrary code execution, customer documents, long-lived compute, broader speech/media variants, or multi-page crawls.
 4. Keep red fixtures skipped until there is a named human-approved target and payload.
 
 ## Claim guardrail
