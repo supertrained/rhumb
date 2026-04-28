@@ -9,7 +9,7 @@ Scope: fixtures for the next trusted-user managed-capability proof wave. This is
 Fresh hosted proof now exists for the first safe managed rails:
 
 - `ai.embed` via `google-ai`
-- `document.search` via `algolia`
+- `document.search`, `search.autocomplete`, and `ecommerce.search_products` via `algolia`
 - `scrape.extract` via `scraperapi`
 - `data.enrich` via `ipinfo`
 - `ai.generate_text` via `replicate`, `google-ai`, and `perplexity`
@@ -147,6 +147,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 - Capability/providers: `search.autocomplete`, `ecommerce.search_products` / `algolia`
 - Safety class: `amber`
 - Required sandbox: Rhumb-owned read-only index with stable fixture records. Current proven index: `rhumb_test`; do not mutate stable fixture records. (`document.search` also normalizes the placeholder `services` to `rhumb_test`, but autocomplete/product search fixtures should name `rhumb_test` directly.)
+- Status: fresh hosted proof exists for both read-only amber fixtures. `search.autocomplete` passed at `artifacts/dc90-algolia-search-autocomplete-smoke-20260428T023421Z.json` with receipt `rcpt_2a697ac7913b478884ca1acd`; `ecommerce.search_products` passed at `artifacts/dc90-algolia-ecommerce-search_products-smoke-20260428T023421Z.json` with receipt `rcpt_67a673c149274a3699470fd9`.
 - Payload template:
 
 ```json
@@ -245,7 +246,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 | --- | --- | --- |
 | `email.send`, `email.template` / Resend or Postmark | **No.** Keys are configured and `email.track` passed, but no committed owned recipient/template fixture is documented here. | Named Rhumb-owned recipient inbox, verified sender/domain, exact subject/body, idempotency key, and one-message cap. |
 | `communication.send_message` / Slack | **Not yet.** Prior Slack runtime reviews prove `auth.test`; no dedicated channel ID is documented for managed send. | Rhumb-owned smoke channel, bot membership, explicit channel ID, single `[dc90-smoke]` message, delete/update cleanup if supported. |
-| `search.index` / Algolia | **Yes, cautiously.** The owned `rhumb_test` index exists and read fixtures are proven. | Write objectID `dc90-smoke-{timestamp}` into `rhumb_test`, read it back, then delete the object and verify cleanup. Do not mutate existing fixture records. |
+| `search.index` / Algolia | **Yes, cautiously.** The owned `rhumb_test` index exists and read fixtures are proven, including fresh read-only amber proof for `search.autocomplete` and `ecommerce.search_products`. | Write objectID `dc90-smoke-{timestamp}` into `rhumb_test`, read it back, then delete the object and verify cleanup. Do not mutate existing fixture records. |
 | `media.transcribe`, `video.subtitle` / Deepgram | **No committed fixture yet.** Credential path exists, but no tiny owned audio/video file is committed. | Add a sub-5-second public-domain or Rhumb-generated WAV/MP3 fixture, pass it via the supported body/multipart shape, assert a tiny transcript, and delete any stored artifact. |
 | `media.generate_speech` / ElevenLabs/OpenAI/Deepgram | **Partially.** ElevenLabs tiny TTS has fresh proof; broader speech rails still need provider-specific caps. | Tiny text (`"OK"`), fixed low-cost voice/model, max one generation, artifact retention/deletion policy. |
 | `ai.generate_image`, `ai.edit_image` / OpenAI, Google AI, Replicate | **No.** No low-cost image prompt/reference/storage policy is committed. | One 512/1024px safe prompt, one image max, explicit budget ceiling, artifact storage/deletion plan, and no external publication. |
@@ -268,9 +269,9 @@ These can notify real users, mutate external systems, create durable resources, 
 
 ## Expansion sequence recommendation
 
-1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; do not count the pre-deploy 503 as proof.
+1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the 2026-04-28 recheck still showed no managed providers on resolve and `provider_not_available` on estimate, so do not count it as proof.
 2. Add successful receipts/artifacts back to the pilot readiness packet.
-3. Define and commit the missing amber fixtures before running amber smokes.
+3. Next amber target should be either a disposable Algolia `search.index` write/read/delete fixture or the E2B create/status/delete lifecycle helper, not uncontrolled side-effect/resource surfaces.
 4. Keep red fixtures skipped until there is a named human-approved target and payload.
 
 ## Claim guardrail
