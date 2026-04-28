@@ -265,13 +265,15 @@ class TestGetLedger:
             assert "event_type=eq.credit_added" in path
             assert "event_type=eq.%20credit_added%20" not in path
 
-    def test_invalid_event_type_rejected_before_supabase_reads(self, client: TestClient) -> None:
+    def test_invalid_event_type_rejected_before_auth_or_supabase_reads(self, client: TestClient) -> None:
         fetch_mock = AsyncMock()
         count_mock = AsyncMock()
+        require_org_mock = AsyncMock()
 
         with (
             patch("routes.billing.supabase_fetch", fetch_mock),
             patch("routes.billing.supabase_count", count_mock),
+            patch("routes.billing._require_org", require_org_mock),
         ):
             resp = client.get(
                 "/v1/billing/ledger",
@@ -287,16 +289,19 @@ class TestGetLedger:
             "Use one of: auto_reload_triggered, credit_added, debit, "
             "reservation_released, wallet_topup, wallet_topup_added, x402_payment."
         )
+        require_org_mock.assert_not_awaited()
         fetch_mock.assert_not_awaited()
         count_mock.assert_not_awaited()
 
-    def test_blank_event_type_rejected_before_supabase_reads(self, client: TestClient) -> None:
+    def test_blank_event_type_rejected_before_auth_or_supabase_reads(self, client: TestClient) -> None:
         fetch_mock = AsyncMock()
         count_mock = AsyncMock()
+        require_org_mock = AsyncMock()
 
         with (
             patch("routes.billing.supabase_fetch", fetch_mock),
             patch("routes.billing.supabase_count", count_mock),
+            patch("routes.billing._require_org", require_org_mock),
         ):
             resp = client.get(
                 "/v1/billing/ledger",
@@ -309,6 +314,7 @@ class TestGetLedger:
         assert payload["error"]["code"] == "INVALID_PARAMETERS"
         assert payload["error"]["message"] == "Invalid 'event_type' filter."
         assert payload["error"]["detail"] == "Provide a non-empty event_type or omit the filter."
+        require_org_mock.assert_not_awaited()
         fetch_mock.assert_not_awaited()
         count_mock.assert_not_awaited()
 

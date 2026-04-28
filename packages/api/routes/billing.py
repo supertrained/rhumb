@@ -740,8 +740,8 @@ async def get_ledger(
     """Return paginated, optionally filtered ledger entries for the org."""
     limit = _validated_ledger_limit(limit)
     offset = _validated_ledger_offset(offset)
-    org_id = await _require_org(x_rhumb_key)
     normalized_event_type = _validated_ledger_event_type(event_type)
+    org_id = await _require_org(x_rhumb_key)
 
     base_filter = f"credit_ledger?org_id=eq.{org_id}"
     if normalized_event_type:
