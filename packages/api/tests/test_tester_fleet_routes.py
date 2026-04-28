@@ -75,6 +75,30 @@ def test_run_tester_fleet_battery_returns_404_when_missing(client) -> None:
     assert "No battery found" in response.json()["detail"]
 
 
+def test_run_tester_fleet_battery_rejects_blank_service_slug_before_battery_lookup(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank service slugs should not open the seeded-battery lookup path."""
+    from routes import tester_fleet as tester_fleet_routes
+
+    def fail_lookup(service_slug, profile):  # pragma: no cover - should not run
+        raise AssertionError("battery lookup should not be opened")
+
+    monkeypatch.setattr(tester_fleet_routes, "_resolve_battery_file", fail_lookup)
+
+    response = client.post(
+        "/v1/tester-fleet/run",
+        json={"service_slug": "   ", "profile": "default"},
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'service_slug' field."
+    assert payload["error"]["detail"] == "Provide a non-empty service_slug value."
+
+
 def test_run_tester_fleet_battery_runs_and_persists_probe_bridge(
     client,
     monkeypatch: pytest.MonkeyPatch,

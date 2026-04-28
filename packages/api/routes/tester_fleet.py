@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from routes.probes import get_probe_service
+from services.error_envelope import RhumbError
 from schemas.tester_fleet import BatteryRunRequestSchema, BatteryRunResponseSchema
 from services.service_slugs import public_service_slug, public_service_slug_candidates
 from services.tester_fleet import (
@@ -65,7 +66,11 @@ async def run_tester_fleet_battery(payload: BatteryRunRequestSchema) -> BatteryR
     """Run a seeded tester-fleet battery for one service and persist evidence."""
     normalized_service_slug = _normalize_service_slug(payload.service_slug)
     if normalized_service_slug is None:
-        raise HTTPException(status_code=400, detail="service_slug is required")
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'service_slug' field.",
+            detail="Provide a non-empty service_slug value.",
+        )
 
     battery_file = _resolve_battery_file(normalized_service_slug, payload.profile)
     if battery_file is None:
