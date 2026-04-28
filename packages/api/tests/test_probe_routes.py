@@ -302,6 +302,54 @@ def test_latest_probe_missing_canonicalizes_alias_input(
     assert body["detail"] == "No probe result found for service 'brave-search-api'"
 
 
+def test_latest_probe_rejects_blank_service_slug_before_repository_read(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank latest-probe service path values should fail before opening probe storage."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    def fail_probe_service() -> ProbeService:
+        raise AssertionError("probe repository should not be opened")
+
+    monkeypatch.setattr(probe_routes, "get_probe_service", fail_probe_service)
+
+    response = client.get("/v1/services/%20/probes/latest")
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'service_slug' path parameter."
+    assert body["error"]["detail"] == "Provide a non-empty service slug from GET /v1/services."
+
+
+def test_latest_probe_rejects_blank_probe_type_before_repository_read(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank probe_type filters should not broaden latest-probe reads."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    def fail_probe_service() -> ProbeService:
+        raise AssertionError("probe repository should not be opened")
+
+    monkeypatch.setattr(probe_routes, "get_probe_service", fail_probe_service)
+
+    response = client.get("/v1/services/stripe/probes/latest", params={"probe_type": "   "})
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'probe_type' filter."
+    assert body["error"]["detail"] == "Provide a non-empty probe_type value or omit the filter."
+
+
 def test_scheduler_entrypoint_runs_seed_specs(client, monkeypatch: pytest.MonkeyPatch) -> None:
     """POST /v1/probes/schedule/run should execute selected seed specs."""
     from routes import probes as probe_routes

@@ -20,6 +20,7 @@ from schemas.probe import (
     ProbeResultSchema,
     ProbeRunRequestSchema,
 )
+from services.error_envelope import RhumbError
 from services.probe_scheduler import ProbeScheduler
 from services.probes import ProbeService
 from services.service_slugs import public_service_slug
@@ -62,6 +63,37 @@ def _stored_to_schema(stored: StoredProbe) -> ProbeResultSchema:
         runner_version=stored.runner_version,
         trigger_source=stored.trigger_source,
         probed_at=probed_at,
+    )
+
+
+def _validated_probe_service_slug(slug: str | None) -> str:
+    canonical_slug = public_service_slug(slug)
+    if canonical_slug is not None:
+        return canonical_slug
+
+    cleaned = str(slug or "").strip().lower()
+    if cleaned:
+        return cleaned
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'service_slug' path parameter.",
+        detail="Provide a non-empty service slug from GET /v1/services.",
+    )
+
+
+def _validated_probe_type_filter(probe_type: str | None) -> str | None:
+    if probe_type is None:
+        return None
+
+    cleaned = str(probe_type).strip().lower()
+    if cleaned:
+        return cleaned
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'probe_type' filter.",
+        detail="Provide a non-empty probe_type value or omit the filter.",
     )
 
 
@@ -140,9 +172,10 @@ async def run_scheduled_probe_batch(
 @router.get("/services/{slug}/probes/latest", response_model=ProbeResultSchema)
 async def get_latest_probe(slug: str, probe_type: str | None = None) -> ProbeResultSchema:
     """Fetch the latest probe result for a service."""
-    canonical_slug = public_service_slug(slug) or slug
+    canonical_slug = _validated_probe_service_slug(slug)
+    normalized_probe_type = _validated_probe_type_filter(probe_type)
     probe_service = get_probe_service()
-    stored = probe_service.fetch_latest_probe(slug, probe_type=probe_type)
+    stored = probe_service.fetch_latest_probe(canonical_slug, probe_type=normalized_probe_type)
 
     if stored is None:
         raise HTTPException(
