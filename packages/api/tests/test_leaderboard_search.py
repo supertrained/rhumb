@@ -574,6 +574,18 @@ def test_get_leaderboard_rejects_out_of_range_limit_before_reads():
     cached_fetch.assert_not_awaited()
 
 
+def test_get_leaderboard_rejects_blank_category_before_reads():
+    """Blank leaderboard categories should fail before catalog/cache reads."""
+    with patch("routes.leaderboard._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        with pytest.raises(RhumbError) as exc_info:
+            asyncio.run(get_leaderboard("   ", limit=10))
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'category' filter."
+    assert exc_info.value.detail == "Provide a non-empty category slug."
+    cached_fetch.assert_not_awaited()
+
+
 def test_leaderboard_http_rejects_out_of_range_limit_with_canonical_envelope():
     """HTTP callers should get a canonical 400 envelope for invalid leaderboard limits."""
     from app import create_app
@@ -587,6 +599,22 @@ def test_leaderboard_http_rejects_out_of_range_limit_with_canonical_envelope():
     assert payload["error"]["code"] == "INVALID_PARAMETERS"
     assert payload["error"]["message"] == "Invalid 'limit' filter."
     assert payload["error"]["detail"] == "Use a limit between 1 and 50."
+    cached_fetch.assert_not_awaited()
+
+
+def test_leaderboard_http_rejects_blank_category_with_canonical_envelope():
+    """HTTP callers should get a canonical 400 envelope for blank leaderboard categories."""
+    from app import create_app
+
+    with patch("routes.leaderboard._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        client = TestClient(create_app())
+        response = client.get("/v1/leaderboard/%20%20%20")
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'category' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty category slug."
     cached_fetch.assert_not_awaited()
 
 

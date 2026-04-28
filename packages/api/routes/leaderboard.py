@@ -165,13 +165,25 @@ def _canonicalize_leaderboard_category(category: str | None) -> str | None:
 
 
 
+def _validated_leaderboard_category_presence(category: str) -> str:
+    normalized = _canonicalize_leaderboard_category(category)
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'category' filter.",
+        detail="Provide a non-empty category slug.",
+    )
+
+
 def _validated_leaderboard_category(
     category: str,
     *,
     available_categories: set[str],
 ) -> str:
-    normalized = _canonicalize_leaderboard_category(category)
-    if normalized and normalized in available_categories:
+    normalized = _validated_leaderboard_category_presence(category)
+    if normalized in available_categories:
         return normalized
 
     raise RhumbError(
@@ -208,6 +220,7 @@ async def get_leaderboard(
     if not isinstance(limit, int):
         limit = getattr(limit, "default", 10)
     limit = _validated_leaderboard_limit(limit)
+    requested_category = _validated_leaderboard_category_presence(category)
 
     scored_rows = await _cached_fetch("scores", "scores?select=service_slug")
     if scored_rows is None:
@@ -227,9 +240,12 @@ async def get_leaderboard(
             "error": None,
         }
 
+    scored_slug_filter = ",".join(
+        f'"{slug}"' for slug in sorted(_score_query_slugs(list(scored_slugs)))
+    )
     services = await _cached_fetch(
         "services",
-        f"services?slug=in.({','.join(f'\"{s}\"' for s in sorted(_score_query_slugs(list(scored_slugs))))})&select=slug,name,category"
+        f"services?slug=in.({scored_slug_filter})&select=slug,name,category",
     )
     if services is None:
         return {
@@ -244,7 +260,7 @@ async def get_leaderboard(
         if str(service.get("category") or "").strip()
     }
     normalized_category = _validated_leaderboard_category(
-        category,
+        requested_category,
         available_categories=available_categories,
     )
 
