@@ -175,12 +175,75 @@ def compact_step(name: str, status: int, payload: Any) -> dict[str, Any]:
     return out
 
 
+def resolve_mentions_provider(payload: Any, provider: str) -> bool:
+    """Return True when a Resolve response exposes provider as managed-capable.
+
+    The DC90 smoke should not burn an estimate/auth call for Emailable while the
+    hosted Resolve response still has no Emailable managed provider. The exact
+    shape has evolved, so accept either fallback_chain entries or provider-list
+    identifiers/slugs/names.
+    """
+    if not isinstance(payload, dict):
+        return False
+    data = payload.get("data")
+    if not isinstance(data, dict):
+        return False
+
+    needle = provider.strip().lower()
+    if not needle:
+        return False
+
+    for value in data.get("fallback_chain") or []:
+        if isinstance(value, str) and value.strip().lower() == needle:
+            return True
+
+    for item in data.get("providers") or []:
+        if not isinstance(item, dict):
+            continue
+        identifiers = (
+            item.get("provider"),
+            item.get("provider_id"),
+            item.get("id"),
+            item.get("slug"),
+            item.get("service_id"),
+            item.get("service"),
+            item.get("name"),
+        )
+        if any(isinstance(value, str) and value.strip().lower() == needle for value in identifiers):
+            return True
+    return False
+
+
 def recheck_emailable(api_key: str) -> dict[str, Any]:
     steps: list[dict[str, Any]] = []
     cap = urllib.parse.quote("email.verify", safe="")
     resolve_path = f"/v1/capabilities/{cap}/resolve?credential_mode=rhumb_managed"
     status, payload = request_json("GET", rhumb_url(resolve_path), headers=rhumb_headers(api_key), timeout=30)
     steps.append(compact_step("resolve", status, payload))
+
+    if not (200 <= status < 300):
+        return {
+            "capability_id": "email.verify",
+            "provider": "emailable",
+            "fixture": "pilot-fixture@example.com",
+            "execute_ran": False,
+            "passed": False,
+            "skipped_estimate": "resolve_not_200",
+            "skipped_execute": "resolve_not_200",
+            "steps": steps,
+        }
+
+    if not resolve_mentions_provider(payload, "emailable"):
+        return {
+            "capability_id": "email.verify",
+            "provider": "emailable",
+            "fixture": "pilot-fixture@example.com",
+            "execute_ran": False,
+            "passed": False,
+            "skipped_estimate": "resolve_missing_managed_provider",
+            "skipped_execute": "resolve_missing_managed_provider",
+            "steps": steps,
+        }
 
     estimate_path = f"/v1/capabilities/{cap}/execute/estimate?provider=emailable&credential_mode=rhumb_managed"
     status, payload = request_json("GET", rhumb_url(estimate_path), headers=rhumb_headers(api_key), timeout=30)
