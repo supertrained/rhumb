@@ -12,6 +12,8 @@ Fresh hosted proof now exists for the first safe managed rails:
 - `document.search` via `algolia`
 - `scrape.extract` via `scraperapi`
 - `data.enrich` via `ipinfo`
+- `ai.generate_text` via `replicate`, `google-ai`, and `perplexity`
+- IPinfo aliases: `geo.lookup`, `identity.lookup`, and `timezone.get_info`
 
 This file defines the next safe fixture set for managed capabilities that were skipped because they can create side effects, touch customer resources, burn unbounded cost, or require tenant-owned files/indexes/channels/sandboxes. Do **not** run these until the fixture’s gate is satisfied.
 
@@ -51,6 +53,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 - Capability/provider: `ai.generate_text` / `perplexity`
 - Safety class: `green`
 - Gate: estimate returns HTTP 200 and selected provider `perplexity`.
+- Status: fresh hosted proof exists at `artifacts/dc90-perplexity-ai-generate-text-smoke-20260428T013346Z.json` with receipt `rcpt_dc93ef3e731042d5815e9e5a`.
 - Payload:
 
 ```json
@@ -104,6 +107,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 - Capability/provider: `email.verify` / `emailable`
 - Safety class: `green`
 - Gate: use only non-deliverable documentation domains; do not verify real user addresses.
+- Status: blocked on hosted managed-catalog visibility as of 2026-04-28. Estimate returned HTTP 503 `provider_not_available` before execution and artifact `artifacts/dc90-emailable-email-verify-smoke-20260428T013346Z.json` records the failure. Migration `0164_emailable_managed_visibility_repair.sql` re-asserts the Emailable managed rows; rerun this fixture after deploy.
 - Payload:
 
 ```json
@@ -122,6 +126,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 - Capability/providers: `geo.lookup`, `identity.lookup`, `network.ip_check`, `timezone.get_info` / `ipinfo`
 - Safety class: `green`
 - Gate: reuse public resolver IP `8.8.8.8`; do not use real user IPs.
+- Status: `geo.lookup`, `identity.lookup`, and `timezone.get_info` all have fresh hosted proof from 2026-04-28 with receipts `rcpt_03cc9528eab942d38546d146`, `rcpt_943805616c38406eb0b6f46a`, and `rcpt_70b5a400a1f9473690225863`. `network.ip_check` already passed in the broader 2026-04-27 matrix.
 - Payload:
 
 ```json
@@ -263,8 +268,8 @@ These can notify real users, mutate external systems, create durable resources, 
 
 ## Expansion sequence recommendation
 
-1. Run green fixtures one at a time, with estimate before each execute.
-2. Add successful green receipts/artifacts back to the pilot readiness packet.
+1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; do not count the pre-deploy 503 as proof.
+2. Add successful receipts/artifacts back to the pilot readiness packet.
 3. Define and commit the missing amber fixtures before running amber smokes.
 4. Keep red fixtures skipped until there is a named human-approved target and payload.
 
