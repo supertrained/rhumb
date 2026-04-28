@@ -308,6 +308,20 @@ a {
   100% { background-position: 200% 0; }
 }
 
+@keyframes compass-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-4deg); opacity: 0.72; }
+  50% { transform: translate3d(0, -6px, 0) rotate(4deg); opacity: 1; }
+}
+
+@keyframes route-dash {
+  to { stroke-dashoffset: -72; }
+}
+
+@keyframes card-breathe {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -4px; }
+}
+
 .animate-fade-up {
   animation: fade-up 0.5s ease both;
 }
@@ -415,11 +429,45 @@ a {
 }
 
 .home-hero {
-  min-height: 860px;
+  min-height: 900px;
   background:
-    radial-gradient(circle at 18% 12%, rgba(230, 179, 90, 0.13), transparent 34rem),
-    radial-gradient(circle at 84% 24%, rgba(107, 214, 195, 0.12), transparent 32rem),
+    radial-gradient(circle at 14% 10%, rgba(230, 179, 90, 0.15), transparent 35rem),
+    radial-gradient(circle at 84% 24%, rgba(107, 214, 195, 0.13), transparent 34rem),
+    radial-gradient(circle at 52% 104%, rgba(230, 179, 90, 0.07), transparent 28rem),
     linear-gradient(135deg, #07101D 0%, #0B1626 52%, #08111F 100%);
+}
+
+.hero-shell {
+  gap: clamp(4.25rem, 7vw, 7.5rem);
+}
+
+.hero-copy {
+  padding-block: clamp(1rem, 3vw, 3.5rem);
+}
+
+.hero-copy .btn-primary,
+.hero-copy .btn-secondary {
+  min-height: 3.25rem;
+  padding-inline: 1.35rem;
+}
+
+.hero-bearing {
+  position: absolute;
+  top: clamp(5.4rem, 9vw, 8rem);
+  right: clamp(1rem, 4vw, 5rem);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(244, 239, 226, 0.12);
+  border-radius: 999px;
+  background: rgba(7, 16, 29, 0.52);
+  padding: 0.5rem 0.8rem;
+  color: #8EA09E;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .chart-field {
@@ -522,13 +570,14 @@ a {
 
 .route-instrument {
   position: relative;
-  min-height: 560px;
+  min-height: 620px;
   overflow: hidden;
   border: 1px solid rgba(244, 239, 226, 0.12);
   border-radius: 2.15rem;
   background:
     linear-gradient(180deg, rgba(15, 32, 53, 0.88), rgba(7, 16, 29, 0.95)),
-    radial-gradient(circle at 34% 18%, rgba(230, 179, 90, 0.12), transparent 20rem);
+    radial-gradient(circle at 34% 18%, rgba(230, 179, 90, 0.12), transparent 20rem),
+    radial-gradient(circle at 78% 28%, rgba(107, 214, 195, 0.1), transparent 18rem);
   box-shadow: 0 35px 100px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.06);
 }
 
@@ -553,9 +602,64 @@ a {
 
 .route-map {
   position: absolute;
-  inset: 3.5rem 1.1rem;
+  inset: 4.2rem 1.25rem 3.8rem;
   opacity: 0.92;
 }
+
+.compass-rose {
+  position: absolute;
+  top: 4.9rem;
+  right: 2.05rem;
+  z-index: 4;
+  width: 5.7rem;
+  height: 5.7rem;
+  border: 1px solid rgba(230, 179, 90, 0.25);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle, rgba(230, 179, 90, 0.13), transparent 62%),
+    rgba(7, 16, 29, 0.74);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255,255,255,0.035);
+  animation: compass-drift 8s ease-in-out infinite;
+}
+
+.compass-rose::before,
+.compass-rose::after {
+  content: "";
+  position: absolute;
+  inset: 50% auto auto 50%;
+  width: 1px;
+  height: 4.25rem;
+  background: linear-gradient(180deg, rgba(230,179,90,0.58), transparent);
+  transform-origin: top center;
+}
+
+.compass-rose::before { transform: rotate(0deg) translateY(-50%); }
+.compass-rose::after { transform: rotate(90deg) translateY(-50%); }
+
+.compass-core {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.18rem;
+  filter: drop-shadow(0 0 10px rgba(230,179,90,0.45));
+}
+
+.compass-rose span:not(.compass-core) {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  color: #F2D79A;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+}
+
+.compass-rose b { font-weight: 700; }
+.compass-rose em { color: #6BD6C3; font-style: normal; opacity: 0.78; }
+.compass-n { top: 0.35rem; left: 50%; transform: translateX(-50%); }
+.compass-e { right: 0.35rem; top: 50%; transform: translateY(-50%); }
+.compass-s { bottom: 0.35rem; left: 50%; transform: translateX(-50%); }
+.compass-w { left: 0.35rem; top: 50%; transform: translateY(-50%); }
 
 .route-map::before {
   content: "";
@@ -591,6 +695,7 @@ a {
   stroke: url(#routeGlow);
   stroke-width: 2.25;
   stroke-dasharray: 8 10;
+  animation: route-dash 18s linear infinite;
 }
 
 .route-cards {
@@ -607,13 +712,15 @@ a {
   padding: 1rem;
   backdrop-filter: blur(16px);
   box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+  animation: card-breathe 7s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 180ms);
 }
 
-.route-card:nth-child(1) { left: 5%; bottom: 11%; }
-.route-card:nth-child(2) { left: 11%; top: 22%; }
-.route-card:nth-child(3) { left: 42%; top: 29%; transform: translateX(-50%); }
-.route-card:nth-child(4) { right: 7%; top: 43%; }
-.route-card:nth-child(5) { right: 5%; top: 12%; }
+.route-card:nth-child(1) { left: 5%; bottom: 9%; }
+.route-card:nth-child(2) { left: 8%; top: 19%; }
+.route-card:nth-child(3) { left: 42%; top: 33%; transform: translateX(-50%); }
+.route-card:nth-child(4) { right: 8%; top: 51%; }
+.route-card:nth-child(5) { right: 7%; top: 16%; }
 
 .route-card-kicker {
   color: #8EA09E;
@@ -759,6 +866,46 @@ a {
 
 .text-link.teal { color: #6BD6C3; }
 .text-link:hover { text-decoration: underline; text-underline-offset: 0.25rem; }
+
+.agent-copy-panel {
+  margin-top: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgba(107, 214, 195, 0.16);
+  border-radius: 1.25rem;
+  background: rgba(7, 16, 29, 0.45);
+  padding: 0.95rem;
+}
+
+.agent-copy-panel p {
+  color: #8EA09E;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.agent-copy-kicker {
+  color: #6BD6C3 !important;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.68rem !important;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.copy-agent-button {
+  flex: 0 0 auto;
+  border-color: rgba(107, 214, 195, 0.28) !important;
+  background: linear-gradient(180deg, rgba(107, 214, 195, 0.16), rgba(107, 214, 195, 0.07)) !important;
+  color: #D9FFF8 !important;
+  box-shadow: 0 14px 38px rgba(107, 214, 195, 0.08);
+}
+
+.copy-agent-button:hover {
+  border-color: rgba(230, 179, 90, 0.45) !important;
+  background: linear-gradient(180deg, rgba(230, 179, 90, 0.15), rgba(107, 214, 195, 0.08)) !important;
+}
 
 .agent-block {
   margin-top: 1.1rem;
@@ -1091,7 +1238,8 @@ a {
 }
 
 @media (max-width: 900px) {
-  .route-instrument { min-height: 620px; }
+  .route-instrument { min-height: 660px; }
+  .compass-rose { top: 4.5rem; right: 1.4rem; opacity: 0.88; transform: scale(0.9); }
   .route-card { width: min(18rem, 78%); }
   .route-card:nth-child(1) { left: 6%; bottom: 8%; }
   .route-card:nth-child(2) { left: 8%; top: 15%; }
@@ -1104,6 +1252,10 @@ a {
 @media (max-width: 640px) {
   .home-hero { min-height: auto; }
   .home-shell { width: min(100% - 1.5rem, 1280px); }
+  .hero-bearing { display: none; }
+  .hero-shell { gap: 3.5rem; }
+  .agent-copy-panel { align-items: stretch; flex-direction: column; }
+  .copy-agent-button { width: 100%; }
   .home-shell.py-24 { padding-top: 4.5rem; padding-bottom: 4.5rem; }
   .route-instrument { min-height: 690px; border-radius: 1.55rem; }
   .instrument-topline,

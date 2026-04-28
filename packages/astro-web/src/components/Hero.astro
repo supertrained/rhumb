@@ -33,13 +33,24 @@ const routeCards = [
     tone: "amber",
   },
 ];
+
+const compassPoints = [
+  { label: "N", glyph: "↑", className: "compass-n" },
+  { label: "E", glyph: "→", className: "compass-e" },
+  { label: "S", glyph: "↓", className: "compass-s" },
+  { label: "W", glyph: "←", className: "compass-w" },
+];
 ---
 
 <section id="hero" class="home-section home-hero relative overflow-hidden border-b border-white/10">
   <div class="chart-field" aria-hidden="true"></div>
-  <div class="home-shell relative z-10 grid gap-14 py-24 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:py-28">
-    <div class="max-w-3xl">
-      <p class="eyebrow animate-fade-up">THE NAVIGATION LAYER FOR AGENT TOOLS</p>
+  <div class="hero-bearing" aria-hidden="true">
+    <span>🧭</span>
+    <span>N</span><span>·</span><span>E</span><span>·</span><span>S</span><span>·</span><span>W</span>
+  </div>
+  <div class="home-shell hero-shell relative z-10 grid py-24 lg:grid-cols-[minmax(0,0.94fr)_minmax(510px,1.06fr)] lg:items-center lg:py-32">
+    <div class="hero-copy max-w-3xl">
+      <p class="eyebrow animate-fade-up"><span aria-hidden="true">🧭</span> THE NAVIGATION LAYER FOR AGENT TOOLS</p>
       <h1 class="animate-fade-up animate-delay-100 mt-5 font-display text-[clamp(3.25rem,8vw,7.35rem)] font-semibold leading-[0.88] tracking-[-0.075em] text-rhumb-cream text-balance">
         From task to trusted tool call.
       </h1>
@@ -65,6 +76,12 @@ const routeCards = [
       <div class="instrument-topline">
         <span>Route plot</span>
         <span>Index → Evidence → Resolve</span>
+      </div>
+      <div class="compass-rose" aria-hidden="true">
+        <span class="compass-core">🧭</span>
+        {compassPoints.map((point) => (
+          <span class={point.className}><b>{point.label}</b><em>{point.glyph}</em></span>
+        ))}
       </div>
       <div class="route-map" aria-hidden="true">
         <svg viewBox="0 0 640 430" role="img" aria-label="Rhumb route line" preserveAspectRatio="none">

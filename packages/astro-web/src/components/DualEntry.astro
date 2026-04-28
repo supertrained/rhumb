@@ -1,4 +1,6 @@
 ---
+import CopyTextButton from "./CopyTextButton.tsx";
+
 const agentBlock = `surface: homepage
 purpose: choose the correct Rhumb route
 first_action: search Index
@@ -49,6 +51,19 @@ machine_entrypoints:
         <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <h3>For agents</h3>
           <a href="/llms.txt" class="mini-link">Machine docs</a>
+        </div>
+        <div class="agent-copy-panel">
+          <div>
+            <p class="agent-copy-kicker">Starter route for autonomous agents</p>
+            <p>Paste this into your agent to send it down the Rhumb operating path.</p>
+          </div>
+          <CopyTextButton
+            client:load
+            text={agentBlock}
+            label="Copy this to your agents"
+            copiedLabel="Copied for your agents"
+            className="copy-agent-button"
+          />
         </div>
         <pre class="agent-block" data-agent-route><code>{agentBlock}</code></pre>
         <a href="/docs#agent-route" class="text-link teal">View full agent guide →</a>
