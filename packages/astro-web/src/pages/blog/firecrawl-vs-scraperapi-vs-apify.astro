@@ -8,6 +8,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Firecrawl vs ScraperAPI vs Apify for AI Agents",
   datePublished: "2026-03-22T00:00:00Z",
+  dateModified: "2026-04-28T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
   description:
     "Which web scraping API works best for autonomous agents? Comparing Firecrawl, ScraperAPI, and Apify on execution quality, access readiness, agent-native integration, and failure modes.",
@@ -266,6 +267,37 @@ const services: Service[] = [
               Start with <strong class="text-amber">Firecrawl</strong> for general web access and add <strong class="text-amber">Apify</strong> when you hit a platform-specific extraction need. ScraperAPI is the fallback when you need raw HTML at scale.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section class="mt-12" data-section="scraping-mcp-governance">
+        <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-amber">MCP scraping lane check</p>
+          <h2 class="mt-2 font-display text-2xl font-bold text-slate-100">A 40-tool scraping catalog is not one safe capability</h2>
+          <p class="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
+            The newest MCP scraping pattern is a broad catalog: one server exposes crawl, browser, fetch, screenshot, extraction, and platform-specific tools behind a single install. That is useful inventory, but it is not a production boundary. Treat every target domain, credential, proxy pool, and data-use rule as part of the governed scraping lane before an agent can call it unattended.
+          </p>
+          <div class="mt-6 grid gap-3 md:grid-cols-2">
+            <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4">
+              <div class="text-sm font-semibold text-slate-100">What to constrain</div>
+              <ul class="mt-2 list-disc list-outside ml-5 space-y-1 text-sm leading-6 text-slate-400">
+                <li>Allowed domains, URL patterns, robots policy, and egress route before navigation.</li>
+                <li>Which caller burns crawl quota, proxy budget, captcha spend, and downstream enrichment cost.</li>
+                <li>Whether screenshots, raw HTML, extracted entities, and cached datasets can cross tenant or workflow boundaries.</li>
+              </ul>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4">
+              <div class="text-sm font-semibold text-slate-100">What proof to require</div>
+              <ul class="mt-2 list-disc list-outside ml-5 space-y-1 text-sm leading-6 text-slate-400">
+                <li>Typed policy denials for blocked targets, disallowed domains, and out-of-scope extraction requests.</li>
+                <li>Trace evidence that preserves caller, tool, normalized URL, credential lane, provider route, and output class.</li>
+                <li>A recovery path for partial crawls so retry loops do not duplicate side effects or leak stale scraped data.</li>
+              </ul>
+            </div>
+          </div>
+          <p class="mt-5 text-sm leading-7 text-slate-400">
+            This is where web scraping selection meets <a href="/blog/mcp-prompt-injection-scope-constraints" class="text-amber hover:text-amber-200 transition-colors">MCP scope constraints</a> and <a href="/blog/tool-level-permission-scoping-mcp" class="text-amber hover:text-amber-200 transition-colors">tool-level permission scoping</a>: broad scraping tools should become narrow, auditable lanes before the model ever sees them as one generic web-access superpower.
+          </p>
         </div>
       </section>
 
