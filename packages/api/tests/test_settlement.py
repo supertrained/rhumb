@@ -37,7 +37,11 @@ def _admin_headers() -> dict[str, str]:
 
 
 @pytest.fixture
-def client() -> TestClient:
+def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
+    monkeypatch.setenv("RHUMB_ADMIN_SECRET", ADMIN_SECRET)
+    from config import settings as _settings
+
+    _settings.rhumb_admin_secret = ADMIN_SECRET
     app = create_app()
     return TestClient(app)
 
@@ -494,6 +498,24 @@ class TestSettlementAdminRoutes:
 
         assert resp.status_code == 404
         assert "Batch not found" in resp.json()["detail"]
+
+    def test_mark_converted_rejects_blank_batch_id_before_settlement_writes(self, client: TestClient) -> None:
+        with patch(
+            "routes.admin_billing.mark_batch_converted",
+            new_callable=AsyncMock,
+        ) as mock_mark:
+            resp = client.post(
+                "/v1/admin/settlement/%20%20/converted",
+                json={"total_usd_cents": 100},
+                headers=_admin_headers(),
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'batch_id' path parameter."
+        assert payload["error"]["detail"] == "Provide a non-empty 'batch_id' value."
+        mock_mark.assert_not_awaited()
 
     def test_settlement_routes_require_admin_key(self, client: TestClient) -> None:
         """Settlement endpoints are protected by admin auth."""

@@ -901,6 +901,29 @@ def test_send_invoice_endpoint(
     assert payload["payment_intent"]["payment_intent_id"].startswith("pi_")
 
 
+def test_send_invoice_rejects_blank_invoice_id_before_aggregator_reads(
+    admin_client: TestClient,
+    usage_meter: UsageMeterEngine,
+) -> None:
+    fake_billing_aggregator = SimpleNamespace(
+        get_invoice=Mock(return_value=None),
+        mark_invoice_status=Mock(),
+    )
+    fake_stripe_manager = SimpleNamespace(create_payment_intent=Mock())
+    set_test_billing_stores(usage_meter, fake_billing_aggregator, fake_stripe_manager)
+
+    response = admin_client.post("/v1/admin/billing/invoices/%20%20/send")
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'invoice_id' path parameter."
+    assert payload["error"]["detail"] == "Provide a non-empty 'invoice_id' value."
+    fake_billing_aggregator.get_invoice.assert_not_called()
+    fake_billing_aggregator.mark_invoice_status.assert_not_called()
+    fake_stripe_manager.create_payment_intent.assert_not_called()
+
+
 def test_forecast_spend(
     admin_client: TestClient,
     usage_meter: UsageMeterEngine,

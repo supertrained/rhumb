@@ -87,6 +87,18 @@ def _normalize_billing_organization_id(organization_id: str) -> str:
     return normalized
 
 
+def _normalize_required_path_value(value: str, field: str) -> str:
+    """Validate and normalize required admin billing path parameters."""
+    normalized = str(value).strip()
+    if not normalized:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field}' path parameter.",
+            detail=f"Provide a non-empty '{field}' value.",
+        )
+    return normalized
+
+
 def _normalize_settlement_batch_date(batch_date: str | None) -> str | None:
     """Validate and normalize public admin settlement batch dates."""
     if batch_date is None:
@@ -245,10 +257,11 @@ async def generate_invoice(body: GenerateInvoiceRequest) -> Dict[str, Any]:
 @router.post("/admin/billing/invoices/{invoice_id}/send")
 async def send_invoice(invoice_id: str) -> Dict[str, Any]:
     """Send an invoice by creating a payment intent and marking it sent."""
+    normalized_invoice_id = _normalize_required_path_value(invoice_id, "invoice_id")
     aggregator = _get_billing_aggregator()
     stripe_manager = _get_stripe_manager()
 
-    invoice = aggregator.get_invoice(invoice_id)
+    invoice = aggregator.get_invoice(normalized_invoice_id)
     if invoice is None:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
@@ -257,7 +270,7 @@ async def send_invoice(invoice_id: str) -> Dict[str, Any]:
         amount_cents=max(0, int(round(invoice.total * 100))),
         invoice_id=invoice.invoice_id,
     )
-    aggregator.mark_invoice_status(invoice_id, "sent")
+    aggregator.mark_invoice_status(normalized_invoice_id, "sent")
 
     return {
         "status": "sent",
@@ -329,11 +342,12 @@ async def mark_converted(
     body: MarkConvertedRequest,
 ) -> Dict[str, Any]:
     """Mark a settlement batch as converted to USD (manual Phase 1 step)."""
+    normalized_batch_id = _normalize_required_path_value(batch_id, "batch_id")
     success = await mark_batch_converted(
-        batch_id,
+        normalized_batch_id,
         body.total_usd_cents,
         body.coinbase_conversion_id,
     )
     if not success:
         raise HTTPException(status_code=404, detail="Batch not found")
-    return {"status": "converted", "batch_id": batch_id}
+    return {"status": "converted", "batch_id": normalized_batch_id}
