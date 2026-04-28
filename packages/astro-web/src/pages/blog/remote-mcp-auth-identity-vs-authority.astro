@@ -40,6 +40,10 @@ const FAILURE_PATTERNS = [
     title: "Authority without proof",
     body: "You can say the runtime narrows scope, but cannot reconstruct which principal, tool, policy, and downstream credential produced the action.",
   },
+  {
+    title: "Connector install equals trust",
+    body: "A one-click connector makes a tool reachable from the assistant, but the grant, manifest, backend lane, and audit trail still need to be proven per workspace.",
+  },
 ];
 
 const CHECKLIST = [
@@ -50,6 +54,7 @@ const CHECKLIST = [
   "Can operators reconstruct the full authority chain from caller to backend side effect?",
   "Do gateway traces preserve policy bundle, adapter version, visible tool surface, credential lane, typed denial, and quota owner for each mediated call?",
   "Does the same model still hold under shared-team or multi-tenant remote use?",
+  "When a connector is installed into a chat client, can you still prove which workspace, grant, manifest slice, and backend credential lane the assistant inherited?",
 ];
 
 const ARTICLE_JSON_LD = {
@@ -57,7 +62,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Remote MCP Auth Proves Caller Identity, Not Tool Authority",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-27T00:00:00Z",
+  dateModified: "2026-04-28T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, quota attribution, denial semantics, and evidence.",
@@ -122,7 +127,7 @@ const ARTICLE_JSON_LD = {
     </section>
 
     <article class="mx-auto max-w-5xl px-6 pt-10 pb-24">
-      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         {FAILURE_PATTERNS.map((item) => (
           <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
             <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
@@ -199,6 +204,20 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 Treat the credential store as supply, not policy. The runtime still needs a per-call decision that names the original actor, the selected credential lane, the enforced scope, and the quota owner. Without that binding, a shared account turns auth into a receipt for who knocked on the door, not proof of who was authorized to act.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3.6 Connectors move the trust boundary into the assistant UI
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Claude-style connectors are useful because they make approved tools feel native inside the chat client. That convenience also moves part of the authority story into a surface where operators are tempted to stop at “connected.” A green connector state only proves the assistant can reach something. It does not prove the visible tool slice, workspace grant, downstream credential lane, or quota owner are still narrow enough for the task.
+              </p>
+              <p>
+                Treat connector installation as a new remote-auth event, not as final trust. The production check is whether the connector can show which workspace or tenant authorized it, which tools became visible after the grant, which backend principal will execute each action, and how a denied or out-of-scope request appears in the trace. If those fields disappear behind the client UI, the connector made access easier while making authority harder to audit.
               </p>
             </div>
           </section>
