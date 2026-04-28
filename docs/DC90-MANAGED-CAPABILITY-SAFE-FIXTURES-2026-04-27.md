@@ -189,9 +189,25 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 - Capability/providers: `document.parse`, `document.convert`, `pdf.extract_text`, `file.convert` / `unstructured`
 - Safety class: `amber`
 - Required sandbox: tiny Rhumb-owned fixture file committed under `fixtures/dc90/` or generated in-memory; no customer documents.
-- Payload template: TBD after confirming the route’s multipart/body adapter expectations.
-- Pass condition: HTTP 200, parsed fixture text only, receipt id present.
-- Stop condition: route cannot attach file safely or provider requires public document URL.
+- Status: `document.parse` is now freshly proved via `scripts/dc90_unstructured_document_parse_smoke.py`. Artifact `artifacts/dc90-unstructured-document-parse-smoke-20260428T044349Z.json` shows estimate HTTP 200, execute HTTP 200 / upstream 200, receipt `rcpt_d03450f4ff5349798ad073e5`, one upstream `NarrativeText` element, and fixture token `dc90-unstructured-parse-ok` returned from the synthetic 96-byte text file.
+- Payload template for the proved `document.parse` fixture:
+
+```json
+{
+  "body": {
+    "files": {
+      "filename": "dc90-unstructured-smoke.txt",
+      "content_base64": "<base64 synthetic text fixture>",
+      "content_type": "text/plain"
+    },
+    "strategy": "fast",
+    "languages": ["eng"]
+  }
+}
+```
+
+- Pass condition: HTTP 200, `provider_used=unstructured`, upstream 200, parsed fixture text includes only the synthetic token, receipt id present.
+- Stop condition: route cannot attach file safely, provider requires public document URL, or output includes anything beyond the synthetic fixture content. `pdf.extract_text`, `file.convert`, and other document variants still need separate fixture-specific proof before pilot positioning.
 
 ### Mindee financial document extraction
 
@@ -251,6 +267,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 | `email.send`, `email.template` / Resend or Postmark | **No.** Keys are configured and `email.track` passed, but no committed owned recipient/template fixture is documented here. | Named Rhumb-owned recipient inbox, verified sender/domain, exact subject/body, idempotency key, and one-message cap. |
 | `communication.send_message` / Slack | **Not yet.** Prior Slack runtime reviews prove `auth.test`; no dedicated channel ID is documented for managed send. | Rhumb-owned smoke channel, bot membership, explicit channel ID, single `[dc90-smoke]` message, delete/update cleanup if supported. |
 | `search.index` / Algolia | **Yes, through helper only.** The owned `rhumb_test` index exists; read fixtures and one disposable write/read/delete pass are proven. | Use `scripts/dc90_managed_fixture_smoke.py` to write objectID `dc90-smoke-{timestamp}` into `rhumb_test`, read it back, delete it, and verify cleanup. Do not mutate existing fixture records. |
+| `document.parse` / Unstructured | **Yes, through helper only.** The helper generates a 96-byte synthetic text fixture in-memory and verifies the returned text token. | Use `scripts/dc90_unstructured_document_parse_smoke.py`; do not upload customer documents. `pdf.extract_text`, `file.convert`, and other document variants still need separate tiny fixtures. |
 | `media.transcribe`, `video.subtitle` / Deepgram | **No committed fixture yet.** Credential path exists, but no tiny owned audio/video file is committed. | Add a sub-5-second public-domain or Rhumb-generated WAV/MP3 fixture, pass it via the supported body/multipart shape, assert a tiny transcript, and delete any stored artifact. |
 | `media.generate_speech` / ElevenLabs/OpenAI/Deepgram | **Partially.** ElevenLabs tiny TTS has fresh proof; broader speech rails still need provider-specific caps. | Tiny text (`"OK"`), fixed low-cost voice/model, max one generation, artifact retention/deletion policy. |
 | `ai.generate_image`, `ai.edit_image` / OpenAI, Google AI, Replicate | **No.** No low-cost image prompt/reference/storage policy is committed. | One 512/1024px safe prompt, one image max, explicit budget ceiling, artifact storage/deletion plan, and no external publication. |
@@ -275,7 +292,7 @@ These can notify real users, mutate external systems, create durable resources, 
 
 1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the 2026-04-28 recheck still showed no managed providers on resolve and `provider_not_available` on estimate, so do not count it as proof.
 2. Add successful receipts/artifacts back to the pilot readiness packet.
-3. The disposable Algolia `search.index` write/read/delete fixture and E2B short-TTL create/status/cleanup lifecycle fixture are now proved. Next amber target should be a tightly bounded file/media/document fixture or a consented side-effect fixture, not uncontrolled external sends or long-lived compute.
+3. The disposable Algolia `search.index` write/read/delete fixture, E2B short-TTL create/status/cleanup lifecycle fixture, and Unstructured `document.parse` tiny synthetic-file fixture are now proved. Next amber target should be Deepgram tiny media transcription/subtitle or a consented side-effect fixture, not uncontrolled external sends, arbitrary code execution, customer documents, or long-lived compute.
 4. Keep red fixtures skipped until there is a named human-approved target and payload.
 
 ## Claim guardrail
