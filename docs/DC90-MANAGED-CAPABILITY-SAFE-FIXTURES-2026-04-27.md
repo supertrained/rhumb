@@ -21,6 +21,7 @@ This file defines the next safe fixture set for managed capabilities that were s
 
 - **Replicate `ai.generate_text`: real fixture gap, now safe to retry after code deploy.** The failing smoke sent only `input.prompt` to `POST /v1/predictions`; Replicate requires an immutable `version`. The managed executor now defaults bare `ai.generate_text` smokes to the same low-cost text model version used by prior runtime-review harnesses, while preserving explicit caller versions. Fresh hosted proof exists at `artifacts/dc90-replicate-ai-generate-text-smoke-20260427T223542Z.json`: Rhumb returned HTTP 200, Replicate accepted the prediction with upstream 201, and receipt `rcpt_eb888ecd4fd24df49f3ea77e` was emitted. Treat this as async prediction-acceptance proof, not completed text-output proof.
 - **E2B fake `agent.get_status`: expected negative, not provider failure.** `sandboxId=sbx_rhumb_smoke_missing` correctly reached E2B and returned upstream `400 Invalid sandbox ID`. A real pass requires creating a short-lived sandbox, reading its status, and deleting it in `finally`; do not classify a missing sandbox as a managed-execution failure.
+- **E2B lifecycle is now proved with a short-TTL cleanup fixture.** `scripts/dc90_e2b_lifecycle_smoke.py` created exactly one `base` sandbox through Rhumb-managed `agent.spawn`, read status once through Rhumb-managed `agent.get_status`, attempted direct E2B cleanup, and verified the sandbox was gone through a final Rhumb-managed status check. Artifact: `artifacts/dc90-e2b-lifecycle-smoke-20260428T043835Z.json`; receipts: create `rcpt_47d1279339aa40c2a28c5f32`, status `rcpt_df30f498545645329354f0ad`, cleanup verification `rcpt_a30566b1c9a64f63a7bb2c3a`.
 - **PDL `data.enrich_person`: expected negative no-match, not provider failure.** `not-a-real-person@rhumb.dev` reached People Data Labs and returned upstream `404 No records were found matching your request` after debiting about `$0.12`. It proves Rhumb credits/auth/path work, but it is not a green positive-match fixture and should not be rerun casually.
 - **Known PDL match caveat:** older runtime-review scripts use `https://www.linkedin.com/in/satyanadella/` as a known public match. That is an existing documented fixture, but it is not a Rhumb-owned/consented internal person. For pilot-safe positive proof, use a consented internal test person already visible to PDL, or get explicit approval for a public-person lookup before spending more PDL credits.
 
@@ -205,7 +206,8 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 
 - Capability/providers: `agent.spawn`, `agent.get_status` / `e2b` for the next lifecycle proof; `compute.execute_code`, `code.format`, and `code.lint` remain later because the current managed configs map through sandbox creation rather than a proven code-exec adapter.
 - Safety class: `amber`
-- Required sandbox: hard cost ceiling, short TTL, direct cleanup, and no network/file side effects.
+- Required sandbox: hard cost ceiling, short TTL, cleanup verification, and no network/file side effects.
+- Status: lifecycle proof is now fresh. `scripts/dc90_e2b_lifecycle_smoke.py` passed at `artifacts/dc90-e2b-lifecycle-smoke-20260428T043835Z.json`: `agent.spawn` returned Rhumb HTTP 200 / upstream 201 with receipt `rcpt_47d1279339aa40c2a28c5f32`; `agent.get_status` returned Rhumb HTTP 200 / upstream 200 with receipt `rcpt_df30f498545645329354f0ad`; the direct E2B delete attempt returned the provider's ambiguous 404/no-access response, and the helper then verified through Rhumb-managed status that the 10-second sandbox TTL had removed the sandbox (`upstream_status=404`, receipt `rcpt_a30566b1c9a64f63a7bb2c3a`). Treat this as lifecycle/TTL cleanup proof, not proof that the local direct E2B key can delete hosted-managed sandboxes.
 - Proposed short-TTL helper flow:
 
 1. Estimate `agent.spawn` with provider `e2b` and `credential_mode=rhumb_managed`.
@@ -215,17 +217,18 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 {
   "body": {
     "templateID": "base",
-    "timeout": 60
+    "timeout": 10
   }
 }
 ```
 
 3. Extract `sandboxID` from the upstream response.
 4. Execute `agent.get_status` once with that `sandboxID`.
-5. In a `finally` block, delete `https://api.e2b.app/sandboxes/{sandboxID}` directly with the E2B key. Record the delete status in the artifact.
-6. Stop immediately if create fails or no `sandboxID` is returned; never create a second sandbox in the same run.
+5. In a `finally` block, attempt `DELETE https://api.e2b.app/sandboxes/{sandboxID}` directly with the E2B key. Record the delete status in the artifact.
+6. Verify cleanup through Rhumb-managed `agent.get_status` until the provider returns `upstream_status=404`, because the local direct E2B key can return an ambiguous 404/no-access response for hosted-managed sandboxes.
+7. Stop immediately if create fails or no `sandboxID` is returned; never create a second sandbox in the same run.
 
-- Existing cleanup pattern: `scripts/runtime_review_e2b_depth11_20260403.py` already creates, status-checks, and directly deletes Rhumb/direct E2B sandboxes. Reuse that lifecycle shape with the shorter `timeout=60` and without direct-control duplication for a dogfood smoke helper.
+- Existing cleanup pattern: `scripts/runtime_review_e2b_depth11_20260403.py` already creates, status-checks, and directly deletes Rhumb/direct E2B sandboxes. The DC90 helper intentionally avoids direct-control duplication and uses a 10-second TTL plus managed cleanup verification for the hosted dogfood path.
 - Future code-exec payload, after lifecycle cleanup is proven:
 
 ```json
@@ -238,7 +241,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 }
 ```
 
-- Pass condition: create returns upstream 201, status returns upstream 200, receipt ids are present for both Rhumb calls, and direct delete returns 200/204/404.
+- Pass condition: create returns upstream 201, status returns upstream 200, receipt ids are present for both Rhumb calls, and cleanup is verified by either direct delete success or final Rhumb-managed status returning upstream 404.
 - Do not run arbitrary code execution or long-lived agent variants until the lifecycle helper has a fresh cleanup artifact.
 
 ## Side-effect/resource fixture inventory
@@ -266,13 +269,13 @@ These can notify real users, mutate external systems, create durable resources, 
 | `ai.generate_image`, `ai.edit_image`, speech rails | Media generation/upload and cost/safety risk. | Prompt/file fixture, content policy check, max tokens/duration/size. |
 | Apollo/PDL person/company/contact search | Personal/company data enrichment. | Synthetic or explicitly approved lookup target; no private person lookup by default. |
 | Google Maps/Places directions/search | External quota and location sensitivity. | Public fixture addresses, max result count, no real user addresses. |
-| Long-lived E2B agent/sandbox rails | Durable compute/resource leak. | Sandbox lifecycle cleanup proof and spend ceiling. |
+| Long-lived E2B agent/sandbox rails | Durable compute/resource leak. | Lifecycle proof now exists for 10-second sandbox create/status/cleanup; arbitrary code execution and long-lived variants still need a separate spend/cleanup gate. |
 
 ## Expansion sequence recommendation
 
 1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the 2026-04-28 recheck still showed no managed providers on resolve and `provider_not_available` on estimate, so do not count it as proof.
 2. Add successful receipts/artifacts back to the pilot readiness packet.
-3. The disposable Algolia `search.index` write/read/delete fixture is now proved. Next amber target should be the E2B create/status/delete lifecycle helper, not uncontrolled side-effect/resource surfaces.
+3. The disposable Algolia `search.index` write/read/delete fixture and E2B short-TTL create/status/cleanup lifecycle fixture are now proved. Next amber target should be a tightly bounded file/media/document fixture or a consented side-effect fixture, not uncontrolled external sends or long-lived compute.
 4. Keep red fixtures skipped until there is a named human-approved target and payload.
 
 ## Claim guardrail
