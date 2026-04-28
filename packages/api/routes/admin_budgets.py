@@ -11,6 +11,7 @@ from typing import Any
 from fastapi import APIRouter, Depends
 
 from routes.admin_auth import require_admin_key
+from services.error_envelope import RhumbError
 from services.service_slugs import normalize_proxy_slug, public_service_slug
 from services.upstream_budget import get_all_provider_budgets, get_provider_usage
 
@@ -24,8 +25,19 @@ def _public_budget_provider(provider: str | None) -> str:
     return public_service_slug(provider) or str(provider or "").strip().lower()
 
 
+def _validated_budget_provider(provider: str) -> str:
+    normalized = str(provider).strip()
+    if not normalized:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'provider' path parameter.",
+            detail="Provide a non-empty provider id.",
+        )
+    return normalized
+
+
 def _runtime_budget_provider(provider: str) -> str:
-    public_provider = _public_budget_provider(provider)
+    public_provider = _public_budget_provider(_validated_budget_provider(provider))
     return normalize_proxy_slug(public_provider) or public_provider
 
 

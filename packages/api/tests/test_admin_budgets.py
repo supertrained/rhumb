@@ -2,6 +2,20 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
+from services.error_envelope import RhumbError
+from routes.admin_budgets import _validated_budget_provider
+
+
+def test_get_provider_budget_rejects_blank_provider_directly():
+    try:
+        _validated_budget_provider("   ")
+    except RhumbError as exc:
+        assert exc.code == "INVALID_PARAMETERS"
+        assert exc.message == "Invalid 'provider' path parameter."
+        assert exc.detail == "Provide a non-empty provider id."
+    else:
+        raise AssertionError("Expected RhumbError for blank provider")
+
 
 def test_list_upstream_budgets_recanonicalizes_alias_backed_provider_rows(client):
     budgets = [
@@ -91,6 +105,18 @@ def test_list_upstream_budgets_recanonicalizes_alias_backed_provider_rows(client
         "exhausted_providers": ["people-data-labs"],
         "critical_providers": [],
     }
+
+
+def test_get_provider_budget_rejects_blank_provider_before_budget_read(client):
+    with patch("routes.admin_budgets.get_provider_usage", new=AsyncMock()) as mock_get_provider_usage:
+        resp = client.get("/v1/admin/upstream-budgets/%20")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'provider' path parameter."
+    assert body["error"]["detail"] == "Provide a non-empty provider id."
+    mock_get_provider_usage.assert_not_awaited()
 
 
 def test_get_provider_budget_accepts_canonical_public_provider_id_and_publicizes_response(client):
