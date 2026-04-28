@@ -429,7 +429,7 @@ a {
 }
 
 .home-hero {
-  min-height: 900px;
+  min-height: 980px;
   background:
     radial-gradient(circle at 14% 10%, rgba(230, 179, 90, 0.15), transparent 35rem),
     radial-gradient(circle at 84% 24%, rgba(107, 214, 195, 0.13), transparent 34rem),
@@ -438,36 +438,17 @@ a {
 }
 
 .hero-shell {
-  gap: clamp(4.25rem, 7vw, 7.5rem);
+  gap: clamp(5rem, 8vw, 8.75rem);
 }
 
 .hero-copy {
-  padding-block: clamp(1rem, 3vw, 3.5rem);
+  padding-block: clamp(1.25rem, 3.4vw, 4rem);
 }
 
 .hero-copy .btn-primary,
 .hero-copy .btn-secondary {
   min-height: 3.25rem;
   padding-inline: 1.35rem;
-}
-
-.hero-bearing {
-  position: absolute;
-  top: clamp(5.4rem, 9vw, 8rem);
-  right: clamp(1rem, 4vw, 5rem);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  border: 1px solid rgba(244, 239, 226, 0.12);
-  border-radius: 999px;
-  background: rgba(7, 16, 29, 0.52);
-  padding: 0.5rem 0.8rem;
-  color: #8EA09E;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.16em;
-  box-shadow: inset 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .chart-field {
@@ -570,7 +551,7 @@ a {
 
 .route-instrument {
   position: relative;
-  min-height: 660px;
+  min-height: 760px;
   overflow: hidden;
   border: 1px solid rgba(244, 239, 226, 0.12);
   border-radius: 2.15rem;
@@ -584,8 +565,8 @@ a {
 .instrument-topline,
 .instrument-footer {
   position: absolute;
-  left: 1.25rem;
-  right: 1.25rem;
+  left: 1.7rem;
+  right: 1.7rem;
   z-index: 3;
   display: flex;
   justify-content: space-between;
@@ -602,64 +583,9 @@ a {
 
 .route-map {
   position: absolute;
-  inset: 4.2rem 1.25rem 3.8rem;
-  opacity: 0.5;
+  inset: 5.1rem 1.7rem 4.8rem;
+  opacity: 0.32;
 }
-
-.compass-rose {
-  position: absolute;
-  top: 4.9rem;
-  right: 2.05rem;
-  z-index: 4;
-  width: 5.7rem;
-  height: 5.7rem;
-  border: 1px solid rgba(230, 179, 90, 0.25);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle, rgba(230, 179, 90, 0.13), transparent 62%),
-    rgba(7, 16, 29, 0.74);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255,255,255,0.035);
-  animation: compass-drift 8s ease-in-out infinite;
-}
-
-.compass-rose::before,
-.compass-rose::after {
-  content: "";
-  position: absolute;
-  inset: 50% auto auto 50%;
-  width: 1px;
-  height: 4.25rem;
-  background: linear-gradient(180deg, rgba(230,179,90,0.58), transparent);
-  transform-origin: top center;
-}
-
-.compass-rose::before { transform: rotate(0deg) translateY(-50%); }
-.compass-rose::after { transform: rotate(90deg) translateY(-50%); }
-
-.compass-core {
-  position: absolute;
-  inset: 50% auto auto 50%;
-  transform: translate(-50%, -50%);
-  font-size: 1.18rem;
-  filter: drop-shadow(0 0 10px rgba(230,179,90,0.45));
-}
-
-.compass-rose span:not(.compass-core) {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  color: #F2D79A;
-  font-family: "IBM Plex Mono", ui-monospace, monospace;
-  font-size: 0.64rem;
-  letter-spacing: 0.06em;
-}
-
-.compass-rose b { font-weight: 700; }
-.compass-rose em { color: #6BD6C3; font-style: normal; opacity: 0.78; }
-.compass-n { top: 0.35rem; left: 50%; transform: translateX(-50%); }
-.compass-e { right: 0.35rem; top: 50%; transform: translateY(-50%); }
-.compass-s { bottom: 0.35rem; left: 50%; transform: translateX(-50%); }
-.compass-w { left: 0.35rem; top: 50%; transform: translateY(-50%); }
 
 .route-map::before {
   content: "";
@@ -700,11 +626,11 @@ a {
 
 .route-trace {
   position: absolute;
-  inset: 5rem 1.45rem 4.4rem;
+  inset: 5.9rem 1.75rem 5.35rem;
   z-index: 5;
   display: grid;
   grid-template-rows: repeat(5, minmax(0, 1fr));
-  gap: 0.72rem;
+  gap: 0.95rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -724,9 +650,9 @@ a {
 .trace-step {
   position: relative;
   display: grid;
-  grid-template-columns: 2.55rem minmax(0, 1fr);
+  grid-template-columns: 2.75rem minmax(0, 1fr);
   align-items: stretch;
-  gap: 0.82rem;
+  gap: 1rem;
   min-width: 0;
 }
 
@@ -736,8 +662,8 @@ a {
   align-self: center;
   display: grid;
   place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.65rem;
+  height: 2.65rem;
   border: 1px solid rgba(244, 239, 226, 0.17);
   border-radius: 999px;
   background: rgba(7, 16, 29, 0.92);
@@ -753,7 +679,7 @@ a {
   border: 1px solid rgba(244, 239, 226, 0.12);
   border-radius: 1.18rem;
   background: linear-gradient(180deg, rgba(7, 16, 29, 0.88), rgba(11, 22, 38, 0.72));
-  padding: clamp(0.82rem, 1.4vw, 1rem);
+  padding: clamp(1rem, 1.55vw, 1.18rem);
   box-shadow: 0 20px 52px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.045);
 }
 
@@ -761,7 +687,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 1rem;
   color: #8EA09E;
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 0.64rem;
@@ -777,7 +703,7 @@ a {
 }
 
 .trace-copy h2 {
-  margin-top: 0.35rem;
+  margin-top: 0.45rem;
   color: #F4EFE2;
   font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   font-size: clamp(0.98rem, 1.4vw, 1.12rem);
@@ -786,8 +712,8 @@ a {
 }
 
 .trace-copy p {
-  margin-top: 0.32rem;
-  max-width: 31rem;
+  margin-top: 0.42rem;
+  max-width: 34rem;
   color: #9AAEAA;
   font-size: clamp(0.8rem, 1vw, 0.88rem);
   line-height: 1.52;
@@ -1031,7 +957,7 @@ a {
 }
 
 .journey-step p {
-  margin-top: 0.35rem;
+  margin-top: 0.45rem;
   color: #F4EFE2;
   line-height: 1.55;
 }
@@ -1294,32 +1220,41 @@ a {
   outline-offset: 3px;
 }
 
+@media (min-width: 900px) {
+  .home-section:not(.home-hero) > .home-shell.py-24 {
+    padding-top: clamp(6.75rem, 8vw, 8.75rem);
+    padding-bottom: clamp(6.75rem, 8vw, 8.75rem);
+  }
+
+  .section-heading + .mt-10 {
+    margin-top: 3.4rem;
+  }
+}
+
 @media (max-width: 900px) {
-  .route-instrument { min-height: 700px; }
-  .compass-rose { top: 4.5rem; right: 1.4rem; opacity: 0.72; transform: scale(0.84); }
-  .route-trace { inset: 5.25rem 1rem 4.7rem; gap: 0.62rem; }
-  .trace-copy p { line-height: 1.45; }
+  .home-hero { min-height: auto; }
+  .route-instrument { min-height: 760px; }
+  .route-trace { inset: 5.45rem 1.1rem 4.9rem; gap: 0.7rem; }
+  .trace-copy p { line-height: 1.48; }
   .check-card { position: static; }
 }
 
 @media (max-width: 640px) {
   .home-hero { min-height: auto; }
   .home-shell { width: min(100% - 1.5rem, 1280px); }
-  .hero-bearing { display: none; }
-  .hero-shell { gap: 3.5rem; }
+  .hero-shell { gap: 4.25rem; }
   .agent-copy-panel { align-items: stretch; flex-direction: column; }
   .copy-agent-button { width: 100%; }
   .home-shell.py-24 { padding-top: 4.5rem; padding-bottom: 4.5rem; }
-  .route-instrument { min-height: 760px; border-radius: 1.55rem; }
+  .route-instrument { min-height: 820px; border-radius: 1.55rem; }
   .instrument-topline,
   .instrument-footer { flex-direction: column; gap: 0.25rem; }
   .route-map { inset: 5rem 0.7rem 4rem; }
-  .compass-rose { display: none; }
-  .route-trace { inset: 5.35rem 0.85rem 4.5rem; grid-template-rows: repeat(5, auto); gap: 0.55rem; }
+  .route-trace { inset: 5.45rem 0.9rem 4.7rem; grid-template-rows: repeat(5, auto); gap: 0.72rem; }
   .route-trace::before { left: 1.06rem; }
   .trace-step { grid-template-columns: 2.25rem minmax(0, 1fr); gap: 0.62rem; }
   .trace-node { width: 2.18rem; height: 2.18rem; font-size: 0.62rem; }
-  .trace-copy { padding: 0.76rem; border-radius: 1rem; }
+  .trace-copy { padding: 0.88rem; border-radius: 1rem; }
   .trace-topline { align-items: flex-start; flex-direction: column; gap: 0.2rem; font-size: 0.58rem; }
   .trace-copy h2 { font-size: 0.94rem; }
   .trace-copy p { font-size: 0.78rem; line-height: 1.42; }

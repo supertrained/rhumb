@@ -12,65 +12,54 @@ const routeSteps = [
   {
     label: "02 · Index",
     title: "Search capability: company.research",
-    body: "Index is the discovery and comparison surface: services, scores, evidence, and failure modes.",
+    body: "Index is discovery and comparison: services, capabilities, AN Score, evidence, freshness, and failure modes.",
     status: "Compare routes",
     tone: "slate",
   },
   {
     label: "03 · Evidence",
     title: "Inspect trust before action.",
-    body: "Check AN Score, freshness, credential mode, estimated cost, and known failure modes.",
+    body: "Check score, proof, freshness, credentials, estimate, and failure modes before the agent acts.",
     status: "AN 91 · Fresh",
     tone: "teal",
   },
   {
     label: "04 · Resolve",
-    title: "Execute only if callable.",
-    body: "Resolve is governed execution for supported capabilities, not a promise that every service can run.",
+    title: "Execute only when supported.",
+    body: "Resolve is governed execution for supported capabilities: estimate, apply policy, route, and run.",
     status: "420ms · $0.02",
     tone: "teal",
   },
   {
     label: "05 · Outcome",
     title: "Return the result or stop honestly.",
-    body: "If execution is unsupported, do not invent it. Return the best next step.",
+    body: "If execution is unsupported, do not invent it. Return the evidence and next best step.",
     status: "Execute / stop",
     tone: "amber",
   },
-];
-
-const compassPoints = [
-  { label: "N", glyph: "↑", className: "compass-n" },
-  { label: "E", glyph: "→", className: "compass-e" },
-  { label: "S", glyph: "↓", className: "compass-s" },
-  { label: "W", glyph: "←", className: "compass-w" },
 ];
 ---
 
 <section id="hero" class="home-section home-hero relative overflow-hidden border-b border-white/10">
   <div class="chart-field" aria-hidden="true"></div>
-  <div class="hero-bearing" aria-hidden="true">
-    <span>🧭</span>
-    <span>N</span><span>·</span><span>E</span><span>·</span><span>S</span><span>·</span><span>W</span>
-  </div>
-  <div class="home-shell hero-shell relative z-10 grid py-24 lg:grid-cols-[minmax(0,0.94fr)_minmax(510px,1.06fr)] lg:items-start lg:py-32">
+  <div class="home-shell hero-shell relative z-10 grid py-24 lg:grid-cols-[minmax(0,0.9fr)_minmax(560px,1.1fr)] lg:items-start lg:py-32">
     <div class="hero-copy max-w-3xl">
       <p class="eyebrow animate-fade-up"><span aria-hidden="true">🧭</span> THE NAVIGATION LAYER FOR AGENT TOOLS</p>
       <h1 class="animate-fade-up animate-delay-100 mt-5 font-display text-[clamp(3.25rem,8vw,7.35rem)] font-semibold leading-[0.88] tracking-[-0.075em] text-rhumb-cream text-balance">
         From task to trusted tool call.
       </h1>
       <p class="animate-fade-up animate-delay-200 mt-8 max-w-[39rem] text-lg leading-8 text-rhumb-mist sm:text-xl">
-        Rhumb is the discovery and access layer for AI agents: use Index to find and compare capabilities, then use Resolve only when a governed route is supported.
+        Rhumb is the tool discovery and governed access layer for AI agents: Index shows what can be trusted, and Resolve runs what is actually supported.
       </p>
       <p class="animate-fade-up animate-delay-300 mt-5 max-w-[36rem] text-base leading-7 text-rhumb-muted">
-        Discovery is broader than execution by design. When coverage is missing, Rhumb tells the agent what to do next instead of pretending to run the call.
+        Discovery leads. Execution follows only when a route is callable. If coverage is missing, Rhumb returns the next best step instead of pretending.
       </p>
       <div class="animate-fade-up animate-delay-400 mt-9 flex flex-col gap-3 sm:flex-row">
         <a href="/#quickstart" class="btn-primary">Run the MCP server</a>
         <a href="/search" class="btn-secondary">Browse the Index</a>
       </div>
       <p class="animate-fade-up animate-delay-500 mt-7 max-w-2xl border-l border-rhumb-gold/45 pl-4 text-sm leading-6 text-rhumb-mist">
-        Broad discovery. Governed execution. Unsupported routes stop with a next step.
+        Broad discovery first. Governed execution when ready. Honest stop when unsupported.
       </p>
       <div class="animate-fade-up animate-delay-600 mt-8 flex flex-wrap gap-2 text-xs text-rhumb-muted">
         <a class="route-pill" href="/llms.txt">llms.txt</a>
@@ -84,12 +73,6 @@ const compassPoints = [
       <div class="instrument-topline">
         <span>Read-only route trace</span>
         <span>Index → Evidence → Resolve → Stop</span>
-      </div>
-      <div class="compass-rose" aria-hidden="true">
-        <span class="compass-core">🧭</span>
-        {compassPoints.map((point) => (
-          <span class={point.className}><b>{point.label}</b><em>{point.glyph}</em></span>
-        ))}
       </div>
       <div class="route-map" aria-hidden="true">
         <svg viewBox="0 0 640 430" role="img" aria-label="Rhumb route line" preserveAspectRatio="none">
