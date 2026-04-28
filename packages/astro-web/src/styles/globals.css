@@ -570,7 +570,7 @@ a {
 
 .route-instrument {
   position: relative;
-  min-height: 620px;
+  min-height: 660px;
   overflow: hidden;
   border: 1px solid rgba(244, 239, 226, 0.12);
   border-radius: 2.15rem;
@@ -603,7 +603,7 @@ a {
 .route-map {
   position: absolute;
   inset: 4.2rem 1.25rem 3.8rem;
-  opacity: 0.92;
+  opacity: 0.5;
 }
 
 .compass-rose {
@@ -698,56 +698,113 @@ a {
   animation: route-dash 18s linear infinite;
 }
 
-.route-cards {
+.route-trace {
   position: absolute;
-  inset: 0;
+  inset: 5rem 1.45rem 4.4rem;
+  z-index: 5;
+  display: grid;
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: 0.72rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.route-card {
+.route-trace::before {
+  content: "";
   position: absolute;
-  width: min(16rem, 42%);
-  border: 1px solid rgba(244, 239, 226, 0.12);
-  border-radius: 1.25rem;
-  background: rgba(7, 16, 29, 0.82);
-  padding: 1rem;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
-  animation: card-breathe 7s ease-in-out infinite;
-  animation-delay: calc(var(--i, 0) * 180ms);
+  top: 1.45rem;
+  bottom: 1.45rem;
+  left: 1.24rem;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(230, 179, 90, 0.62), rgba(107, 214, 195, 0.5), rgba(230, 179, 90, 0.4));
+  box-shadow: 0 0 24px rgba(107, 214, 195, 0.16);
 }
 
-.route-card:nth-child(1) { left: 5%; bottom: 9%; }
-.route-card:nth-child(2) { left: 8%; top: 19%; }
-.route-card:nth-child(3) { left: 42%; top: 33%; transform: translateX(-50%); }
-.route-card:nth-child(4) { right: 8%; top: 51%; }
-.route-card:nth-child(5) { right: 7%; top: 16%; }
+.trace-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.55rem minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0.82rem;
+  min-width: 0;
+}
 
-.route-card-kicker {
-  color: #8EA09E;
+.trace-node {
+  position: relative;
+  z-index: 2;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(244, 239, 226, 0.17);
+  border-radius: 999px;
+  background: rgba(7, 16, 29, 0.92);
+  color: #F2D79A;
   font-family: "IBM Plex Mono", ui-monospace, monospace;
   font-size: 0.68rem;
-  letter-spacing: 0.18em;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26), inset 0 0 18px rgba(230, 179, 90, 0.06);
+}
+
+.trace-copy {
+  min-width: 0;
+  border: 1px solid rgba(244, 239, 226, 0.12);
+  border-radius: 1.18rem;
+  background: linear-gradient(180deg, rgba(7, 16, 29, 0.88), rgba(11, 22, 38, 0.72));
+  padding: clamp(0.82rem, 1.4vw, 1rem);
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.24), inset 0 1px rgba(255, 255, 255, 0.045);
+}
+
+.trace-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: #8EA09E;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-.route-card h2 {
-  margin-top: 0.5rem;
+.trace-topline em {
+  color: #6BD6C3;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+.trace-copy h2 {
+  margin-top: 0.35rem;
   color: #F4EFE2;
   font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.3;
+  font-size: clamp(0.98rem, 1.4vw, 1.12rem);
+  font-weight: 650;
+  line-height: 1.28;
 }
 
-.route-card p {
-  margin-top: 0.45rem;
-  color: #8EA09E;
-  font-size: 0.82rem;
-  line-height: 1.5;
+.trace-copy p {
+  margin-top: 0.32rem;
+  max-width: 31rem;
+  color: #9AAEAA;
+  font-size: clamp(0.8rem, 1vw, 0.88rem);
+  line-height: 1.52;
 }
 
-.route-amber { border-color: rgba(230, 179, 90, 0.28); }
-.route-teal { border-color: rgba(107, 214, 195, 0.3); }
+.trace-amber .trace-node {
+  border-color: rgba(230, 179, 90, 0.34);
+  color: #F2D79A;
+}
+
+.trace-teal .trace-node {
+  border-color: rgba(107, 214, 195, 0.36);
+  color: #BDEBE3;
+}
+
+.trace-teal .trace-copy { border-color: rgba(107, 214, 195, 0.18); }
+.trace-amber .trace-copy { border-color: rgba(230, 179, 90, 0.18); }
 
 .proof-chip {
   display: flex;
@@ -1238,14 +1295,10 @@ a {
 }
 
 @media (max-width: 900px) {
-  .route-instrument { min-height: 660px; }
-  .compass-rose { top: 4.5rem; right: 1.4rem; opacity: 0.88; transform: scale(0.9); }
-  .route-card { width: min(18rem, 78%); }
-  .route-card:nth-child(1) { left: 6%; bottom: 8%; }
-  .route-card:nth-child(2) { left: 8%; top: 15%; }
-  .route-card:nth-child(3) { left: 50%; top: 34%; }
-  .route-card:nth-child(4) { right: 6%; top: 52%; }
-  .route-card:nth-child(5) { right: 6%; top: 4.8rem; }
+  .route-instrument { min-height: 700px; }
+  .compass-rose { top: 4.5rem; right: 1.4rem; opacity: 0.72; transform: scale(0.84); }
+  .route-trace { inset: 5.25rem 1rem 4.7rem; gap: 0.62rem; }
+  .trace-copy p { line-height: 1.45; }
   .check-card { position: static; }
 }
 
@@ -1257,16 +1310,19 @@ a {
   .agent-copy-panel { align-items: stretch; flex-direction: column; }
   .copy-agent-button { width: 100%; }
   .home-shell.py-24 { padding-top: 4.5rem; padding-bottom: 4.5rem; }
-  .route-instrument { min-height: 690px; border-radius: 1.55rem; }
+  .route-instrument { min-height: 760px; border-radius: 1.55rem; }
   .instrument-topline,
   .instrument-footer { flex-direction: column; gap: 0.25rem; }
   .route-map { inset: 5rem 0.7rem 4rem; }
-  .route-card { width: 86%; }
-  .route-card:nth-child(1) { left: 7%; bottom: 8%; }
-  .route-card:nth-child(2) { left: 7%; top: 16%; }
-  .route-card:nth-child(3) { left: 7%; top: 33%; transform: none; }
-  .route-card:nth-child(4) { left: 7%; right: auto; top: 50%; }
-  .route-card:nth-child(5) { left: 7%; right: auto; top: 67%; }
+  .compass-rose { display: none; }
+  .route-trace { inset: 5.35rem 0.85rem 4.5rem; grid-template-rows: repeat(5, auto); gap: 0.55rem; }
+  .route-trace::before { left: 1.06rem; }
+  .trace-step { grid-template-columns: 2.25rem minmax(0, 1fr); gap: 0.62rem; }
+  .trace-node { width: 2.18rem; height: 2.18rem; font-size: 0.62rem; }
+  .trace-copy { padding: 0.76rem; border-radius: 1rem; }
+  .trace-topline { align-items: flex-start; flex-direction: column; gap: 0.2rem; font-size: 0.58rem; }
+  .trace-copy h2 { font-size: 0.94rem; }
+  .trace-copy p { font-size: 0.78rem; line-height: 1.42; }
   .ledger-row { grid-template-columns: 1fr; gap: 0.25rem; }
   .ledger-row.head { display: none; }
   .score-meter { width: 11rem; height: 11rem; }

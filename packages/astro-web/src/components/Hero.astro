@@ -1,35 +1,40 @@
 ---
 import { PUBLIC_TRUTH } from "../lib/public-truth";
 
-const routeCards = [
+const routeSteps = [
   {
-    label: "Task",
-    title: "Find current facts about Acme and summarize them.",
-    meta: "Ambiguous human intent",
+    label: "01 · Task",
+    title: "Research Acme and summarize the current facts.",
+    body: "A human gives the agent an outcome, not a provider decision.",
+    status: "Intent received",
     tone: "amber",
   },
   {
-    label: "Capability",
-    title: "company.research",
-    meta: "Mapped by Index",
+    label: "02 · Index",
+    title: "Search capability: company.research",
+    body: "Index is the discovery and comparison surface: services, scores, evidence, and failure modes.",
+    status: "Compare routes",
     tone: "slate",
   },
   {
-    label: "Evidence",
-    title: "AN Score 91 / 100",
-    meta: "Fresh · 2h ago",
+    label: "03 · Evidence",
+    title: "Inspect trust before action.",
+    body: "Check AN Score, freshness, credential mode, estimated cost, and known failure modes.",
+    status: "AN 91 · Fresh",
     tone: "teal",
   },
   {
-    label: "Resolve",
-    title: "Callable",
-    meta: "420ms · $0.02 · governed",
+    label: "04 · Resolve",
+    title: "Execute only if callable.",
+    body: "Resolve is governed execution for supported capabilities, not a promise that every service can run.",
+    status: "420ms · $0.02",
     tone: "teal",
   },
   {
-    label: "Outcome",
-    title: "Execute or stop honestly",
-    meta: "Never invent unsupported execution",
+    label: "05 · Outcome",
+    title: "Return the result or stop honestly.",
+    body: "If execution is unsupported, do not invent it. Return the best next step.",
+    status: "Execute / stop",
     tone: "amber",
   },
 ];
@@ -48,23 +53,26 @@ const compassPoints = [
     <span>🧭</span>
     <span>N</span><span>·</span><span>E</span><span>·</span><span>S</span><span>·</span><span>W</span>
   </div>
-  <div class="home-shell hero-shell relative z-10 grid py-24 lg:grid-cols-[minmax(0,0.94fr)_minmax(510px,1.06fr)] lg:items-center lg:py-32">
+  <div class="home-shell hero-shell relative z-10 grid py-24 lg:grid-cols-[minmax(0,0.94fr)_minmax(510px,1.06fr)] lg:items-start lg:py-32">
     <div class="hero-copy max-w-3xl">
       <p class="eyebrow animate-fade-up"><span aria-hidden="true">🧭</span> THE NAVIGATION LAYER FOR AGENT TOOLS</p>
       <h1 class="animate-fade-up animate-delay-100 mt-5 font-display text-[clamp(3.25rem,8vw,7.35rem)] font-semibold leading-[0.88] tracking-[-0.075em] text-rhumb-cream text-balance">
         From task to trusted tool call.
       </h1>
-      <p class="animate-fade-up animate-delay-200 mt-8 max-w-2xl text-lg leading-8 text-rhumb-mist sm:text-xl">
-        Rhumb helps humans and agents discover capabilities, compare providers with evidence, and execute supported actions through governed API and MCP surfaces.
+      <p class="animate-fade-up animate-delay-200 mt-8 max-w-[39rem] text-lg leading-8 text-rhumb-mist sm:text-xl">
+        Rhumb is the discovery and access layer for AI agents: use Index to find and compare capabilities, then use Resolve only when a governed route is supported.
       </p>
-      <div class="animate-fade-up animate-delay-300 mt-9 flex flex-col gap-3 sm:flex-row">
+      <p class="animate-fade-up animate-delay-300 mt-5 max-w-[36rem] text-base leading-7 text-rhumb-muted">
+        Discovery is broader than execution by design. When coverage is missing, Rhumb tells the agent what to do next instead of pretending to run the call.
+      </p>
+      <div class="animate-fade-up animate-delay-400 mt-9 flex flex-col gap-3 sm:flex-row">
         <a href="/#quickstart" class="btn-primary">Run the MCP server</a>
         <a href="/search" class="btn-secondary">Browse the Index</a>
       </div>
-      <p class="animate-fade-up animate-delay-400 mt-7 max-w-2xl border-l border-rhumb-gold/45 pl-4 text-sm leading-6 text-rhumb-muted">
-        Broad discovery now. Governed execution where coverage is ready. Honest next step when it is not.
+      <p class="animate-fade-up animate-delay-500 mt-7 max-w-2xl border-l border-rhumb-gold/45 pl-4 text-sm leading-6 text-rhumb-mist">
+        Broad discovery. Governed execution. Unsupported routes stop with a next step.
       </p>
-      <div class="animate-fade-up animate-delay-500 mt-8 flex flex-wrap gap-2 text-xs text-rhumb-muted">
+      <div class="animate-fade-up animate-delay-600 mt-8 flex flex-wrap gap-2 text-xs text-rhumb-muted">
         <a class="route-pill" href="/llms.txt">llms.txt</a>
         <a class="route-pill" href="/.well-known/agent-capabilities.json">agent-capabilities.json</a>
         <a class="route-pill" href="/docs">docs</a>
@@ -74,8 +82,8 @@ const compassPoints = [
 
     <div id="agent-route" class="route-instrument animate-fade-up animate-delay-300" aria-label="Example Rhumb route from task to governed action">
       <div class="instrument-topline">
-        <span>Route plot</span>
-        <span>Index → Evidence → Resolve</span>
+        <span>Read-only route trace</span>
+        <span>Index → Evidence → Resolve → Stop</span>
       </div>
       <div class="compass-rose" aria-hidden="true">
         <span class="compass-core">🧭</span>
@@ -96,15 +104,21 @@ const compassPoints = [
           <path class="route-path" d="M44 356 C145 264 166 110 278 150 C384 188 367 309 482 262 C548 236 574 154 606 83" />
         </svg>
       </div>
-      <div class="route-cards">
-        {routeCards.map((card, index) => (
-          <article class={`route-card route-${card.tone}`} style={`--i:${index}`}>
-            <div class="route-card-kicker">{card.label}</div>
-            <h2>{card.title}</h2>
-            <p>{card.meta}</p>
-          </article>
+      <ol class="route-trace" aria-label="Rhumb route trace from task to outcome">
+        {routeSteps.map((step, index) => (
+          <li class={`trace-step trace-${step.tone}`} style={`--i:${index}`}>
+            <div class="trace-node" aria-hidden="true">{String(index + 1).padStart(2, "0")}</div>
+            <div class="trace-copy">
+              <div class="trace-topline">
+                <span>{step.label}</span>
+                <em>{step.status}</em>
+              </div>
+              <h2>{step.title}</h2>
+              <p>{step.body}</p>
+            </div>
+          </li>
         ))}
-      </div>
+      </ol>
       <div class="instrument-footer">
         <span>Stop rule active</span>
         <span>If unsupported, return best next step.</span>
