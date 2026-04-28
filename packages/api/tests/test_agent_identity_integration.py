@@ -972,6 +972,23 @@ class TestAdminRoutes:
         assert data["organization_id"] == "org_detail"
         assert "usage" in data
 
+    def test_get_agent_details_route_rejects_blank_agent_id_before_store_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Blank admin agent path values should fail before identity-store reads."""
+        mock_store = AsyncMock()
+        mock_store.get_agent = AsyncMock(return_value=None)
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store):
+            resp = admin_client.get("/v1/admin/agents/%20%20")
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'agent_id' path parameter."
+        assert payload["error"]["detail"] == "Provide a non-empty 'agent_id' value."
+        mock_store.get_agent.assert_not_awaited()
+
     def test_get_agent_details_route_canonicalizes_alias_backed_usage(
         self,
         admin_client: TestClient,
@@ -1151,6 +1168,29 @@ class TestAdminRoutes:
         assert payload["error"]["detail"] == "Provide a non-empty 'service' value or omit the filter."
         mock_analytics.get_usage_summary.assert_not_awaited()
 
+    def test_get_agent_usage_route_rejects_blank_agent_id_before_store_or_usage_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Blank usage agent path values should fail before store or usage reads."""
+        mock_store = AsyncMock()
+        mock_store.get_agent = AsyncMock(return_value=None)
+        mock_analytics = AsyncMock()
+        mock_analytics.get_usage_summary = AsyncMock(return_value={})
+
+        with (
+            patch("routes.admin_agents._get_identity_store", return_value=mock_store),
+            patch("routes.admin_agents._get_analytics", return_value=mock_analytics),
+        ):
+            resp = admin_client.get("/v1/admin/agents/%20%20/usage")
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'agent_id' path parameter."
+        assert payload["error"]["detail"] == "Provide a non-empty 'agent_id' value."
+        mock_store.get_agent.assert_not_awaited()
+        mock_analytics.get_usage_summary.assert_not_awaited()
+
     @pytest.mark.parametrize("days", ["0", "366"])
     def test_get_agent_usage_route_rejects_invalid_days_before_usage_read(
         self, admin_client: TestClient, days: str
@@ -1276,6 +1316,23 @@ class TestAdminRoutes:
         assert payload["error"]["detail"] == "Provide an integer between 1 and 365."
         mock_analytics.get_organization_usage.assert_not_awaited()
 
+    def test_get_organization_usage_route_rejects_blank_org_id_before_usage_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Blank organization path values should fail before usage aggregation reads."""
+        mock_analytics = AsyncMock()
+        mock_analytics.get_organization_usage = AsyncMock(return_value={})
+
+        with patch("routes.admin_agents._get_analytics", return_value=mock_analytics):
+            resp = admin_client.get("/v1/admin/usage/organization/%20%20")
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'organization_id' path parameter."
+        assert payload["error"]["detail"] == "Provide a non-empty 'organization_id' value."
+        mock_analytics.get_organization_usage.assert_not_awaited()
+
     def test_grant_and_revoke_access_route(self, admin_client: TestClient) -> None:
         """Grant then revoke service access via admin routes."""
         # Create agent
@@ -1367,6 +1424,23 @@ class TestAdminRoutes:
         data = rotate_resp.json()
         assert data["new_api_key"].startswith("rhumb_")
         assert data["new_api_key"] != old_key
+
+    def test_rotate_key_route_rejects_blank_agent_id_before_store_write(
+        self, admin_client: TestClient
+    ) -> None:
+        """Blank write-path agent ids should fail before identity-store mutation."""
+        mock_store = AsyncMock()
+        mock_store.rotate_api_key = AsyncMock(return_value=None)
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store):
+            resp = admin_client.post("/v1/admin/agents/%20%20/rotate-key")
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'agent_id' path parameter."
+        assert payload["error"]["detail"] == "Provide a non-empty 'agent_id' value."
+        mock_store.rotate_api_key.assert_not_awaited()
 
     def test_disable_enable_route(self, admin_client: TestClient) -> None:
         """Disable and re-enable an agent via admin routes."""

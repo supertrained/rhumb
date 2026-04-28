@@ -44,6 +44,19 @@ def _validated_optional_text_filter(value: Optional[str], field: str) -> Optiona
     return normalized
 
 
+def _validated_required_path_value(value: str, field: str) -> str:
+    """Trim required path values and reject blanks before admin store reads/writes."""
+    normalized = str(value or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field}' path parameter.",
+        detail=f"Provide a non-empty '{field}' value.",
+    )
+
+
 def _validated_agent_status(status: Optional[str]) -> Optional[str]:
     """Normalize and validate the public admin agent-status filter."""
     normalized = _validated_optional_text_filter(status, "status")
@@ -345,6 +358,7 @@ async def list_agents(
 @router.get("/agents/{agent_id}", response_model=AgentDetailResponse)
 async def get_agent_details(agent_id: str) -> AgentDetailResponse:
     """Get full agent details including services and usage."""
+    agent_id = _validated_required_path_value(agent_id, "agent_id")
     store = _get_identity_store()
     agent = await store.get_agent(agent_id)
 
@@ -380,6 +394,7 @@ async def grant_service_access(
     agent_id: str, body: GrantAccessRequest
 ) -> GrantAccessResponse:
     """Grant an agent access to a service."""
+    agent_id = _validated_required_path_value(agent_id, "agent_id")
     store = _get_identity_store()
 
     # Verify agent exists
@@ -410,6 +425,7 @@ async def revoke_service_access(
     agent_id: str, body: RevokeAccessRequest
 ) -> Dict[str, str]:
     """Revoke an agent's access to a service."""
+    agent_id = _validated_required_path_value(agent_id, "agent_id")
     store = _get_identity_store()
 
     revoked = await store.revoke_service_access_by_agent_service(
@@ -428,6 +444,7 @@ async def revoke_service_access(
 @router.post("/agents/{agent_id}/rotate-key", response_model=RotateKeyResponse)
 async def rotate_api_key(agent_id: str) -> RotateKeyResponse:
     """Rotate an agent's API key. Old key becomes invalid immediately."""
+    agent_id = _validated_required_path_value(agent_id, "agent_id")
     store = _get_identity_store()
     new_key = await store.rotate_api_key(agent_id)
 
@@ -440,6 +457,7 @@ async def rotate_api_key(agent_id: str) -> RotateKeyResponse:
 @router.post("/agents/{agent_id}/disable")
 async def disable_agent(agent_id: str) -> Dict[str, str]:
     """Disable an agent (soft delete)."""
+    agent_id = _validated_required_path_value(agent_id, "agent_id")
     store = _get_identity_store()
     success = await store.disable_agent(agent_id)
 
@@ -452,6 +470,7 @@ async def disable_agent(agent_id: str) -> Dict[str, str]:
 @router.post("/agents/{agent_id}/enable")
 async def enable_agent(agent_id: str) -> Dict[str, str]:
     """Re-enable a disabled agent."""
+    agent_id = _validated_required_path_value(agent_id, "agent_id")
     store = _get_identity_store()
     success = await store.enable_agent(agent_id)
 
@@ -468,6 +487,7 @@ async def get_agent_usage(
     days: int = Query(default=30),
 ) -> Dict[str, Any]:
     """Get usage summary for an agent."""
+    agent_id = _validated_required_path_value(agent_id, "agent_id")
     effective_days = _validated_usage_days(days)
     canonical_service = _validated_public_service_filter(service)
 
@@ -493,6 +513,7 @@ async def get_organization_usage(
     days: int = Query(default=30),
 ) -> Dict[str, Any]:
     """Get aggregated usage for an entire organization."""
+    organization_id = _validated_required_path_value(organization_id, "organization_id")
     effective_days = _validated_usage_days(days)
     analytics = _get_analytics()
     return _canonicalize_organization_usage(
