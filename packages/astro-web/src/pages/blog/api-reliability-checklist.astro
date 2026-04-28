@@ -25,12 +25,19 @@ const IDEMPOTENCY_REPLAY_GATES = [
   "Fail closed when a side-effecting route has no idempotency contract; quarantine the lane or require a human decision instead of letting the agent guess.",
 ];
 
+const SILENT_POLICY_WRITE_GATES = [
+  "Do not treat a 200 response, Terraform convergence, or audit-log entry as proof that the intended security default still applies.",
+  "After any policy write, read the replacement policy object that now owns enforcement and compare it against the intended guardrail before continuing.",
+  "Preserve the legacy field, replacement field, actor, resource family, and enforcement result in trace context so operators can see which contract actually applied.",
+  "Return a typed stale-policy outcome when the old field is accepted but no longer authoritative; do not retry the same no-op write as if it were transient failure.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-04-27T00:00:00Z",
+  dateModified: "2026-04-28T00:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -64,7 +71,7 @@ const RELATED_READING = [
     href: "/blog/machine-parseable-change-communication-for-agent-ready-apis",
     label: "Change Discipline",
     title: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
-    description: "Why retired model IDs, preview endpoints, and shifting parameter rules belong in the same operator checklist as retries, idempotency, and error quality.",
+    description: "Why retired model IDs, preview endpoints, silent policy writes, and shifting parameter rules belong in the same operator checklist as retries, idempotency, and error quality."
   },
   {
     href: "/blog/remote-mcp-production-readiness-checklist",
@@ -237,7 +244,7 @@ const htmlContent = markdownToHtml(content);
             <span class="text-slate-700">&middot;</span>
             <span class="text-xs font-mono text-slate-500">March 28, 2026</span>
             <span class="text-slate-700">&middot;</span>
-            <span class="text-xs font-mono text-emerald-400/70">Updated April 27, 2026</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated April 28, 2026</span>
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.97] tracking-tight text-slate-100 max-w-5xl text-balance">
@@ -295,6 +302,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           Treat preview launches as <a href="/blog/static-mcp-scores-runtime-trust-overlays" class="text-amber hover:underline underline-offset-2">runtime-trust drift candidates</a> until the loop can prove the first-party contract, the cost envelope, and the failure semantics under real execution.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-purple-500/20 bg-purple-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-purple-300 mb-3">Silent policy-write gate</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          A successful write is not reliability proof when the policy contract moved
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Security defaults can drift without producing a clean failure. If a provider retires a policy field but still accepts legacy writes, the agent sees success while new resources launch under a different enforcement object. That is not a retry problem. It is stale-contract reliability debt.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {SILENT_POLICY_WRITE_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          Pair this gate with the <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:underline underline-offset-2">silent security-default drift test</a> so unattended setup lanes prove enforcement, not just acknowledgement.
         </p>
       </section>
 
