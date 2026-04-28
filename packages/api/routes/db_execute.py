@@ -106,6 +106,22 @@ async def handle_db_execute(
             started_at=start,
         )
 
+    if not isinstance(body, dict):
+        return await _failure_response(
+            raw_request=raw_request,
+            agent_id=agent_id,
+            org_id=org_id,
+            request_id=request_id,
+            execution_id=execution_id,
+            capability_id=capability_id,
+            credential_mode=credential_mode,
+            provider_used=provider_used,
+            code="db_request_invalid",
+            message="JSON body must be an object",
+            status_code=400,
+            started_at=start,
+        )
+
     credential_mode = body.get("credential_mode", credential_mode)
     if credential_mode not in {"byok", "agent_vault"}:
         return await _failure_response(

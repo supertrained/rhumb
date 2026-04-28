@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import asyncio
 from importlib import import_module
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -206,6 +207,39 @@ async def test_workflow_run_list_rejects_missing_actions_ref_env(
         _mock_supabase_writes,
         status_code=400,
         error_code="actions_ref_invalid",
+    )
+
+
+def test_workflow_run_list_rejects_non_object_body_before_actions_reads(
+    app,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    async def _run():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post(
+                "/v1/capabilities/workflow_run.list/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json=["not", "an", "object"],
+            )
+
+    with (
+        patch.object(actions_execute_route, "resolve_actions_bundle") as mock_resolve,
+        patch.object(actions_execute_route, "list_workflow_runs", new=AsyncMock()) as mock_list,
+    ):
+        response = asyncio.run(_run())
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "actions_request_invalid"
+    assert body["message"] == "JSON body must be an object"
+    mock_resolve.assert_not_called()
+    mock_list.assert_not_called()
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="actions_request_invalid",
     )
 
 

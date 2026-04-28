@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import asyncio
 from importlib import import_module
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -200,6 +201,39 @@ async def test_object_list_rejects_missing_storage_ref_env(
         _mock_supabase_writes,
         status_code=400,
         error_code="storage_ref_invalid",
+    )
+
+
+def test_object_list_rejects_non_object_body_before_storage_reads(
+    app,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    async def _run():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post(
+                "/v1/capabilities/object.list/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json=["not", "an", "object"],
+            )
+
+    with (
+        patch.object(storage_execute_route, "resolve_storage_bundle") as mock_resolve,
+        patch.object(storage_execute_route, "list_objects", new=AsyncMock()) as mock_list,
+    ):
+        response = asyncio.run(_run())
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "storage_request_invalid"
+    assert body["message"] == "JSON body must be an object"
+    mock_resolve.assert_not_called()
+    mock_list.assert_not_called()
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="storage_request_invalid",
     )
 
 
