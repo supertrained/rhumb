@@ -1,0 +1,58 @@
+---
+const agentBlock = `surface: homepage
+purpose: choose the correct Rhumb route
+first_action: search Index
+use_resolve_when: capability is callable
+before_execution:
+ - inspect AN Score
+ - inspect evidence and freshness
+ - inspect credential mode and estimate
+if_not_callable:
+ - do not invent execution
+ - return best next step
+machine_entrypoints:
+ - MCP
+ - REST API`;
+---
+
+<section class="home-section border-b border-white/10 bg-rhumb-deep/90">
+  <div class="home-shell py-24">
+    <div class="section-heading max-w-3xl">
+      <p class="eyebrow">Dual-audience surface</p>
+      <h2>Humans need confidence. Agents need procedure.</h2>
+      <p>Rhumb is designed so a person can trust the route, and an agent can operate it without guessing.</p>
+    </div>
+
+    <div class="mt-10 grid gap-5 lg:grid-cols-2">
+      <article id="for-humans" class="entry-card human-card">
+        <p class="entry-subtitle">Start here.</p>
+        <h3>For humans</h3>
+        <ol class="entry-list">
+          <li>
+            <strong>Understand what’s possible</strong>
+            <span>Search the Index by task, capability, or provider.</span>
+          </li>
+          <li>
+            <strong>Choose with confidence</strong>
+            <span>Use AN Score, evidence, freshness, and failure modes.</span>
+          </li>
+          <li>
+            <strong>Execute when ready</strong>
+            <span>Use Resolve when Rhumb shows a callable path.</span>
+          </li>
+        </ol>
+        <a href="/docs#index-vs-resolve" class="text-link">See the human path →</a>
+      </article>
+
+      <article id="for-agents" class="entry-card agent-card">
+        <p class="entry-subtitle">Point your agent here.</p>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <h3>For agents</h3>
+          <a href="/llms.txt" class="mini-link">Machine docs</a>
+        </div>
+        <pre class="agent-block" data-agent-route><code>{agentBlock}</code></pre>
+        <a href="/docs#agent-route" class="text-link teal">View full agent guide →</a>
+      </article>
+    </div>
+  </div>
+</section>

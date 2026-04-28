@@ -1,0 +1,53 @@
+---
+import CopyTextButton from "./CopyTextButton.tsx";
+
+const mcpCode = `$ npx rhumb-mcp
+> starting Rhumb MCP server...
+> connected
+> tools: find_services, get_score, get_failure_modes, resolve_execute
+> find_services("company research")
+> get_score("Acme API", "company.research")
+> resolve_execute("best_route", "company.research")`;
+---
+
+<section id="quickstart" class="home-section border-b border-white/10 bg-rhumb-deep">
+  <div class="home-shell py-24">
+    <div class="grid gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-start">
+      <div>
+        <p class="eyebrow">Quickstart</p>
+        <h2 class="font-display text-[clamp(2.5rem,5vw,4.8rem)] font-semibold leading-[0.94] tracking-[-0.055em] text-rhumb-cream text-balance">Start building in minutes.</h2>
+        <p class="mt-5 max-w-2xl text-lg leading-8 text-rhumb-mist">MCP, REST, or a starter prompt. The MCP path is the fastest way to give an agent a reliable bearing.</p>
+
+        <div class="mt-8 rounded-[28px] border border-white/10 bg-black/30 p-3 shadow-[0_28px_90px_rgba(0,0,0,0.35)]">
+          <div class="tab-row" role="tablist" aria-label="Quickstart options">
+            <button class="active" type="button" role="tab" aria-selected="true">MCP</button>
+            <a href="/docs#rest-api" role="tab" aria-selected="false">REST</a>
+            <a href="/docs#starter-prompt" role="tab" aria-selected="false">Starter prompt</a>
+          </div>
+          <div class="code-frame">
+            <div class="code-topline">
+              <span>terminal</span>
+              <CopyTextButton client:load text={mcpCode} label="Copy" copiedLabel="Copied" />
+            </div>
+            <pre><code>{mcpCode}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <aside class="check-card">
+        <h3>Operational affordances</h3>
+        <ul>
+          <li>Copy-pasteable quickstarts</li>
+          <li>Docs and examples</li>
+          <li>Machine-readable entry points</li>
+          <li>Explicit Index vs Resolve boundary</li>
+          <li>Stop rule for unsupported execution</li>
+        </ul>
+        <div class="mt-7 flex flex-wrap gap-3">
+          <a href="/docs" class="btn-primary small">View docs</a>
+          <a href="/llms.txt" class="btn-secondary small">llms.txt</a>
+        </div>
+      </aside>
+    </div>
+  </div>
+</section>

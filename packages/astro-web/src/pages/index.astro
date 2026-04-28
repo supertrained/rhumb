@@ -1,623 +1,82 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import ScoreDisplay from "../components/ScoreDisplay.astro";
-import TierBadge from "../components/TierBadge.astro";
-import CopyTextButton from "../components/CopyTextButton.tsx";
-import { getLeaderboard } from "../lib/api";
+import Hero from "../components/Hero.astro";
+import StatsStrip from "../components/StatsStrip.astro";
+import DualEntry from "../components/DualEntry.astro";
+import JourneySection from "../components/JourneySection.astro";
+import ProductModel from "../components/ProductModel.astro";
+import EvidenceSection from "../components/EvidenceSection.astro";
+import QuickstartSection from "../components/QuickstartSection.astro";
+import FinalCTA from "../components/FinalCTA.astro";
 import { PUBLIC_TRUTH } from "../lib/public-truth";
-import { STARTER_PROMPT } from "../lib/starter-prompt";
-import type { EvidenceTier } from "../lib/types";
 
-const EVIDENCE_BADGE_STYLES: Record<EvidenceTier, { className: string; label: string }> = {
-  pending: { className: "border-slate-700 text-slate-500 bg-slate-800/40", label: "Pending" },
-  assessed: { className: "border-slate-600/40 text-slate-400 bg-slate-700/20", label: "Assessed" },
-  tested: { className: "border-amber/30 text-amber bg-amber/10", label: "Tested" },
-  verified: { className: "border-score-native/30 text-score-native bg-score-native/10", label: "Verified" },
-};
-
-function scoreLabel(value: number | null): string {
-  return value === null ? "Pending" : value.toFixed(1);
-}
-
-function freshnessLabel(item: any): string {
-  if (item.freshness) return item.freshness;
-  if (item.calculatedAt) return `Updated ${item.calculatedAt}`;
-  return "Freshness pending";
-}
-
-const leaderboard = await getLeaderboard("payments", { limit: 3 });
-
-const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const description =
+  "Rhumb helps humans and agents discover capabilities, compare providers with evidence, and execute supported actions through governed API and MCP surfaces.";
 
 const HOME_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Rhumb",
+  alternateName: "Rhumb Labs",
   url: "https://rhumb.dev",
-  description: PUBLIC_TRUTH.rhumbEntityShort,
-  logo: "https://rhumb.dev/logo.png",
+  description,
+  logo: "https://rhumb.dev/favicon.ico",
+  sameAs: ["https://github.com/supertrained/rhumb"],
+  knowsAbout: [
+    "AI agent tool discovery",
+    "agent-native services",
+    "MCP tools",
+    "governed API execution",
+    "AN Score",
+    "capability routing",
+  ],
 };
 
-const agentContext =
-  "Rhumb is an agent gateway. Rhumb Index ranks external services for AI-agent compatibility. Rhumb Resolve routes supported capability calls to the best-fit provider for the call through governed execution by default, while also allowing explicit provider choice when the agent wants direct control.";
+const AGENT_ROUTE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "TechArticle",
+  headline: "Rhumb homepage agent route",
+  description:
+    "Agent-readable operating instructions for using Rhumb Index first, inspecting evidence, and using Rhumb Resolve only when a capability is callable.",
+  mainEntity: {
+    "@type": "HowTo",
+    name: "Choose the correct Rhumb route",
+    step: [
+      { "@type": "HowToStep", name: "Search Index", text: "Start by searching Rhumb Index for the task, capability, or provider." },
+      { "@type": "HowToStep", name: "Inspect trust", text: "Inspect AN Score, evidence, freshness, credential mode, and estimate before execution." },
+      { "@type": "HowToStep", name: "Use Resolve when callable", text: "Use Rhumb Resolve only when the selected capability is callable and governed." },
+      { "@type": "HowToStep", name: "Stop honestly", text: "If execution is not supported, do not invent execution. Return the best next step." },
+    ],
+  },
+};
 
-const previewItems = leaderboard.items.slice(0, 3);
-const stats = [
-  { value: servicesLabel, label: "services scored" },
-  { value: PUBLIC_TRUTH.capabilitiesLabel, label: "capabilities mapped" },
-  { value: PUBLIC_TRUTH.callableProvidersLabel, label: "providers callable" },
-  { value: "API + MCP", label: "live access surfaces" },
-];
-
-const heroProof = [
-  {
-    label: "Broad discovery",
-    value: `${servicesLabel} services`,
-    tone: "border-slate-700/80 bg-slate-900/40 text-slate-200",
-  },
-  {
-    label: "Capability map",
-    value: `${PUBLIC_TRUTH.capabilitiesLabel} capabilities`,
-    tone: "border-slate-700/80 bg-slate-900/40 text-slate-200",
-  },
-  {
-    label: "Callable today",
-    value: `${PUBLIC_TRUTH.callableProvidersLabel} providers`,
-    tone: "border-emerald-500/20 bg-emerald-500/10 text-emerald-200",
-  },
-  {
-    label: "Best current beachhead",
-    value: PUBLIC_TRUTH.beachheadLabel,
-    tone: "border-amber/20 bg-amber/10 text-amber-50",
-  },
-];
-
-const howItWorks = [
-  {
-    step: "01",
-    title: "Discover with Rhumb Index",
-    body:
-      `Search ${servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions across ${PUBLIC_TRUTH.domainsLabel} domains before you commit to a tool or provider.`,
-  },
-  {
-    step: "02",
-    title: "Decide with published evidence",
-    body:
-      "Compare scores, freshness, evidence tiers, and failure modes so your agent can explain why it chose a route, not just that it did.",
-  },
-  {
-    step: "03",
-    title: "Execute when the path is ready",
-    body:
-      `Use Rhumb Resolve for supported actions today, strongest in ${PUBLIC_TRUTH.beachheadLabel}. When execution is not ready, Rhumb still shows the best next step honestly.`,
-  },
-];
+const agentContext = `surface: homepage
+purpose: choose the correct Rhumb route
+first_action: search Index
+index_definition: discovery and comparison
+resolve_definition: governed execution when callable
+before_execution: inspect AN Score, evidence, freshness, credential mode, and estimate
+if_not_callable: do not invent execution; return best next step
+machine_entrypoints: MCP, REST API, /llms.txt, /.well-known/agent-capabilities.json
+current_public_truth: ${PUBLIC_TRUTH.catalogRealitySummary}`;
 ---
 
 <Layout
-  title="Rhumb | Discover the right service. Execute what’s ready."
-  description="Rhumb is an agent gateway for service discovery and governed execution. Rhumb Index scores the field. Rhumb Resolve routes supported calls to the best-fit provider for the call."
+  title="Rhumb | From task to trusted tool call"
+  description={description}
   canonical="https://rhumb.dev/"
-  ogTitle="Rhumb | Discover the right service. Execute what’s ready."
-  ogDescription="Rhumb is an agent gateway for service discovery and governed execution. Rhumb Index scores the field. Rhumb Resolve routes supported calls to the best-fit provider for the call."
+  ogTitle="Rhumb | From task to trusted tool call"
+  ogDescription={description}
   ogUrl="https://rhumb.dev/"
-  jsonLd={HOME_JSON_LD}
+  jsonLdBlocks={[HOME_JSON_LD, AGENT_ROUTE_JSON_LD]}
   agentContext={agentContext}
 >
-  <div class="bg-navy min-h-screen">
-    <!-- Hero -->
-    <section class="relative overflow-hidden border-b border-slate-900/80">
-      <div class="absolute inset-0 bg-grid opacity-35 pointer-events-none"></div>
-      <div
-        class="absolute top-0 left-1/2 -translate-x-1/2 w-[720px] h-[420px] rounded-full pointer-events-none"
-        style="background: radial-gradient(ellipse at top, rgba(245,158,11,0.12) 0%, rgba(59,130,246,0.04) 36%, transparent 72%)"
-      ></div>
-      <div
-        class="absolute inset-y-0 right-0 w-[42vw] min-w-[320px] pointer-events-none opacity-60"
-        style="background: linear-gradient(180deg, rgba(21,29,46,0) 0%, rgba(21,29,46,0.5) 35%, rgba(21,29,46,0) 100%)"
-      ></div>
-
-      <div class="relative max-w-6xl mx-auto px-6 pt-20 pb-20 lg:pt-24 lg:pb-24">
-        <div class="grid gap-14 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,0.92fr)] lg:items-start">
-          <div>
-            <div class="animate-fade-up flex items-center gap-3 mb-5 flex-wrap">
-              <span class="inline-flex items-center gap-2 rounded-full border border-amber/25 bg-amber/10 px-3 py-1.5 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">
-                <span class="w-1.5 h-1.5 rounded-full bg-amber"></span>
-                Agent gateway for discovery + governed execution
-              </span>
-              <span class="text-xs font-mono text-slate-500 uppercase tracking-[0.28em]">Index ranks. Resolve routes.</span>
-            </div>
-
-            <h1 class="animate-fade-up animate-delay-100 font-display font-bold text-5xl sm:text-6xl lg:text-[4.5rem] text-slate-100 leading-[0.98] tracking-tight max-w-4xl text-balance">
-              Discover the right service. Execute what’s ready.
-            </h1>
-
-            <p class="animate-fade-up animate-delay-200 mt-6 text-lg text-slate-300 max-w-3xl leading-relaxed">
-              Rhumb helps AI agents discover, evaluate, and execute against external services. Rhumb Index scores the field. Rhumb Resolve routes supported calls to the best-fit provider for the call.
-            </p>
-            <p class="animate-fade-up animate-delay-200 mt-4 text-base text-slate-400 max-w-3xl leading-relaxed">
-              Discovery is broad. Execution is selective and governed. Today Resolve is strongest in {PUBLIC_TRUTH.beachheadLabel} across {PUBLIC_TRUTH.callableProvidersLabel} callable providers.
-            </p>
-            <p class="animate-fade-up animate-delay-200 mt-4 text-base text-slate-400 max-w-3xl leading-relaxed">
-              Tell Rhumb what you want done, or explicitly use the provider path you want when direct control is the better move. The mission is to make the internet as agent-native as possible without hiding the line between discovery and execution.
-            </p>
-
-            <div class="animate-fade-up animate-delay-300 mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 max-w-5xl">
-              {heroProof.map(({ label, value, tone }, index) => (
-                <div class={`rounded-2xl border p-4 shadow-[0_12px_32px_rgba(2,6,23,0.18)] ${tone}`}>
-                  <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">{label}</div>
-                  <div class="mt-2 text-sm leading-6 font-medium text-current" style={`animation-delay: ${index * 80}ms`}>
-                    {value}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div class="animate-fade-up animate-delay-400 mt-8 flex flex-wrap gap-3">
-              <a
-                href="/capabilities"
-                class="inline-flex items-center justify-center rounded-xl bg-amber px-5 py-3 text-sm font-semibold text-navy transition-colors duration-200 hover:bg-amber-dark"
-              >
-                Explore capabilities
-              </a>
-              <a
-                href="/docs#resolve-mental-model"
-                class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-surface/60 px-5 py-3 text-sm font-medium text-slate-200 transition-colors duration-200 hover:border-amber/35 hover:text-slate-50"
-              >
-                How Rhumb works
-              </a>
-            </div>
-
-            <div class="animate-fade-up animate-delay-500 mt-6 max-w-3xl rounded-[28px] border border-slate-800/90 bg-[linear-gradient(180deg,rgba(21,29,46,0.96)_0%,rgba(11,17,32,0.92)_100%)] p-6 shadow-[0_24px_80px_rgba(2,6,23,0.38)]">
-              <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div class="max-w-xl">
-                  <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Starter prompt</p>
-                  <h2 class="mt-2 font-display text-xl font-semibold text-slate-100">Paste this into Claude, Codex, or your own agent.</h2>
-                  <p class="mt-2 text-sm leading-6 text-slate-400">
-                    Best for cold starts. If execution is not supported yet, Rhumb should still return the best route and next step.
-                  </p>
-                </div>
-                <CopyTextButton
-                  client:load
-                  text={STARTER_PROMPT}
-                  label="Copy starter prompt"
-                  copiedLabel="Starter prompt copied"
-                  className="shrink-0"
-                />
-              </div>
-              <pre class="mt-5 overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/45 px-4 py-4 text-sm leading-6 text-slate-300 whitespace-pre-wrap break-words"><code>{STARTER_PROMPT}</code></pre>
-            </div>
-          </div>
-
-          <div class="animate-fade-up animate-delay-300 lg:pt-8">
-            <div class="relative overflow-hidden rounded-[32px] border border-slate-800/90 bg-[linear-gradient(180deg,rgba(21,29,46,0.97)_0%,rgba(11,17,32,0.95)_100%)] p-6 shadow-[0_24px_90px_rgba(2,6,23,0.44)]">
-              <div
-                class="pointer-events-none absolute inset-x-6 top-0 h-px"
-                style="background: linear-gradient(90deg, transparent, rgba(245,158,11,0.5), transparent)"
-              ></div>
-              <div class="flex items-start justify-between gap-4">
-                <div>
-                  <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Routing view</p>
-                  <h2 class="mt-2 font-display text-2xl font-semibold text-slate-100">One task, three possible routes</h2>
-                </div>
-                <span class="rounded-full border border-slate-700 bg-slate-900/60 px-3 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400">
-                  The Rhumb line
-                </span>
-              </div>
-
-              <div class="mt-6 rounded-2xl border border-slate-700/70 bg-navy/75 p-4">
-                <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Agent task</p>
-                <p class="mt-3 text-base leading-7 text-slate-200">
-                  “Find the best way to research a company, extract current facts, and return a clean summary.”
-                </p>
-              </div>
-
-              <div class="relative mt-6 space-y-4 before:absolute before:bottom-6 before:left-[11px] before:top-3 before:w-px before:bg-[linear-gradient(180deg,rgba(100,116,139,0.15)_0%,rgba(100,116,139,0.45)_22%,rgba(100,116,139,0.12)_100%)]">
-                <div class="relative pl-8">
-                  <span class="absolute left-0 top-5 flex h-[22px] w-[22px] items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/12 text-[11px] font-mono text-emerald-300">1</span>
-                  <div class="rounded-2xl border border-emerald-500/18 bg-emerald-500/10 p-4">
-                    <div class="flex items-start justify-between gap-3">
-                      <div>
-                        <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-emerald-300">Recommended path</p>
-                        <h3 class="mt-2 font-display text-lg font-semibold text-slate-100">Best-fit callable route</h3>
-                      </div>
-                      <span class="rounded-full border border-emerald-500/25 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-emerald-300">Layer 2</span>
-                    </div>
-                    <p class="mt-3 text-sm leading-6 text-slate-300">
-                      Rhumb routes supported work across {PUBLIC_TRUTH.callableProvidersLabel} callable providers today, strongest in {PUBLIC_TRUTH.beachheadLabel}.
-                    </p>
-                    <p class="mt-2 text-sm leading-6 text-slate-400">
-                      If you want direct control instead, you can still pin the provider path yourself.
-                    </p>
-                  </div>
-                </div>
-
-                <div class="relative pl-8">
-                  <span class="absolute left-0 top-5 flex h-[22px] w-[22px] items-center justify-center rounded-full border border-amber/30 bg-amber/10 text-[11px] font-mono text-amber">2</span>
-                  <div class="rounded-2xl border border-amber/20 bg-amber/10 p-4">
-                    <div class="flex items-start justify-between gap-3">
-                      <div>
-                        <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-amber">When your own system matters</p>
-                        <h3 class="mt-2 font-display text-lg font-semibold text-slate-100">Use BYOK or Agent Vault with your existing stack</h3>
-                      </div>
-                      <span class="rounded-full border border-amber/25 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-amber">Boundary</span>
-                    </div>
-                    <p class="mt-3 text-sm leading-6 text-slate-300">
-                      When the workflow reaches your CRM, support desk, or internal tooling, Rhumb should expose the boundary instead of pretending the governed path already exists. Bring BYOK or Agent Vault when provider control is the point.
-                    </p>
-                  </div>
-                </div>
-
-                <div class="relative pl-8">
-                  <span class="absolute left-0 top-5 flex h-[22px] w-[22px] items-center justify-center rounded-full border border-slate-700 bg-slate-900/80 text-[11px] font-mono text-slate-400">3</span>
-                  <div class="rounded-2xl border border-slate-700 bg-slate-900/45 p-4">
-                    <div class="flex items-start justify-between gap-3">
-                      <div>
-                        <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">Still useful</p>
-                        <h3 class="mt-2 font-display text-lg font-semibold text-slate-100">Discovery only is still a good answer</h3>
-                      </div>
-                      <span class="rounded-full border border-slate-700 px-2.5 py-1 text-[11px] font-mono uppercase tracking-[0.18em] text-slate-400">Index</span>
-                    </div>
-                    <p class="mt-3 text-sm leading-6 text-slate-300">
-                      Even when execution is not supported yet, Rhumb can still rank the market, surface failure modes, and give your agent an honest next move.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <p class="mt-6 text-sm leading-6 text-slate-400">
-                Rhumb is useful even when the right answer is <span class="text-slate-200">“not through Rhumb yet.”</span> That honesty is part of the product.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Stats bar -->
-    <section class="border-y border-slate-800 bg-surface/50">
-      <div class="max-w-6xl mx-auto px-6 py-5">
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {stats.map(({ value, label }, i) => (
-            <div
-              class="animate-fade-up text-center"
-              style={`animation-delay: ${(i + 5) * 100}ms`}
-            >
-              <div class="font-mono font-bold text-2xl text-amber">{value}</div>
-              <div class="text-xs text-slate-500 mt-0.5 font-mono uppercase tracking-wide">{label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-
-    <section class="border-b border-slate-800 bg-surface/30 reveal">
-      <div class="max-w-6xl mx-auto px-6 py-16">
-        <div class="grid gap-6 lg:grid-cols-2">
-          <div class="rounded-[28px] border border-slate-800 bg-surface/55 p-7 shadow-[0_16px_40px_rgba(2,6,23,0.2)]">
-            <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">One system, two jobs</p>
-            <h2 class="font-display font-bold text-2xl text-slate-100">Index is the map. Resolve is the route.</h2>
-            <p class="mt-3 text-sm leading-6 text-slate-400">
-              Rhumb should teach both jobs clearly on the homepage: discovery first, governed execution second.
-            </p>
-          </div>
-          <div class="grid gap-4 sm:grid-cols-2">
-            <article class="rounded-[24px] border border-slate-800 bg-navy/70 p-6">
-              <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Rhumb Index</p>
-              <h3 class="mt-3 font-display text-xl font-semibold text-slate-100">Free discovery</h3>
-              <p class="mt-3 text-sm leading-6 text-slate-400">{PUBLIC_TRUTH.indexShort}</p>
-            </article>
-            <article class="rounded-[24px] border border-slate-800 bg-navy/70 p-6">
-              <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Rhumb Resolve</p>
-              <h3 class="mt-3 font-display text-xl font-semibold text-slate-100">Per-call governed execution</h3>
-              <p class="mt-3 text-sm leading-6 text-slate-400">{PUBLIC_TRUTH.resolveShort}</p>
-            </article>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- How it works -->
-    <section class="border-t border-slate-800 bg-navy reveal">
-      <div class="max-w-6xl mx-auto px-6 py-16">
-        <div class="max-w-3xl mb-10">
-          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">How it works</p>
-          <h2 class="font-display font-bold text-2xl text-slate-100">From discovery to governed execution</h2>
-          <p class="text-slate-400 text-sm mt-3 leading-relaxed">
-            Rhumb helps agents find the right service first, understand the boundaries second, and execute when a governed path is actually ready. That keeps the product useful before, during, and after execution.
-          </p>
-        </div>
-
-        <div class="grid gap-6 md:grid-cols-3">
-          {howItWorks.map(({ step, title, body }) => (
-            <article class="rounded-[24px] border border-slate-800 bg-surface/55 p-6 shadow-[0_16px_40px_rgba(2,6,23,0.2)]">
-              <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">{step}</p>
-              <h3 class="mt-3 font-display text-xl font-semibold text-slate-100">{title}</h3>
-              <p class="mt-3 text-sm leading-6 text-slate-400">{body}</p>
-            </article>
-          ))}
-        </div>
-
-        <div class="mt-8 grid gap-6 rounded-[28px] border border-slate-800 bg-surface/55 p-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(260px,0.85fr)] lg:items-center">
-          <div>
-            <p class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Underneath it all</p>
-            <h3 class="mt-2 font-display text-xl font-semibold text-slate-100">Why the recommendation is explainable</h3>
-            <p class="mt-3 text-sm leading-6 text-slate-400">
-              The AN Score measures execution reliability and access readiness across 20 dimensions. Rhumb also publishes evidence tiers, freshness, and failure modes so your agent can explain the route instead of hiding behind a black box.
-            </p>
-          </div>
-          <div class="flex flex-col gap-3 lg:items-end">
-            <a
-              href="/methodology"
-              class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-navy/75 px-4 py-3 text-sm font-medium text-slate-200 transition-colors duration-200 hover:border-amber/35 hover:text-slate-50"
-            >
-              Read methodology
-            </a>
-            <a
-              href="/trust"
-              class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-navy/75 px-4 py-3 text-sm font-medium text-slate-200 transition-colors duration-200 hover:border-amber/35 hover:text-slate-50"
-            >
-              See trust surface
-            </a>
-            <a
-              href="/providers#dispute-a-score"
-              class="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-navy/75 px-4 py-3 text-sm font-medium text-slate-200 transition-colors duration-200 hover:border-amber/35 hover:text-slate-50"
-            >
-              Dispute a score
-            </a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Featured leaderboard (Payments) -->
-    <section class="max-w-6xl mx-auto px-6 py-16 reveal">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-8">
-        <div>
-          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Live preview &middot; Payments</p>
-          <h2 class="font-display font-bold text-2xl text-slate-100">See how Rhumb ranks a category in public</h2>
-          <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            This preview uses payments, but the same evidence model carries across the index. Rhumb is not just a routing layer. It is also the map your agent uses before it decides.
-          </p>
-        </div>
-        <a
-          href="/leaderboard/payments"
-          class="hidden sm:inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-amber transition-colors font-mono"
-        >
-          Open full payments leaderboard
-        </a>
-      </div>
-
-      {leaderboard.error ? (
-        <div class="bg-surface border border-slate-800 rounded-xl p-8 text-center">
-          <p class="text-slate-400 text-sm">
-            Live leaderboard preview is temporarily unavailable. You can still browse the
-            {" "}
-            <a href="/leaderboard/payments" class="text-amber hover:underline">full leaderboard</a>.
-          </p>
-        </div>
-      ) : previewItems.length === 0 ? (
-        <div class="bg-surface border border-slate-800 rounded-xl p-8 text-center">
-          <p class="text-slate-500 text-sm">No ranked services published yet.</p>
-        </div>
-      ) : (
-        <ol class="space-y-3" style="list-style: none; padding: 0">
-          {previewItems.map((item, index) => (
-            <li>
-              <article class="bg-surface border border-slate-800 rounded-xl p-5 flex items-center gap-5 card-lift group">
-                <span class="font-mono text-2xl font-bold text-slate-700 w-8 shrink-0 text-right">
-                  {index + 1}
-                </span>
-                <ScoreDisplay score={item.aggregateRecommendationScore} size="medium" showLabel />
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-3 flex-wrap">
-                    <a
-                      href={`/service/${item.serviceSlug}`}
-                      class="font-display font-semibold text-slate-100 hover:text-amber transition-colors"
-                    >
-                      {item.name}
-                    </a>
-                    <TierBadge tier={item.tier} />
-                  </div>
-                  <div class="mt-1.5 flex items-center gap-4 flex-wrap text-xs font-mono text-slate-500">
-                    <span>Aggregate {scoreLabel(item.aggregateRecommendationScore)}</span>
-                    <span>&middot; Freshness {freshnessLabel(item)}</span>
-                    <span class={`rounded-full border px-2 py-0.5 ${EVIDENCE_BADGE_STYLES[item.evidenceTier].className}`}>
-                      {EVIDENCE_BADGE_STYLES[item.evidenceTier].label}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            </li>
-          ))}
-        </ol>
-      )}
-
-      <p class="mt-6">
-        <a
-          href="/leaderboard/payments"
-          class="text-sm text-slate-400 hover:text-amber transition-colors font-mono sm:hidden"
-        >
-          Open full payments leaderboard
-        </a>
-      </p>
-    </section>
-
-    <!-- Research & Analysis -->
-    <section class="border-t border-slate-800 bg-navy reveal">
-      <div class="max-w-6xl mx-auto px-6 py-16">
-        <div class="mb-10">
-          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Research</p>
-          <h2 class="font-display font-bold text-2xl text-slate-100">Deep dives, not hot takes</h2>
-          <p class="text-slate-400 text-sm mt-2 max-w-xl">Comparisons backed by AN Score data. Autopsies that show exactly where APIs break for agents. Guides that get you running in minutes.</p>
-        </div>
-
-        <div class="grid sm:grid-cols-3 gap-6">
-          <!-- Comparisons column -->
-          <div>
-            <h3 class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-4">Comparisons</h3>
-            <ul class="space-y-3">
-              <li><a href="/blog/stripe-vs-square-vs-paypal" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Stripe vs Square vs PayPal</span><span class="block text-xs text-slate-500 mt-1">Payments &middot; 9 min</span></a></li>
-              <li><a href="/blog/resend-vs-sendgrid-vs-postmark" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Resend vs SendGrid vs Postmark</span><span class="block text-xs text-slate-500 mt-1">Email &middot; 9 min</span></a></li>
-              <li><a href="/blog/anthropic-vs-openai-vs-google-ai" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Anthropic vs OpenAI vs Google AI</span><span class="block text-xs text-slate-500 mt-1">AI / LLM &middot; 9 min</span></a></li>
-              <li><a href="/blog/hubspot-vs-salesforce-vs-pipedrive" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">HubSpot vs Salesforce vs Pipedrive</span><span class="block text-xs text-slate-500 mt-1">CRM &middot; 9 min</span></a></li>
-            </ul>
-            <a href="/compare" class="inline-block mt-3 text-xs font-mono text-slate-500 hover:text-amber transition-colors">All 9 comparisons &rarr;</a>
-          </div>
-
-          <!-- Autopsies column -->
-          <div>
-            <h3 class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-4">Tool Autopsies</h3>
-            <ul class="space-y-3">
-              <li><a href="/blog/hubspot-api-autopsy" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">HubSpot API Autopsy</span><span class="block text-xs text-slate-500 mt-1">AN Score: 4.6 &middot; 6 failure modes</span></a></li>
-              <li><a href="/blog/salesforce-api-autopsy" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Salesforce API Autopsy</span><span class="block text-xs text-slate-500 mt-1">AN Score: 4.8 &middot; 6 failure modes</span></a></li>
-              <li><a href="/blog/twilio-api-autopsy" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Twilio API Autopsy</span><span class="block text-xs text-slate-500 mt-1">AN Score: 8.0 &middot; What it gets right</span></a></li>
-              <li><a href="/blog/shopify-api-autopsy" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Shopify API Autopsy</span><span class="block text-xs text-slate-500 mt-1">AN Score: 7.8 &middot; GraphQL friction</span></a></li>
-            </ul>
-            <a href="/autopsy" class="inline-block mt-3 text-xs font-mono text-slate-500 hover:text-amber transition-colors">All 4 autopsies &rarr;</a>
-          </div>
-
-          <!-- Guides column -->
-          <div>
-            <h3 class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-4">Guides & Articles</h3>
-            <ul class="space-y-3">
-              <li><a href="/blog/how-agents-actually-pay-x402-dogfood" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">How Agents Actually Pay</span><span class="block text-xs text-slate-500 mt-1">Article &middot; x402 seller dogfood</span></a></li>
-              <li><a href="/blog/getting-started-mcp" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Getting Started with Rhumb MCP</span><span class="block text-xs text-slate-500 mt-1">Guide &middot; 5 min</span></a></li>
-              <li><a href="/blog/how-agents-pay" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">How Agents Pay for APIs</span><span class="block text-xs text-slate-500 mt-1">Article &middot; x402 deep dive</span></a></li>
-              <li><a href="/blog/payments-for-agents" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Payments for Agents</span><span class="block text-xs text-slate-500 mt-1">Article &middot; The infrastructure gap</span></a></li>
-              <li><a href="/blog/securing-keys-for-agents" class="group block bg-surface border border-slate-800 rounded-lg p-4 hover:border-slate-600 transition-colors"><span class="text-sm font-medium text-slate-200 group-hover:text-amber transition-colors">Secure Your API Keys for Agents</span><span class="block text-xs text-slate-500 mt-1">Guide &middot; Credential paths and storage</span></a></li>
-            </ul>
-            <a href="/blog" class="inline-block mt-3 text-xs font-mono text-slate-500 hover:text-amber transition-colors">All 24 posts &rarr;</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Three paths -->
-    <section class="border-t border-slate-800 bg-surface/30 reveal">
-      <div class="max-w-6xl mx-auto px-6 py-16">
-        <div class="mb-10 max-w-3xl">
-          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-2">Choose your path</p>
-          <h2 class="font-display font-bold text-2xl text-slate-100">Start with the path that matches your job.</h2>
-          <p class="text-slate-400 text-sm mt-2">
-            <a href="/quickstart" class="text-amber hover:underline">Quickstart guide →</a>
-            Browse for free, or pick the access path that matches how your agent gets authorized.
-          </p>
-        </div>
-
-        <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-6">
-          <a href="/leaderboard" class="group bg-navy border border-slate-800 rounded-xl p-6 hover:border-slate-600 transition-colors">
-            <div class="text-2xl mb-3">🔍</div>
-            <div class="flex items-center justify-between gap-3 mb-2">
-              <h3 class="font-display font-semibold text-slate-100 text-lg">Browse</h3>
-              <span class="text-[11px] font-mono text-amber uppercase tracking-widest">Free</span>
-            </div>
-            <p class="text-sm text-slate-400 leading-relaxed mb-4">Explore scores, comparisons, and failure modes first. No account, no key, no payment rail required.</p>
-            <p class="text-xs font-mono text-slate-500 group-hover:text-amber transition-colors">Start with discovery &rarr;</p>
-          </a>
-
-          <a href="/auth/login" class="group bg-navy border border-slate-800 rounded-xl p-6 hover:border-slate-600 transition-colors">
-            <div class="text-2xl mb-3">🔑</div>
-            <div class="flex items-center justify-between gap-3 mb-2">
-              <h3 class="font-display font-semibold text-slate-100 text-lg">Governed API key</h3>
-              <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Managed</span>
-            </div>
-            <p class="text-sm text-slate-400 leading-relaxed mb-4">Use governed API key when you want account-funded routing, fallback where a supported alternate is configured, and billing on the default repeat-traffic rail.</p>
-            <p class="text-xs font-mono text-slate-500 group-hover:text-amber transition-colors">Get dashboard access &rarr;</p>
-          </a>
-
-          <a href="/payments/agent" class="group bg-navy border border-amber/20 rounded-xl p-6 hover:border-amber/40 transition-colors">
-            <div class="text-2xl mb-3">⚡</div>
-            <div class="flex items-center justify-between gap-3 mb-2">
-              <h3 class="font-display font-semibold text-slate-100 text-lg">x402</h3>
-              <span class="text-[11px] font-mono text-amber uppercase tracking-widest">Zero signup</span>
-            </div>
-            <p class="text-sm text-slate-400 leading-relaxed mb-4">Use pay-per-call USDC when the agent should pay directly and the payment should act as authorization.</p>
-            <p class="text-xs font-mono text-amber group-hover:text-amber transition-colors">Learn the payment flow &rarr;</p>
-          </a>
-
-          <a href="/blog/securing-keys-for-agents" class="group bg-navy border border-slate-800 rounded-xl p-6 hover:border-slate-600 transition-colors">
-            <div class="text-2xl mb-3">🧷</div>
-            <div class="flex items-center justify-between gap-3 mb-2">
-              <h3 class="font-display font-semibold text-slate-100 text-lg">BYOK / Agent Vault</h3>
-              <span class="text-[11px] font-mono text-slate-400 uppercase tracking-widest">Zero markup</span>
-            </div>
-            <p class="text-sm text-slate-400 leading-relaxed mb-4">Use BYOK for direct pass-through, or Agent Vault when you need encrypted provider credential injection at call time, enterprise boundaries, or existing vendor accounts.</p>
-            <p class="text-xs font-mono text-slate-500 group-hover:text-amber transition-colors">See secure credential paths &rarr;</p>
-          </a>
-        </div>
-
-        <!-- x402 callout -->
-        <div class="mt-8 bg-navy border border-amber/20 rounded-xl p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-          <div class="flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-xs font-mono text-amber uppercase tracking-widest">Zero-signup agent payments</span>
-            </div>
-            <p class="text-sm text-slate-300">
-              Agents with <a href="/blog/how-agents-pay" class="text-amber hover:underline">x402</a> can execute capabilities and pay per call with USDC when zero-signup, request-level payment authorization is the point. For repeat traffic, default to governed API key or wallet-prefund on X-Rhumb-Key, and use BYOK or Agent Vault when provider control is the point.
-            </p>
-          </div>
-          <a
-            href="/blog/how-agents-pay"
-            class="shrink-0 px-5 py-2.5 rounded-lg border border-amber/30 text-sm text-amber hover:bg-amber/10 transition-colors font-mono"
-          >
-            Learn about x402 &rarr;
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- MCP Server -->
-    <section id="install" class="border-t border-slate-800 bg-surface/30 reveal">
-      <div class="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-12 items-center">
-        <div>
-          <p class="text-xs font-mono text-amber uppercase tracking-widest mb-3">MCP</p>
-          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4">
-            Query Rhumb from your agents
-          </h2>
-          <p class="text-slate-400 text-sm leading-relaxed">
-            Add Rhumb to any MCP-compatible agent. AN Scores at decision time. Perfect for
-            agent routing logic, tool-selection prompts, and automated dependency
-            evaluation.
-          </p>
-          <a
-            href="/leaderboard"
-            class="mt-6 inline-flex px-5 py-2.5 rounded-lg font-semibold text-sm transition-colors duration-200 cta-button"
-          >
-            Explore all categories &rarr;
-          </a>
-        </div>
-
-        <div class="bg-navy border border-slate-800 rounded-xl overflow-hidden">
-          <div class="flex items-center gap-2 px-4 py-3 border-b border-slate-800">
-            <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
-            <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
-            <div class="w-2.5 h-2.5 rounded-full bg-slate-700"></div>
-            <span class="ml-2 text-xs font-mono text-slate-600">terminal</span>
-          </div>
-          <div class="p-5 font-mono text-sm space-y-2">
-            <div>
-              <span class="text-slate-600">$ </span>
-              <span class="text-amber">npx rhumb-mcp</span>
-              <span class="text-slate-600"> # starts MCP server</span>
-            </div>
-            <div class="text-slate-400 pl-4 space-y-0.5">
-              <div class="text-score-native">&#10003; Rhumb MCP server running</div>
-              <div class="text-slate-600">&nbsp;&nbsp;tools: find_services, get_score, get_alternatives, get_failure_modes</div>
-            </div>
-            <div class="pt-2">
-              <span class="text-slate-600">&rarr; </span>
-              <span class="text-amber">find_services</span>
-              <span class="text-slate-500"> (&quot;payment processing&quot;)</span>
-            </div>
-            <div class="text-slate-400 pl-4">
-              <div><span class="text-slate-600">1.</span> stripe <span class="text-score-native">8.1</span> <span class="text-score-native">L4 Native</span></div>
-              <div><span class="text-slate-600">2.</span> lemon-squeezy <span class="text-score-ready">6.6</span> <span class="text-score-ready">L3 Ready</span></div>
-              <div><span class="text-slate-600">3.</span> square <span class="text-score-ready">6.3</span> <span class="text-score-ready">L3 Ready</span></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
+  <Hero />
+  <StatsStrip />
+  <DualEntry />
+  <JourneySection />
+  <ProductModel />
+  <EvidenceSection />
+  <QuickstartSection />
+  <FinalCTA />
 </Layout>

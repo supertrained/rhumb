@@ -1,0 +1,24 @@
+---
+import { PUBLIC_TRUTH } from "../lib/public-truth";
+
+const serviceProof = PUBLIC_TRUTH.services >= 999 ? "999+" : PUBLIC_TRUTH.servicesLabel;
+const stats = [
+  { value: serviceProof, label: "services scored" },
+  { value: PUBLIC_TRUTH.capabilitiesLabel, label: "capabilities mapped" },
+  { value: PUBLIC_TRUTH.callableProvidersLabel, label: "callable providers" },
+  { value: "API + MCP", label: "governed surfaces" },
+];
+---
+
+<section aria-label="Rhumb proof points" class="border-b border-white/10 bg-rhumb-ink/80">
+  <div class="home-shell py-6">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {stats.map((stat) => (
+        <div class="proof-chip">
+          <strong>{stat.value}</strong>
+          <span>{stat.label}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

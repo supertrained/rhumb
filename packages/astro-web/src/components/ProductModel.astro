@@ -1,0 +1,53 @@
+---
+const tags = ["company.research", "web.search", "math.solve"];
+---
+
+<section id="find-trust-execute" class="home-section border-b border-white/10 bg-rhumb-deep">
+  <div class="home-shell py-24">
+    <div class="section-heading max-w-3xl">
+      <p class="eyebrow">Product model</p>
+      <h2>Find. Trust. Execute.</h2>
+      <p>Use the right Rhumb surface at the right time.</p>
+    </div>
+
+    <div class="mt-12 grid gap-5 lg:grid-cols-3">
+      <article class="model-card">
+        <p class="model-index">01 · Index</p>
+        <h3>Find with Index</h3>
+        <p>Search the Index for capabilities by task or provider.</p>
+        <div class="search-visual" aria-hidden="true">
+          <span>company research</span>
+          <b>⌕</b>
+        </div>
+        <div class="tag-row">
+          {tags.map((tag) => <span>{tag}</span>)}
+        </div>
+        <a href="/search" class="text-link">Explore Index →</a>
+      </article>
+
+      <article class="model-card featured">
+        <p class="model-index">02 · AN Score</p>
+        <h3>Trust with AN Score</h3>
+        <p>Evaluate with evidence-backed confidence.</p>
+        <div class="score-meter" aria-label="AN Score 91 out of 100">
+          <span>91</span>
+          <small>/ 100</small>
+        </div>
+        <a href="/methodology" class="text-link">See methodology →</a>
+      </article>
+
+      <article class="model-card">
+        <p class="model-index">03 · Resolve</p>
+        <h3>Execute with Resolve</h3>
+        <p>Execute only when the route is callable and governed.</p>
+        <div class="resolve-visual" aria-hidden="true">
+          <span>Callable</span>
+          <span>420ms</span>
+          <span>$0.02</span>
+          <span>Governed</span>
+        </div>
+        <a href="/resolve" class="text-link teal">Try Resolve →</a>
+      </article>
+    </div>
+  </div>
+</section>

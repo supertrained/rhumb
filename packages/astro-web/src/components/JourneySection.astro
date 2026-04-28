@@ -1,0 +1,55 @@
+---
+const humanJourney = [
+  ["Problem", "My agent needs tools, but the landscape is risky."],
+  ["Guide", "Rhumb shows the safest route."],
+  ["Action", "I launch my agent with Index or Resolve."],
+  ["Reward", "I get a more capable, trustworthy agent."],
+];
+const agentJourney = [
+  ["Problem", "I have a task but no reliable route."],
+  ["Guide", "Rhumb maps capabilities and evidence."],
+  ["Action", "I inspect, decide, and execute or stop honestly."],
+  ["Reward", "I become the hero for my human."],
+];
+---
+
+<section class="home-section border-b border-white/10 bg-rhumb-ink">
+  <div class="home-shell py-24">
+    <div class="section-heading centered">
+      <p class="eyebrow">Reliable bearing</p>
+      <h2>Two journeys. One reliable bearing.</h2>
+      <p>Rhumb helps both the human and the agent become more capable.</p>
+    </div>
+
+    <div class="mt-12 grid gap-5 lg:grid-cols-2">
+      <article class="journey-track">
+        <div class="track-head">
+          <span class="track-mark gold"></span>
+          <h3>Human journey</h3>
+        </div>
+        <div class="journey-steps">
+          {humanJourney.map(([label, body]) => (
+            <div class="journey-step">
+              <span>{label}</span>
+              <p>{body}</p>
+            </div>
+          ))}
+        </div>
+      </article>
+      <article class="journey-track agent">
+        <div class="track-head">
+          <span class="track-mark teal"></span>
+          <h3>Agent journey</h3>
+        </div>
+        <div class="journey-steps">
+          {agentJourney.map(([label, body]) => (
+            <div class="journey-step">
+              <span>{label}</span>
+              <p>{body}</p>
+            </div>
+          ))}
+        </div>
+      </article>
+    </div>
+  </div>
+</section>

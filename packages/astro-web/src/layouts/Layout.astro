@@ -73,7 +73,7 @@ const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap"
       rel="stylesheet"
     />
 
@@ -129,7 +129,7 @@ const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
       </script>
     )}
   </head>
-  <body class="bg-navy text-slate-100 antialiased min-h-screen flex flex-col font-display noise-overlay">
+  <body class="bg-navy text-slate-100 antialiased min-h-screen flex flex-col noise-overlay">
     <a href="#main-content" class="skip-link">Skip to content</a>
     <Navigation currentPath={currentPath} />
     <main id="main-content" class="flex-1">
@@ -137,68 +137,68 @@ const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
       <slot />
     </main>
 
-    <footer class="border-t border-slate-800 mt-auto bg-[linear-gradient(180deg,rgba(11,17,32,0)_0%,rgba(245,158,11,0.03)_100%)]">
-      <div class="max-w-6xl mx-auto px-6 py-10">
-        <div class="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+    <footer class="border-t border-white/10 bg-rhumb-ink">
+      <div class="mx-auto max-w-7xl px-5 py-14 sm:px-6 lg:px-8">
+        <div class="grid gap-10 lg:grid-cols-[1.2fr_2fr]">
           <div class="max-w-md">
-            <div class="flex items-center gap-2">
-              <span class="text-slate-100 font-display font-bold text-sm tracking-tight">
-                rhumb<span class="text-amber">.</span>
+            <a href="/" class="inline-flex items-center gap-3" aria-label="Rhumb home">
+              <span class="logo-mark" aria-hidden="true">⌖</span>
+              <span class="font-display text-2xl font-semibold tracking-[-0.04em] text-rhumb-cream">
+                rhumb<span class="text-rhumb-gold">.</span>
               </span>
-              <span class="text-slate-600 text-sm">&middot;</span>
-              <span class="text-slate-500 text-sm font-mono">Built by agents, for agents.</span>
-            </div>
-            <p class="mt-3 text-sm leading-6 text-slate-400">
-              Rhumb helps agents discover, access, and trust services. Index ranks the field.
-              Resolve routes supported calls through governed execution.
-            </p>
+            </a>
+            <p class="mt-4 text-sm leading-6 text-rhumb-muted">The navigation layer for agent tools.</p>
+            <p class="mt-8 text-xs text-rhumb-faint">© 2025 Rhumb Labs, Inc. All rights reserved.</p>
           </div>
 
-          <div class="grid grid-cols-2 gap-8 text-sm sm:grid-cols-4">
+          <div class="grid grid-cols-2 gap-8 text-sm sm:grid-cols-3 lg:grid-cols-5">
             <div>
-              <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Product</p>
-              <div class="flex flex-col gap-2 text-slate-400">
-                <a href="/leaderboard" class="hover:text-amber transition-colors duration-200">Leaderboard</a>
-                <a href="/capabilities" class="hover:text-amber transition-colors duration-200">Capabilities</a>
-                <a href="/search" class="hover:text-amber transition-colors duration-200">Search</a>
-                <a href="/docs" class="hover:text-amber transition-colors duration-200">Docs</a>
-                <a href="/pricing" class="hover:text-amber transition-colors duration-200">Pricing</a>
+              <p class="footer-heading">Product</p>
+              <div class="footer-links">
+                <a href="/search">Index</a>
+                <a href="/resolve">Resolve</a>
+                <a href="/#quickstart">MCP</a>
+                <a href="/docs#rest-api">API</a>
               </div>
             </div>
 
             <div>
-              <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Trust</p>
-              <div class="flex flex-col gap-2 text-slate-400">
-                <a href="/about" class="hover:text-amber transition-colors duration-200">About</a>
-                <a href="/glossary" class="hover:text-amber transition-colors duration-200">Glossary</a>
-                <a href="/methodology" class="hover:text-amber transition-colors duration-200">Methodology</a>
-                <a href="/trust" class="hover:text-amber transition-colors duration-200">Trust</a>
-                <a href="/providers#dispute-a-score" class="hover:text-amber transition-colors duration-200">Providers &amp; disputes</a>
+              <p class="footer-heading">Trust</p>
+              <div class="footer-links">
+                <a href="/methodology">AN Score</a>
+                <a href="/trust#evidence">Evidence</a>
+                <a href="/trust#freshness">Freshness</a>
+                <a href="/docs/failure-modes">Failure modes</a>
               </div>
             </div>
 
             <div>
-              <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Updates</p>
-              <div class="flex flex-col gap-2 text-slate-400">
-                <a href="/blog" class="hover:text-amber transition-colors duration-200">Blog</a>
-                <a href="/compare" class="hover:text-amber transition-colors duration-200">Compare</a>
-                <a href="/changelog" class="hover:text-amber transition-colors duration-200">Changelog</a>
+              <p class="footer-heading">Resources</p>
+              <div class="footer-links">
+                <a href="/docs">Docs</a>
+                <a href="/blog">Guides</a>
+                <a href="/recipes">Examples</a>
+                <a href="/changelog">Changelog</a>
               </div>
             </div>
 
             <div>
-              <p class="mb-3 font-mono text-[11px] uppercase tracking-[0.24em] text-slate-600">Legal</p>
-              <div class="flex flex-col gap-2 text-slate-400">
-                <a href="/privacy" class="hover:text-amber transition-colors duration-200">Privacy</a>
-                <a href="/terms" class="hover:text-amber transition-colors duration-200">Terms</a>
-                <a
-                  href="https://github.com/supertrained/rhumb"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="hover:text-amber transition-colors duration-200"
-                >
-                  GitHub
-                </a>
+              <p class="footer-heading">Company</p>
+              <div class="footer-links">
+                <a href="/about">About</a>
+                <a href="/blog">Blog</a>
+                <a href="/about#careers">Careers</a>
+                <a href="mailto:providers@supertrained.ai">Contact</a>
+              </div>
+            </div>
+
+            <div>
+              <p class="footer-heading">Legal</p>
+              <div class="footer-links">
+                <a href="/privacy">Privacy</a>
+                <a href="/terms">Terms</a>
+                <a href="/security">Security</a>
+                <a href="/status">Status</a>
               </div>
             </div>
           </div>

@@ -6,111 +6,46 @@ interface Props {
 }
 
 const { currentPath } = Astro.props;
-const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
-const dashboardActive = currentPath === "/dashboard" || currentPath.startsWith("/dashboard/");
-
 const NAV_LINKS = [
-  { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/capabilities", label: "Capabilities" },
+  { href: "/#find-trust-execute", label: "Product" },
+  { href: "/search", label: "Index" },
   { href: "/resolve", label: "Resolve" },
-  { href: "/compare", label: "Compare" },
-  { href: "/autopsy", label: "Autopsies" },
-  { href: "/search", label: "Search" },
-  { href: "/docs", label: "Docs" },
   { href: "/trust", label: "Trust" },
-  { href: "/blog", label: "Blog" },
-  { href: "/about", label: "About" },
+  { href: "/docs", label: "Docs" },
+  { href: "/pricing", label: "Pricing" },
 ];
 ---
 
-<nav class="sticky top-0 z-50 border-b border-slate-800 bg-navy/85 backdrop-blur-md">
-  <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-    <!-- Logo -->
-    <a
-      href="/"
-      class="flex items-center font-display font-bold text-lg tracking-tight group"
-      aria-label="Rhumb home"
-    >
-      <span class="text-slate-100 group-hover:text-slate-50 transition-colors">rhumb</span>
-      <span class="text-amber">.</span>
+<nav class="sticky top-0 z-50 border-b border-white/10 bg-rhumb-ink/82 backdrop-blur-xl">
+  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-5 sm:px-6 lg:px-8">
+    <a href="/" class="group flex items-center gap-3" aria-label="Rhumb home">
+      <span class="logo-mark" aria-hidden="true">⌖</span>
+      <span class="font-display text-xl font-semibold tracking-[-0.04em] text-rhumb-cream transition-colors group-hover:text-white">
+        rhumb<span class="text-rhumb-gold">.</span>
+      </span>
     </a>
 
-    <!-- Desktop nav -->
-    <div class="hidden md:flex items-center gap-1">
+    <div class="hidden items-center gap-1 lg:flex">
       {NAV_LINKS.map(({ href, label }) => {
-        const active = currentPath === href || currentPath.startsWith(href + "/");
+        const active = href !== "/#find-trust-execute" && (currentPath === href || currentPath.startsWith(href + "/"));
         return (
           <a
             href={href}
-            class={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors duration-150 ${
-              active
-                ? "text-slate-100 bg-slate-800/60"
-                : "text-slate-400 hover:text-slate-100 hover:bg-slate-800/40"
+            class={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors duration-150 ${
+              active ? "bg-white/8 text-rhumb-cream" : "text-rhumb-muted hover:bg-white/7 hover:text-rhumb-cream"
             }`}
           >
             {label}
           </a>
         );
       })}
-
-      <!-- Search icon shortcut -->
-      <a
-        href="/search"
-        aria-label="Search"
-        class="ml-2 p-2 text-slate-500 hover:text-slate-300 transition-colors"
-      >
-        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path
-            d="M10 6.5C10 8.43 8.43 10 6.5 10C4.57 10 3 8.43 3 6.5C3 4.57 4.57 3 6.5 3C8.43 3 10 4.57 10 6.5ZM9.38 10.44L12 13.06"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-          />
-        </svg>
-      </a>
-
-      <!-- Auth state -->
-      <a
-        id="nav-dashboard-link"
-        href="/dashboard"
-        class={`hidden ml-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-          dashboardActive
-            ? "text-slate-100 bg-slate-800/60 border border-slate-700/60"
-            : "text-score-native border border-score-native/30 hover:bg-score-native/10"
-        }`}
-      >
-        Dashboard
-      </a>
-      <a
-        id="nav-sign-in-link"
-        href="/auth/login"
-        class="ml-3 px-3 py-1.5 rounded-md text-sm font-medium text-score-native border border-score-native/30 hover:bg-score-native/10 transition-colors"
-      >
-        Sign in
-      </a>
     </div>
 
-    <!-- Mobile nav (React island) -->
+    <div class="hidden items-center gap-2 md:flex">
+      <a href="/#quickstart" class="nav-cta secondary">Run MCP</a>
+      <a href="/search" class="nav-cta primary">Start free</a>
+    </div>
+
     <MobileNav client:load currentPath={currentPath} />
   </div>
 </nav>
-
-<script define:vars={{ API_URL }}>
-  (async () => {
-    const signInLink = document.getElementById("nav-sign-in-link");
-    const dashboardLink = document.getElementById("nav-dashboard-link");
-
-    try {
-      const resp = await fetch(`${API_URL}/v1/auth/me`, {
-        credentials: "include",
-      });
-
-      if (!resp.ok) return;
-
-      signInLink?.classList.add("hidden");
-      dashboardLink?.classList.remove("hidden");
-    } catch {
-      // Leave the signed-out state in place when auth lookup fails.
-    }
-  })();
-</script>

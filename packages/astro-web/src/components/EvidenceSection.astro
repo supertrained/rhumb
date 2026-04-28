@@ -1,0 +1,56 @@
+---
+const features = [
+  ["Evidence tiers", "Clear quality signals you can trust."],
+  ["Freshness", "Know how current the data is."],
+  ["Failure modes", "See what can go wrong."],
+  ["Dispute path", "Open issues. We listen and improve."],
+];
+const rows = [
+  ["Acme Investor Relations", "Web", "2h ago", "95"],
+  ["Crunchbase", "API", "5h ago", "90"],
+  ["Company Website", "Web", "6h ago", "88"],
+  ["News API", "API", "12h ago", "82"],
+];
+---
+
+<section id="evidence" class="home-section border-b border-white/10 bg-rhumb-ink">
+  <div class="home-shell py-24">
+    <div class="section-heading max-w-3xl">
+      <p class="eyebrow">Evidence ledger</p>
+      <h2>Why agents can explain the route.</h2>
+      <p>Every good call has a source trail, a freshness boundary, and a visible stop condition.</p>
+    </div>
+
+    <div class="mt-12 grid gap-5 xl:grid-cols-[0.86fr_1.24fr_0.9fr]">
+      <div class="evidence-list">
+        {features.map(([title, body]) => (
+          <div>
+            <strong>{title}</strong>
+            <span>{body}</span>
+          </div>
+        ))}
+      </div>
+
+      <article class="ledger-card">
+        <div class="ledger-title">Evidence ledger sample</div>
+        <div class="ledger-table" role="table" aria-label="Evidence ledger sample">
+          <div class="ledger-row head" role="row">
+            <span>Source</span><span>Type</span><span>Freshness</span><span>AN Score</span>
+          </div>
+          {rows.map((row) => (
+            <div class="ledger-row" role="row">
+              {row.map((cell) => <span role="cell">{cell}</span>)}
+            </div>
+          ))}
+        </div>
+      </article>
+
+      <aside class="boundary-note">
+        <span class="track-mark teal"></span>
+        <h3>Rhumb does not invent execution.</h3>
+        <p>When coverage is missing or confidence is low, we stop and show the next best step.</p>
+        <a href="/trust" class="text-link teal">Inspect trust surface →</a>
+      </aside>
+    </div>
+  </div>
+</section>
