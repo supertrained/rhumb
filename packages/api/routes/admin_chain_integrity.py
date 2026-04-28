@@ -17,8 +17,16 @@ from services.chain_checkpoints import (
     checkpoint_score_audit_head,
 )
 from services.durable_event_persistence import DurableEventOutbox, get_event_outbox
+from services.error_envelope import RhumbError
 
 router = APIRouter(prefix="/v1/admin/trust", tags=["admin-trust"])
+
+VALID_CHECKPOINT_STREAMS = {
+    "audit_events",
+    "billing_events",
+    "score_audit_chain",
+    "execution_receipts",
+}
 
 
 class CreateChainCheckpointRequest(BaseModel):
@@ -74,12 +82,21 @@ async def create_chain_checkpoint(
     body: CreateChainCheckpointRequest,
 ) -> dict[str, Any]:
     """Persist a signed checkpoint for the current chain head."""
+    normalized_stream = stream_name.strip()
+    if normalized_stream not in VALID_CHECKPOINT_STREAMS:
+        valid_streams = ", ".join(sorted(VALID_CHECKPOINT_STREAMS))
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid checkpoint stream",
+            detail=f"Use one of: {valid_streams}.",
+        )
+
     outbox = _test_outbox if _test_outbox is not None else get_event_outbox()
     if outbox is None:
         raise HTTPException(status_code=503, detail="Durable checkpoint outbox is unavailable.")
 
     try:
-        if stream_name == "audit_events":
+        if normalized_stream == "audit_events":
             payload = await checkpoint_audit_head(
                 reason=body.reason,
                 metadata=body.metadata,
@@ -87,7 +104,7 @@ async def create_chain_checkpoint(
                 audit_trail=_test_audit_trail or get_audit_trail(),
                 flush=body.flush,
             )
-        elif stream_name == "billing_events":
+        elif normalized_stream == "billing_events":
             payload = await checkpoint_billing_head(
                 reason=body.reason,
                 metadata=body.metadata,
@@ -95,7 +112,7 @@ async def create_chain_checkpoint(
                 billing_stream=_test_billing_stream or get_billing_event_stream(),
                 flush=body.flush,
             )
-        elif stream_name == "score_audit_chain":
+        elif normalized_stream == "score_audit_chain":
             payload = await checkpoint_score_audit_head(
                 reason=body.reason,
                 metadata=body.metadata,
@@ -106,7 +123,7 @@ async def create_chain_checkpoint(
                 verified_row_count=_test_score_audit_verified_count,
                 flush=body.flush,
             )
-        elif stream_name == "execution_receipts":
+        else:
             payload = await checkpoint_execution_receipts_head(
                 reason=body.reason,
                 metadata=body.metadata,
@@ -115,21 +132,19 @@ async def create_chain_checkpoint(
                 row_count=_test_execution_receipt_count,
                 flush=body.flush,
             )
-        else:
-            raise HTTPException(status_code=404, detail="Unknown checkpoint stream.")
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
     if payload is None:
         return {
             "status": "skipped",
-            "stream_name": stream_name,
+            "stream_name": normalized_stream,
             "reason": body.reason,
             "detail": "Stream is empty; no checkpoint created.",
         }
 
     return {
         "status": "created",
-        "stream_name": stream_name,
+        "stream_name": normalized_stream,
         "checkpoint": payload,
     }

@@ -13,6 +13,7 @@ from config import settings
 from routes.admin_chain_integrity import router, set_test_chain_integrity_stores
 from services.audit_trail import AuditEventType, AuditTrail
 from services.billing_events import BillingEventStream, BillingEventType
+from services.error_envelope import RhumbError, rhumb_error_handler
 from services.chain_checkpoints import (
     checkpoint_audit_head,
     checkpoint_billing_head,
@@ -346,6 +347,26 @@ async def test_checkpoint_head_fails_closed_without_outbox() -> None:
             outbox=None,
             billing_stream=billing,
         )
+
+
+def test_admin_route_rejects_invalid_stream_before_outbox_read() -> None:
+    settings.rhumb_admin_secret = "test-secret"
+
+    app = FastAPI()
+    app.add_exception_handler(RhumbError, rhumb_error_handler)
+    app.include_router(router)
+    client = TestClient(app)
+
+    with patch("routes.admin_chain_integrity.get_event_outbox") as get_event_outbox:
+        response = client.post(
+            "/v1/admin/trust/chain-checkpoints/%20%20%20",
+            headers={"X-Rhumb-Admin-Key": "test-secret"},
+            json={"reason": "external_anchor_candidate"},
+        )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "INVALID_PARAMETERS"
+    get_event_outbox.assert_not_called()
 
 
 def test_admin_route_creates_audit_checkpoint() -> None:
