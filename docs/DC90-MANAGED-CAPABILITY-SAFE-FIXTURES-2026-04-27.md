@@ -11,6 +11,7 @@ Fresh hosted proof now exists for the first safe managed rails:
 - `ai.embed` via `google-ai`
 - `document.search`, `search.autocomplete`, `ecommerce.search_products`, and disposable `search.index` via `algolia`
 - `scrape.extract` via `scraperapi`
+- `scrape.screenshot` via `firecrawl` on `https://example.com`
 - `data.enrich` via `ipinfo`
 - `ai.generate_text` via `replicate`, `google-ai`, and `perplexity`
 - IPinfo aliases: `geo.lookup`, `identity.lookup`, and `timezone.get_info`
@@ -171,18 +172,22 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 - Capability/providers: `scrape.extract`, `scrape.screenshot`, `browser.scrape` / `firecrawl`
 - Safety class: `amber`
 - Required sandbox: public static URL with no login and no robots/policy ambiguity. Default candidate: `https://example.com`.
-- Payload template:
+- Status: `scrape.screenshot` now has fresh hosted proof via `scripts/dc90_firecrawl_screenshot_smoke.py`. Artifact `artifacts/dc90-firecrawl-screenshot-smoke-20260428T074045Z.json` shows resolve HTTP 200, estimate HTTP 200, execute HTTP 200 / upstream 200, receipt `rcpt_ed702a3ba70a47859966254a`, page title `Example Domain`, and a screenshot URL evidence hash `086f8528117858ab`.
+- Payload template for the proved screenshot fixture:
 
 ```json
 {
   "body": {
     "url": "https://example.com",
-    "formats": ["markdown"]
+    "formats": ["screenshot"],
+    "onlyMainContent": true,
+    "waitFor": 1000
   }
 }
 ```
 
-- Pass condition: HTTP 200, upstream 200, bounded content/screenshot artifact, receipt id present.
+- Pass condition for `scrape.screenshot`: HTTP 200, `provider_used=firecrawl`, upstream 200, receipt id present, and screenshot evidence present in the upstream response.
+- Boundary: this is one-page screenshot proof for `https://example.com` only. It is not crawl-depth proof, authenticated-browser proof, screenshot retention-policy proof, or broad web-rendering readiness.
 - Do not run crawl variants until `limit` / depth / page cap is confirmed in the provider payload.
 
 ### Unstructured document parse/extract
@@ -270,6 +275,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 | `search.index` / Algolia | **Yes, through helper only.** The owned `rhumb_test` index exists; read fixtures and one disposable write/read/delete pass are proven. | Use `scripts/dc90_managed_fixture_smoke.py` to write objectID `dc90-smoke-{timestamp}` into `rhumb_test`, read it back, delete it, and verify cleanup. Do not mutate existing fixture records. |
 | `document.parse` / Unstructured | **Yes, through helper only.** The helper generates a 96-byte synthetic text fixture in-memory and verifies the returned text token. | Use `scripts/dc90_unstructured_document_parse_smoke.py`; do not upload customer documents. `pdf.extract_text`, `file.convert`, and other document variants still need separate tiny fixtures. |
 | `media.transcribe`, `video.subtitle` / Deepgram | **Yes, through helpers only.** The Rhumb-generated 2.45s WAV fixture is committed at `packages/astro-web/public/fixtures/dc90/dc90-deepgram-transcribe-ok.wav`; both helpers default to the raw GitHub URL while static-site deploy convergence can lag. | For `media.transcribe`, use `scripts/dc90_deepgram_media_transcribe_smoke.py`; pass condition is upstream 200, receipt id present, and transcript contains `deepgram` + `transcribe`. For `video.subtitle`, use `scripts/dc90_deepgram_video_subtitle_smoke.py`; pass condition is upstream 200, receipt id present, transcript contains `deepgram` + `transcribe`, and the response includes word-level start/end timings that can form a VTT cue. |
+| `scrape.screenshot` / Firecrawl | **Yes, through helper only.** The helper screenshots the public static `https://example.com` page exactly once and stores only compact screenshot evidence. | Use `scripts/dc90_firecrawl_screenshot_smoke.py`; pass condition is upstream 200, receipt id present, page title `Example Domain`, and hashed screenshot URL evidence. Do not run multi-page crawl variants from this fixture. |
 | `media.generate_speech` / ElevenLabs/OpenAI/Deepgram | **Partially.** ElevenLabs tiny TTS has fresh proof; broader speech rails still need provider-specific caps. | Tiny text (`"OK"`), fixed low-cost voice/model, max one generation, artifact retention/deletion policy. |
 | `ai.generate_image`, `ai.edit_image` / OpenAI, Google AI, Replicate | **No.** No low-cost image prompt/reference/storage policy is committed. | One 512/1024px safe prompt, one image max, explicit budget ceiling, artifact storage/deletion plan, and no external publication. |
 | PDL/Apollo person/contact enrichment | **No positive consented fixture.** Synthetic PDL no-match is expected negative; public Satya Nadella fixture exists in runtime scripts but is not consented/internal. | Consented internal test person with known match, or explicit approval for a named public-person lookup; no private prospect search by default. |
@@ -303,7 +309,7 @@ These can notify real users, mutate external systems, create durable resources, 
 
 1. Rerun Emailable `email.verify` after the 0164 managed-visibility repair deploys; the 2026-04-28 recheck still showed no managed providers on resolve and `provider_not_available` on estimate, so do not count it as proof.
 2. Add successful receipts/artifacts back to the pilot readiness packet.
-3. The disposable Algolia `search.index` write/read/delete fixture, E2B short-TTL create/status/cleanup lifecycle fixture, Unstructured `document.parse` tiny synthetic-file fixture, Deepgram `media.transcribe` tiny audio fixture, and Deepgram `video.subtitle` subtitle-shaped timing fixture are now proved. Next amber target should be a consented side-effect fixture only if exact target/resource/cleanup controls exist; do not run uncontrolled external sends, arbitrary code execution, customer documents, or long-lived compute.
+3. The disposable Algolia `search.index` write/read/delete fixture, E2B short-TTL create/status/cleanup lifecycle fixture, Unstructured `document.parse` tiny synthetic-file fixture, Deepgram `media.transcribe` tiny audio fixture, Deepgram `video.subtitle` subtitle-shaped timing fixture, and Firecrawl `scrape.screenshot` one-page fixture are now proved. Next amber target should be a consented side-effect fixture only if exact target/resource/cleanup controls exist; do not run uncontrolled external sends, arbitrary code execution, customer documents, long-lived compute, or multi-page crawls.
 4. Keep red fixtures skipped until there is a named human-approved target and payload.
 
 ## Claim guardrail
