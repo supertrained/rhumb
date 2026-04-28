@@ -7,7 +7,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How to Secure Your API Keys for Agent Use",
   datePublished: "2026-03-18T00:00:00Z",
-  dateModified: "2026-03-18T00:00:00Z",
+  dateModified: "2026-04-28T00:00:00Z",
   author: {
     "@type": "Person",
     name: "Pedro Nunes",
@@ -124,6 +124,19 @@ Rhumb stores or brokers the provider credential for you and injects it at call t
 
 **Security posture:** The agent still uses your systems, but the raw provider secret stays behind the vault boundary. You reduce copy-paste exposure and make rotation or revocation more surgical.
 
+## Credential format is not the authority boundary
+
+OAuth versus API key is the visible choice. For agents, it is not the deepest security decision. The deeper question is whether the credential maps to a containment principal the operator can reason about before the model touches production state.
+
+Ask these questions before calling a credential strategy safe:
+
+1. **Which principal executes the call?** A shared OAuth app, one workspace user, one service account, and one per-agent key create different blast radii even if all four authenticate cleanly.
+2. **Which tools stay hidden until that principal exists?** Discovery should narrow after auth, not advertise write-capable surfaces the caller cannot safely use.
+3. **Whose quota and budget burn?** If three agents share one upstream account, the system still has to attribute spend, rate-limit pressure, and failures to the original actor.
+4. **Can a dangerous neighbor be denied?** The useful proof is not a valid token. It is the same caller making a safe scoped call and getting a typed denial for the adjacent out-of-scope target.
+
+Treat OAuth as ceremony, API keys as bearer power, and vaults as custody. None of them replace scoped execution policy, narrow discovery, typed denials, and trace evidence.
+
 ## x402 is a payment path, not a credential mode
 
 No account signup on this rail. Payment proof authorizes the request. For repeat traffic, default to governed API key or wallet-prefund on <code class="text-amber">X-Rhumb-Key</code>, and bring BYOK or Agent Vault only when provider control is the point.
@@ -192,12 +205,13 @@ We don't use phrases like "enterprise-grade security" or "bank-level encryption"
 ## Best practices checklist
 
 1. **Use scoped keys.** If a service offers read-only or capability-scoped API keys, use the narrowest scope that works.
-2. **Rotate regularly.** Set a calendar reminder. Quarterly at minimum.
-3. **Never commit keys to git.** Use \`.env\` files with \`.gitignore\`, or better yet, use a secret manager reference.
-4. **One key per agent.** If you run multiple agents, give each one its own API key. Makes revocation surgical.
-5. **Monitor usage.** Rhumb's API shows per-key execution history. Watch for anomalies.
-6. **Prefer Rhumb-managed, Agent Vault, or x402 over raw BYOK** when possible. Fewer raw credentials in more places = smaller attack surface.
-7. **Use secret references in config, not raw values.** Instead of the key itself, store a reference to where the key lives:
+2. **Bind keys to principals and budgets.** Store who owns the key, which agent may use it, which tenant/workspace it can touch, and whose quota burns when the call executes.
+3. **Rotate regularly.** Set a calendar reminder. Quarterly at minimum.
+4. **Never commit keys to git.** Use \`.env\` files with \`.gitignore\`, or better yet, use a secret manager reference.
+5. **One key per agent.** If you run multiple agents, give each one its own API key. Makes revocation surgical.
+6. **Monitor usage.** Rhumb's API shows per-key execution history. Watch for anomalies.
+7. **Prefer Rhumb-managed, Agent Vault, or x402 over raw BYOK** when possible. Fewer raw credentials in more places = smaller attack surface.
+8. **Use secret references in config, not raw values.** Instead of the key itself, store a reference to where the key lives:
 
 \`\`\`json
 {
@@ -231,7 +245,7 @@ const rendered = markdownToHtml(CONTENT);
       <div class="mb-12">
         <div class="flex items-center gap-3 mb-4 flex-wrap">
           <span class="px-2.5 py-1 rounded-full text-xs font-mono font-medium border border-score-native/30 text-score-native bg-score-native/10">Guide</span>
-          <span class="text-xs font-mono text-slate-500">Updated March 18, 2026</span>
+          <span class="text-xs font-mono text-slate-500">Updated April 28, 2026</span>
           <span class="text-xs font-mono text-slate-500">&middot; 8 min read</span>
         </div>
         <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight">
