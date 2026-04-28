@@ -74,6 +74,86 @@ def test_get_audit_event_not_found_uses_explicit_error_code():
     assert "aevt_missing" in body["error"]["message"]
 
 
+def test_get_audit_event_rejects_blank_event_id_before_auth_or_reads():
+    from app import create_app
+
+    require_org = AsyncMock(return_value="org_test")
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=require_org),
+        patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events/%20%20",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'event_id' path parameter."
+    assert "non-empty audit event id" in body["error"]["detail"]
+    require_org.assert_not_awaited()
+    get_audit_trail.assert_not_called()
+
+
+def test_get_audit_event_trims_event_id_before_lookup():
+    from app import create_app
+
+    event = MagicMock()
+    event.event_id = "aevt_123"
+    event.event_type = "execution.started"
+    event.severity = "info"
+    event.category = "execution"
+    event.message = "Execution started"
+    event.resource_type = "execution"
+    event.resource_id = "exec_123"
+    event.organization_id = "org_test"
+    event.agent_id = "agent_test"
+    event.user_id = None
+    event.ip_address = None
+    event.user_agent = None
+    event.metadata = {}
+    event.created_at = MagicMock(isoformat=lambda: "2026-04-28T09:44:00+00:00")
+    event.sequence_number = 1
+    event.chain_hash = "hash_123"
+
+    trail = MagicMock()
+    trail.query.return_value = [event]
+    trail.serialize_event.return_value = {
+        "event_id": "aevt_123",
+        "event_type": "execution.started",
+        "severity": "info",
+        "category": "execution",
+        "timestamp": "2026-04-28T09:44:00+00:00",
+        "org_id": "org_test",
+        "agent_id": "agent_test",
+        "principal": None,
+        "resource_type": "execution",
+        "resource_id": "exec_123",
+        "action": None,
+        "detail": None,
+        "receipt_id": None,
+        "execution_id": "exec_123",
+        "provider_slug": None,
+        "chain_sequence": 1,
+        "chain_hash": "hash_123",
+    }
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events/%20aevt_123%20",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["data"]["event_id"] == "aevt_123"
+    trail.query.assert_called_once_with(org_id="org_test", limit=100_000)
+
+
 def test_list_audit_events_invalid_event_type_uses_explicit_invalid_parameters_before_auth():
     from app import create_app
 

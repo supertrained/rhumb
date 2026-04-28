@@ -197,6 +197,18 @@ def _validated_text_filter(value: str | None, *, field_name: str) -> str | None:
     )
 
 
+def _validated_event_path_id(event_id: str) -> str:
+    normalized = str(event_id or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'event_id' path parameter.",
+        detail="Provide a non-empty audit event id from GET /v2/audit/events.",
+    )
+
+
 def _validated_timestamp(ts: str | None, *, field_name: str) -> datetime | None:
     if ts is None:
         return None
@@ -351,6 +363,7 @@ async def get_audit_event(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict[str, Any]:
     """Get a specific audit event by ID."""
+    event_id = _validated_event_path_id(event_id)
     org_id = await _require_org_or_401(raw_request, x_rhumb_key)
     if isinstance(org_id, JSONResponse):
         return org_id
