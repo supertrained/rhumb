@@ -57,6 +57,7 @@ const GOVERNANCE_CHECKLIST = [
   "Can stale or wrong memory be removed cleanly?",
   "Does each important item preserve where it came from and when it was created?",
   "Can the runtime treat memory as input to verify rather than unquestionable truth?",
+  "Can a fresh session recover the right state without inheriting stale authority?",
   "Are weak-confidence claims visibly tentative instead of silently authoritative?",
   "Do preserved mistakes explain what failed and why the lesson still matters?",
 ];
@@ -66,7 +67,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Persistent Coding Memory Is a Trust Boundary, Not Just Context Compression",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-14T00:00:00Z",
+  dateModified: "2026-04-28T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Persistent agent memory is not just a token-saving trick. Once saved facts, decisions, and mistakes influence future actions, memory becomes part of the trust boundary.",
@@ -191,7 +192,24 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            4. Regret buffers preserve the lessons teams forget first
+            4. Session restart is the production test
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Memory systems usually get demoed inside one smooth conversation. Production agents fail in the gap between conversations: the next session starts cold, a different model or client rehydrates state, and the user expects continuity without hidden drift.
+            </p>
+            <p>
+              A useful memory layer should pass a restart drill. Start a fresh session with no chat transcript, load only the persisted memory surface, then ask the agent to explain what it believes, what it is uncertain about, what changed recently, and which prior claims need source verification before action.
+            </p>
+            <p>
+              If the agent cannot recover the current task, that is a continuity failure. If it recovers too much authority from stale notes, that is a trust failure. The safe target is narrower: enough remembered state to resume work, with enough provenance and uncertainty to keep the next action auditable.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            5. Regret buffers preserve the lessons teams forget first
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -208,7 +226,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            5. Facts, decisions, warnings, and priors should not collapse into one blob
+            6. Facts, decisions, warnings, and priors should not collapse into one blob
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -230,7 +248,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            6. Provenance and reversibility matter more than clever retrieval
+            7. Provenance and reversibility matter more than clever retrieval
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -244,7 +262,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            7. A practical governance checklist for persistent memory
+            8. A practical governance checklist for persistent memory
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -260,7 +278,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            8. The practical recommendation
+            9. The practical recommendation
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
