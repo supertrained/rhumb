@@ -69,6 +69,21 @@ In production, the harder question is what that credential *means* once several 
 
 If those answers are blurry, the fleet does not have a credential model yet. It has a secret-distribution habit.
 
+
+## Revocation drill: prove the narrow lane before the incident
+
+The credential test that matters is not whether a secret can be hidden. It is whether the fleet can lose one lane without confusing every adjacent workflow.
+
+Run this drill before the first serious agent workload:
+
+1. Mint two credentials for the same upstream provider: one read lane and one write lane.
+2. Bind each credential to a visible agent class, tenant, workflow, and budget owner.
+3. Revoke only the write lane while a read task is still active.
+4. Confirm the write task receives a typed revocation denial instead of falling into generic retry.
+5. Confirm the read task keeps working and the trace shows which principal, scope, and quota bucket survived.
+
+If the revoked lane causes unrelated reads to fail, or if the orchestrator cannot say whose quota and authority changed, rotation hygiene is not enough. The system still has a shared-authority problem wearing a secret-management label.
+
 ## Pattern 1, credential store plus watch layer
 
 The cleanest production pattern is simple.
