@@ -211,10 +211,24 @@ def test_webhook_missing_signature() -> None:
         content=b'{"type": "test"}',
         headers={"Content-Type": "application/json"},
     )
-    # FastAPI returns 422 for missing required header
-    assert resp.status_code == 422
+    assert resp.status_code == 400
+    assert resp.json()["detail"] == "Stripe-Signature header required"
 
 
+@pytest.mark.anyio
+async def test_webhook_blank_signature_rejects_before_body_read() -> None:
+    from routes.webhooks import stripe_webhook
+
+    class _UnreadableRequest:
+        async def body(self) -> bytes:  # pragma: no cover - must not be called
+            raise AssertionError("blank Stripe-Signature should reject before reading body")
+
+    with pytest.raises(Exception) as exc_info:
+        await stripe_webhook(_UnreadableRequest(), stripe_signature="   ")
+
+    exc = exc_info.value
+    assert getattr(exc, "status_code", None) == 400
+    assert getattr(exc, "detail", None) == "Stripe-Signature header required"
 
 
 def test_webhook_rejects_malformed_signed_payload(webhook_client: TestClient) -> None:

@@ -22,10 +22,13 @@ router = APIRouter(tags=["webhooks"])
 @router.post("/webhooks/stripe")
 async def stripe_webhook(
     request: Request,
-    stripe_signature: str = Header(..., alias="Stripe-Signature"),
+    stripe_signature: str | None = Header(None, alias="Stripe-Signature"),
 ) -> dict:
     """Receive and process Stripe webhook events."""
-    # Read raw body for signature verification
+    if stripe_signature is None or not stripe_signature.strip():
+        raise HTTPException(status_code=400, detail="Stripe-Signature header required")
+
+    # Read raw body for signature verification only after the signature header is present.
     raw_body = await request.body()
 
     webhook_secret = settings.stripe_webhook_secret
