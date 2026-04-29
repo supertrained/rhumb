@@ -30,7 +30,7 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from routes._supabase import supabase_fetch, supabase_insert, supabase_insert_returning, supabase_patch
-from routes.auth_wallet import _require_wallet_session
+from routes.auth_wallet import _json_object_body, _require_wallet_session
 from services.payment_requests import PaymentRequestService
 from services.wallet_auth import normalize_address
 from services.x402 import build_x402_response
@@ -74,10 +74,7 @@ async def topup_request(
     """
     claims = await _require_wallet_session(authorization)
 
-    try:
-        payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    payload = await _json_object_body(request)
 
     amount_cents = int(payload.get("amount_usd_cents", 0))
 
@@ -158,10 +155,7 @@ async def topup_verify(
     """
     claims = await _require_wallet_session(authorization)
 
-    try:
-        payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    payload = await _json_object_body(request)
 
     payment_request_id = str(payload.get("payment_request_id", "")).strip()
     x_payment = payload.get("x_payment", {})

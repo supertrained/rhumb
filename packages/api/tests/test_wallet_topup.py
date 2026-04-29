@@ -156,6 +156,25 @@ class TestTopupRequest:
 
     @patch("routes.wallet_topup.supabase_insert_returning", new_callable=AsyncMock)
     @patch("routes.wallet_topup._payment_requests")
+    def test_rejects_non_object_body_before_topup_state(self, mock_pr_service, mock_insert):
+        """Array bodies should reject before payment requests or topup rows open."""
+        mock_pr_service.create_payment_request = AsyncMock()
+
+        token = _make_wallet_token()
+        client = TestClient(_shared_app)
+        resp = client.post(
+            "/v1/auth/wallet/topup/request",
+            json=[{"amount_usd_cents": 25}],
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Invalid JSON object body"
+        mock_pr_service.create_payment_request.assert_not_called()
+        mock_insert.assert_not_called()
+
+    @patch("routes.wallet_topup.supabase_insert_returning", new_callable=AsyncMock)
+    @patch("routes.wallet_topup._payment_requests")
     def test_exact_minimum_accepted(self, mock_pr_service, mock_insert):
         """Exactly $0.25 should be accepted."""
         mock_pr_service.create_payment_request = AsyncMock(return_value={
@@ -265,6 +284,26 @@ class TestTopupVerify:
         assert data["amount_usd_cents"] == 50
         assert data["balance_usd_cents"] == 150  # 100 + 50
         assert data["transaction"] == TEST_TX_HASH
+
+    @patch("routes.wallet_topup._settlement")
+    @patch("routes.wallet_topup._payment_requests")
+    def test_rejects_non_object_body_before_payment_lookup(self, mock_pr, mock_settlement):
+        """Array bodies should reject before loading payment requests or settling."""
+        mock_pr.get_pending_request = AsyncMock()
+        mock_settlement.verify_and_settle = AsyncMock()
+
+        token = _make_wallet_token()
+        client = TestClient(_shared_app)
+        resp = client.post(
+            "/v1/auth/wallet/topup/verify",
+            json=[{"payment_request_id": TEST_PAYMENT_REQUEST_ID}],
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Invalid JSON object body"
+        mock_pr.get_pending_request.assert_not_called()
+        mock_settlement.verify_and_settle.assert_not_called()
 
     @patch("routes.wallet_topup._payment_requests")
     def test_wallet_mismatch_rejected(self, mock_pr):
