@@ -1011,6 +1011,7 @@ async def execute_capability_v2(
     raw_request: Request,
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
+    capability_id = _validated_capability_path_id(capability_id)
     canonical_credential_mode = _canonicalize_credential_mode(payload.credential_mode)
     agent = None
     account_policy = None

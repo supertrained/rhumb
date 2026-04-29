@@ -540,6 +540,32 @@ async def test_v2_capability_path_reads_reject_blank_ids_before_forward(app, pat
 
 
 @pytest.mark.anyio
+async def test_v2_execute_rejects_blank_capability_id_before_policy_reads(app):
+    with (
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward,
+        patch("routes.resolve_v2._resolve_policy_agent", new=AsyncMock()) as mock_agent,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/%20%20%20/execute",
+                json={
+                    "parameters": {"to": "test@example.com"},
+                    "credential_mode": "byok",
+                    "interface": "rest",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'capability_id' path parameter."
+    assert body["error"]["detail"] == "Provide a non-empty capability id from GET /v2/capabilities."
+    mock_agent.assert_not_awaited()
+    mock_forward.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_rewrites_nested_recovery_urls_for_alternate_handoff(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
