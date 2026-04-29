@@ -187,6 +187,42 @@ class TestBudgetEnforcer:
 
 
 # ---------------------------------------------------------------------------
+# Budget route auth helper tests
+# ---------------------------------------------------------------------------
+
+
+class TestBudgetRouteAuth:
+    """Test budget-route governed key validation before budget reads."""
+
+    @pytest.mark.asyncio
+    async def test_extract_agent_id_rejects_blank_key_before_identity_store(self):
+        """Whitespace X-Rhumb-Key is rejected before identity-store reads."""
+        from routes.budget import _extract_agent_id
+        from services.error_envelope import RhumbError
+
+        with patch("schemas.agent_identity.get_agent_identity_store") as mock_store_factory:
+            with pytest.raises(RhumbError) as exc_info:
+                await _extract_agent_id("   ")
+
+        assert exc_info.value.code == "CREDENTIAL_MISSING"
+        mock_store_factory.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_extract_agent_id_trims_key_before_verification(self):
+        """Valid keys are trimmed before identity lookup."""
+        from routes.budget import _extract_agent_id
+
+        mock_store = MagicMock()
+        mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent("agent_budget"))
+
+        with patch("schemas.agent_identity.get_agent_identity_store", return_value=mock_store):
+            agent_id = await _extract_agent_id("  rh_live_test  ")
+
+        assert agent_id == "agent_budget"
+        mock_store.verify_api_key_with_agent.assert_awaited_once_with("rh_live_test")
+
+
+# ---------------------------------------------------------------------------
 # Budget route integration tests
 # ---------------------------------------------------------------------------
 

@@ -6,10 +6,11 @@ PUT  /v1/agent/budget  — create/update budget
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header
 from pydantic import BaseModel, Field
 
 from services.budget_enforcer import BudgetEnforcer
+from services.error_envelope import RhumbError
 
 router = APIRouter(prefix="/v1/agent", tags=["budget"])
 
@@ -38,15 +39,25 @@ class SetBudgetRequest(BaseModel):
 async def _extract_agent_id(api_key: str | None) -> str:
     """Validate API key and extract agent identity.
 
-    Returns the agent_id from the identity store, or raises 401.
+    Returns the agent_id from the identity store, or raises a canonical 401.
     """
-    if not api_key:
-        raise HTTPException(401, "Missing X-Rhumb-Key header")
+    normalized_key = str(api_key or "").strip()
+    if not normalized_key:
+        raise RhumbError(
+            "CREDENTIAL_MISSING",
+            message="Missing X-Rhumb-Key header.",
+            detail="Provide a non-empty governed API key in the X-Rhumb-Key header.",
+        )
+
     from schemas.agent_identity import get_agent_identity_store
     store = get_agent_identity_store()
-    agent = await store.verify_api_key_with_agent(api_key)
+    agent = await store.verify_api_key_with_agent(normalized_key)
     if agent is None:
-        raise HTTPException(401, "Invalid or expired API key")
+        raise RhumbError(
+            "CREDENTIAL_INVALID",
+            message="Invalid or expired API key.",
+            detail="Create or rotate a governed key, then retry with X-Rhumb-Key.",
+        )
     return agent.agent_id
 
 
