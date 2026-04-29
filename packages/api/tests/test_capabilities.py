@@ -652,13 +652,55 @@ class _FakeBreaker:
 class _FakeBreakerRegistry:
     def __init__(self, breaker_states: dict[str, tuple[str, bool]]):
         self._breaker_states = breaker_states
+        self.calls: list[tuple[str, str]] = []
 
     def get(self, service: str, agent_id: str = "default") -> _FakeBreaker:
+        self.calls.append((service, agent_id))
         state, allowed = self._breaker_states.get(service, ("closed", True))
         return _FakeBreaker(state, allowed=allowed)
 
 
 # ── Tests ──────────────────────────────────────────────────
+
+@pytest.mark.anyio
+async def test_resolve_blank_governed_key_header_uses_anonymous_breaker_scope(app):
+    """Blank X-Rhumb-Key values must not create whitespace-scoped breaker reads."""
+    fake_breakers = _FakeBreakerRegistry({})
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase), patch(
+        "routes.proxy.get_breaker_registry",
+        return_value=fake_breakers,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                headers={"X-Rhumb-Key": "  \t  "},
+            )
+
+    assert resp.status_code == 200
+    assert fake_breakers.calls
+    assert {agent_id for _, agent_id in fake_breakers.calls} == {"anonymous"}
+
+
+@pytest.mark.anyio
+async def test_resolve_trims_governed_key_header_before_breaker_scope(app):
+    """Padded X-Rhumb-Key values should use the same breaker scope as bare keys."""
+    fake_breakers = _FakeBreakerRegistry({})
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase), patch(
+        "routes.proxy.get_breaker_registry",
+        return_value=fake_breakers,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/email.send/resolve",
+                headers={"X-Rhumb-Key": "  rk_test  "},
+            )
+
+    assert resp.status_code == 200
+    assert fake_breakers.calls
+    assert {agent_id for _, agent_id in fake_breakers.calls} == {"rk_test"}
+
 
 @pytest.mark.anyio
 async def test_list_capabilities(app):

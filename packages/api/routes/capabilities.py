@@ -204,6 +204,12 @@ def _validated_capability_search_filter(search: str | None) -> str | None:
     )
 
 
+def _normalized_breaker_scope_from_header(x_rhumb_key: str | None) -> str:
+    """Return the per-agent breaker scope used by public read/resolve surfaces."""
+    normalized = str(x_rhumb_key or "").strip()
+    return normalized or "anonymous"
+
+
 def _validated_capability_path_id(capability_id: str) -> str:
     normalized = str(capability_id or "").strip()
     if normalized:
@@ -3480,7 +3486,7 @@ async def resolve_capability(
     credential_mode = _validated_resolve_credential_mode_filter(credential_mode)
     capability_id = _validated_capability_path_id(capability_id)
 
-    agent_id = x_rhumb_key or "anonymous"
+    agent_id = _normalized_breaker_scope_from_header(x_rhumb_key)
     # Verify capability exists
     caps = await _cached_fetch(
         "capabilities",
@@ -3734,8 +3740,6 @@ async def get_credential_modes(
     has configured. Agents use this to decide which mode to use at execution time.
     """
     capability_id = _validated_capability_path_id(capability_id)
-
-    agent_id = x_rhumb_key or "anonymous"
 
     # Verify capability
     caps = await _cached_fetch(
