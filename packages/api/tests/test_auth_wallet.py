@@ -287,6 +287,14 @@ class TestRequestChallengeEndpoint:
         assert "expires_at" in data
 
     @patch("routes.auth_wallet.supabase_insert_returning")
+    def test_rejects_non_object_body_before_store(self, mock_insert):
+        client = TestClient(_shared_app)
+        resp = client.post("/v1/auth/wallet/request-challenge", json=[])
+        assert resp.status_code == 400
+        assert "Invalid JSON object body" in resp.json()["detail"]
+        mock_insert.assert_not_called()
+
+    @patch("routes.auth_wallet.supabase_insert_returning")
     def test_rejects_invalid_chain(self, mock_insert):
         client = TestClient(_shared_app)
         resp = client.post("/v1/auth/wallet/request-challenge", json={
@@ -561,6 +569,14 @@ class TestVerifyEndpoint:
 
         assert resp.status_code == 400
         assert "not found" in resp.json()["detail"].lower()
+
+    @patch("routes.auth_wallet.supabase_fetch")
+    def test_rejects_non_object_body_before_challenge_read(self, mock_fetch):
+        client = TestClient(_shared_app)
+        resp = client.post("/v1/auth/wallet/verify", json=[])
+        assert resp.status_code == 400
+        assert "Invalid JSON object body" in resp.json()["detail"]
+        mock_fetch.assert_not_called()
 
     def test_missing_fields_rejected(self):
         """Missing required fields should return 400."""

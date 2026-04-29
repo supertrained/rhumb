@@ -112,6 +112,17 @@ async def _require_wallet_session(
 # ── Routes ───────────────────────────────────────────────────────────
 
 
+async def _json_object_body(request: Request) -> dict[str, Any]:
+    """Return a JSON object body or reject before route state is opened."""
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=400, detail="Invalid JSON object body")
+    return payload
+
+
 @router.post("/request-challenge")
 async def request_challenge(request: Request) -> JSONResponse:
     """Generate a signable challenge for wallet authentication.
@@ -121,10 +132,7 @@ async def request_challenge(request: Request) -> JSONResponse:
 
     Returns a nonce message for the wallet to sign via ``personal_sign``.
     """
-    try:
-        payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    payload = await _json_object_body(request)
 
     # Validate inputs
     raw_chain = str(payload.get("chain", "base"))
@@ -211,10 +219,7 @@ async def verify(request: Request) -> JSONResponse:
     On repeat verification:
     - Returns session token + api_key_prefix only
     """
-    try:
-        payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON body")
+    payload = await _json_object_body(request)
 
     challenge_id = str(payload.get("challenge_id", "")).strip()
     signature = str(payload.get("signature", "")).strip()
