@@ -56,6 +56,40 @@ _payment_requests = PaymentRequestService()
 _settlement = X402SettlementService()
 
 
+def _validated_topup_amount_cents(payload: dict[str, Any]) -> int:
+    raw_amount = payload.get("amount_usd_cents", 0)
+    try:
+        amount_cents = int(raw_amount)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail="amount_usd_cents must be an integer") from exc
+
+    if amount_cents < MIN_TOPUP_USD_CENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Minimum top-up is ${MIN_TOPUP_USD_CENTS / 100:.2f} ({MIN_TOPUP_USD_CENTS} cents)",
+        )
+
+    if amount_cents > MAX_TOPUP_USD_CENTS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Maximum top-up is ${MAX_TOPUP_USD_CENTS / 100:.2f}",
+        )
+
+    return amount_cents
+
+
+def _validated_topup_verify_payload(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    payment_request_id = str(payload.get("payment_request_id", "")).strip()
+    x_payment = payload.get("x_payment", {})
+
+    if not payment_request_id:
+        raise HTTPException(status_code=400, detail="payment_request_id is required")
+    if not isinstance(x_payment, dict):
+        raise HTTPException(status_code=400, detail="x_payment payload is required")
+
+    return payment_request_id, x_payment
+
+
 # ── Routes ───────────────────────────────────────────────────────────
 
 
@@ -72,23 +106,9 @@ async def topup_request(
     Returns an x402-style response body with payment requirements
     that the wallet can sign and submit to ``/topup/verify``.
     """
-    claims = await _require_wallet_session(authorization)
-
     payload = await _json_object_body(request)
-
-    amount_cents = int(payload.get("amount_usd_cents", 0))
-
-    if amount_cents < MIN_TOPUP_USD_CENTS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Minimum top-up is ${MIN_TOPUP_USD_CENTS / 100:.2f} ({MIN_TOPUP_USD_CENTS} cents)",
-        )
-
-    if amount_cents > MAX_TOPUP_USD_CENTS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Maximum top-up is ${MAX_TOPUP_USD_CENTS / 100:.2f}",
-        )
+    amount_cents = _validated_topup_amount_cents(payload)
+    claims = await _require_wallet_session(authorization)
 
     org_id = claims["org_id"]
     wallet_identity_id = claims["wallet_identity_id"]
@@ -153,16 +173,10 @@ async def topup_verify(
     Anti-fraud: the ``authorization.from`` address must match the
     authenticated wallet address.
     """
-    claims = await _require_wallet_session(authorization)
-
     payload = await _json_object_body(request)
-
-    payment_request_id = str(payload.get("payment_request_id", "")).strip()
-    x_payment = payload.get("x_payment", {})
-
-    if not payment_request_id:
-        raise HTTPException(status_code=400, detail="payment_request_id is required")
-    if not x_payment or not isinstance(x_payment, dict):
+    payment_request_id, x_payment = _validated_topup_verify_payload(payload)
+    claims = await _require_wallet_session(authorization)
+    if not x_payment:
         raise HTTPException(status_code=400, detail="x_payment payload is required")
 
     org_id = claims["org_id"]

@@ -173,6 +173,34 @@ class TestTopupRequest:
         mock_pr_service.create_payment_request.assert_not_called()
         mock_insert.assert_not_called()
 
+    def test_rejects_non_object_body_before_wallet_session(self):
+        """Malformed top-up request bodies should fail before wallet-session reads."""
+        client = TestClient(_shared_app)
+
+        with patch("routes.wallet_topup._require_wallet_session", new_callable=AsyncMock) as mock_session:
+            resp = client.post(
+                "/v1/auth/wallet/topup/request",
+                json=[{"amount_usd_cents": 25}],
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "Invalid JSON object body"
+        mock_session.assert_not_awaited()
+
+    def test_rejects_invalid_amount_before_wallet_session(self):
+        """Invalid amount shapes should fail before wallet-session reads."""
+        client = TestClient(_shared_app)
+
+        with patch("routes.wallet_topup._require_wallet_session", new_callable=AsyncMock) as mock_session:
+            resp = client.post(
+                "/v1/auth/wallet/topup/request",
+                json={"amount_usd_cents": "not-cents"},
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "amount_usd_cents must be an integer"
+        mock_session.assert_not_awaited()
+
     @patch("routes.wallet_topup.supabase_insert_returning", new_callable=AsyncMock)
     @patch("routes.wallet_topup._payment_requests")
     def test_exact_minimum_accepted(self, mock_pr_service, mock_insert):
@@ -304,6 +332,20 @@ class TestTopupVerify:
         assert resp.json()["detail"] == "Invalid JSON object body"
         mock_pr.get_pending_request.assert_not_called()
         mock_settlement.verify_and_settle.assert_not_called()
+
+    def test_rejects_missing_payment_request_before_wallet_session(self):
+        """Malformed verify payloads should fail before wallet-session reads."""
+        client = TestClient(_shared_app)
+
+        with patch("routes.wallet_topup._require_wallet_session", new_callable=AsyncMock) as mock_session:
+            resp = client.post(
+                "/v1/auth/wallet/topup/verify",
+                json={"payment_request_id": "   ", "x_payment": {"payload": {}}},
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "payment_request_id is required"
+        mock_session.assert_not_awaited()
 
     @patch("routes.wallet_topup._payment_requests")
     def test_wallet_mismatch_rejected(self, mock_pr):
