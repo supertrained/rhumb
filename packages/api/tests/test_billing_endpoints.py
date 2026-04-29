@@ -6,13 +6,17 @@ All Supabase calls are mocked — no real DB required.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
-from unittest.mock import AsyncMock, patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app import create_app
+from routes.billing import _require_org
 
 
 # ---------------------------------------------------------------------------
@@ -36,6 +40,35 @@ def client() -> TestClient:
 def _auth_headers(org_id: str = ORG_ID) -> dict[str, str]:
     """Return X-Rhumb-Key header using the bypass key seeded in conftest."""
     return {"X-Rhumb-Key": _BYPASS_KEY}
+
+
+# ---------------------------------------------------------------------------
+# Shared billing auth helper
+# ---------------------------------------------------------------------------
+
+
+def test_require_org_rejects_blank_key_before_identity_store() -> None:
+    identity_store_factory = Mock()
+
+    with patch("routes.billing._get_identity_store", identity_store_factory):
+        with pytest.raises(HTTPException) as exc_info:
+            asyncio.run(_require_org("   "))
+
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Missing X-Rhumb-Key header"
+    identity_store_factory.assert_not_called()
+
+
+def test_require_org_trims_valid_key_before_identity_lookup() -> None:
+    identity_store = SimpleNamespace(
+        verify_api_key_with_agent=AsyncMock(return_value=SimpleNamespace(organization_id="org_trimmed"))
+    )
+
+    with patch("routes.billing._get_identity_store", return_value=identity_store):
+        org_id = asyncio.run(_require_org("  rk_test  "))
+
+    assert org_id == "org_trimmed"
+    identity_store.verify_api_key_with_agent.assert_awaited_once_with("rk_test")
 
 
 # ---------------------------------------------------------------------------

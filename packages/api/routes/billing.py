@@ -102,9 +102,10 @@ async def _require_org(api_key: str | None) -> str:
 
     Returns the organization_id associated with the key, or raises 401.
     """
-    if not api_key:
+    normalized_key = str(api_key or "").strip()
+    if not normalized_key:
         raise HTTPException(status_code=401, detail="Missing X-Rhumb-Key header")
-    agent = await _get_identity_store().verify_api_key_with_agent(api_key)
+    agent = await _get_identity_store().verify_api_key_with_agent(normalized_key)
     if agent is None:
         raise HTTPException(status_code=401, detail="Invalid or expired API key")
     return agent.organization_id
