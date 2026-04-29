@@ -1018,6 +1018,46 @@ def test_me_billing_auto_reload_updates_org_credit_config() -> None:
     }
 
 
+def test_me_agents_create_rejects_blank_name_before_session_reads() -> None:
+    client = TestClient(_shared_app, raise_server_exceptions=False)
+
+    with patch("routes.auth._require_session", new_callable=AsyncMock) as require_session:
+        response = client.post(
+            "/v1/auth/me/agents",
+            json={
+                "name": "   ",
+                "budget_usd": 10.0,
+                "period": "monthly",
+                "hard_limit": True,
+                "rate_limit_qpm": 20,
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "name is required"
+    require_session.assert_not_awaited()
+
+
+def test_me_agents_create_rejects_invalid_period_before_session_reads() -> None:
+    client = TestClient(_shared_app, raise_server_exceptions=False)
+
+    with patch("routes.auth._require_session", new_callable=AsyncMock) as require_session:
+        response = client.post(
+            "/v1/auth/me/agents",
+            json={
+                "name": "Friend Agent",
+                "budget_usd": 10.0,
+                "period": "yearly",
+                "hard_limit": True,
+                "rate_limit_qpm": 20,
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "period must be one of: daily, weekly, monthly, total"
+    require_session.assert_not_awaited()
+
+
 def test_me_agents_can_create_and_list_capped_secondary_keys() -> None:
     with _auth_email_harness() as env:
         env.client.post(

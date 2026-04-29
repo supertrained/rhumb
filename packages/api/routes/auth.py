@@ -818,12 +818,31 @@ async def me_agents(
     return JSONResponse({"agents": results})
 
 
+def _validate_dashboard_agent_key_request(
+    body: DashboardCreateAgentKeyRequest,
+    *,
+    fallback_description: str,
+) -> tuple[str, str, str]:
+    """Validate dashboard agent-key inputs before opening session/org state."""
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="name is required")
+
+    period = _normalize_budget_period(body.period)
+    description = body.description.strip() if body.description else fallback_description
+    return name, description, period
+
+
 @router.post("/me/agents")
 async def me_create_agent_key(
     body: DashboardCreateAgentKeyRequest,
     rhumb_session: Optional[str] = Cookie(default=None),
 ) -> JSONResponse:
     """Create a capped secondary governed key for the logged-in user's org."""
+    name, description, period = _validate_dashboard_agent_key_request(
+        body,
+        fallback_description="Secondary agent key created from dashboard",
+    )
     claims = await _require_session(rhumb_session)
 
     user_store = get_user_store()
@@ -848,13 +867,14 @@ async def me_create_agent_key(
             detail="Too many agent keys for this organization (limit 10).",
         )
 
-    period = _normalize_budget_period(body.period)
+    if description == "Secondary agent key created from dashboard":
+        description = f"Secondary agent key created from dashboard for {user.email}"
 
     agent_id, api_key = await identity_store.register_agent(
-        name=body.name.strip(),
+        name=name,
         organization_id=org_id,
         rate_limit_qpm=body.rate_limit_qpm,
-        description=(body.description.strip() if body.description else f"Secondary agent key created from dashboard for {user.email}"),
+        description=description,
         tags=["secondary"],
     )
 
