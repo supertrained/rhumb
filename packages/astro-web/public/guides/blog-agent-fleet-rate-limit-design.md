@@ -114,6 +114,24 @@ A malformed request needs a task-level failure state, not another retry.
 
 If your agent cannot distinguish those paths, one upstream failure will masquerade as another and your incident data becomes useless.
 
+## Pattern 6, treat token burn and tool output as part of the budget
+
+Some fleets do not die on raw request limits. They die on *payload* and *token* limits.
+
+One tool call that returns a 2MB JSON blob can:
+
+- spike latency
+- burn model tokens downstream when the agent re-reads it
+- trip provider-side payload limits
+- turn a single expensive call into a multi-agent cost spiral
+
+Design for this explicitly.
+
+- cap tool output (hard bytes + hard tokens)
+- enforce response schemas so tools cannot "chat" by default
+- store large artifacts out-of-band (object storage + signed URLs) and return references
+- log *what was returned* (size, shape, redactions) so you can see budget drift before it becomes a 429 storm
+
 ## The 2am checklist
 
 Before a fleet runs unattended, make sure all of this is true.
@@ -124,8 +142,9 @@ Before a fleet runs unattended, make sure all of this is true.
 - scheduled work is staggered instead of synchronized
 - Tier 3 APIs have an orchestration-layer governor
 - shared credentials are not also shared rate budgets by default
+- tool output has a hard cap and an out-of-band escape hatch for large artifacts
 
-If you cannot answer yes to those six checks, the real risk is not throughput. It is recovery quality.
+If you cannot answer yes to those seven checks, the real risk is not throughput. It is recovery quality.
 
 ## What AN Score is really telling you here
 
@@ -153,3 +172,5 @@ Need the broader operator map first? Read [The Complete Guide to API Selection f
 Need the loop-level failure view under real retries? Read [LLM APIs in Agent Loops](/blog/llm-apis-agent-loops).
 
 Need the credential side of fleet reliability next? Read [API Credentials in Autonomous Agent Fleets](/blog/api-credentials-agent-fleets).
+
+Need the instrumentation layer for tool calls, payload sizing, and post-call evidence? Read [MCP Observability: Logging, Auditing, and Debugging Remote Tool Calls](/blog/mcp-observability-logging-auditing-debugging).
