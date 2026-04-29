@@ -198,6 +198,53 @@ def test_oauth_callback_accepts_mixed_case_provider_before_state_check() -> None
     assert response.json()["detail"] == "Invalid or expired state parameter"
 
 
+def test_oauth_callback_rejects_blank_code_before_csrf_state_pop() -> None:
+    from routes import auth as auth_routes
+
+    auth_routes._csrf_states.clear()
+    created_at = time.time()
+    auth_routes._csrf_states["state-123"] = {"provider": "github", "created_at": created_at}
+    client = TestClient(_shared_app)
+    try:
+        with patch("routes.auth.httpx.AsyncClient") as mock_httpx:
+            response = client.get(
+                "/v1/auth/callback/GitHub?code=%20%20&state=state-123",
+                follow_redirects=False,
+            )
+    finally:
+        client.close()
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "code is required"
+    assert auth_routes._csrf_states == {
+        "state-123": {"provider": "github", "created_at": created_at}
+    }
+    mock_httpx.assert_not_called()
+    auth_routes._csrf_states.clear()
+
+
+def test_oauth_callback_rejects_blank_state_before_csrf_state_pop() -> None:
+    from routes import auth as auth_routes
+
+    auth_routes._csrf_states.clear()
+    auth_routes._csrf_states[" "] = {"provider": "github", "created_at": time.time()}
+    client = TestClient(_shared_app)
+    try:
+        with patch("routes.auth.httpx.AsyncClient") as mock_httpx:
+            response = client.get(
+                "/v1/auth/callback/GitHub?code=oauth-code&state=%20%20",
+                follow_redirects=False,
+            )
+    finally:
+        client.close()
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "state is required"
+    assert " " in auth_routes._csrf_states
+    mock_httpx.assert_not_called()
+    auth_routes._csrf_states.clear()
+
+
 def test_oauth_callback_mixed_case_provider_stays_canonical_through_profile_fetch_and_user_create() -> None:
     from routes import auth as auth_routes
 

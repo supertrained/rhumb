@@ -141,6 +141,14 @@ def _public_auth_provider(provider: str) -> str:
     return str(provider).strip().lower()
 
 
+def _required_oauth_callback_text(value: str, field: str) -> str:
+    """Validate OAuth callback query text before opening CSRF or provider state."""
+    text = str(value or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail=f"{field} is required")
+    return text
+
+
 def _jwt_secret() -> str:
     """Return the JWT signing secret."""
     secret = settings.auth_jwt_secret or settings.rhumb_admin_secret
@@ -331,6 +339,9 @@ async def callback(provider: str, code: str, state: str) -> RedirectResponse:
     provider_key = _public_auth_provider(provider)
     if provider_key not in _PROVIDERS:
         raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider_key}")
+
+    code = _required_oauth_callback_text(code, "code")
+    state = _required_oauth_callback_text(state, "state")
 
     # Verify CSRF state
     stored = _csrf_states.pop(state, None)
