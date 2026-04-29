@@ -216,6 +216,19 @@ def _validated_capability_path_id(capability_id: str) -> str:
     )
 
 
+def _validated_service_ceremony_slug(service_slug: str | None) -> str:
+    normalized = str(service_slug or "").strip().lower()
+    canonical_slug = public_service_slug(normalized) or normalized
+    if canonical_slug:
+        return canonical_slug
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'service_slug' path parameter.",
+        detail="Provide a non-empty service slug.",
+    )
+
+
 def _canonicalize_known_provider_aliases(
     text: Any,
     *,
@@ -3886,11 +3899,11 @@ async def get_ceremony(service_slug: str) -> dict:
     Returns step-by-step instructions for an agent to obtain
     its own API credentials, plus token format info for validation.
     """
-    canonical_service_slug = public_service_slug(service_slug) or service_slug
+    canonical_service_slug = _validated_service_ceremony_slug(service_slug)
 
     from services.agent_vault import get_vault_validator
     validator = get_vault_validator()
-    ceremony = await validator.get_ceremony(service_slug)
+    ceremony = await validator.get_ceremony(canonical_service_slug)
     if ceremony is None:
         return {
             "data": None,

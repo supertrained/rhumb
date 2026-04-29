@@ -195,6 +195,22 @@ async def test_get_ceremony_not_found(app):
 
 
 @pytest.mark.anyio
+async def test_get_ceremony_rejects_blank_service_slug_before_reads(app):
+    """Blank ceremony path values should fail before opening Agent Vault reads."""
+
+    with patch("services.agent_vault.get_vault_validator") as mock_validator_factory:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get("/v1/services/%20/ceremony")
+
+    assert resp.status_code == 400
+    payload = resp.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'service_slug' path parameter."
+    assert payload["error"]["detail"] == "Provide a non-empty service slug."
+    mock_validator_factory.assert_not_called()
+
+
+@pytest.mark.anyio
 async def test_get_ceremony_missing_alias_input_reports_canonical_public_slug(app):
     """Missing ceremony reads should report canonical public ids for alias inputs."""
 
