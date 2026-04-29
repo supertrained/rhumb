@@ -129,21 +129,31 @@ class OAuthFlowHandler:
         Returns:
             ``{"status", "message"}`` or ``{"status", "error"}``.
         """
-        flow = await self.store.get_flow(flow_id)
+        normalized_flow_id = str(flow_id or "").strip()
+        if not normalized_flow_id:
+            return {"status": "failed", "error": "flow_id required"}
+        normalized_code = str(code or "").strip()
+        if not normalized_code:
+            return {"status": "failed", "error": "code required"}
+        normalized_state = str(state or "").strip()
+        if not normalized_state:
+            return {"status": "failed", "error": "state required"}
+
+        flow = await self.store.get_flow(normalized_flow_id)
         if flow is None:
             return {"status": "failed", "error": "flow_not_found"}
 
         # Check expiration
-        if await self.store.check_expiration(flow_id):
+        if await self.store.check_expiration(normalized_flow_id):
             return {"status": "failed", "error": "flow_expired"}
 
         # Verify state token
-        if not self._verify_state(state, flow_id):
+        if not self._verify_state(normalized_state, normalized_flow_id):
             return {"status": "failed", "error": "invalid_state"}
 
         # Exchange code for token
         try:
-            token_response = await self._exchange_code(flow.service, code, flow_id)
+            token_response = await self._exchange_code(flow.service, normalized_code, normalized_flow_id)
             access_token = token_response.get("access_token", "")
 
             if not access_token:
@@ -161,7 +171,7 @@ class OAuthFlowHandler:
 
             # Mark flow complete
             await self.store.update_flow_state(
-                flow_id,
+                normalized_flow_id,
                 FlowState.COMPLETE,
                 callback_data={
                     "token_type": token_response.get("token_type", "bearer"),
@@ -173,13 +183,13 @@ class OAuthFlowHandler:
 
         except Exception as e:
             # Increment retries
-            retries = await self.store.increment_retries(flow_id)
-            flow_fresh = await self.store.get_flow(flow_id)
+            retries = await self.store.increment_retries(normalized_flow_id)
+            flow_fresh = await self.store.get_flow(normalized_flow_id)
             max_retries = flow_fresh.max_retries if flow_fresh else 3
 
             if retries >= max_retries:
                 await self.store.update_flow_state(
-                    flow_id,
+                    normalized_flow_id,
                     FlowState.FAILED,
                     error_message=f"Max retries exceeded: {e}",
                 )

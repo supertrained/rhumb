@@ -138,12 +138,16 @@ class ToSFlowHandler:
         Returns:
             ``{"status", "message"}`` or ``{"status", "error"}``.
         """
-        flow = await self.store.get_flow(flow_id)
+        normalized_flow_id = str(flow_id or "").strip()
+        if not normalized_flow_id:
+            return {"status": "failed", "error": "flow_id required"}
+
+        flow = await self.store.get_flow(normalized_flow_id)
         if flow is None:
             return {"status": "failed", "error": "flow_not_found"}
 
         # Check expiration
-        if await self.store.check_expiration(flow_id):
+        if await self.store.check_expiration(normalized_flow_id):
             return {"status": "failed", "error": "flow_expired"}
 
         if flow.state in (FlowState.COMPLETE.value, FlowState.FAILED.value, FlowState.EXPIRED.value):
@@ -160,7 +164,7 @@ class ToSFlowHandler:
 
         # Mark complete
         await self.store.update_flow_state(
-            flow_id,
+            normalized_flow_id,
             FlowState.COMPLETE,
             callback_data={
                 "accepted": True,

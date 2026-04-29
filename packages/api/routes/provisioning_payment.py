@@ -125,34 +125,37 @@ class PaymentFlowHandler:
         Returns:
             ``{"status", "message"}`` or ``{"status", "error"}``.
         """
-        flow = await self.store.get_flow(flow_id)
+        normalized_flow_id = str(flow_id or "").strip()
+        if not normalized_flow_id:
+            return {"status": "failed", "error": "flow_id required"}
+        normalized_token = str(payment_confirmation_token or "").strip()
+        if not normalized_token:
+            return {"status": "failed", "error": "payment_confirmation_token required"}
+
+        flow = await self.store.get_flow(normalized_flow_id)
         if flow is None:
             return {"status": "failed", "error": "flow_not_found"}
 
         # Check expiration
-        if await self.store.check_expiration(flow_id):
+        if await self.store.check_expiration(normalized_flow_id):
             return {"status": "failed", "error": "flow_expired"}
 
         # Check current state
         if flow.state in (FlowState.COMPLETE.value, FlowState.FAILED.value, FlowState.EXPIRED.value):
             return {"status": "failed", "error": f"flow_already_{flow.state}"}
 
-        # Verify token is present
-        if not payment_confirmation_token:
-            return {"status": "failed", "error": "payment_confirmation_token required"}
-
         # Verify payment with provider (mock for Phase 2.1)
-        verified = await self._verify_payment(flow.service, payment_confirmation_token)
+        verified = await self._verify_payment(flow.service, normalized_token)
         if not verified:
             return {"status": "failed", "error": "payment_verification_failed"}
 
         # Mark complete
         await self.store.update_flow_state(
-            flow_id,
+            normalized_flow_id,
             FlowState.COMPLETE,
             callback_data={
                 "payment_confirmed": True,
-                "payment_token": payment_confirmation_token,
+                "payment_token": normalized_token,
                 "plan": flow.payload.get("plan", "unknown"),
             },
         )

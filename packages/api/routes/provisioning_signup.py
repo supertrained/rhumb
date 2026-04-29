@@ -108,31 +108,37 @@ class SignupFlowHandler:
         Returns:
             ``{"status", "message"}`` or ``{"status", "error"}``.
         """
-        flow = await self.store.get_flow(flow_id)
+        normalized_flow_id = str(flow_id or "").strip()
+        if not normalized_flow_id:
+            return {"status": "failed", "error": "flow_id required"}
+
+        # Require at least one verification artifact before opening flow state.
+        normalized_email_code = str(email_code or "").strip()
+        normalized_verification_token = str(verification_token or "").strip()
+        if not normalized_email_code and not normalized_verification_token:
+            return {"status": "failed", "error": "email_code or verification_token required"}
+
+        flow = await self.store.get_flow(normalized_flow_id)
         if flow is None:
             return {"status": "failed", "error": "flow_not_found"}
 
         # Check expiration
-        if await self.store.check_expiration(flow_id):
+        if await self.store.check_expiration(normalized_flow_id):
             return {"status": "failed", "error": "flow_expired"}
 
         # Check current state allows completion
         if flow.state in (FlowState.COMPLETE.value, FlowState.FAILED.value, FlowState.EXPIRED.value):
             return {"status": "failed", "error": f"flow_already_{flow.state}"}
 
-        # Require at least one verification artefact
-        if not email_code and not verification_token:
-            return {"status": "failed", "error": "email_code or verification_token required"}
-
         # Mark complete with callback data
         callback: Dict[str, Any] = {}
-        if email_code:
-            callback["email_code"] = email_code
-        if verification_token:
-            callback["verification_token"] = verification_token
+        if normalized_email_code:
+            callback["email_code"] = normalized_email_code
+        if normalized_verification_token:
+            callback["verification_token"] = normalized_verification_token
 
         await self.store.update_flow_state(
-            flow_id,
+            normalized_flow_id,
             FlowState.COMPLETE,
             callback_data=callback,
         )

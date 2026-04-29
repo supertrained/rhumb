@@ -20,6 +20,7 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -304,6 +305,20 @@ class TestSignupFlowHandler:
         assert verify["status"] == "failed"
         assert "required" in verify["error"]
 
+    def test_signup_verify_requires_artifact_before_flow_read(
+        self, signup_handler: SignupFlowHandler, store: ProvisioningFlowStore
+    ) -> None:
+        """Missing signup verification artifacts should not open flow state."""
+        store.get_flow = AsyncMock()  # type: ignore[method-assign]
+
+        verify = asyncio.run(signup_handler.verify_signup("flow-123", email_code="   "))
+
+        assert verify == {
+            "status": "failed",
+            "error": "email_code or verification_token required",
+        }
+        store.get_flow.assert_not_called()
+
 
 # =====================================================================
 # 3. OAuthFlowHandler
@@ -399,6 +414,31 @@ class TestOAuthFlowHandler:
         assert result["status"] == "failed"
         assert "invalid_state" in result["error"]
 
+    @pytest.mark.parametrize(
+        ("flow_id", "code", "state", "expected_error"),
+        [
+            ("   ", "code", "state", "flow_id required"),
+            ("flow-123", "  ", "state", "code required"),
+            ("flow-123", "code", "  ", "state required"),
+        ],
+    )
+    def test_handle_callback_validates_required_fields_before_flow_read(
+        self,
+        oauth_handler: OAuthFlowHandler,
+        store: ProvisioningFlowStore,
+        flow_id: str,
+        code: str,
+        state: str,
+        expected_error: str,
+    ) -> None:
+        """Blank OAuth callback fields should not open flow state."""
+        store.get_flow = AsyncMock()  # type: ignore[method-assign]
+
+        result = asyncio.run(oauth_handler.handle_callback(flow_id, code, state))
+
+        assert result == {"status": "failed", "error": expected_error}
+        store.get_flow.assert_not_called()
+
     @pytest.mark.asyncio
     async def test_handle_callback_expired_flow(
         self,
@@ -484,6 +524,20 @@ class TestPaymentFlowHandler:
         result = await payment_handler.confirm_payment(start["flow_id"], "")
         assert result["status"] == "failed"
 
+    def test_confirm_payment_requires_token_before_flow_read(
+        self, payment_handler: PaymentFlowHandler, store: ProvisioningFlowStore
+    ) -> None:
+        """Blank payment confirmation tokens should not open flow state."""
+        store.get_flow = AsyncMock()  # type: ignore[method-assign]
+
+        result = asyncio.run(payment_handler.confirm_payment("flow-123", "   "))
+
+        assert result == {
+            "status": "failed",
+            "error": "payment_confirmation_token required",
+        }
+        store.get_flow.assert_not_called()
+
 
 # =====================================================================
 # 5. ToSFlowHandler
@@ -525,6 +579,17 @@ class TestToSFlowHandler:
         )
         assert result["status"] == "failed"
         assert "mismatch" in result["error"]
+
+    def test_accept_tos_requires_flow_id_before_flow_read(
+        self, tos_handler: ToSFlowHandler, store: ProvisioningFlowStore
+    ) -> None:
+        """Blank ToS acceptance flow ids should not open flow state."""
+        store.get_flow = AsyncMock()  # type: ignore[method-assign]
+
+        result = asyncio.run(tos_handler.accept_tos("   "))
+
+        assert result == {"status": "failed", "error": "flow_id required"}
+        store.get_flow.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_start_tos_unsupported_service(
