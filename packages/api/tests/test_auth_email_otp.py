@@ -120,6 +120,35 @@ def test_request_code_returns_generic_success_for_new_email() -> None:
     ]
 
 
+@pytest.mark.parametrize(
+    "endpoint",
+    [
+        "/v1/auth/email/request-code",
+        "/v1/auth/email/verify-code",
+    ],
+)
+def test_email_auth_rejects_non_object_bodies_before_auth_state(endpoint: str) -> None:
+    client = TestClient(_shared_app)
+    with (
+        patch("routes.auth.get_user_store") as mock_user_store,
+        patch("routes.auth.get_email_otp_service") as mock_otp_service,
+        patch("routes.auth.get_agent_identity_store") as mock_identity_store,
+        patch("routes.auth.ensure_org_billing_bootstrap", new_callable=AsyncMock) as mock_bootstrap,
+    ):
+        response = client.post(endpoint, json=[{"email": "agent@example.com"}])
+
+    client.close()
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid email auth request body."
+    assert payload["error"]["detail"] == "Provide a JSON object body."
+    mock_user_store.assert_not_called()
+    mock_otp_service.assert_not_called()
+    mock_identity_store.assert_not_called()
+    mock_bootstrap.assert_not_awaited()
+
+
 def test_oauth_login_accepts_mixed_case_provider() -> None:
     from routes import auth as auth_routes
 

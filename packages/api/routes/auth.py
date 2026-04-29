@@ -47,6 +47,7 @@ from services.email_otp import (
     derive_request_ip,
     get_email_otp_service,
 )
+from services.error_envelope import RhumbError
 from services.service_slugs import public_service_slug
 from services.stripe_billing import confirm_checkout_session_detailed, create_checkout_session
 
@@ -192,6 +193,21 @@ def _extract_request_ip(request: Request) -> str:
     if request.client and request.client.host:
         return derive_request_ip(request.client.host)
     return ""
+
+
+async def _email_json_object_body(request: Request) -> dict[str, Any]:
+    """Return a JSON object body or reject malformed body shapes before auth state opens."""
+    try:
+        payload = await request.json()
+    except Exception:
+        return {}
+    if isinstance(payload, dict):
+        return payload
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid email auth request body.",
+        detail="Provide a JSON object body.",
+    )
 
 
 def _session_claims_for_user(user: Any) -> Dict[str, Any]:
@@ -450,10 +466,7 @@ async def email_request_code(request: Request) -> JSONResponse:
     Always returns a generic success payload for valid-looking email input so the
     API does not leak account existence or throttling state.
     """
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
+    payload = await _email_json_object_body(request)
 
     try:
         email = EmailOTPService.normalize_email(str(payload.get("email", "")))
@@ -503,10 +516,7 @@ async def email_request_code(request: Request) -> JSONResponse:
 @router.post("/email/verify-code")
 async def email_verify_code(request: Request) -> JSONResponse:
     """Verify an email OTP code and issue a standard Rhumb session."""
-    try:
-        payload = await request.json()
-    except Exception:
-        payload = {}
+    payload = await _email_json_object_body(request)
 
     try:
         email = EmailOTPService.normalize_email(str(payload.get("email", "")))
