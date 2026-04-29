@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -41,6 +42,40 @@ class TestTrustV2Auth:
         assert body["error"] == "missing_api_key"
         assert body["auth_handoff"]["reason"] == "missing_api_key"
         assert body["auth_handoff"]["retry_url"] == "/v2/trust/summary"
+
+    @pytest.mark.anyio
+    async def test_blank_key_is_missing_before_identity_store(self):
+        from routes.trust_v2 import _require_org_or_401
+
+        raw_request = MagicMock()
+        raw_request.state.request_id = "req_test"
+        raw_request.url.path = "/v2/trust/summary"
+
+        with patch("routes.trust_v2._get_identity_store") as get_store:
+            response = await _require_org_or_401(raw_request, "  \t  ")
+
+        assert response.status_code == 401
+        body = json.loads(response.body)
+        assert body["detail"] == "Missing X-Rhumb-Key header"
+        assert body["error"] == "missing_api_key"
+        get_store.assert_not_called()
+
+    @pytest.mark.anyio
+    async def test_valid_key_is_trimmed_before_verification(self):
+        from routes.trust_v2 import _require_org_or_401
+
+        raw_request = MagicMock()
+        raw_request.state.request_id = "req_test"
+        raw_request.url.path = "/v2/trust/summary"
+        agent = MagicMock(organization_id="org_test")
+        mock_store = MagicMock()
+        mock_store.verify_api_key_with_agent = AsyncMock(return_value=agent)
+
+        with patch("routes.trust_v2._get_identity_store", return_value=mock_store):
+            org_id = await _require_org_or_401(raw_request, "  rk_test  ")
+
+        assert org_id == "org_test"
+        mock_store.verify_api_key_with_agent.assert_awaited_once_with("rk_test")
 
     def test_providers_requires_auth(self, client):
         resp = client.get("/v2/trust/providers")

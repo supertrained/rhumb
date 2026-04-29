@@ -115,9 +115,10 @@ def _validated_period_filter(period: str | None) -> str | None:
 
 async def _require_org_or_401(raw_request: Request, api_key: str | None) -> str | JSONResponse:
     """Validate governed API key and return org_id, or a structured 401 response."""
-    if not api_key:
+    normalized_key = str(api_key or "").strip()
+    if not normalized_key:
         return _missing_governed_key_response(raw_request)
-    agent = await _get_identity_store().verify_api_key_with_agent(api_key)
+    agent = await _get_identity_store().verify_api_key_with_agent(normalized_key)
     if agent is None:
         return _invalid_governed_key_response(raw_request)
     return agent.organization_id
