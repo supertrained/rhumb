@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 from app import create_app
 from routes.providers_v2 import (
     _canonicalize_service_rows,
+    _resolve_agent_for_budget,
     _validated_provider_list_limit,
     _validated_provider_list_offset,
 )
@@ -110,6 +113,33 @@ def _mock_supabase_fetch(query: str):
         # list query
         return _MOCK_SERVICES_LIST
     return []
+
+
+def _request_with_headers(headers: list[tuple[bytes, bytes]]) -> Request:
+    return Request({"type": "http", "method": "GET", "path": "/", "headers": headers})
+
+
+def test_resolve_agent_for_budget_skips_blank_rhumb_key_before_identity_store():
+    request = _request_with_headers([(b"x-rhumb-key", b"   ")])
+
+    with patch("routes.providers_v2.v1_execute._get_identity_store") as get_identity_store:
+        result = asyncio.run(_resolve_agent_for_budget(request))
+
+    assert result is None
+    get_identity_store.assert_not_called()
+
+
+def test_resolve_agent_for_budget_trims_valid_rhumb_key_before_verification():
+    request = _request_with_headers([(b"x-rhumb-key", b"  rk_test  ")])
+    agent = MagicMock()
+    identity_store = MagicMock()
+    identity_store.verify_api_key_with_agent = AsyncMock(return_value=agent)
+
+    with patch("routes.providers_v2.v1_execute._get_identity_store", return_value=identity_store):
+        result = asyncio.run(_resolve_agent_for_budget(request))
+
+    assert result is agent
+    identity_store.verify_api_key_with_agent.assert_awaited_once_with("rk_test")
 
 
 _DEFUNCT_DIRECT_MAPPING_PROVIDER = {

@@ -812,7 +812,8 @@ async def _resolve_provider_detail(provider_id: str) -> dict | None:
 
 async def _resolve_agent_for_budget(raw_request: Request):
     """If the request is authenticated via X-Rhumb-Key, return the agent."""
-    x_rhumb_key = raw_request.headers.get("X-Rhumb-Key")
+    raw_x_rhumb_key = raw_request.headers.get("X-Rhumb-Key")
+    x_rhumb_key = raw_x_rhumb_key.strip() if raw_x_rhumb_key is not None else None
     if not x_rhumb_key:
         return None
     agent = await v1_execute._get_identity_store().verify_api_key_with_agent(x_rhumb_key)
