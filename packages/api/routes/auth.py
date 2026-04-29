@@ -76,17 +76,15 @@ class DashboardAutoReloadRequest(BaseModel):
 class DashboardCreateAgentKeyRequest(BaseModel):
     """Create a secondary governed API key (new agent) for the current org."""
 
-    name: str = Field(..., min_length=1, max_length=64, description="Agent display name")
-    description: str | None = Field(default=None, max_length=240)
-    budget_usd: float = Field(
-        ..., gt=0, le=MAX_CHECKOUT_AMOUNT_USD, description="Budget cap in USD"
-    )
+    name: str = Field(..., description="Agent display name")
+    description: str | None = Field(default=None)
+    budget_usd: float = Field(..., description="Budget cap in USD")
     period: str = Field(
         default="monthly",
         description="Budget reset period: daily | weekly | monthly | total",
     )
     hard_limit: bool = Field(default=True, description="Block calls when budget is exhausted")
-    rate_limit_qpm: int = Field(default=20, ge=1, le=1000, description="Global QPM limit")
+    rate_limit_qpm: int = Field(default=20, description="Global QPM limit")
 
 
 def _public_usage_service(service_slug: Any) -> str:
@@ -822,15 +820,36 @@ def _validate_dashboard_agent_key_request(
     body: DashboardCreateAgentKeyRequest,
     *,
     fallback_description: str,
-) -> tuple[str, str, str]:
+) -> tuple[str, str, str, float, int]:
     """Validate dashboard agent-key inputs before opening session/org state."""
     name = body.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="name is required")
+    if len(name) > 64:
+        raise HTTPException(status_code=400, detail="name must be 64 characters or fewer")
+
+    budget_usd = float(body.budget_usd)
+    if budget_usd <= 0 or budget_usd > MAX_CHECKOUT_AMOUNT_USD:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"budget_usd must be greater than 0 and no more than "
+                f"{MAX_CHECKOUT_AMOUNT_USD:.0f}"
+            ),
+        )
+
+    rate_limit_qpm = int(body.rate_limit_qpm)
+    if rate_limit_qpm < 1 or rate_limit_qpm > 1000:
+        raise HTTPException(
+            status_code=400,
+            detail="rate_limit_qpm must be between 1 and 1000",
+        )
 
     period = _normalize_budget_period(body.period)
     description = body.description.strip() if body.description else fallback_description
-    return name, description, period
+    if len(description) > 240:
+        raise HTTPException(status_code=400, detail="description must be 240 characters or fewer")
+    return name, description, period, budget_usd, rate_limit_qpm
 
 
 @router.post("/me/agents")
@@ -839,7 +858,7 @@ async def me_create_agent_key(
     rhumb_session: Optional[str] = Cookie(default=None),
 ) -> JSONResponse:
     """Create a capped secondary governed key for the logged-in user's org."""
-    name, description, period = _validate_dashboard_agent_key_request(
+    name, description, period, budget_usd, rate_limit_qpm = _validate_dashboard_agent_key_request(
         body,
         fallback_description="Secondary agent key created from dashboard",
     )
@@ -873,7 +892,7 @@ async def me_create_agent_key(
     agent_id, api_key = await identity_store.register_agent(
         name=name,
         organization_id=org_id,
-        rate_limit_qpm=body.rate_limit_qpm,
+        rate_limit_qpm=rate_limit_qpm,
         description=description,
         tags=["secondary"],
     )
@@ -884,7 +903,7 @@ async def me_create_agent_key(
         "agent_budgets",
         {
             "agent_id": agent_id,
-            "budget_usd": float(body.budget_usd),
+            "budget_usd": budget_usd,
             "period": period,
             "hard_limit": bool(body.hard_limit),
             "alert_threshold_pct": 80,
@@ -907,9 +926,9 @@ async def me_create_agent_key(
             "agent_id": agent_id,
             "api_key": api_key,
             "api_key_prefix": api_key_prefix(api_key),
-            "rate_limit_qpm": body.rate_limit_qpm,
+            "rate_limit_qpm": rate_limit_qpm,
             "budget": {
-                "budget_usd": float(budget_row.get("budget_usd")) if budget_row.get("budget_usd") is not None else float(body.budget_usd),
+                "budget_usd": float(budget_row.get("budget_usd")) if budget_row.get("budget_usd") is not None else budget_usd,
                 "spent_usd": float(budget_row.get("spent_usd")) if budget_row.get("spent_usd") is not None else 0.0,
                 "period": budget_row.get("period") or period,
                 "hard_limit": bool(budget_row.get("hard_limit")) if budget_row.get("hard_limit") is not None else bool(body.hard_limit),

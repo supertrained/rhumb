@@ -1058,6 +1058,40 @@ def test_me_agents_create_rejects_invalid_period_before_session_reads() -> None:
     require_session.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    ("body_patch", "detail"),
+    [
+        ({"budget_usd": 0}, "budget_usd must be greater than 0 and no more than 5000"),
+        ({"budget_usd": 5000.01}, "budget_usd must be greater than 0 and no more than 5000"),
+        ({"rate_limit_qpm": 0}, "rate_limit_qpm must be between 1 and 1000"),
+        ({"rate_limit_qpm": 1001}, "rate_limit_qpm must be between 1 and 1000"),
+        ({"name": "A" * 65}, "name must be 64 characters or fewer"),
+        ({"description": "D" * 241}, "description must be 240 characters or fewer"),
+    ],
+)
+def test_me_agents_create_rejects_invalid_numeric_and_size_inputs_before_session_reads(
+    body_patch: dict[str, object],
+    detail: str,
+) -> None:
+    client = TestClient(_shared_app, raise_server_exceptions=False)
+    body = {
+        "name": "Friend Agent",
+        "description": "Key for a friend",
+        "budget_usd": 10.0,
+        "period": "monthly",
+        "hard_limit": True,
+        "rate_limit_qpm": 20,
+    }
+    body.update(body_patch)
+
+    with patch("routes.auth._require_session", new_callable=AsyncMock) as require_session:
+        response = client.post("/v1/auth/me/agents", json=body)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == detail
+    require_session.assert_not_awaited()
+
+
 def test_me_agents_can_create_and_list_capped_secondary_keys() -> None:
     with _auth_email_harness() as env:
         env.client.post(
