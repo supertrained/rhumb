@@ -46,6 +46,7 @@ const CHECKLIST = [
   "Trust class: is this local convenience or remote production infrastructure?",
   "Auth model: who is the principal, which tools stay visible, and whose budget or quota does the call spend?",
   "Execution-time boundaries: which paths, URLs, repos, and write targets stay reachable after normalization and runtime validation?",
+  "Denied-neighbor fixture: can the same caller make the allowed call while the adjacent dangerous value returns a typed denial on every endpoint family?",
   "Tenant model: how are identities, quotas, and data segmented?",
   "Governors: what stops runaway spend, writes, or token burn?",
   "Protocol contract: do tool results stay inside spec-valid types, mime metadata, and error shapes even on edge cases?",
@@ -68,6 +69,13 @@ const PROMPT_INJECTION_DRILL = [
   "Can browser, fetch, or crawl tools restrict domains and egress so indirect prompt injection does not quietly become SSRF?",
   "If a boundary blocks the action, does the caller get a typed denial instead of a vague runtime error?",
   "Can one blocked or compromised lane be quarantined without widening blast radius to other tenants or shared budgets?",
+];
+
+const DENIED_NEIGHBOR_DRILL = [
+  "Pair every high-risk allowed call with the adjacent value that must be refused: sibling path, neighboring repo, different tenant, blocked domain, or write target outside policy.",
+  "Run that pair through the same route families the agent can use: session, message, streaming, callback, management, and any gateway or adapter path.",
+  "Require the denied neighbor to preserve caller, normalized value, endpoint family, policy rule, and downstream credential lane in trace evidence.",
+  "Treat a generic 500, silent retry, partial side effect, or inconsistent denial across endpoints as readiness failure, not an observability TODO.",
 ];
 
 const FAILURE_CLASSES = [
@@ -162,7 +170,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-27T00:00:00Z",
+  dateModified: "2026-04-29T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, transport and middleware boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -305,6 +313,17 @@ const ARTICLE_JSON_LD = {
               <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Prompt-injection containment drill</div>
               <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
                 {PROMPT_INJECTION_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Denied-neighbor readiness fixture</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                The repeated unconstrained-parameter failures point to one simple readiness test: prove the safe value and the adjacent unsafe value behave differently before a remote MCP server enters production. One green happy-path call does not prove scope. The denied neighbor is the production evidence.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {DENIED_NEIGHBOR_DRILL.map((item) => (
                   <li>{item}</li>
                 ))}
               </ul>
