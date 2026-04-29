@@ -428,8 +428,16 @@ def _preferred_provider(policy: V2CapabilityPolicy | None) -> str | None:
     return None
 
 
+def _normalized_governed_key(raw_request: Request) -> str | None:
+    raw_key = raw_request.headers.get("X-Rhumb-Key")
+    if raw_key is None:
+        return None
+    normalized = raw_key.strip()
+    return normalized or None
+
+
 async def _resolve_policy_agent(raw_request: Request):
-    x_rhumb_key = raw_request.headers.get("X-Rhumb-Key")
+    x_rhumb_key = _normalized_governed_key(raw_request)
     if not x_rhumb_key:
         raise RhumbError(
             "CREDENTIAL_INVALID",
@@ -454,7 +462,7 @@ async def _resolve_policy_agent(raw_request: Request):
 
 
 async def _resolve_policy_agent_id(raw_request: Request) -> str:
-    x_rhumb_key = raw_request.headers.get("X-Rhumb-Key")
+    x_rhumb_key = _normalized_governed_key(raw_request)
     if not x_rhumb_key:
         return raw_request.headers.get("X-Rhumb-Agent-Id") or "x402_anonymous"
 
@@ -1015,7 +1023,7 @@ async def execute_capability_v2(
     canonical_credential_mode = _canonicalize_credential_mode(payload.credential_mode)
     agent = None
     account_policy = None
-    if raw_request.headers.get("X-Rhumb-Key"):
+    if _normalized_governed_key(raw_request):
         agent = await _resolve_policy_agent(raw_request)
         account_policy = await get_resolve_policy_store().get_policy(agent.organization_id)
 

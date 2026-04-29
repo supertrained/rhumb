@@ -2108,6 +2108,26 @@ async def test_v2_policy_auth_errors_use_governed_api_key_language(app, _mock_id
 
 
 @pytest.mark.anyio
+async def test_v2_policy_governed_key_headers_are_normalized_before_identity_reads(app, _mock_identity_store):
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        blank_resp = await client.get("/v2/policy", headers={"X-Rhumb-Key": "   	  "})
+
+    assert blank_resp.status_code == 401
+    blank_body = blank_resp.json()
+    assert blank_body["error"]["code"] == "CREDENTIAL_INVALID"
+    assert blank_body["error"]["message"] == "Resolve v2 policy endpoints require a valid governed API key."
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
+
+    _mock_identity_store.verify_api_key_with_agent.reset_mock()
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        padded_resp = await client.get("/v2/policy", headers={"X-Rhumb-Key": "  rhumb_test_key_v2  "})
+
+    assert padded_resp.status_code == 200
+    _mock_identity_store.verify_api_key_with_agent.assert_awaited_once_with("rhumb_test_key_v2")
+
+
+@pytest.mark.anyio
 async def test_v2_policy_put_and_get_round_trip(app, _mock_policy_store):
     stored_policy = SimpleNamespace(
         org_id="org_v2_test",
