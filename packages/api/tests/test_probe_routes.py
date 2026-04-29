@@ -350,6 +350,67 @@ def test_latest_probe_rejects_blank_probe_type_before_repository_read(
     assert body["error"]["detail"] == "Provide a non-empty probe_type value or omit the filter."
 
 
+@pytest.mark.parametrize(
+    ("payload", "field_name"),
+    [
+        ({"service_slug": "   ", "probe_type": "health", "trigger_source": "test"}, "service_slug"),
+        ({"service_slug": "stripe", "probe_type": "   ", "trigger_source": "test"}, "probe_type"),
+        ({"service_slug": "stripe", "probe_type": "health", "trigger_source": "   "}, "trigger_source"),
+    ],
+)
+def test_run_probe_rejects_blank_fields_before_probe_service(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+    payload: dict,
+    field_name: str,
+) -> None:
+    """Blank probe-run fields should fail before opening probe storage or executing probes."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    def fail_probe_service() -> ProbeService:
+        raise AssertionError("probe service should not be opened")
+
+    monkeypatch.setattr(probe_routes, "get_probe_service", fail_probe_service)
+
+    response = client.post("/v1/probes/run", json=payload)
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == f"Invalid '{field_name}' field."
+    assert body["error"]["detail"] == f"Provide a non-empty {field_name} value."
+
+
+def test_scheduler_rejects_blank_service_filters_before_scheduler_open(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank scheduled service filters should not open scheduler/probe state."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    def fail_scheduler() -> ProbeScheduler:
+        raise AssertionError("scheduler should not be opened")
+
+    monkeypatch.setattr(probe_routes, "get_probe_scheduler", fail_scheduler)
+
+    response = client.post(
+        "/v1/probes/schedule/run",
+        json={"service_slugs": ["stripe", "   "], "dry_run": True},
+    )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'service_slug' field."
+    assert body["error"]["detail"] == "Provide a non-empty service_slug value."
+
+
 def test_scheduler_entrypoint_runs_seed_specs(client, monkeypatch: pytest.MonkeyPatch) -> None:
     """POST /v1/probes/schedule/run should execute selected seed specs."""
     from routes import probes as probe_routes

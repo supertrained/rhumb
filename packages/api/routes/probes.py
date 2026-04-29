@@ -97,27 +97,61 @@ def _validated_probe_type_filter(probe_type: str | None) -> str | None:
     )
 
 
+def _validated_probe_text_field(value: str | None, *, field_name: str) -> str:
+    cleaned = str(value or "").strip()
+    if cleaned:
+        return cleaned
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' field.",
+        detail=f"Provide a non-empty {field_name} value.",
+    )
+
+
+def _validated_probe_run_service_slug(service_slug: str | None) -> str:
+    canonical_slug = public_service_slug(service_slug)
+    if canonical_slug is not None:
+        return canonical_slug
+
+    return _validated_probe_text_field(service_slug, field_name="service_slug").lower()
+
+
+def _validated_schedule_service_slugs(service_slugs: list[str] | None) -> list[str] | None:
+    if service_slugs is None:
+        return None
+
+    normalized: list[str] = []
+    for service_slug in service_slugs:
+        normalized.append(_validated_probe_run_service_slug(service_slug))
+    return normalized
+
+
 @router.post("/probes/run", response_model=ProbeResultSchema, dependencies=[Depends(require_admin_key)])
 async def run_probe(payload: ProbeRunRequestSchema) -> ProbeResultSchema:
     """Run a single internal probe and persist the result."""
+    service_slug = _validated_probe_run_service_slug(payload.service_slug)
+    probe_type = _validated_probe_text_field(payload.probe_type, field_name="probe_type")
+    trigger_source = _validated_probe_text_field(payload.trigger_source, field_name="trigger_source")
+
     probe_service = get_probe_service()
     try:
         stored = await probe_service.run_probe(
-            service_slug=payload.service_slug,
-            probe_type=payload.probe_type,
+            service_slug=service_slug,
+            probe_type=probe_type,
             target_url=payload.target_url,
             payload=payload.payload,
-            trigger_source=payload.trigger_source,
+            trigger_source=trigger_source,
             sample_count=payload.sample_count,
         )
     except Exception:
         fallback_service = ProbeService(repository=InMemoryProbeRepository())
         stored = await fallback_service.run_probe(
-            service_slug=payload.service_slug,
-            probe_type=payload.probe_type,
+            service_slug=service_slug,
+            probe_type=probe_type,
             target_url=payload.target_url,
             payload=payload.payload,
-            trigger_source=payload.trigger_source,
+            trigger_source=trigger_source,
             sample_count=payload.sample_count,
         )
 
@@ -132,8 +166,9 @@ async def run_scheduled_probe_batch(
     payload: ProbeBatchRunRequestSchema,
 ) -> ProbeBatchRunResponseSchema:
     """Run one scheduler batch for recurring probe specifications."""
+    service_slugs = _validated_schedule_service_slugs(payload.service_slugs)
     scheduler = get_probe_scheduler()
-    selected = scheduler.list_specs(service_slugs=payload.service_slugs)
+    selected = scheduler.list_specs(service_slugs=service_slugs)
 
     if payload.dry_run:
         cadence_preview = scheduler.preview_cadence(
@@ -152,7 +187,7 @@ async def run_scheduled_probe_batch(
         )
 
     summary = await scheduler.run_once(
-        service_slugs=payload.service_slugs,
+        service_slugs=service_slugs,
         sample_count=payload.sample_count,
         base_interval_minutes=payload.base_interval_minutes,
     )
