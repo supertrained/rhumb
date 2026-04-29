@@ -32,12 +32,19 @@ const SILENT_POLICY_WRITE_GATES = [
   "Return a typed stale-policy outcome when the old field is accepted but no longer authoritative; do not retry the same no-op write as if it were transient failure.",
 ];
 
+const CALLBACK_AUTHORITY_GATES = [
+  "Validate OAuth callback state, wallet top-up payloads, and webhook signatures before any session, credit, entitlement, or account state is read.",
+  "Preserve the callback actor, claimed account, signed payload family, and replay window in trace context so operators can distinguish a real continuation from a forged completion.",
+  "Fail closed with a typed callback-auth outcome when the signature, state token, tenant binding, amount, or timestamp cannot be proven before the side effect is applied.",
+  "Test the adjacent-dangerous values too: stale state, wrong tenant, altered amount, missing signature, and replayed event should all die before business logic observes them.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-04-28T00:00:00Z",
+  dateModified: "2026-04-29T00:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -320,6 +327,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           Pair this gate with the <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:underline underline-offset-2">silent security-default drift test</a> so unattended setup lanes prove enforcement, not just acknowledgement.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300 mb-3">Callback authority gate</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          A callback is not proof until the signature, state, and tenant binding validate first
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Agent workflows often treat redirects, checkout completions, top-up callbacks, and webhooks as the moment authority becomes real. That is dangerous if the handler reads session state, credits an account, or unlocks execution before proving the callback belongs to the same actor, amount, tenant, and signed event window. Reliability starts by validating the continuation before business logic can observe it.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {CALLBACK_AUTHORITY_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          This gate belongs beside <a href="/blog/remote-mcp-auth-identity-vs-authority" class="text-amber hover:underline underline-offset-2">remote-auth authority</a> and <a href="/blog/signed-mcp-receipts-evidence-not-authority" class="text-amber hover:underline underline-offset-2">receipts-as-evidence</a>: a receipt or redirect can document what happened, but it should not create authority until the callback boundary is proven.
         </p>
       </section>
 
