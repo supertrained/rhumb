@@ -107,6 +107,13 @@ const BOOTSTRAP_CONTRACT = [
   "Make the credential path explicit before side effects: governed Rhumb key, BYOK, Agent Vault, or no paid execution yet.",
   "Record the claim semantics in trace context so the next run can prove which setup step created authority, who approved it, and what recovery path exists if the first action fails.",
 ];
+
+const EXECUTION_IDENTITY_GATES = [
+  "Treat the capability id as the execution object, not a decorative URL segment. A blank or missing id should fail before policy, credential, or provider selection starts.",
+  "Resolve the capability from the public catalog before promotion. The paid call should inherit an explicit capability id, interface, credential mode, and cost ceiling instead of reconstructing intent from chat text.",
+  "Keep the same id through resolve, estimate, execute, and receipt review so recovery can tell whether a retry continued the original job or drifted into a neighboring capability.",
+  "When the id is invalid, return a typed parameter error and no policy read. That is the boundary that keeps malformed execution requests from becoming authority probes.",
+];
 ---
 
 <Layout
@@ -202,6 +209,26 @@ const BOOTSTRAP_CONTRACT = [
         </ul>
         <p class="mt-6 text-sm leading-6 text-slate-400">
           If the setup step cannot name the actor, credential lane, quota owner, and recovery path, stay on <a data-rhumb-propagate href="/quickstart?rhumb_experiment=e004&rhumb_source=start-managed-execution-bootstrap-quickstart" class="text-amber hover:text-amber-200 transition-colors">free quickstart</a> or inspect <a data-rhumb-propagate href="/resolve#credential-paths" class="text-amber hover:text-amber-200 transition-colors">credential paths</a> before promoting the lane.
+        </p>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Execution identity gate</div>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">The capability id has to be validated before authority is read.</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            Managed execution becomes auditable when the request names the exact capability it is allowed to run. Resolve can help choose that capability, estimate can price it, and execute can run it, but a malformed execution path should stop before credential lookup, policy evaluation, or provider routing.
+          </p>
+        </div>
+        <ul class="mt-6 grid gap-4 md:grid-cols-2">
+          {EXECUTION_IDENTITY_GATES.map((item) => (
+            <li class="rounded-3xl border border-slate-800 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm leading-6 text-slate-400">
+          If you do not have a stable capability id yet, start at <a data-rhumb-propagate href="/capabilities" class="text-amber hover:text-amber-200 transition-colors">capabilities</a> or use the <a data-rhumb-propagate href="/quickstart?rhumb_experiment=e004&rhumb_source=start-managed-execution-identity-quickstart" class="text-amber hover:text-amber-200 transition-colors">free quickstart</a> before wiring paid execution.
         </p>
       </div>
     </section>
