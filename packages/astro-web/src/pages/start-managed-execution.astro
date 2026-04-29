@@ -100,6 +100,13 @@ const NOT_DEFAULT_FIT = [
   "workflows that must stay on your own provider contracts or compliance boundary",
   "general business-agent automation beyond the current beachhead",
 ];
+
+const BOOTSTRAP_CONTRACT = [
+  "Name the actor before the first call: human operator, agent principal, workspace, credential lane, and quota owner should not be inferred from a broad session token.",
+  "Separate inspect, claim, and execute. A bootstrap flow can let an agent discover fit without silently minting production authority or touching customer systems.",
+  "Make the credential path explicit before side effects: governed Rhumb key, BYOK, Agent Vault, or no paid execution yet.",
+  "Record the claim semantics in trace context so the next run can prove which setup step created authority, who approved it, and what recovery path exists if the first action fails.",
+];
 ---
 
 <Layout
@@ -175,6 +182,27 @@ const NOT_DEFAULT_FIT = [
             </div>
           ))}
         </div>
+      </div>
+    </section>
+
+
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Bootstrap contract</div>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Self-onboarding is only safe when setup creates bounded authority.</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            An agent-friendly first run is not a blank check for autonomous setup. The useful bootstrap path separates inspection, claim, credential choice, and execution so the first paid action inherits a boundary the operator can audit.
+          </p>
+        </div>
+        <ul class="mt-6 grid gap-4 md:grid-cols-2">
+          {BOOTSTRAP_CONTRACT.map((item) => (
+            <li class="rounded-3xl border border-slate-800 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm leading-6 text-slate-400">
+          If the setup step cannot name the actor, credential lane, quota owner, and recovery path, stay on <a data-rhumb-propagate href="/quickstart?rhumb_experiment=e004&rhumb_source=start-managed-execution-bootstrap-quickstart" class="text-amber hover:text-amber-200 transition-colors">free quickstart</a> or inspect <a data-rhumb-propagate href="/resolve#credential-paths" class="text-amber hover:text-amber-200 transition-colors">credential paths</a> before promoting the lane.
+        </p>
       </div>
     </section>
 
