@@ -847,6 +847,51 @@ def test_me_billing_checkout_confirm_calls_stripe_confirm_service() -> None:
     assert mock_confirm.await_args.kwargs["expected_org_id"] == org_id
 
 
+def test_me_billing_checkout_rejects_invalid_amount_before_session_lookup() -> None:
+    with _auth_email_harness() as env:
+        with patch("routes.auth._require_session", new_callable=AsyncMock) as mock_session:
+            response = env.client.post(
+                "/v1/auth/me/billing/checkout",
+                json={"amount_usd": 1.0},
+            )
+
+    assert response.status_code == 400
+    assert "amount_usd must be between" in response.json()["detail"]
+    mock_session.assert_not_awaited()
+
+
+def test_me_billing_checkout_confirm_rejects_blank_session_id_before_session_lookup() -> None:
+    with _auth_email_harness() as env:
+        with patch("routes.auth._require_session", new_callable=AsyncMock) as mock_session:
+            response = env.client.post(
+                "/v1/auth/me/billing/checkout/confirm",
+                json={"session_id": "   "},
+            )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "session_id is required"
+    mock_session.assert_not_awaited()
+
+
+def test_me_billing_auto_reload_rejects_invalid_config_before_session_lookup() -> None:
+    with _auth_email_harness() as env:
+        with patch("routes.auth._require_session", new_callable=AsyncMock) as mock_session:
+            threshold_response = env.client.put(
+                "/v1/auth/me/billing/auto-reload",
+                json={"enabled": True, "threshold_usd": 0, "amount_usd": 50.0},
+            )
+            amount_response = env.client.put(
+                "/v1/auth/me/billing/auto-reload",
+                json={"enabled": True, "threshold_usd": 10.0, "amount_usd": 1.0},
+            )
+
+    assert threshold_response.status_code == 400
+    assert threshold_response.json()["detail"] == "threshold_usd must be > 0 when auto-reload is enabled"
+    assert amount_response.status_code == 400
+    assert "amount_usd must be between" in amount_response.json()["detail"]
+    mock_session.assert_not_awaited()
+
+
 def test_me_billing_auto_reload_requires_saved_payment_method() -> None:
     with _auth_email_harness() as env:
         env.client.post(

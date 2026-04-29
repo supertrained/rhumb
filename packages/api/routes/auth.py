@@ -895,12 +895,25 @@ def _dashboard_checkout_url(kind: str) -> str:
     return f"{frontend}/dashboard?checkout=cancel"
 
 
+def _validate_dashboard_checkout_amount(amount_usd: float, *, suffix: str = "") -> None:
+    if amount_usd < MIN_CHECKOUT_AMOUNT_USD or amount_usd > MAX_CHECKOUT_AMOUNT_USD:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"amount_usd must be between {MIN_CHECKOUT_AMOUNT_USD:.0f} "
+                f"and {MAX_CHECKOUT_AMOUNT_USD:.0f}{suffix}"
+            ),
+        )
+
+
 @router.post("/me/billing/checkout")
 async def me_billing_checkout(
     body: DashboardCheckoutRequest,
     rhumb_session: Optional[str] = Cookie(default=None),
 ) -> JSONResponse:
     """Create a Stripe Checkout Session for the logged-in user's org."""
+    _validate_dashboard_checkout_amount(body.amount_usd)
+
     claims = await _require_session(rhumb_session)
 
     user_store = get_user_store()
@@ -911,15 +924,6 @@ async def me_billing_checkout(
     org_id = user.organization_id
     if not org_id:
         raise HTTPException(status_code=400, detail="No organization associated with this user")
-
-    if body.amount_usd < MIN_CHECKOUT_AMOUNT_USD or body.amount_usd > MAX_CHECKOUT_AMOUNT_USD:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"amount_usd must be between {MIN_CHECKOUT_AMOUNT_USD:.0f} "
-                f"and {MAX_CHECKOUT_AMOUNT_USD:.0f}"
-            ),
-        )
 
     amount_cents = int(round(body.amount_usd * 100))
     result = await create_checkout_session(
@@ -941,6 +945,10 @@ async def me_billing_checkout_confirm(
     This provides a self-serve fallback path when webhook delivery is misconfigured
     or delayed. The session must belong to the caller's organization.
     """
+    session_id = (body.session_id or "").strip()
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+
     claims = await _require_session(rhumb_session)
 
     user_store = get_user_store()
@@ -952,10 +960,6 @@ async def me_billing_checkout_confirm(
     if not org_id:
         raise HTTPException(status_code=400, detail="No organization associated with this user")
 
-    session_id = (body.session_id or "").strip()
-    if not session_id:
-        raise HTTPException(status_code=400, detail="session_id is required")
-
     result = await confirm_checkout_session_detailed(session_id, expected_org_id=org_id)
     return JSONResponse(result)
 
@@ -966,6 +970,25 @@ async def me_billing_auto_reload(
     rhumb_session: Optional[str] = Cookie(default=None),
 ) -> JSONResponse:
     """Update auto-reload settings for the logged-in user's org."""
+    if body.enabled:
+        if body.threshold_usd is None or body.threshold_usd <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="threshold_usd must be > 0 when auto-reload is enabled",
+            )
+        if body.amount_usd is None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"amount_usd must be between {MIN_CHECKOUT_AMOUNT_USD:.0f} "
+                    f"and {MAX_CHECKOUT_AMOUNT_USD:.0f} when auto-reload is enabled"
+                ),
+            )
+        _validate_dashboard_checkout_amount(
+            body.amount_usd,
+            suffix=" when auto-reload is enabled",
+        )
+
     claims = await _require_session(rhumb_session)
 
     user_store = get_user_store()
@@ -978,20 +1001,6 @@ async def me_billing_auto_reload(
         raise HTTPException(status_code=400, detail="No organization associated with this user")
 
     if body.enabled:
-        if body.threshold_usd is None or body.threshold_usd <= 0:
-            raise HTTPException(
-                status_code=400,
-                detail="threshold_usd must be > 0 when auto-reload is enabled",
-            )
-        if body.amount_usd is None or body.amount_usd < MIN_CHECKOUT_AMOUNT_USD or body.amount_usd > MAX_CHECKOUT_AMOUNT_USD:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"amount_usd must be between {MIN_CHECKOUT_AMOUNT_USD:.0f} "
-                    f"and {MAX_CHECKOUT_AMOUNT_USD:.0f} when auto-reload is enabled"
-                ),
-            )
-
         from routes._supabase import supabase_fetch
 
         rows = await supabase_fetch(
