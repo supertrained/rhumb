@@ -1759,6 +1759,54 @@ def _validated_estimate_credential_mode(credential_mode: str | None) -> str:
     )
 
 
+def _validate_explicit_execute_request_requirements(
+    request: CapabilityExecuteRequest,
+    *,
+    x_agent_token: str | None,
+) -> None:
+    """Reject explicit BYOK/Agent Vault requests before mapping/rate-limit reads."""
+    if request.provider is not None:
+        provider = str(request.provider).strip()
+        if not provider:
+            raise RhumbError(
+                "INVALID_PARAMETERS",
+                message="Invalid 'provider' field.",
+                detail="Provide a non-empty provider slug or omit the field.",
+            )
+        request.provider = provider
+
+    if request.method is not None:
+        request.method = str(request.method).strip()
+    if request.path is not None:
+        request.path = str(request.path).strip()
+
+    if request.credential_mode == "agent_vault":
+        if not x_agent_token:
+            raise RhumbError(
+                "INVALID_PARAMETERS",
+                message="X-Agent-Token header required for agent_vault credential mode.",
+                detail="Get a token via GET /v1/services/{slug}/ceremony.",
+            )
+        if not request.method or not request.path:
+            raise RhumbError(
+                "INVALID_PARAMETERS",
+                message="method and path are required for agent_vault credential mode.",
+                detail="Provide the upstream HTTP method and path for Agent Vault execution.",
+            )
+        if not request.provider:
+            raise RhumbError(
+                "INVALID_PARAMETERS",
+                message="provider is required for agent_vault credential mode.",
+                detail="Provide the provider/service slug bound to the Agent Vault token.",
+            )
+    elif request.credential_mode == "byok":
+        if not request.method or not request.path:
+            raise RhumbError(
+                "INVALID_PARAMETERS",
+                message="method and path are required for byok credential mode.",
+                detail="Provide the upstream HTTP method and path for BYOK execution.",
+            )
+
 def _parse_credential_modes(raw_modes: Any) -> list[str]:
     """Normalize credential_modes from Supabase into a list of strings."""
     if isinstance(raw_modes, str):
@@ -2332,6 +2380,8 @@ async def execute_capability(
         )
         return response
 
+    _validate_explicit_execute_request_requirements(request, x_agent_token=x_agent_token)
+
     # ── Per-agent execution rate limiting ────────────────────────────
     # Applies to all execution modes to prevent flooding.
     exec_allowed, exec_remaining = await check_agent_exec_rate_limit(agent_id)
@@ -2349,6 +2399,7 @@ async def execute_capability(
         mappings=cap_services,
         requested_provider=request.provider,
     )
+    _validate_explicit_execute_request_requirements(request, x_agent_token=x_agent_token)
 
     # ── Kill Switch: managed-only shutdown ──────────────────────
     # Blocks Mode 2 (Rhumb's credentials) while allowing BYOK and x402.
@@ -2374,31 +2425,6 @@ async def execute_capability(
                 detail="Daily managed execution limit exceeded (200/day). "
                        "Consider using byok credentials for higher volume.",
                 headers={"Retry-After": "3600"},
-            )
-
-    # Validate required fields before reserving any budget/credits.
-    if request.credential_mode == "agent_vault":
-        if not x_agent_token:
-            raise HTTPException(
-                status_code=400,
-                detail="X-Agent-Token header required for agent_vault credential mode. "
-                       "Get a token via GET /v1/services/{slug}/ceremony",
-            )
-        if not request.method or not request.path:
-            raise HTTPException(
-                status_code=400,
-                detail="method and path are required for agent_vault credential mode",
-            )
-        if not request.provider:
-            raise HTTPException(
-                status_code=400,
-                detail="provider is required for agent_vault credential mode",
-            )
-    elif request.credential_mode != "rhumb_managed":
-        if not request.method or not request.path:
-            raise HTTPException(
-                status_code=400,
-                detail="method and path are required for byok credential mode",
             )
 
     selected_mapping: dict | None = None

@@ -468,6 +468,116 @@ async def test_execute_explicit_provider(app):
 
 
 @pytest.mark.anyio
+async def test_execute_rejects_explicit_byok_missing_path_before_mapping_reads(
+    app,
+    _mock_rate_limiter,
+):
+    seen_paths: list[str] = []
+
+    async def mock_fetch(path: str):
+        seen_paths.append(path)
+        return _mock_supabase(path)
+
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=mock_fetch,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "credential_mode": "byok",
+                    "provider": "sendgrid",
+                    "method": "POST",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "method and path are required for byok credential mode."
+    assert any(path.startswith("capabilities?") for path in seen_paths)
+    assert not any(path.startswith("capability_services?") for path in seen_paths)
+    _mock_rate_limiter.check_and_increment.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_execute_rejects_agent_vault_missing_token_before_mapping_reads(
+    app,
+    _mock_rate_limiter,
+):
+    seen_paths: list[str] = []
+
+    async def mock_fetch(path: str):
+        seen_paths.append(path)
+        return _mock_supabase(path)
+
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=mock_fetch,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "credential_mode": "agent_vault",
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "X-Agent-Token header required for agent_vault credential mode."
+    assert any(path.startswith("capabilities?") for path in seen_paths)
+    assert not any(path.startswith("capability_services?") for path in seen_paths)
+    _mock_rate_limiter.check_and_increment.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_execute_rejects_blank_provider_field_before_mapping_reads(
+    app,
+    _mock_rate_limiter,
+):
+    seen_paths: list[str] = []
+
+    async def mock_fetch(path: str):
+        seen_paths.append(path)
+        return _mock_supabase(path)
+
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=mock_fetch,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "credential_mode": "byok",
+                    "provider": "   ",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'provider' field."
+    assert any(path.startswith("capabilities?") for path in seen_paths)
+    assert not any(path.startswith("capability_services?") for path in seen_paths)
+    _mock_rate_limiter.check_and_increment.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_execute_blocks_when_kill_switch_active(app):
     mock_registry = MagicMock()
     mock_registry.is_blocked.return_value = (
