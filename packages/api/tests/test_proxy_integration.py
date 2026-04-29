@@ -282,6 +282,46 @@ class TestIntegrationProxyRequest:
         assert payload["error"]["detail"] == "Provide a non-empty service value."
         mock_identity_store.assert_not_called()
 
+    def test_proxy_request_rejects_blank_key_before_identity_store(self, client) -> None:
+        """Whitespace governed-key headers should not open identity-store reads."""
+        with patch("routes.proxy._get_identity_store") as mock_identity_store:
+            response = client.post(
+                "/proxy/",
+                json={
+                    "service": "stripe",
+                    "method": "GET",
+                    "path": "/v1/customers",
+                },
+                headers={"X-Rhumb-Key": "  "},
+            )
+
+        assert response.status_code == 401
+        assert response.json()["detail"] == "X-Rhumb-Key header required"
+        mock_identity_store.assert_not_called()
+
+    def test_proxy_request_trims_padded_key_before_verification(self, client, httpx_mock) -> None:
+        """Padded governed-key headers should verify against the canonical key scope."""
+        httpx_mock.add_response(
+            method="GET",
+            url="https://api.stripe.com/v1/customers",
+            json={"data": []},
+            status_code=200,
+            headers={"content-type": "application/json"},
+        )
+
+        response = client.post(
+            "/proxy/",
+            json={
+                "service": "stripe",
+                "method": "GET",
+                "path": "/v1/customers",
+            },
+            headers={"X-Rhumb-Key": f"  {_BYPASS_KEY}  "},
+        )
+
+        assert response.status_code == 200
+        assert response.json()["status_code"] == 200
+
     def test_route_uses_service_timeout_threshold_override(
         self, client, httpx_mock, monkeypatch: pytest.MonkeyPatch
     ) -> None:

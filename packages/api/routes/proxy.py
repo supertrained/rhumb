@@ -725,11 +725,12 @@ async def proxy_request(
     try:
         _validated_proxy_request_service(request.service)
 
-        if not x_rhumb_key:
+        normalized_rhumb_key = str(x_rhumb_key or "").strip()
+        if not normalized_rhumb_key:
             raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
 
         auth_start = time.perf_counter()
-        agent = await _get_identity_store().verify_api_key_with_agent(x_rhumb_key)
+        agent = await _get_identity_store().verify_api_key_with_agent(normalized_rhumb_key)
         timings["auth_ms"] = (time.perf_counter() - auth_start) * 1000
         if agent is None:
             raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
