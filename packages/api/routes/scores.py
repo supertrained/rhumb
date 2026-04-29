@@ -300,6 +300,19 @@ def _public_score_service_slug(service_slug: str) -> str:
     return public_service_slug(service_slug) or str(service_slug).strip().lower()
 
 
+def _validated_public_score_service_slug(service_slug: str | None) -> str:
+    """Validate score-route service ids before opening score or probe reads."""
+    canonical_slug = _public_score_service_slug(service_slug or "")
+    if canonical_slug:
+        return canonical_slug
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'slug' path parameter.",
+        detail="Provide a non-empty service slug.",
+    )
+
+
 def _fetch_latest_probe_for_public_slug(
     probe_repository: ProbeRepository,
     service_slug: str,
@@ -392,8 +405,8 @@ def _format_probe_freshness(probed_at: datetime | None) -> str | None:
 @router.post("/score", response_model=ANScoreSchema, dependencies=[Depends(require_admin_key)])
 async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
     """Calculate and persist an AN score from dimensional inputs."""
+    canonical_service_slug = _validated_public_score_service_slug(payload.service_slug)
     scoring_service = get_scoring_service()
-    canonical_service_slug = _public_score_service_slug(payload.service_slug)
 
     probe_freshness = payload.probe_freshness
     probe_latency_distribution_ms = payload.probe_latency_distribution_ms
@@ -455,7 +468,7 @@ async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
 @router.get("/services/{slug}/score", response_model=ANScoreSchema)
 async def get_score(slug: str) -> ANScoreSchema:
     """Get the latest AN score for a service."""
-    canonical_slug = _public_score_service_slug(slug)
+    canonical_slug = _validated_public_score_service_slug(slug)
     scoring_service = get_scoring_service()
 
     stored = await _fetch_latest_score_for_public_slug(scoring_service, canonical_slug)

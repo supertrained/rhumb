@@ -473,6 +473,51 @@ async def test_get_score_raises_canonical_score_not_found_for_unknown_service(
     )
 
 
+@pytest.mark.asyncio
+async def test_get_score_rejects_blank_slug_before_reads(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank legacy score path slugs should fail before score repositories are opened."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+
+    def _unexpected_scoring_service() -> ScoringService:
+        raise AssertionError("get_scoring_service should not run for blank score slugs")
+
+    monkeypatch.setattr(score_routes, "get_scoring_service", _unexpected_scoring_service)
+
+    with pytest.raises(RhumbError) as exc_info:
+        await score_routes.get_score("   ")
+
+    assert exc_info.value.code == "INVALID_PARAMETERS"
+    assert exc_info.value.message == "Invalid 'slug' path parameter."
+    assert exc_info.value.detail == "Provide a non-empty service slug."
+
+
+def test_get_service_score_http_rejects_blank_slug_with_canonical_envelope(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """HTTP legacy score reads should reject whitespace slugs with a canonical envelope."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+
+    def _unexpected_scoring_service() -> ScoringService:
+        raise AssertionError("get_scoring_service should not run for blank score slugs")
+
+    monkeypatch.setattr(score_routes, "get_scoring_service", _unexpected_scoring_service)
+
+    response = client.get("/v1/services/%20%20%20/score")
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'slug' path parameter."
+    assert payload["error"]["detail"] == "Provide a non-empty service slug."
+
+
 def test_compare_route_exposes_dual_score_fields(
     client,
     monkeypatch: pytest.MonkeyPatch,
