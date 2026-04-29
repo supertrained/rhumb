@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
 from app import create_app
@@ -753,6 +754,55 @@ async def test_db_execute_emits_receipt_on_failure(app, monkeypatch, _mock_recei
     receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
     assert receipt_input.status == "failure"
     assert receipt_input.error_code is not None
+
+
+def test_db_agent_vault_tokenize_rejects_blank_key_before_identity_store(
+    app,
+    _mock_identity_store,
+) -> None:
+    """Blank governed keys reject before identity-store verification."""
+    client = TestClient(app)
+    try:
+        response = client.post(
+            "/v1/db/agent-vault/tokenize",
+            headers={"X-Rhumb-Key": "   "},
+            json={
+                "connection_ref": "conn_reader",
+                "dsn": "postgresql://reader:pass@localhost:5432/app",
+                "ttl_seconds": 300,
+            },
+        )
+    finally:
+        client.close()
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "X-Rhumb-Key header required"
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
+
+
+def test_db_direct_execute_rejects_blank_key_before_identity_store(
+    app,
+    _mock_identity_store,
+) -> None:
+    """Direct execute treats whitespace X-Rhumb-Key as missing before state reads."""
+    client = TestClient(app)
+    try:
+        response = client.post(
+            "/v1/capabilities/db.query.read/execute",
+            headers={"X-Rhumb-Key": "   "},
+            json={
+                "connection_ref": "conn_reader",
+                "query": "SELECT 1",
+            },
+        )
+    finally:
+        client.close()
+
+    assert response.status_code == 401
+    body = response.json()
+    assert body["error"] == "authentication_required"
+    assert "X-Rhumb-Key" in body["message"]
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
 
 
 @pytest.mark.asyncio

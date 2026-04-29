@@ -356,6 +356,14 @@ def _execute_auth_handoff(
     }
 
 
+def _normalize_governed_api_key_header(value: Optional[str]) -> Optional[str]:
+    """Normalize optional governed API key headers before auth-state reads."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def _direct_execute_auth_required_response(
     raw_request: Request,
     *,
@@ -1119,6 +1127,7 @@ async def tokenize_db_agent_vault(
     The issued token is encrypted, bound to the authenticated agent, and scoped
     to the provided connection_ref.
     """
+    x_rhumb_key = _normalize_governed_api_key_header(x_rhumb_key)
     if not x_rhumb_key:
         raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
 
@@ -2005,6 +2014,7 @@ async def discover_execute_capability(
     X-Rhumb-Key for execution and keep GET limited to auth/setup guidance.
     """
     x_payment = _normalize_x402_payment_header(x_payment, payment_signature)
+    x_rhumb_key = _normalize_governed_api_key_header(x_rhumb_key)
 
     direct_auth_detail = _direct_execute_auth_detail(capability_id)
     if direct_auth_detail is not None:
@@ -2077,6 +2087,7 @@ async def execute_capability(
     the standard x402 v2 ``PAYMENT-SIGNATURE`` header.
     """
     x_payment = _normalize_x402_payment_header(x_payment, payment_signature)
+    x_rhumb_key = _normalize_governed_api_key_header(x_rhumb_key)
     # ── Kill Switch: full execution shutdown ───────────────────────
     if os.environ.get("MANAGED_EXECUTION_ENABLED", "").lower() == "false":
         logger.warning("Kill switch active: MANAGED_EXECUTION_ENABLED=false — rejecting execution")
@@ -4005,6 +4016,8 @@ async def estimate_capability(
     capability_id = _validated_capability_path_id(capability_id)
     provider = _validated_provider_filter(provider)
     credential_mode = _validated_estimate_credential_mode(credential_mode)
+
+    x_rhumb_key = _normalize_governed_api_key_header(x_rhumb_key)
 
     # Authenticate if API key provided; otherwise allow anonymous estimate
     agent_id: Optional[str] = None
