@@ -49,11 +49,12 @@ def _normalize_spend_period(period: str | None) -> str | None:
 
 async def _extract_agent_id(api_key: str | None) -> str:
     """Validate API key and extract agent identity."""
-    if not api_key:
+    normalized_key = str(api_key or "").strip()
+    if not normalized_key:
         raise HTTPException(401, "Missing X-Rhumb-Key header")
     from schemas.agent_identity import get_agent_identity_store
     store = get_agent_identity_store()
-    agent = await store.verify_api_key_with_agent(api_key)
+    agent = await store.verify_api_key_with_agent(normalized_key)
     if agent is None:
         raise HTTPException(401, "Invalid or expired API key")
     return agent.agent_id

@@ -1,10 +1,13 @@
 """Tests for routing engine + spend visibility — R20 Phase 4."""
 
 import pytest
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch, MagicMock
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 from app import create_app
+import routes.routing as routing_route
 from services.routing_engine import RoutingEngine, RoutingStrategy, RoutedProvider
 
 
@@ -227,6 +230,31 @@ async def test_get_spend_summary_normalizes_mixed_case_alias_backed_provider_ids
 # ---------------------------------------------------------------------------
 # Routing route tests
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.anyio
+async def test_extract_agent_id_rejects_blank_key_before_identity_store_reads():
+    with patch("schemas.agent_identity.get_agent_identity_store") as mock_store_factory:
+        with pytest.raises(HTTPException) as exc_info:
+            await routing_route._extract_agent_id("   ")
+
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "Missing X-Rhumb-Key header"
+    mock_store_factory.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_extract_agent_id_trims_valid_key_before_verification():
+    store = SimpleNamespace(
+        verify_api_key_with_agent=AsyncMock(
+            return_value=SimpleNamespace(agent_id="agent_test123")
+        )
+    )
+    with patch("schemas.agent_identity.get_agent_identity_store", return_value=store):
+        agent_id = await routing_route._extract_agent_id("  rk_test  ")
+
+    assert agent_id == "agent_test123"
+    store.verify_api_key_with_agent.assert_awaited_once_with("rk_test")
 
 
 class TestRoutingRoutes:
