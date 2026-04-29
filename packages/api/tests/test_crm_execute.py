@@ -245,6 +245,48 @@ async def test_crm_record_search_rejects_non_byok_credential_mode(
 
 
 @pytest.mark.asyncio
+async def test_crm_execute_rejects_non_object_body_before_crm_reads(
+    app,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    with (
+        patch.object(crm_execute_route, "resolve_crm_bundle") as mock_resolve,
+        patch.object(
+            crm_execute_route,
+            "search_hubspot_records",
+            new=AsyncMock(),
+        ) as mock_hubspot_search,
+        patch.object(
+            crm_execute_route,
+            "search_salesforce_records",
+            new=AsyncMock(),
+        ) as mock_salesforce_search,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/capabilities/crm.record.search/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json=["not", "an", "object"],
+            )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "crm_request_invalid"
+    assert body["message"] == "Request body must be a JSON object"
+    mock_resolve.assert_not_called()
+    mock_hubspot_search.assert_not_called()
+    mock_salesforce_search.assert_not_called()
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="crm_request_invalid",
+        provider_id="unknown",
+    )
+
+
+@pytest.mark.asyncio
 async def test_crm_record_search_validation_error_maps_to_request_invalid(
     app,
     monkeypatch,
