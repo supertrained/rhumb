@@ -120,6 +120,14 @@ const PROOF_SPRINT_SCOPE = [
   "the failure you care about: scope escape, quota burn, stale provider contract, credential exposure, replay, or bad recovery",
   "the acceptance test that would make the first paid execution feel boring instead of magical",
 ];
+
+const REQUEST_FIRST_BRIEF = [
+  "Capability or workflow: the exact repeat job, not a broad platform idea.",
+  "Current boundary: Rhumb-managed, your provider account, workspace data, or another system of record.",
+  "Expected repeat volume and cost ceiling: how often the agent will call it before a human reviews the result.",
+  "One denial case: the neighboring target, tenant, domain, amount, or tool call that must fail closed.",
+  "Trace proof: what receipt, log, or typed outcome would make the first paid call boring enough to trust.",
+];
 ---
 
 <Layout
@@ -325,8 +333,16 @@ const PROOF_SPRINT_SCOPE = [
           <p class="text-sm leading-6 text-slate-300">
             This is the narrowest commercial question: would a team ask Rhumb to scope the governed execution fix for a specific workflow after seeing the proof requirements?
           </p>
+          <div class="mt-6 rounded-2xl border border-slate-800 bg-surface/60 p-4">
+            <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500 mb-3">Request-first brief</div>
+            <ul class="space-y-2 text-xs leading-5 text-slate-400">
+              {REQUEST_FIRST_BRIEF.map((item) => (
+                <li class="flex items-start gap-2"><span class="mt-2 h-1 w-1 rounded-full bg-emerald-300"></span><span>{item}</span></li>
+              ))}
+            </ul>
+          </div>
           <div class="mt-6 flex flex-col gap-3">
-            <a href="mailto:team@getsupertrained.com?subject=Rhumb%20managed%20execution%20proof%20sprint&body=Workflow%3A%0AFailure%20to%20make%20boring%3A%0AAcceptance%20test%20I%20would%20trust%3A%0ASource%3A%20e006-proof-sprint" class="inline-flex justify-center rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">
+            <a href="mailto:team@getsupertrained.com?subject=Rhumb%20managed%20execution%20proof%20sprint&body=Workflow%3A%0ACapability%3A%0ACurrent%20boundary%3A%0AExpected%20repeat%20volume%3A%0ACost%20ceiling%3A%0ADenial%20case%3A%0ATrace%20proof%20I%20would%20trust%3A%0ASource%3A%20e006-proof-sprint" class="inline-flex justify-center rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">
               Ask for a proof sprint scope
             </a>
             <a data-rhumb-propagate href="/pricing?rhumb_experiment=e006&rhumb_source=proof-sprint-scope-pricing" class="inline-flex justify-center rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-100 hover:border-emerald-400/50 hover:text-white transition-colors duration-200">
@@ -366,7 +382,7 @@ const PROOF_SPRINT_SCOPE = [
           <div class="flex flex-col gap-3">
             <a data-rhumb-propagate href="/pricing?rhumb_experiment=e006&rhumb_source=start-managed-execution-paid-intent-checkpoint" class="rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-100 hover:border-emerald-400/50 hover:text-white transition-colors duration-200">Review pricing for this workflow</a>
             <a data-rhumb-propagate href="/auth/login?rhumb_experiment=e006&rhumb_source=start-managed-execution-paid-intent-checkpoint" class="rounded-xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">Get governed key</a>
-            <a href="mailto:team@supertrained.ai?subject=Rhumb%20managed%20execution%20fit%20check&body=Workflow%3A%0ACapability%3A%0AExpected%20repeat%20volume%3A%0ACredential%20mode%20needed%3A" class="rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">Ask if my workflow fits</a>
+            <a href="mailto:team@getsupertrained.com?subject=Rhumb%20managed%20execution%20fit%20check&body=Workflow%3A%0ACapability%3A%0ACurrent%20boundary%3A%0AExpected%20repeat%20volume%3A%0ACredential%20mode%20needed%3A%0ADenial%20case%3A%0ATrace%20proof%20I%20would%20trust%3A%0ASource%3A%20e006-workflow-fit" class="rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 hover:border-amber/40 hover:text-slate-100 transition-colors duration-200">Ask if my workflow fits</a>
           </div>
         </div>
       </div>
