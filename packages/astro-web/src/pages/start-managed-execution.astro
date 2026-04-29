@@ -114,6 +114,12 @@ const EXECUTION_IDENTITY_GATES = [
   "Keep the same id through resolve, estimate, execute, and receipt review so recovery can tell whether a retry continued the original job or drifted into a neighboring capability.",
   "When the id is invalid, return a typed parameter error and no policy read. That is the boundary that keeps malformed execution requests from becoming authority probes.",
 ];
+
+const PROOF_SPRINT_SCOPE = [
+  "one capability or workflow you would actually put behind an agent",
+  "the failure you care about: scope escape, quota burn, stale provider contract, credential exposure, replay, or bad recovery",
+  "the acceptance test that would make the first paid execution feel boring instead of magical",
+];
 ---
 
 <Layout
@@ -292,6 +298,47 @@ const EXECUTION_IDENTITY_GATES = [
               That is where <a data-rhumb-propagate href="/resolve#credential-paths" class="text-amber hover:text-amber-200 transition-colors">BYOK or Agent Vault</a> becomes the right next step instead of a generic managed-execution CTA.
             </p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <div>
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Proof sprint scope</div>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Bring one workflow, not a vague platform bet.</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            If you would pay for Rhumb to make one agent-executed workflow safer, start with a proof sprint scope. The useful artifact is not a broad demo; it is the acceptance test, trace requirement, denial case, and launch boundary that would make the first paid call boring.
+          </p>
+          <ul class="mt-5 space-y-2 text-sm text-slate-300 leading-6">
+            {PROOF_SPRINT_SCOPE.map((item) => (
+              <li class="flex items-start gap-3">
+                <span class="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-300"></span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="rounded-3xl border border-slate-800 bg-navy/70 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Willingness-to-pay signal</div>
+          <p class="text-sm leading-6 text-slate-300">
+            This is the narrowest commercial question: would a team ask Rhumb to scope the governed execution fix for a specific workflow after seeing the proof requirements?
+          </p>
+          <div class="mt-6 flex flex-col gap-3">
+            <a href="mailto:team@getsupertrained.com?subject=Rhumb%20managed%20execution%20proof%20sprint&body=Workflow%3A%0AFailure%20to%20make%20boring%3A%0AAcceptance%20test%20I%20would%20trust%3A%0ASource%3A%20e006-proof-sprint" class="inline-flex justify-center rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">
+              Ask for a proof sprint scope
+            </a>
+            <a data-rhumb-propagate href="/pricing?rhumb_experiment=e006&rhumb_source=proof-sprint-scope-pricing" class="inline-flex justify-center rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-100 hover:border-emerald-400/50 hover:text-white transition-colors duration-200">
+              Check execution pricing first
+            </a>
+            <a data-rhumb-propagate href="/auth/login?rhumb_experiment=e006&rhumb_source=proof-sprint-scope-key" class="inline-flex justify-center rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-white transition-colors duration-200">
+              Start with a governed key
+            </a>
+          </div>
+          <p class="mt-4 text-xs leading-5 text-slate-500">
+            Experiment tag: E-006. This is a scoped-inquiry signal, not proof of paid conversion until a real team asks for or starts a paid execution path.
+          </p>
         </div>
       </div>
     </section>
