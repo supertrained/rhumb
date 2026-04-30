@@ -48,12 +48,19 @@ const WALLET_TOPUP_PREFLIGHT_GATES = [
   "Keep the top-up id, requested amount, wallet identity, org id, proof family, and verification outcome in trace context so operators can distinguish bad input from replay, mismatch, or settlement failure.",
 ];
 
+const PROXY_REQUEST_PREFLIGHT_GATES = [
+  "Normalize and validate the proxy request method and path before route lookup, credential selection, budget attribution, proxy dispatch, or provider code observes the request.",
+  "Reject missing, blank, whitespace-only, or unsupported methods as typed input failures instead of letting them become generic upstream proxy errors.",
+  "Reject empty paths, traversal-shaped paths, and malformed route fragments before the proxy can attach credentials or bill a caller for a request that never had a valid target.",
+  "Preserve normalized method, normalized path, caller, budget owner, proxy lane, credential lane, and rejection reason in trace context so operators can separate bad input from route miss, auth failure, and provider outage.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-04-30T07:00:00Z",
+  dateModified: "2026-04-30T09:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -373,6 +380,25 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           This is the payment-specific version of the same <a href="/blog/how-agents-actually-pay-x402-dogfood" class="text-amber hover:underline underline-offset-2">x402 dogfood lesson</a>: proof format errors and mismatched payment-request ids should be typed authority outcomes, not ambiguous billing failures.
+        </p>
+      </section>
+
+
+      <section class="mt-10 rounded-[28px] border border-orange-500/20 bg-orange-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-orange-300 mb-3">Proxy request preflight</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          A proxy route should reject bad method and path input before it looks like provider failure
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Proxy layers are easy places to blur responsibility. If an empty method, unsupported verb, traversal-shaped path, or malformed route fragment reaches credential lookup or provider dispatch, the operator sees auth, billing, or upstream noise instead of the real failure. Normalize the request method and path at the proxy boundary, then decide whether the call has any authority to continue.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {PROXY_REQUEST_PREFLIGHT_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          This is the routing version of the same <a href="/blog/governed-capability-surfaces-agent-integrations" class="text-amber hover:underline underline-offset-2">governed capability surface</a>: malformed target selection should fail as typed boundary input, not as a mysterious provider outage after credentials or budget have already been attached.
         </p>
       </section>
 
