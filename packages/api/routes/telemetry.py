@@ -273,11 +273,12 @@ def _error_response(
 async def _require_agent(
     x_rhumb_key: str | None,
 ) -> tuple[str, str]:
-    if not x_rhumb_key:
+    normalized_key = x_rhumb_key.strip() if x_rhumb_key is not None else None
+    if not normalized_key:
         raise _TelemetryAuthError("Missing X-Rhumb-Key header")
 
     identity_store = get_agent_identity_store()
-    agent = await identity_store.verify_api_key_with_agent(x_rhumb_key)
+    agent = await identity_store.verify_api_key_with_agent(normalized_key)
     if agent is None:
         raise _TelemetryAuthError("Invalid or expired governed API key")
 

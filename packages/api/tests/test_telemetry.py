@@ -77,6 +77,39 @@ def test_protected_telemetry_endpoints_require_auth() -> None:
     assert recent_response.json()["resolution"] == "Provide a valid governed API key via X-Rhumb-Key header."
 
 
+def test_protected_telemetry_endpoints_reject_blank_auth_headers_before_identity_reads() -> None:
+    blank_header = TestClient(app, headers={"X-Rhumb-Key": "   "})
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+
+    with patch("routes.telemetry.get_agent_identity_store", return_value=mock_store) as get_store:
+        usage_response = blank_header.get("/v1/telemetry/usage")
+        recent_response = blank_header.get("/v1/telemetry/recent")
+
+    assert usage_response.status_code == 401
+    assert usage_response.json()["message"] == "Missing X-Rhumb-Key header"
+    assert recent_response.status_code == 401
+    assert recent_response.json()["message"] == "Missing X-Rhumb-Key header"
+    get_store.assert_not_called()
+    mock_store.verify_api_key_with_agent.assert_not_called()
+
+
+def test_protected_telemetry_endpoints_trim_padded_auth_headers() -> None:
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock, return_value=[]),
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = TestClient(app, headers={"X-Rhumb-Key": "  rk_test  "}).get(
+            "/v1/telemetry/usage"
+        )
+
+    assert response.status_code == 200
+    mock_store.verify_api_key_with_agent.assert_awaited_once_with("rk_test")
+
+
 def test_provider_health_endpoint_works_without_auth() -> None:
     now = datetime.now(timezone.utc)
     rows = [
