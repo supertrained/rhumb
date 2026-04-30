@@ -826,6 +826,39 @@ def test_search_http_rejects_out_of_range_limit_with_canonical_envelope():
     cached_fetch.assert_not_awaited()
 
 
+def test_search_http_rejects_non_integer_limit_before_reads():
+    """Malformed search limits should fail in-route, not via framework 422s."""
+    from app import create_app
+
+    with patch("routes.search._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        client = TestClient(create_app())
+        response = client.get("/v1/search", params={"q": "api", "limit": "ten"})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'limit' filter."
+    assert payload["error"]["detail"] == "Use a limit between 1 and 50."
+    cached_fetch.assert_not_awaited()
+
+
+def test_search_http_trims_numeric_limits_before_reads():
+    """Padded numeric search limits should parse before service/score reads."""
+    from app import create_app
+
+    async def _assert_limit_path(*_args, **_kwargs):
+        return []
+
+    with patch("routes.search._cached_fetch", new_callable=AsyncMock, side_effect=_assert_limit_path) as cached_fetch:
+        client = TestClient(create_app())
+        response = client.get("/v1/search", params={"q": "api", "limit": " 07 "})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["data"]["limit"] == 7
+    assert cached_fetch.await_count == 1
+
+
 @pytest.mark.asyncio
 async def test_search_results_have_scores(mock_catalog_supabase):
     """Test search results include score data."""

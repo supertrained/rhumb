@@ -33,12 +33,19 @@ LEADERBOARD_PATTERN = re.compile(r"^/v1/leaderboard/([^/]+)$")
 SERVICE_PATTERN = re.compile(r"^/v1/services/([^/]+)$")
 
 
+def _query_limit_metadata(value: str) -> int | str:
+    normalized = str(value or "").strip()
+    if normalized.isdigit():
+        return int(normalized)
+    return value
+
+
 def _extract_search(request: Request, match: re.Match) -> Tuple[str, Dict[str, Any]]:
     """Extract query metadata from search requests."""
     q = request.query_params.get("q", "")
     limit = request.query_params.get("limit", "10")
     category = request.query_params.get("category")
-    params: Dict[str, Any] = {"query": q, "limit": int(limit)}
+    params: Dict[str, Any] = {"query": q, "limit": _query_limit_metadata(limit)}
     if category:
         params["category"] = category
     return q, params
@@ -49,7 +56,7 @@ def _extract_leaderboard(request: Request, match: re.Match) -> Tuple[str, Dict[s
     category = match.group(1)
     limit = request.query_params.get("limit", "10")
     sort = request.query_params.get("sort")
-    params: Dict[str, Any] = {"category": category, "limit": int(limit)}
+    params: Dict[str, Any] = {"category": category, "limit": _query_limit_metadata(limit)}
     if sort:
         params["sort"] = sort
     return category, params

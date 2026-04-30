@@ -168,9 +168,20 @@ def _validated_search_query(query: str | None) -> str:
     )
 
 
-def _validated_search_limit(limit: int) -> int:
-    if 1 <= limit <= 50:
-        return limit
+def _validated_search_limit(limit: Any) -> int:
+    if not isinstance(limit, int):
+        limit = getattr(limit, "default", limit)
+
+    parsed_limit: int | None = None
+    if isinstance(limit, int) and not isinstance(limit, bool):
+        parsed_limit = limit
+    elif isinstance(limit, str):
+        normalized = limit.strip()
+        if normalized.isdigit():
+            parsed_limit = int(normalized)
+
+    if parsed_limit is not None and 1 <= parsed_limit <= 50:
+        return parsed_limit
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -182,7 +193,7 @@ def _validated_search_limit(limit: int) -> int:
 @router.get("/search")
 async def search_services(
     q: str | None = Query(default=None),
-    limit: int = Query(default=10),
+    limit: Any = Query(default=10),
 ) -> dict:
     """Search services by free-text query (slug, name, category, description).
 
@@ -192,11 +203,6 @@ async def search_services(
 
     Returns matching services ranked by relevance then score.
     """
-    # Ensure limit is a plain int. When this function is called directly
-    # in tests (not via HTTP), FastAPI's Query FieldInfo object is the default
-    # value instead of an integer — extract .default in that case.
-    if not isinstance(limit, int):
-        limit = getattr(limit, "default", 10)
     limit = _validated_search_limit(limit)
     query_lower = _validated_search_query(q)
 
