@@ -44,6 +44,33 @@ def _validated_optional_text_filter(value: Optional[str], field: str) -> Optiona
     return normalized
 
 
+def _validated_required_body_text(value: str, field: str) -> str:
+    """Trim required body strings and reject blanks before admin writes."""
+    normalized = str(value or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field}' field.",
+        detail=f"Provide a non-empty '{field}' value.",
+    )
+
+
+def _normalized_optional_body_text(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None
+
+
+def _normalized_optional_tags(tags: Optional[List[str]]) -> Optional[List[str]]:
+    if tags is None:
+        return None
+    normalized_tags = [str(tag).strip() for tag in tags]
+    return [tag for tag in normalized_tags if tag]
+
+
 def _validated_required_path_value(value: str, field: str) -> str:
     """Trim required path values and reject blanks before admin store reads/writes."""
     normalized = str(value or "").strip()
@@ -321,13 +348,17 @@ async def _get_evidence_adapter() -> EvidenceIngestionAdapter:
 @router.post("/agents", response_model=CreateAgentResponse)
 async def create_agent(body: CreateAgentRequest) -> CreateAgentResponse:
     """Create a new agent and return its API key (shown once)."""
+    name = _validated_required_body_text(body.name, "name")
+    organization_id = _validated_required_body_text(body.organization_id, "organization_id")
+    description = _normalized_optional_body_text(body.description)
+    tags = _normalized_optional_tags(body.tags)
     store = _get_identity_store()
     agent_id, api_key = await store.register_agent(
-        name=body.name,
-        organization_id=body.organization_id,
+        name=name,
+        organization_id=organization_id,
         rate_limit_qpm=body.rate_limit_qpm,
-        description=body.description,
-        tags=body.tags,
+        description=description,
+        tags=tags,
     )
     return CreateAgentResponse(agent_id=agent_id, api_key=api_key)
 

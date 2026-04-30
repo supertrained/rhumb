@@ -869,6 +869,55 @@ class TestAdminRoutes:
         assert data["agent_id"]
         assert data["api_key"].startswith("rhumb_")
 
+    def test_create_agent_route_rejects_blank_required_fields_before_store_write(
+        self, admin_client: TestClient
+    ) -> None:
+        """Blank create-agent fields should fail before identity-store writes."""
+        for payload, field in (
+            ({"name": "   ", "organization_id": "org_admin"}, "name"),
+            ({"name": "route-test-agent", "organization_id": "   "}, "organization_id"),
+        ):
+            mock_store = AsyncMock()
+            mock_store.register_agent = AsyncMock(return_value=("agent_test", "rhumb_test"))
+
+            with patch("routes.admin_agents._get_identity_store", return_value=mock_store):
+                resp = admin_client.post("/v1/admin/agents", json=payload)
+
+            assert resp.status_code == 400
+            body = resp.json()
+            assert body["error"]["code"] == "INVALID_PARAMETERS"
+            assert body["error"]["message"] == f"Invalid '{field}' field."
+            assert body["error"]["detail"] == f"Provide a non-empty '{field}' value."
+            mock_store.register_agent.assert_not_awaited()
+
+    def test_create_agent_route_trims_fields_before_store_write(
+        self, admin_client: TestClient
+    ) -> None:
+        """Valid padded create-agent fields should write canonical values."""
+        mock_store = AsyncMock()
+        mock_store.register_agent = AsyncMock(return_value=("agent_test", "rhumb_test"))
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store):
+            resp = admin_client.post(
+                "/v1/admin/agents",
+                json={
+                    "name": "  route-test-agent  ",
+                    "organization_id": "  org_admin  ",
+                    "rate_limit_qpm": 150,
+                    "description": "  dashboard helper  ",
+                    "tags": ["  launch  ", "  ", "audit"],
+                },
+            )
+
+        assert resp.status_code == 200
+        mock_store.register_agent.assert_awaited_once_with(
+            name="route-test-agent",
+            organization_id="org_admin",
+            rate_limit_qpm=150,
+            description="dashboard helper",
+            tags=["launch", "audit"],
+        )
+
     def test_list_agents_route(self, admin_client: TestClient) -> None:
         """GET /v1/admin/agents returns created agents."""
         admin_client.post(
