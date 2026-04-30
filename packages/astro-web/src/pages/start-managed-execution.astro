@@ -129,6 +129,13 @@ const ADMIN_AGENT_PREFLIGHT = [
   "Keep service labels canonical in usage summaries so one provider lane does not split into multiple budgets, traces, or dashboard rows just because the caller used an alias.",
 ];
 
+const DB_AGENT_VAULT_PREFLIGHT = [
+  "Normalize credential_mode before route execution. The DB read lane should treat ` AGENT_VAULT ` and `agent_vault` as the same explicit credential path, not two different budget or trace families.",
+  "Trim X-Agent-Token before DSN resolution. Whitespace around a signed vault token should not become a false credential failure, and blank tokens should still fail before DSN lookup or database connection.",
+  "Bind the token to connection_ref, agent id, and org id before any query, schema, or row-read executor sees a DSN. Vault resolution is the authority boundary, not a convenience parser.",
+  "Preserve the normalized credential mode and connection reference in the result and failure audit so recovery can tell BYOK errors from Agent Vault authority errors.",
+];
+
 const PROOF_SPRINT_SCOPE = [
   "one capability or workflow you would actually put behind an agent",
   "the failure you care about: scope escape, quota burn, stale provider contract, credential exposure, replay, or bad recovery",
@@ -297,6 +304,26 @@ const REQUEST_FIRST_BRIEF = [
         </ul>
         <p class="mt-6 text-sm leading-6 text-slate-400">
           For E-006, a governed-key signup is stronger evidence only when the admin setup preserves a bounded actor, canonical service grant, quota owner, and typed rejection path before any managed call can spend budget.
+        </p>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">DB Agent Vault preflight</div>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Credential-mode normalization has to happen before database authority is resolved.</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            Database reads are a sharper managed-execution boundary than generic discovery. The newest product truth normalizes the Agent Vault credential mode and token before DSN resolution, then binds the vault token to connection, agent, and organization context before any read executor can observe a database handle.
+          </p>
+        </div>
+        <ul class="mt-6 grid gap-4 md:grid-cols-2">
+          {DB_AGENT_VAULT_PREFLIGHT.map((item) => (
+            <li class="rounded-3xl border border-slate-800 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm leading-6 text-slate-400">
+          For E-006, a database workflow-fit request is stronger only when the caller can name the connection reference, credential lane, denied neighboring connection, and audit proof that the vault token was normalized before a query could run.
         </p>
       </div>
     </section>
