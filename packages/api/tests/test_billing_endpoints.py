@@ -638,3 +638,69 @@ class TestAutoReload:
             json={"enabled": True, "threshold_usd": 5.0, "amount_usd": 10.0},
         )
         assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# POST /billing/x402/topup/verify
+# ---------------------------------------------------------------------------
+
+
+class TestLegacyWalletTopupVerify:
+    """Tests for legacy billing x402 top-up validation before wallet-session reads."""
+
+    @pytest.mark.parametrize(
+        ("payload", "detail"),
+        [
+            ({"payment_request_id": "   ", "x_payment": "encoded-proof"}, "payment_request_id is required"),
+            ({"payment_request_id": "pr_test", "x_payment": "   "}, "x_payment is required"),
+        ],
+    )
+    def test_rejects_blank_verify_fields_before_wallet_session(
+        self,
+        client: TestClient,
+        payload: dict[str, str],
+        detail: str,
+    ) -> None:
+        require_session = AsyncMock()
+        load_topup = AsyncMock()
+
+        with (
+            patch("routes.billing._require_wallet_session", require_session),
+            patch("routes.billing._load_wallet_topup", load_topup),
+        ):
+            resp = client.post(
+                "/v1/billing/x402/topup/verify",
+                json=payload,
+                headers={"Authorization": "Bearer wallet-session"},
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == detail
+        require_session.assert_not_awaited()
+        load_topup.assert_not_awaited()
+
+    def test_trims_payment_request_id_before_topup_lookup(self, client: TestClient) -> None:
+        require_session = AsyncMock(
+            return_value={
+                "wallet_identity_id": "wi_test",
+                "org_id": "org-test",
+                "wallet_address": "0xabc",
+            }
+        )
+        load_topup = AsyncMock(return_value=None)
+
+        with (
+            patch("routes.billing._require_wallet_session", require_session),
+            patch("routes.billing._load_wallet_topup", load_topup),
+        ):
+            resp = client.post(
+                "/v1/billing/x402/topup/verify",
+                json={"payment_request_id": "  pr_test  ", "x_payment": "  encoded-proof  "},
+                headers={"Authorization": "Bearer wallet-session"},
+            )
+
+        assert resp.status_code == 404
+        load_topup.assert_awaited_once_with(
+            wallet_identity_id="wi_test",
+            payment_request_id="pr_test",
+        )

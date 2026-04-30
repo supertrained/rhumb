@@ -120,6 +120,20 @@ def _validate_auto_reload_request(body: AutoReloadRequest) -> None:
         )
 
 
+def _validated_wallet_topup_verify_request(
+    body: WalletTopupVerifyRequest,
+) -> tuple[str, str]:
+    payment_request_id = str(body.payment_request_id or "").strip()
+    x_payment = str(body.x_payment or "").strip()
+
+    if not payment_request_id:
+        raise HTTPException(status_code=400, detail="payment_request_id is required")
+    if not x_payment:
+        raise HTTPException(status_code=400, detail="x_payment is required")
+
+    return payment_request_id, x_payment
+
+
 async def _require_org(api_key: str | None) -> str:
     """Validate API key against the identity store and return org_id.
 
@@ -507,6 +521,7 @@ async def wallet_topup_verify(
     authorization: str | None = Header(None, alias="Authorization"),
 ) -> dict[str, Any]:
     """Verify an x402 wallet top-up payment and credit the linked org balance."""
+    payment_request_id, x_payment = _validated_wallet_topup_verify_request(body)
     claims = await _require_wallet_session(authorization)
 
     wallet_identity_id = str(claims.get("wallet_identity_id", "")).strip()
@@ -518,7 +533,7 @@ async def wallet_topup_verify(
 
     topup = await _load_wallet_topup(
         wallet_identity_id=wallet_identity_id,
-        payment_request_id=body.payment_request_id,
+        payment_request_id=payment_request_id,
     )
     if topup is None:
         raise HTTPException(status_code=404, detail="Wallet top-up not found")
@@ -529,7 +544,7 @@ async def wallet_topup_verify(
             detail=f"Wallet top-up already processed with status={topup.get('status')}",
         )
 
-    payment_request = await _load_payment_request(body.payment_request_id)
+    payment_request = await _load_payment_request(payment_request_id)
     if payment_request is None:
         raise HTTPException(status_code=404, detail="Payment request not found")
 
@@ -545,13 +560,13 @@ async def wallet_topup_verify(
     if payment_request.get("purpose") not in (None, "prefund"):
         raise HTTPException(status_code=400, detail="Payment request is not a wallet top-up request")
 
-    payment_trace = inspect_x_payment_header(body.x_payment)
-    payment_data = payment_trace.get("payment_data") or decode_x_payment_header(body.x_payment)
+    payment_trace = inspect_x_payment_header(x_payment)
+    payment_data = payment_trace.get("payment_data") or decode_x_payment_header(x_payment)
     if not isinstance(payment_data, dict):
         raise HTTPException(status_code=400, detail="Invalid X-Payment payload")
 
     expected_payment_request_id = _extract_standard_x402_payment_request_id(payment_data)
-    if expected_payment_request_id and expected_payment_request_id != body.payment_request_id:
+    if expected_payment_request_id and expected_payment_request_id != payment_request_id:
         raise HTTPException(status_code=400, detail="Payment request mismatch")
 
     amount_usd_cents = int(topup.get("amount_usd_cents") or payment_request.get("amount_usd_cents") or 0)
@@ -597,7 +612,7 @@ async def wallet_topup_verify(
 
         network = str(settlement.get("network") or network)
         receipt = await _create_wallet_topup_receipt(
-            payment_request_id=body.payment_request_id,
+            payment_request_id=payment_request_id,
             org_id=org_id,
             tx_hash=tx_hash,
             payer=payer,
@@ -633,7 +648,7 @@ async def wallet_topup_verify(
 
         payer = str(verification.get("from_address") or "").strip().lower()
         receipt = await _create_wallet_topup_receipt(
-            payment_request_id=body.payment_request_id,
+            payment_request_id=payment_request_id,
             org_id=org_id,
             tx_hash=tx_hash,
             payer=payer,
@@ -646,13 +661,13 @@ async def wallet_topup_verify(
     else:
         raise HTTPException(status_code=400, detail="Unsupported X-Payment proof format")
 
-    await _payment_requests.mark_verified(body.payment_request_id, receipt["tx_hash"])
+    await _payment_requests.mark_verified(payment_request_id, receipt["tx_hash"])
 
     new_balance = await _record_wallet_topup_credit(
         org_id=org_id,
         wallet_identity_id=wallet_identity_id,
         topup_id=str(topup.get("id")),
-        payment_request_id=body.payment_request_id,
+        payment_request_id=payment_request_id,
         receipt_id=str(receipt.get("id")),
         amount_usd_cents=amount_usd_cents,
         tx_hash=str(receipt.get("tx_hash")),
@@ -662,7 +677,7 @@ async def wallet_topup_verify(
 
     return {
         "data": {
-            "payment_request_id": body.payment_request_id,
+            "payment_request_id": payment_request_id,
             "topup_id": topup.get("id"),
             "receipt_id": receipt.get("id"),
             "tx_hash": receipt.get("tx_hash"),
