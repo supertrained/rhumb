@@ -115,6 +115,13 @@ const EXECUTION_IDENTITY_GATES = [
   "When the id is invalid, return a typed parameter error and no policy read. That is the boundary that keeps malformed execution requests from becoming authority probes.",
 ];
 
+const AUTH_HEADER_PREFLIGHT = [
+  "Send the intended rail header only: X-Rhumb-Key for governed execution, X-Payment for per-call x402, or provider credential context for BYOK and Agent Vault paths.",
+  "Reject missing, malformed, or mixed headers before telemetry, billing, credential lookup, proxy routing, or provider execution can observe the request.",
+  "Carry the normalized auth mode into the estimate, execute, receipt, and retry trace so a later recovery step can prove which credential lane and budget owner were used.",
+  "Treat header validation failures as typed preflight outcomes, not provider errors. The boundary is working when a bad key never becomes a billable or side-effecting attempt.",
+];
+
 const PROOF_SPRINT_SCOPE = [
   "one capability or workflow you would actually put behind an agent",
   "the failure you care about: scope escape, quota burn, stale provider contract, credential exposure, replay, or bad recovery",
@@ -243,6 +250,26 @@ const REQUEST_FIRST_BRIEF = [
         </ul>
         <p class="mt-6 text-sm leading-6 text-slate-400">
           If you do not have a stable capability id yet, start at <a data-rhumb-propagate href="/capabilities" class="text-amber hover:text-amber-200 transition-colors">capabilities</a> or use the <a data-rhumb-propagate href="/quickstart?rhumb_experiment=e004&rhumb_source=start-managed-execution-identity-quickstart" class="text-amber hover:text-amber-200 transition-colors">free quickstart</a> before wiring paid execution.
+        </p>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Auth header preflight</div>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">The rail header is part of the authority boundary.</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            The first paid call should prove more than capability fit. It should prove the request entered through the intended rail before any telemetry, billing, credential, proxy, or provider state can observe it. Header validation is the boring preflight that keeps a pricing experiment from turning into an accidental execution probe.
+          </p>
+        </div>
+        <ul class="mt-6 grid gap-4 md:grid-cols-2">
+          {AUTH_HEADER_PREFLIGHT.map((item) => (
+            <li class="rounded-3xl border border-slate-800 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm leading-6 text-slate-400">
+          For E-006, count a governed-key click as stronger intent only when the downstream path preserves the normalized auth mode and budget owner through estimate, execute, receipt, and recovery. Otherwise it is just another ambiguous CTA click.
         </p>
       </div>
     </section>
