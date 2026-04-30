@@ -460,14 +460,23 @@ def _validated_schema_alert_service(service: str | None) -> str | None:
     if service is None:
         return None
 
-    if not str(service).strip():
+    public_service = _public_proxy_service_name(service)
+    if not public_service:
         raise RhumbError(
             "INVALID_PARAMETERS",
             message="Invalid 'service' filter.",
             detail="Provide a non-empty service value or omit the filter.",
         )
 
-    return _normalize_proxy_service_name(service)
+    proxy_service = normalize_proxy_slug(public_service)
+    if proxy_service in SERVICE_REGISTRY:
+        return proxy_service
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'service' filter.",
+        detail=f"Use one of: {', '.join(_valid_public_proxy_service_names())}.",
+    )
 
 
 def _validated_schema_alert_limit(limit: int) -> int:

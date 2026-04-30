@@ -464,6 +464,45 @@ class TestProxySchemaIntegration:
         assert data["count"] >= 1
         assert all(alert["service"] == "stripe" for alert in data["alerts"])
 
+    def test_admin_schema_alerts_normalize_public_service_alias_filter(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        captured: dict[str, object] = {}
+
+        class FakeAlertDispatcher:
+            def query_alerts(self, **kwargs):
+                captured.update(kwargs)
+                return []
+
+        monkeypatch.setattr(
+            proxy_module,
+            "get_schema_alert_dispatcher",
+            lambda: FakeAlertDispatcher(),
+        )
+
+        response = client.get("/v1/admin/schema-alerts?service=%20BrAvE-Search-API%20")
+
+        assert response.status_code == 200
+        assert response.json()["data"]["count"] == 0
+        assert captured["service"] == "brave-search"
+
+    def test_admin_schema_alerts_reject_unknown_service_filter_before_read(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        def fail_if_alert_store_opens():
+            raise AssertionError("schema alert store opened before service validation")
+
+        monkeypatch.setattr(proxy_module, "get_schema_alert_dispatcher", fail_if_alert_store_opens)
+
+        response = client.get("/v1/admin/schema-alerts?service=unknown-service")
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'service' filter."
+        assert "brave-search-api" in payload["error"]["detail"]
+        assert "people-data-labs" in payload["error"]["detail"]
+
     def test_admin_schema_alerts_normalize_valid_severity_filter(
         self, client: TestClient, httpx_mock
     ) -> None:
