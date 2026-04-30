@@ -1794,8 +1794,9 @@ def _validate_explicit_execute_request_requirements(
     request: CapabilityExecuteRequest,
     *,
     x_agent_token: str | None,
-) -> None:
+) -> str | None:
     """Reject explicit BYOK/Agent Vault requests before mapping/rate-limit reads."""
+    normalized_agent_token = x_agent_token.strip() if x_agent_token is not None else None
     if request.provider is not None:
         provider = str(request.provider).strip()
         if not provider:
@@ -1812,7 +1813,7 @@ def _validate_explicit_execute_request_requirements(
         request.path = str(request.path).strip()
 
     if request.credential_mode == "agent_vault":
-        if not x_agent_token:
+        if not normalized_agent_token:
             raise RhumbError(
                 "INVALID_PARAMETERS",
                 message="X-Agent-Token header required for agent_vault credential mode.",
@@ -1837,6 +1838,8 @@ def _validate_explicit_execute_request_requirements(
                 message="method and path are required for byok credential mode.",
                 detail="Provide the upstream HTTP method and path for BYOK execution.",
             )
+
+    return normalized_agent_token
 
 def _parse_credential_modes(raw_modes: Any) -> list[str]:
     """Normalize credential_modes from Supabase into a list of strings."""
@@ -2413,7 +2416,10 @@ async def execute_capability(
         )
         return response
 
-    _validate_explicit_execute_request_requirements(request, x_agent_token=x_agent_token)
+    x_agent_token = _validate_explicit_execute_request_requirements(
+        request,
+        x_agent_token=x_agent_token,
+    )
 
     # ── Per-agent execution rate limiting ────────────────────────────
     # Applies to all execution modes to prevent flooding.
@@ -2432,7 +2438,10 @@ async def execute_capability(
         mappings=cap_services,
         requested_provider=request.provider,
     )
-    _validate_explicit_execute_request_requirements(request, x_agent_token=x_agent_token)
+    x_agent_token = _validate_explicit_execute_request_requirements(
+        request,
+        x_agent_token=x_agent_token,
+    )
 
     # ── Kill Switch: managed-only shutdown ──────────────────────
     # Blocks Mode 2 (Rhumb's credentials) while allowing BYOK and x402.

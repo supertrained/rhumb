@@ -650,6 +650,46 @@ async def test_execute_rejects_agent_vault_missing_token_before_mapping_reads(
 
 
 @pytest.mark.anyio
+async def test_execute_rejects_agent_vault_blank_token_before_mapping_reads(
+    app,
+    _mock_rate_limiter,
+):
+    seen_paths: list[str] = []
+
+    async def mock_fetch(path: str):
+        seen_paths.append(path)
+        return _mock_supabase(path)
+
+    with patch(
+        "routes.capability_execute.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=mock_fetch,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "credential_mode": "agent_vault",
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                },
+                headers={
+                    "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                    "X-Agent-Token": "   ",
+                },
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "X-Agent-Token header required for agent_vault credential mode."
+    assert any(path.startswith("capabilities?") for path in seen_paths)
+    assert not any(path.startswith("capability_services?") for path in seen_paths)
+    _mock_rate_limiter.check_and_increment.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_execute_rejects_blank_provider_field_before_mapping_reads(
     app,
     _mock_rate_limiter,
@@ -2362,6 +2402,70 @@ async def test_execute_agent_vault_no_api_domain_error_uses_canonical_public_pro
 
     assert resp.status_code == 500
     assert resp.json()["detail"] == "No API domain for provider 'brave-search-api'"
+
+
+@pytest.mark.anyio
+async def test_execute_agent_vault_trims_token_before_ceremony_validation(app):
+    async def _mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Web search",
+                }
+            ]
+        if path.startswith("capability_services?"):
+            return [
+                {
+                    "service_slug": "brave-search",
+                    "credential_modes": ["agent_vault"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": None,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 100,
+                }
+            ]
+        if path.startswith("services?") or path.startswith("capability_executions?"):
+            return []
+        return []
+
+    mock_validator = MagicMock()
+    mock_validator.get_ceremony = AsyncMock(return_value={"auth_type": "api_key"})
+    mock_validator.validate_format.return_value = (True, None)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_fetch,
+        ),
+        patch("services.agent_vault.get_vault_validator", return_value=mock_validator),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/search.query/execute",
+                json={
+                    "provider": "brave-search",
+                    "credential_mode": "agent_vault",
+                    "method": "GET",
+                    "path": "/res/v1/web/search",
+                    "body": {"q": "Rhumb API agent infrastructure"},
+                },
+                headers={
+                    "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                    "X-Agent-Token": "  agent_vault_test_token  ",
+                },
+            )
+
+    assert resp.status_code == 500
+    mock_validator.validate_format.assert_called_once_with(
+        "agent_vault_test_token",
+        token_prefix=None,
+        token_pattern=None,
+    )
 
 
 @pytest.mark.anyio
