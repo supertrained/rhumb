@@ -261,9 +261,31 @@ def _validated_export_format(format: str) -> str:
     )
 
 
-def _validated_events_limit(limit: int) -> int:
-    if 1 <= limit <= 500:
-        return limit
+def _parse_query_int(value: Any, *, field_name: str) -> int:
+    if isinstance(value, bool):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' filter.",
+            detail="Provide an integer value.",
+        )
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized and normalized.lstrip("+-").isdigit():
+            return int(normalized)
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail="Provide an integer value.",
+    )
+
+
+def _validated_events_limit(limit: Any) -> int:
+    parsed = _parse_query_int(limit, field_name="limit")
+    if 1 <= parsed <= 500:
+        return parsed
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -272,9 +294,10 @@ def _validated_events_limit(limit: int) -> int:
     )
 
 
-def _validated_events_offset(offset: int) -> int:
-    if offset >= 0:
-        return offset
+def _validated_events_offset(offset: Any) -> int:
+    parsed = _parse_query_int(offset, field_name="offset")
+    if parsed >= 0:
+        return parsed
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -294,8 +317,8 @@ async def list_audit_events(
     resource_id: str | None = Query(None, description="Filter by resource ID"),
     since: str | None = Query(None, description="ISO 8601 timestamp — events after this time"),
     until: str | None = Query(None, description="ISO 8601 timestamp — events before this time"),
-    limit: int = Query(50),
-    offset: int = Query(0),
+    limit: Any = Query(50),
+    offset: Any = Query(0),
 ) -> dict[str, Any]:
     """Query audit events with filters and pagination.
 

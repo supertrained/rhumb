@@ -317,6 +317,53 @@ def test_list_audit_events_invalid_offset_uses_explicit_invalid_parameters_befor
     get_audit_trail.assert_not_called()
 
 
+def test_list_audit_events_non_integer_pagination_rejects_before_auth_or_reads():
+    from app import create_app
+
+    require_org = AsyncMock(return_value="org_test")
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=require_org),
+        patch("routes.audit_v2.get_audit_trail") as get_audit_trail,
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?limit=ten&offset=0",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'limit' filter."
+    assert "integer" in body["error"]["detail"]
+    require_org.assert_not_awaited()
+    get_audit_trail.assert_not_called()
+
+
+def test_list_audit_events_trims_numeric_pagination_before_reads():
+    from app import create_app
+
+    trail = MagicMock()
+    trail.query.return_value = []
+    trail.count.return_value = 0
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?limit=%2007%20&offset=%2003%20",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["data"]["pagination"]["limit"] == 7
+    assert body["data"]["pagination"]["offset"] == 3
+    trail.query.assert_called_once()
+    assert trail.query.call_args.kwargs["limit"] == 7
+    assert trail.query.call_args.kwargs["offset"] == 3
+
+
 def test_list_audit_events_invalid_category_uses_explicit_invalid_parameters():
     from app import create_app
 
