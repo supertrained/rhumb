@@ -35,9 +35,17 @@ const SILENT_POLICY_WRITE_GATES = [
 
 const CALLBACK_AUTHORITY_GATES = [
   "Validate OAuth callback state, wallet top-up payloads, and webhook signatures before any session, credit, entitlement, or account state is read.",
+  "Reject blank or whitespace-only payment_request_id and X-Payment proof fields before wallet, ledger, billing, or provider state can interpret the request.",
   "Preserve the callback actor, claimed account, signed payload family, and replay window in trace context so operators can distinguish a real continuation from a forged completion.",
   "Fail closed with a typed callback-auth outcome when the signature, state token, tenant binding, amount, or timestamp cannot be proven before the side effect is applied.",
   "Test the adjacent-dangerous values too: stale state, wrong tenant, altered amount, missing signature, and replayed event should all die before business logic observes them.",
+];
+
+const WALLET_TOPUP_PREFLIGHT_GATES = [
+  "Normalize the top-up payment_request_id and X-Payment proof before wallet session, top-up lookup, payment-request lookup, or settlement code observes the request.",
+  "Reject missing, blank, or whitespace-only proof fields with typed input errors instead of letting them fall through as not-found, invalid-session, or provider-payment failures.",
+  "Compare any payment-request id embedded in the x402 proof with the requested top-up id before crediting the wallet or marking the payment request processed.",
+  "Keep the top-up id, requested amount, wallet identity, org id, proof family, and verification outcome in trace context so operators can distinguish bad input from replay, mismatch, or settlement failure.",
 ];
 
 const ARTICLE_JSON_LD = {
@@ -45,7 +53,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-04-30T00:00:00Z",
+  dateModified: "2026-04-30T07:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -252,7 +260,7 @@ const htmlContent = markdownToHtml(content);
             <span class="text-slate-700">&middot;</span>
             <span class="text-xs font-mono text-slate-500">March 28, 2026</span>
             <span class="text-slate-700">&middot;</span>
-            <span class="text-xs font-mono text-emerald-400/70">Updated April 28, 2026</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated April 30, 2026</span>
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.97] tracking-tight text-slate-100 max-w-5xl text-balance">
@@ -348,6 +356,26 @@ const htmlContent = markdownToHtml(content);
           This gate belongs beside <a href="/blog/remote-mcp-auth-identity-vs-authority" class="text-amber hover:underline underline-offset-2">remote-auth authority</a> and <a href="/blog/signed-mcp-receipts-evidence-not-authority" class="text-amber hover:underline underline-offset-2">receipts-as-evidence</a>: a receipt or redirect can document what happened, but it should not create authority until the callback boundary is proven.
         </p>
       </section>
+
+
+      <section class="mt-10 rounded-[28px] border border-teal-500/20 bg-teal-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-teal-300 mb-3">Wallet top-up preflight</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          A payment proof should fail as bad input before it looks like billing state
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Wallet-prefund flows add a second reliability boundary: the proof is both payment evidence and account-crediting input. If blank payment request ids or empty X-Payment proofs reach wallet lookup, ledger mutation, or provider settlement, the operator sees misleading not-found or settlement noise instead of the real failure. The first gate is boring and strict: normalize the proof fields, reject empty values, and only then compare the proof to the requested top-up.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {WALLET_TOPUP_PREFLIGHT_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          This is the payment-specific version of the same <a href="/blog/how-agents-actually-pay-x402-dogfood" class="text-amber hover:underline underline-offset-2">x402 dogfood lesson</a>: proof format errors and mismatched payment-request ids should be typed authority outcomes, not ambiguous billing failures.
+        </p>
+      </section>
+
 
       <section class="mt-10 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Side-effect replay gate</div>
