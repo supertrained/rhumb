@@ -543,6 +543,37 @@ def _validated_proxy_request_service(service: str) -> str:
     )
 
 
+_VALID_PROXY_METHODS = frozenset(
+    {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
+)
+
+
+def _validated_proxy_request_method(method: str) -> str:
+    """Reject malformed proxy request methods before auth or routing reads."""
+    normalized = str(method).strip().upper()
+    if normalized in _VALID_PROXY_METHODS:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'method' field.",
+        detail="Use one of: DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT.",
+    )
+
+
+def _validated_proxy_request_path(path: str) -> str:
+    """Reject malformed proxy request paths before auth or routing reads."""
+    normalized = str(path).strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'path' field.",
+        detail="Provide a non-empty provider path.",
+    )
+
+
 def _validated_schema_snapshot_limit(limit: int) -> int:
     """Validate the admin schema-snapshot history limit before detector reads."""
     if 1 <= limit <= 50:
@@ -733,6 +764,8 @@ async def proxy_request(
 
     try:
         _validated_proxy_request_service(request.service)
+        request.method = _validated_proxy_request_method(request.method)
+        request.path = _validated_proxy_request_path(request.path)
 
         normalized_rhumb_key = str(x_rhumb_key or "").strip()
         if not normalized_rhumb_key:

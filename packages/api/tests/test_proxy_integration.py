@@ -282,6 +282,47 @@ class TestIntegrationProxyRequest:
         assert payload["error"]["detail"] == "Provide a non-empty service value."
         mock_identity_store.assert_not_called()
 
+    def test_proxy_request_rejects_invalid_method_before_auth(self, client) -> None:
+        """Malformed proxy methods should not open governed-key auth or routing reads."""
+        with patch("routes.proxy._get_identity_store") as mock_identity_store:
+            response = client.post(
+                "/proxy/",
+                json={
+                    "service": "stripe",
+                    "method": "  TRACE  ",
+                    "path": "/v1/customers",
+                },
+            )
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'method' field."
+        assert (
+            payload["error"]["detail"]
+            == "Use one of: DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT."
+        )
+        mock_identity_store.assert_not_called()
+
+    def test_proxy_request_rejects_blank_path_before_auth(self, client) -> None:
+        """Blank provider paths should not open governed-key auth or routing reads."""
+        with patch("routes.proxy._get_identity_store") as mock_identity_store:
+            response = client.post(
+                "/proxy/",
+                json={
+                    "service": "stripe",
+                    "method": "GET",
+                    "path": "   ",
+                },
+            )
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'path' field."
+        assert payload["error"]["detail"] == "Provide a non-empty provider path."
+        mock_identity_store.assert_not_called()
+
     def test_proxy_request_rejects_blank_key_before_identity_store(self, client) -> None:
         """Whitespace governed-key headers should not open identity-store reads."""
         with patch("routes.proxy._get_identity_store") as mock_identity_store:
