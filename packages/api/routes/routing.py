@@ -164,7 +164,7 @@ async def get_routing_strategy(
 
 @router.put("/routing-strategy", response_model=RoutingStrategyResponse)
 async def set_routing_strategy(
-    body: Any = Body(default_factory=dict),
+    body: Any = Body(default=None),
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Set agent's routing strategy."""

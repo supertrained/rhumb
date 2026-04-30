@@ -336,6 +336,20 @@ class TestRoutingRoutes:
         assert error["detail"] == "Provide a JSON object payload."
         mock_extract.assert_not_awaited()
 
+    def test_set_strategy_rejects_missing_payload_before_auth(self):
+        with patch("routes.routing._extract_agent_id", new_callable=AsyncMock) as mock_extract:
+            resp = self.client.put(
+                "/v1/agent/routing-strategy",
+                headers={"X-Rhumb-Key": "test_key"},
+            )
+
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid routing strategy payload."
+        assert error["detail"] == "Provide a JSON object payload."
+        mock_extract.assert_not_awaited()
+
     def test_set_strategy_rejects_invalid_quality_floor_before_auth(self):
         with patch("routes.routing._extract_agent_id", new_callable=AsyncMock) as mock_extract:
             resp = self.client.put(
