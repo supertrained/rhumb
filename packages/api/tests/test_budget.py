@@ -242,7 +242,7 @@ class TestBudgetRoutes:
             "routes.budget._extract_agent_id",
             side_effect=_mock_extract,
         )
-        self._agent_id_patcher.start()
+        self._mock_extract_agent_id = self._agent_id_patcher.start()
         self.app = _shared_app
         self.client = TestClient(self.app)
 
@@ -322,22 +322,63 @@ class TestBudgetRoutes:
             assert data["remaining_usd"] == 100.0
 
     def test_set_budget_invalid_period(self):
-        """PUT /v1/agent/budget rejects invalid period."""
+        """PUT /v1/agent/budget rejects invalid period before auth."""
         resp = self.client.put(
             "/v1/agent/budget",
             headers={"X-Rhumb-Key": "test_key_123"},
             json={"budget_usd": 100.0, "period": "yearly"},
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
+        assert resp.json()["error"]["code"] == "INVALID_PARAMETERS"
+        self._mock_extract_agent_id.assert_not_called()
 
     def test_set_budget_requires_positive_amount(self):
-        """PUT /v1/agent/budget rejects zero/negative budget."""
+        """PUT /v1/agent/budget rejects zero/negative budget before auth."""
         resp = self.client.put(
             "/v1/agent/budget",
             headers={"X-Rhumb-Key": "test_key_123"},
             json={"budget_usd": 0, "period": "monthly"},
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
+        assert resp.json()["error"]["code"] == "INVALID_PARAMETERS"
+        self._mock_extract_agent_id.assert_not_called()
+
+    def test_set_budget_invalid_alert_threshold_rejects_before_auth(self):
+        """PUT /v1/agent/budget rejects invalid alert threshold before auth."""
+        resp = self.client.put(
+            "/v1/agent/budget",
+            headers={"X-Rhumb-Key": "test_key_123"},
+            json={"budget_usd": 100.0, "period": "monthly", "alert_threshold_pct": 0},
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error"]["code"] == "INVALID_PARAMETERS"
+        self._mock_extract_agent_id.assert_not_called()
+
+    def test_set_budget_trims_period_before_write(self):
+        """PUT /v1/agent/budget trims valid periods before writes."""
+        with patch("routes.budget._enforcer") as mock_enforcer:
+            mock_enforcer.set_budget = AsyncMock(return_value=BudgetStatus(
+                allowed=True,
+                remaining_usd=100.0,
+                budget_usd=100.0,
+                spent_usd=0.0,
+                period="weekly",
+                hard_limit=True,
+                alert_threshold_pct=75,
+                alert_fired=False,
+            ))
+            resp = self.client.put(
+                "/v1/agent/budget",
+                headers={"X-Rhumb-Key": "test_key_123"},
+                json={
+                    "budget_usd": 100.0,
+                    "period": "  WEEKLY  ",
+                    "alert_threshold_pct": 75,
+                },
+            )
+        assert resp.status_code == 200
+        mock_enforcer.set_budget.assert_awaited_once()
+        assert mock_enforcer.set_budget.await_args.kwargs["period"] == "weekly"
 
 
 # ---------------------------------------------------------------------------

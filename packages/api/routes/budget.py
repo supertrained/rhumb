@@ -30,10 +30,52 @@ class BudgetResponse(BaseModel):
 
 
 class SetBudgetRequest(BaseModel):
-    budget_usd: float = Field(..., gt=0, description="Budget amount in USD")
-    period: str = Field("monthly", pattern="^(daily|weekly|monthly|total)$")
+    budget_usd: float = Field(..., description="Budget amount in USD")
+    period: str = Field("monthly")
     hard_limit: bool = Field(True, description="If true, reject executions over budget")
-    alert_threshold_pct: int = Field(80, ge=1, le=100)
+    alert_threshold_pct: int = Field(80)
+
+
+_VALID_BUDGET_PERIODS = {"daily", "weekly", "monthly", "total"}
+
+
+def _validated_budget_amount(value: float) -> float:
+    """Reject invalid budget amounts before governed-key auth runs."""
+    normalized = float(value)
+    if normalized > 0:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'budget_usd' field.",
+        detail="Provide a budget_usd value greater than 0.",
+    )
+
+
+def _validated_budget_period(value: str) -> str:
+    """Normalize and validate budget periods before governed-key auth runs."""
+    normalized = str(value or "").strip().lower()
+    if normalized in _VALID_BUDGET_PERIODS:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'period' field.",
+        detail="Use one of: daily, weekly, monthly, total.",
+    )
+
+
+def _validated_alert_threshold_pct(value: int) -> int:
+    """Reject invalid alert thresholds before governed-key auth runs."""
+    normalized = int(value)
+    if 1 <= normalized <= 100:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'alert_threshold_pct' field.",
+        detail="Provide an integer between 1 and 100.",
+    )
 
 
 async def _extract_agent_id(api_key: str | None) -> str:
@@ -90,13 +132,17 @@ async def set_budget(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Create or update budget for the authenticated agent."""
+    budget_usd = _validated_budget_amount(body.budget_usd)
+    period = _validated_budget_period(body.period)
+    alert_threshold_pct = _validated_alert_threshold_pct(body.alert_threshold_pct)
+
     agent_id = await _extract_agent_id(x_rhumb_key)
     status = await _enforcer.set_budget(
         agent_id=agent_id,
-        budget_usd=body.budget_usd,
-        period=body.period,
+        budget_usd=budget_usd,
+        period=period,
         hard_limit=body.hard_limit,
-        alert_threshold_pct=body.alert_threshold_pct,
+        alert_threshold_pct=alert_threshold_pct,
     )
 
     return BudgetResponse(
