@@ -3929,11 +3929,12 @@ async def get_agent_credentials(
     Requires a valid API key — this endpoint exposes Rhumb's managed
     readiness state and must not be accessible to unauthenticated callers.
     """
-    if not x_rhumb_key:
+    normalized_key = str(x_rhumb_key or "").strip()
+    if not normalized_key:
         raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")
 
     from schemas.agent_identity import get_agent_identity_store
-    agent = await get_agent_identity_store().verify_api_key_with_agent(x_rhumb_key)
+    agent = await get_agent_identity_store().verify_api_key_with_agent(normalized_key)
     if agent is None:
         raise HTTPException(status_code=401, detail="Invalid or expired governed API key")
 

@@ -175,6 +175,50 @@ async def test_agent_credentials_requires_auth(app):
 
 
 @pytest.mark.anyio
+async def test_agent_credentials_rejects_blank_key_before_identity_lookup(app):
+    """Whitespace-only governed keys should be missing, not identity-store reads."""
+    identity_store = SimpleNamespace(verify_api_key_with_agent=AsyncMock())
+
+    with patch("schemas.agent_identity.get_agent_identity_store", return_value=identity_store):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get(
+                "/v1/agent/credentials",
+                headers={"X-Rhumb-Key": "  \t  "},
+            )
+
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "X-Rhumb-Key header required"
+    identity_store.verify_api_key_with_agent.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_agent_credentials_trims_key_before_identity_lookup(app):
+    """Padded governed keys should verify using the same value as bare keys."""
+    identity_store = SimpleNamespace(
+        verify_api_key_with_agent=AsyncMock(return_value=SimpleNamespace(agent_id="agent_123"))
+    )
+
+    async def mock_fetch(path):
+        if "capability_services?" in path:
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", side_effect=mock_fetch), patch(
+        "schemas.agent_identity.get_agent_identity_store",
+        return_value=identity_store,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.get(
+                "/v1/agent/credentials",
+                headers={"X-Rhumb-Key": "  rk_test  "},
+            )
+
+    assert resp.status_code == 200
+    assert resp.json()["data"]["agent_id"] == "agent_123"
+    identity_store.verify_api_key_with_agent.assert_awaited_once_with("rk_test")
+
+
+@pytest.mark.anyio
 async def test_agent_credentials_invalid_key_uses_governed_language(app):
     """Agent credentials invalid-key auth should use governed-key wording."""
 
