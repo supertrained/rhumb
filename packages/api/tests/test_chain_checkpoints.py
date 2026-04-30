@@ -369,6 +369,27 @@ def test_admin_route_rejects_invalid_stream_before_outbox_read() -> None:
     get_event_outbox.assert_not_called()
 
 
+def test_admin_route_rejects_blank_checkpoint_reason_before_outbox_read() -> None:
+    settings.rhumb_admin_secret = "test-secret"
+
+    app = FastAPI()
+    app.add_exception_handler(RhumbError, rhumb_error_handler)
+    app.include_router(router)
+    client = TestClient(app)
+
+    with patch("routes.admin_chain_integrity.get_event_outbox") as get_event_outbox:
+        response = client.post(
+            "/v1/admin/trust/chain-checkpoints/audit_events",
+            headers={"X-Rhumb-Admin-Key": "test-secret"},
+            json={"reason": "   "},
+        )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "INVALID_PARAMETERS"
+    assert response.json()["error"]["message"] == "Invalid checkpoint reason"
+    get_event_outbox.assert_not_called()
+
+
 def test_admin_route_creates_audit_checkpoint() -> None:
     settings.rhumb_admin_secret = "test-secret"
     outbox = FakeOutbox()
@@ -397,6 +418,35 @@ def test_admin_route_creates_audit_checkpoint() -> None:
     assert body["checkpoint"]["stream_name"] == "audit_events"
     assert body["checkpoint"]["metadata"]["operator"] == "pedro"
     assert outbox.flush_calls == 1
+
+
+def test_admin_route_trims_checkpoint_reason_before_write() -> None:
+    settings.rhumb_admin_secret = "test-secret"
+    outbox = FakeOutbox()
+    audit = AuditTrail()
+    audit.record(
+        AuditEventType.EXECUTION_STARTED,
+        "execute",
+        org_id="org_route",
+        detail={"provider": "brave-search"},
+    )
+    set_test_chain_integrity_stores(outbox=outbox, audit_trail=audit)
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/admin/trust/chain-checkpoints/audit_events",
+        headers={"X-Rhumb-Admin-Key": "test-secret"},
+        json={"reason": "  external_anchor_candidate  "},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "created"
+    assert body["checkpoint"]["reason"] == "external_anchor_candidate"
+    assert outbox.checkpoints[0]["reason"] == "external_anchor_candidate"
 
 
 def test_admin_route_skips_empty_billing_stream() -> None:

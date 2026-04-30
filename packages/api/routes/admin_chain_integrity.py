@@ -37,6 +37,18 @@ class CreateChainCheckpointRequest(BaseModel):
     flush: bool = True
 
 
+def _validated_checkpoint_reason(reason: str) -> str:
+    normalized = str(reason or "").strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid checkpoint reason",
+        detail="Provide a non-empty checkpoint reason or omit the field.",
+    )
+
+
 _test_outbox: DurableEventOutbox | Any | None = None
 _test_audit_trail: AuditTrail | None = None
 _test_billing_stream: BillingEventStream | None = None
@@ -91,6 +103,8 @@ async def create_chain_checkpoint(
             detail=f"Use one of: {valid_streams}.",
         )
 
+    reason = _validated_checkpoint_reason(body.reason)
+
     outbox = _test_outbox if _test_outbox is not None else get_event_outbox()
     if outbox is None:
         raise HTTPException(status_code=503, detail="Durable checkpoint outbox is unavailable.")
@@ -98,7 +112,7 @@ async def create_chain_checkpoint(
     try:
         if normalized_stream == "audit_events":
             payload = await checkpoint_audit_head(
-                reason=body.reason,
+                reason=reason,
                 metadata=body.metadata,
                 outbox=outbox,
                 audit_trail=_test_audit_trail or get_audit_trail(),
@@ -106,7 +120,7 @@ async def create_chain_checkpoint(
             )
         elif normalized_stream == "billing_events":
             payload = await checkpoint_billing_head(
-                reason=body.reason,
+                reason=reason,
                 metadata=body.metadata,
                 outbox=outbox,
                 billing_stream=_test_billing_stream or get_billing_event_stream(),
@@ -114,7 +128,7 @@ async def create_chain_checkpoint(
             )
         elif normalized_stream == "score_audit_chain":
             payload = await checkpoint_score_audit_head(
-                reason=body.reason,
+                reason=reason,
                 metadata=body.metadata,
                 outbox=outbox,
                 latest_row=_test_score_audit_row,
@@ -125,7 +139,7 @@ async def create_chain_checkpoint(
             )
         else:
             payload = await checkpoint_execution_receipts_head(
-                reason=body.reason,
+                reason=reason,
                 metadata=body.metadata,
                 outbox=outbox,
                 latest_row=_test_execution_receipt_row,
@@ -139,7 +153,7 @@ async def create_chain_checkpoint(
         return {
             "status": "skipped",
             "stream_name": normalized_stream,
-            "reason": body.reason,
+            "reason": reason,
             "detail": "Stream is empty; no checkpoint created.",
         }
 
