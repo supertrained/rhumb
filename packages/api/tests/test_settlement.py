@@ -551,6 +551,25 @@ class TestSettlementAdminRoutes:
         assert payload["error"]["detail"] == "Provide a positive integer number of USD cents."
         mock_mark.assert_not_awaited()
 
+    def test_mark_converted_rejects_non_object_payloads_before_settlement_writes(self, client: TestClient) -> None:
+        """Settlement conversion bodies must be route-owned JSON objects before writes."""
+        with patch(
+            "routes.admin_billing.mark_batch_converted",
+            new_callable=AsyncMock,
+        ) as mock_mark:
+            resp = client.post(
+                f"/v1/admin/settlement/{BATCH_ID}/converted",
+                json=[{"total_usd_cents": 100}],
+                headers=_admin_headers(),
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid settlement conversion payload."
+        assert payload["error"]["detail"] == "Provide a JSON object with total_usd_cents."
+        mock_mark.assert_not_awaited()
+
     def test_mark_converted_normalizes_blank_conversion_id_before_settlement_writes(self, client: TestClient) -> None:
         with patch(
             "routes.admin_billing.mark_batch_converted",

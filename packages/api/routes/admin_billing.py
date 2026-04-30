@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query
-from pydantic import BaseModel, Field
 
 from services.billing_aggregation import BillingAggregator, get_billing_aggregator
 from services.error_envelope import RhumbError
@@ -345,15 +344,6 @@ async def pending_settlements() -> Dict[str, Any]:
     return {"batches": batches, "count": len(batches)}
 
 
-class MarkConvertedRequest(BaseModel):
-    """Request payload for marking a batch as converted."""
-
-    total_usd_cents: Any = Field(default=None, description="Total USD received in cents")
-    coinbase_conversion_id: Any = Field(
-        default=None, description="Coinbase conversion ID (optional in Phase 1)"
-    )
-
-
 def _normalize_positive_usd_cents(value: Any) -> int:
     """Validate and normalize manual settlement USD-cent totals before writes."""
     if isinstance(value, bool) or value is None:
@@ -397,15 +387,28 @@ def _normalize_optional_conversion_id(value: Any) -> str | None:
     return normalized or None
 
 
+def _normalize_mark_converted_body(body: Any) -> tuple[int, str | None]:
+    """Validate manual settlement conversion payloads before settlement writes."""
+    if not isinstance(body, dict):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid settlement conversion payload.",
+            detail="Provide a JSON object with total_usd_cents.",
+        )
+
+    total_usd_cents = _normalize_positive_usd_cents(body.get("total_usd_cents"))
+    conversion_id = _normalize_optional_conversion_id(body.get("coinbase_conversion_id"))
+    return total_usd_cents, conversion_id
+
+
 @router.post("/admin/settlement/{batch_id}/converted")
 async def mark_converted(
     batch_id: str,
-    body: MarkConvertedRequest,
+    body: Any = Body(default=None),
 ) -> Dict[str, Any]:
     """Mark a settlement batch as converted to USD (manual Phase 1 step)."""
     normalized_batch_id = _normalize_required_path_value(batch_id, "batch_id")
-    total_usd_cents = _normalize_positive_usd_cents(body.total_usd_cents)
-    conversion_id = _normalize_optional_conversion_id(body.coinbase_conversion_id)
+    total_usd_cents, conversion_id = _normalize_mark_converted_body(body)
     success = await mark_batch_converted(
         normalized_batch_id,
         total_usd_cents,
