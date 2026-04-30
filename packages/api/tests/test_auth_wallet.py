@@ -78,6 +78,32 @@ def _sign_message(message: str, private_key: str) -> str:
 # ── Unit Tests: wallet_auth service ──────────────────────────────────
 
 
+class TestWalletSessionAuth:
+    """Authorization header normalization for wallet-session routes."""
+
+    def test_blank_bearer_token_rejects_before_jwt_verification(self):
+        from fastapi import HTTPException
+        from routes.auth_wallet import _require_wallet_session
+
+        with patch("routes.auth_wallet._verify_wallet_jwt") as mock_verify:
+            with pytest.raises(HTTPException) as exc_info:
+                _run(_require_wallet_session("Bearer     "))
+
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.detail == "Invalid Authorization format (expected: Bearer <token>)"
+        mock_verify.assert_not_called()
+
+    def test_padded_bearer_header_trims_token_before_verification(self):
+        from routes.auth_wallet import _require_wallet_session
+
+        claims = {"wallet_identity_id": "wallet_test", "purpose": "wallet_access"}
+        with patch("routes.auth_wallet._verify_wallet_jwt", return_value=claims) as mock_verify:
+            result = _run(_require_wallet_session("  Bearer   wallet.jwt  "))
+
+        assert result == claims
+        mock_verify.assert_called_once_with("wallet.jwt")
+
+
 class TestNormalizeAddress:
     def test_valid_lowercase(self):
         addr = "0xabcdef1234567890abcdef1234567890abcdef12"

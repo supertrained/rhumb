@@ -98,12 +98,16 @@ async def _require_wallet_session(
     authorization: Optional[str],
 ) -> dict[str, Any]:
     """Verify wallet session from Authorization header. Raises 401 on failure."""
-    if not authorization:
+    normalized_authorization = str(authorization or "").strip()
+    if not normalized_authorization:
         raise HTTPException(status_code=401, detail="Missing Authorization header")
-    parts = authorization.split(" ", 1)
+    parts = normalized_authorization.split(None, 1)
     if len(parts) != 2 or parts[0].lower() != "bearer":
         raise HTTPException(status_code=401, detail="Invalid Authorization format (expected: Bearer <token>)")
-    claims = _verify_wallet_jwt(parts[1])
+    token = parts[1].strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Invalid Authorization format (expected: Bearer <token>)")
+    claims = _verify_wallet_jwt(token)
     if claims is None:
         raise HTTPException(status_code=401, detail="Invalid or expired wallet session")
     return claims
