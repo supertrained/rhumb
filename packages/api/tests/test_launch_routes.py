@@ -86,6 +86,48 @@ def test_capture_click_event_canonicalizes_alias_backed_service_slug(
     assert payload["service_slug"] == "brave-search-api"
 
 
+def test_capture_click_event_trims_payload_before_write(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    async def fake_insert(table: str, payload: dict[str, object]) -> bool:
+        captured["table"] = table
+        captured["payload"] = payload
+        return True
+
+    monkeypatch.setattr("routes.launch.supabase_insert", fake_insert)
+
+    response = client.post(
+        "/v1/clicks",
+        json={
+            "event_type": "  Provider_Click  ",
+            "destination_url": "  https://stripe.com/docs  ",
+            "service_slug": "  stripe  ",
+            "page_path": "  /service/stripe  ",
+            "source_surface": "  ",
+            "visitor_id": "  visitor-1  ",
+            "session_id": "  ",
+            "utm_source": "  hn  ",
+        },
+    )
+
+    assert response.status_code == 200
+    assert captured["table"] == "click_events"
+    payload = captured["payload"]
+    assert isinstance(payload, dict)
+    assert payload["event_type"] == "provider_click"
+    assert payload["destination_url"] == "https://stripe.com/docs"
+    assert payload["destination_domain"] == "stripe.com"
+    assert payload["service_slug"] == "stripe"
+    assert payload["page_path"] == "/service/stripe"
+    assert payload["source_surface"] == "unknown"
+    assert payload["visitor_id"] == "visitor-1"
+    assert payload["session_id"] is None
+    assert payload["utm_source"] == "hn"
+
+
 def test_capture_click_event_rejects_invalid_event_before_write(
     client: TestClient,
     monkeypatch,
@@ -108,6 +150,29 @@ def test_capture_click_event_rejects_invalid_event_before_write(
     assert payload["error"]["code"] == "INVALID_PARAMETERS"
     assert payload["error"]["message"] == "Invalid 'event_type' field."
     assert "provider_click" in payload["error"]["detail"]
+
+
+def test_capture_click_event_rejects_blank_destination_before_write(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    async def fail_insert(table: str, payload: dict[str, object]) -> bool:
+        raise AssertionError("Click write should not run for blank destination")
+
+    monkeypatch.setattr("routes.launch.supabase_insert", fail_insert)
+
+    response = client.post(
+        "/v1/clicks",
+        json={
+            "event_type": "provider_click",
+            "destination_url": "   ",
+        },
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'destination_url' field."
 
 
 def test_capture_click_event_rejects_invalid_destination_before_write(

@@ -55,8 +55,27 @@ def _validated_dashboard_window(window: str) -> str:
     )
 
 
+def _validated_click_event_type(event_type: str) -> str:
+    normalized = str(event_type or "").strip().lower()
+    if normalized in ALLOWED_CLICK_EVENTS:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'event_type' field.",
+        detail=f"Use one of: {', '.join(sorted(ALLOWED_CLICK_EVENTS))}.",
+    )
+
+
+def _normalized_optional_click_text(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None
+
+
 def _extract_destination_domain(destination_url: str) -> str:
-    parsed = urlsplit(destination_url)
+    parsed = urlsplit(destination_url.strip())
     if parsed.scheme not in ALLOWED_DESTINATION_SCHEMES:
         raise RhumbError(
             "INVALID_PARAMETERS",
@@ -86,34 +105,30 @@ def _extract_destination_domain(destination_url: str) -> str:
 @router.post("/clicks")
 async def capture_click_event(body: ClickEventRequest, request: Request) -> dict:
     """Capture an outbound click event for launch tracking."""
-    if body.event_type not in ALLOWED_CLICK_EVENTS:
-        raise RhumbError(
-            "INVALID_PARAMETERS",
-            message="Invalid 'event_type' field.",
-            detail=f"Use one of: {', '.join(sorted(ALLOWED_CLICK_EVENTS))}.",
-        )
-
-    destination_domain = _extract_destination_domain(body.destination_url)
+    event_type = _validated_click_event_type(body.event_type)
+    destination_url = str(body.destination_url or "").strip()
+    destination_domain = _extract_destination_domain(destination_url)
     referer = request.headers.get("referer")
 
     normalized_service_slug = public_service_slug(body.service_slug)
     if normalized_service_slug is None and isinstance(body.service_slug, str):
         normalized_service_slug = body.service_slug.strip().lower() or None
+    source_surface = _normalized_optional_click_text(body.source_surface) or "unknown"
 
     payload = {
         "created_at": datetime.now(tz=UTC).isoformat(),
-        "event_type": body.event_type,
+        "event_type": event_type,
         "service_slug": normalized_service_slug,
-        "page_path": body.page_path,
-        "destination_url": body.destination_url,
+        "page_path": _normalized_optional_click_text(body.page_path),
+        "destination_url": destination_url,
         "destination_domain": destination_domain,
-        "source_surface": body.source_surface,
-        "visitor_id": body.visitor_id,
-        "session_id": body.session_id,
-        "utm_source": body.utm_source,
-        "utm_medium": body.utm_medium,
-        "utm_campaign": body.utm_campaign,
-        "utm_content": body.utm_content,
+        "source_surface": source_surface,
+        "visitor_id": _normalized_optional_click_text(body.visitor_id),
+        "session_id": _normalized_optional_click_text(body.session_id),
+        "utm_source": _normalized_optional_click_text(body.utm_source),
+        "utm_medium": _normalized_optional_click_text(body.utm_medium),
+        "utm_campaign": _normalized_optional_click_text(body.utm_campaign),
+        "utm_content": _normalized_optional_click_text(body.utm_content),
         "referrer_url": referer,
     }
 
