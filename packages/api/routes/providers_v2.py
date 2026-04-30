@@ -98,6 +98,13 @@ def _canonicalize_provider_list_category(category: str | None) -> str | None:
     return normalized or None
 
 
+def _normalized_idempotency_key(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
 # ---------------------------------------------------------------------------
 # Request / response models
 # ---------------------------------------------------------------------------
@@ -1103,6 +1110,9 @@ async def execute_on_provider(
     credentials, billing, observability, receipts.
     """
     t_start = time.monotonic()
+    payload_idempotency_key = _normalized_idempotency_key(payload.idempotency_key)
+    header_idempotency_key = _normalized_idempotency_key(x_rhumb_idempotency_key)
+    effective_idempotency_key = payload_idempotency_key or header_idempotency_key
 
     # ── Validate the provider exists ──────────────────────────────────
     provider_id = _validated_provider_path_id(provider_id)
@@ -1191,7 +1201,7 @@ async def execute_on_provider(
     v1_payload: dict[str, Any] = {
         "provider": provider_runtime_slug,
         "credential_mode": payload.credential_mode,
-        "idempotency_key": payload.idempotency_key or x_rhumb_idempotency_key,
+        "idempotency_key": effective_idempotency_key,
         "interface": f"{payload.interface}-v2-l1",
         "body": payload.parameters,
     }
@@ -1246,7 +1256,7 @@ async def execute_on_provider(
             response_hash=hash_response_payload(execution_data.get("result")),
             interface=f"{payload.interface}-v2-l1",
             compat_mode=_COMPAT_MODE,
-            idempotency_key=payload.idempotency_key or x_rhumb_idempotency_key,
+            idempotency_key=effective_idempotency_key,
             error_code=body.get("error", {}).get("code") if not is_success else None,
             error_message=body.get("error", {}).get("message") if not is_success else None,
         )
