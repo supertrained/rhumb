@@ -907,6 +907,26 @@ def test_me_billing_checkout_rejects_invalid_amount_before_session_lookup() -> N
     mock_session.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    ("method", "endpoint"),
+    [
+        ("post", "/v1/auth/me/billing/checkout"),
+        ("post", "/v1/auth/me/billing/checkout/confirm"),
+        ("put", "/v1/auth/me/billing/auto-reload"),
+    ],
+)
+def test_me_billing_rejects_non_object_bodies_before_session_lookup(
+    method: str, endpoint: str
+) -> None:
+    with _auth_email_harness() as env:
+        with patch("routes.auth._require_session", new_callable=AsyncMock) as mock_session:
+            response = getattr(env.client, method)(endpoint, json=[{"bad": "shape"}])
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid dashboard billing request body."
+    mock_session.assert_not_awaited()
+
+
 def test_me_billing_checkout_confirm_rejects_blank_session_id_before_session_lookup() -> None:
     with _auth_email_harness() as env:
         with patch("routes.auth._require_session", new_callable=AsyncMock) as mock_session:

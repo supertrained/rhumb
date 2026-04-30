@@ -23,7 +23,7 @@ from urllib.parse import urlencode
 
 import httpx
 import jwt  # PyJWT
-from fastapi import APIRouter, Cookie, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Cookie, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
@@ -945,8 +945,25 @@ def _dashboard_checkout_url(kind: str) -> str:
     return f"{frontend}/dashboard?checkout=cancel"
 
 
-def _validate_dashboard_checkout_amount(amount_usd: float, *, suffix: str = "") -> None:
-    if amount_usd < MIN_CHECKOUT_AMOUNT_USD or amount_usd > MAX_CHECKOUT_AMOUNT_USD:
+def _dashboard_billing_body(body: Any) -> dict[str, Any]:
+    """Reject malformed dashboard billing bodies before session or org reads."""
+    if isinstance(body, dict):
+        return body
+    raise HTTPException(status_code=400, detail="Invalid dashboard billing request body.")
+
+
+def _dashboard_float_field(payload: dict[str, Any], field: str) -> float | None:
+    value = payload.get(field)
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _validate_dashboard_checkout_amount(amount_usd: float | None, *, suffix: str = "") -> None:
+    if amount_usd is None or amount_usd < MIN_CHECKOUT_AMOUNT_USD or amount_usd > MAX_CHECKOUT_AMOUNT_USD:
         raise HTTPException(
             status_code=400,
             detail=(
@@ -956,13 +973,49 @@ def _validate_dashboard_checkout_amount(amount_usd: float, *, suffix: str = "") 
         )
 
 
+def _validate_dashboard_checkout_body(body: Any) -> float:
+    payload = _dashboard_billing_body(body)
+    amount_usd = _dashboard_float_field(payload, "amount_usd")
+    _validate_dashboard_checkout_amount(amount_usd)
+    return float(amount_usd)
+
+
+def _validate_dashboard_checkout_confirm_body(body: Any) -> str:
+    payload = _dashboard_billing_body(body)
+    session_id = str(payload.get("session_id") or "").strip()
+    if not session_id:
+        raise HTTPException(status_code=400, detail="session_id is required")
+    return session_id
+
+
+def _validate_dashboard_auto_reload_body(body: Any) -> tuple[bool, float | None, float | None]:
+    payload = _dashboard_billing_body(body)
+    enabled = payload.get("enabled")
+    if not isinstance(enabled, bool):
+        raise HTTPException(status_code=400, detail="enabled must be true or false")
+
+    threshold_usd = _dashboard_float_field(payload, "threshold_usd")
+    amount_usd = _dashboard_float_field(payload, "amount_usd")
+    if enabled:
+        if threshold_usd is None or threshold_usd <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="threshold_usd must be > 0 when auto-reload is enabled",
+            )
+        _validate_dashboard_checkout_amount(
+            amount_usd,
+            suffix=" when auto-reload is enabled",
+        )
+    return enabled, threshold_usd, amount_usd
+
+
 @router.post("/me/billing/checkout")
 async def me_billing_checkout(
-    body: DashboardCheckoutRequest,
+    body: Any = Body(default=None),
     rhumb_session: Optional[str] = Cookie(default=None),
 ) -> JSONResponse:
     """Create a Stripe Checkout Session for the logged-in user's org."""
-    _validate_dashboard_checkout_amount(body.amount_usd)
+    amount_usd = _validate_dashboard_checkout_body(body)
 
     claims = await _require_session(rhumb_session)
 
@@ -975,7 +1028,7 @@ async def me_billing_checkout(
     if not org_id:
         raise HTTPException(status_code=400, detail="No organization associated with this user")
 
-    amount_cents = int(round(body.amount_usd * 100))
+    amount_cents = int(round(amount_usd * 100))
     result = await create_checkout_session(
         org_id=org_id,
         amount_cents=amount_cents,
@@ -987,7 +1040,7 @@ async def me_billing_checkout(
 
 @router.post("/me/billing/checkout/confirm")
 async def me_billing_checkout_confirm(
-    body: DashboardCheckoutConfirmRequest,
+    body: Any = Body(default=None),
     rhumb_session: Optional[str] = Cookie(default=None),
 ) -> JSONResponse:
     """Confirm a Stripe Checkout session and apply credits if webhooks are delayed.
@@ -995,9 +1048,7 @@ async def me_billing_checkout_confirm(
     This provides a self-serve fallback path when webhook delivery is misconfigured
     or delayed. The session must belong to the caller's organization.
     """
-    session_id = (body.session_id or "").strip()
-    if not session_id:
-        raise HTTPException(status_code=400, detail="session_id is required")
+    session_id = _validate_dashboard_checkout_confirm_body(body)
 
     claims = await _require_session(rhumb_session)
 
@@ -1016,28 +1067,11 @@ async def me_billing_checkout_confirm(
 
 @router.put("/me/billing/auto-reload")
 async def me_billing_auto_reload(
-    body: DashboardAutoReloadRequest,
+    body: Any = Body(default=None),
     rhumb_session: Optional[str] = Cookie(default=None),
 ) -> JSONResponse:
     """Update auto-reload settings for the logged-in user's org."""
-    if body.enabled:
-        if body.threshold_usd is None or body.threshold_usd <= 0:
-            raise HTTPException(
-                status_code=400,
-                detail="threshold_usd must be > 0 when auto-reload is enabled",
-            )
-        if body.amount_usd is None:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"amount_usd must be between {MIN_CHECKOUT_AMOUNT_USD:.0f} "
-                    f"and {MAX_CHECKOUT_AMOUNT_USD:.0f} when auto-reload is enabled"
-                ),
-            )
-        _validate_dashboard_checkout_amount(
-            body.amount_usd,
-            suffix=" when auto-reload is enabled",
-        )
+    enabled, threshold_usd, amount_usd = _validate_dashboard_auto_reload_body(body)
 
     claims = await _require_session(rhumb_session)
 
@@ -1050,7 +1084,7 @@ async def me_billing_auto_reload(
     if not org_id:
         raise HTTPException(status_code=400, detail="No organization associated with this user")
 
-    if body.enabled:
+    if enabled:
         from routes._supabase import supabase_fetch
 
         rows = await supabase_fetch(
@@ -1066,12 +1100,12 @@ async def me_billing_auto_reload(
     from routes._supabase import supabase_patch
 
     payload: dict[str, Any] = {
-        "auto_reload_enabled": body.enabled,
+        "auto_reload_enabled": enabled,
         "auto_reload_threshold_cents": (
-            int(round(body.threshold_usd * 100)) if body.threshold_usd is not None else None
+            int(round(threshold_usd * 100)) if threshold_usd is not None else None
         ),
         "auto_reload_amount_cents": (
-            int(round(body.amount_usd * 100)) if body.amount_usd is not None else None
+            int(round(amount_usd * 100)) if amount_usd is not None else None
         ),
     }
 
