@@ -436,6 +436,13 @@ def _normalized_governed_key(raw_request: Request) -> str | None:
     return normalized or None
 
 
+def _normalized_idempotency_key(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
 async def _resolve_policy_agent(raw_request: Request):
     x_rhumb_key = _normalized_governed_key(raw_request)
     if not x_rhumb_key:
@@ -1021,6 +1028,9 @@ async def execute_capability_v2(
 ) -> JSONResponse:
     capability_id = _validated_capability_path_id(capability_id)
     canonical_credential_mode = _canonicalize_credential_mode(payload.credential_mode)
+    payload_idempotency_key = _normalized_idempotency_key(payload.idempotency_key)
+    header_idempotency_key = _normalized_idempotency_key(x_rhumb_idempotency_key)
+    effective_idempotency_key = payload_idempotency_key or header_idempotency_key
     agent = None
     account_policy = None
     if _normalized_governed_key(raw_request):
@@ -1120,7 +1130,7 @@ async def execute_capability_v2(
     v1_payload: dict[str, Any] = {
         "provider": selected_provider_public or selected_provider,
         "credential_mode": canonical_credential_mode,
-        "idempotency_key": payload.idempotency_key or x_rhumb_idempotency_key,
+        "idempotency_key": effective_idempotency_key,
         "interface": f"{payload.interface}-v2",
         "body": payload.parameters,
     }
@@ -1197,7 +1207,7 @@ async def execute_capability_v2(
             response_hash=hash_response_payload(execution_data.get("result")),
             interface=f"{payload.interface}-v2",
             compat_mode=_COMPAT_MODE,
-            idempotency_key=payload.idempotency_key or x_rhumb_idempotency_key,
+            idempotency_key=effective_idempotency_key,
             error_code=error_code if not is_success else None,
             error_message=error_message if not is_success else None,
         )
@@ -1289,7 +1299,7 @@ async def execute_capability_v2(
                 "policy_pin": bool(payload.policy and payload.policy.pin),
                 "policy_provider_deny": bool(payload.policy and payload.policy.provider_deny),
                 "policy_allow_only": bool(payload.policy and payload.policy.allow_only),
-                "idempotency_header_used": bool(x_rhumb_idempotency_key and not payload.idempotency_key),
+                "idempotency_header_used": bool(header_idempotency_key and not payload_idempotency_key),
             },
         }
         if receipt_id:

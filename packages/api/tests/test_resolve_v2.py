@@ -1520,6 +1520,122 @@ async def test_v2_execute_direct_capability_ignores_stale_catalog_mapping_rows(a
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("payload_key", "header_key", "expected_key", "header_used"),
+    [
+        ("  body-idem  ", "  header-idem  ", "body-idem", False),
+        (None, "  header-idem  ", "header-idem", True),
+        (None, "  \t  ", None, False),
+    ],
+)
+async def test_v2_execute_normalizes_idempotency_keys_before_forwarding_and_receipts(
+    app,
+    payload_key,
+    header_key,
+    expected_key,
+    header_used,
+):
+    estimate_resp = _make_mock_response(
+        status_code=200,
+        json_body={
+            "data": {
+                "provider": "brave-search-api",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_estimate_usd": 0.003,
+            },
+            "error": None,
+        },
+    )
+    estimate_resp.headers = {}
+    execute_resp = _make_mock_response(
+        status_code=200,
+        json_body={
+            "data": {
+                "execution_id": "exec_v2_idem",
+                "provider_used": "brave-search-api",
+                "credential_mode": "byo",
+                "result": {"ok": True},
+                "latency_ms": 12.3,
+                "overhead_ms": 1.1,
+                "agent_id": "agent_v2_test",
+                "org_id": "org_v2_test",
+            },
+            "error": None,
+        },
+    )
+    execute_resp.headers = {}
+    policy_eval = SimpleNamespace(
+        decision=SimpleNamespace(
+            selected_provider="brave-search-api",
+            selected_reason="policy_pin",
+            candidate_providers=["brave-search-api"],
+            policy_summary={"pin": "brave-search-api"},
+        ),
+        all_mappings=[
+            {
+                "service_slug": "brave-search-api",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+            }
+        ],
+        eligible_mappings=[
+            {
+                "service_slug": "brave-search-api",
+                "endpoint_pattern": "GET /res/v1/web/search",
+                "cost_per_call": 0.003,
+            }
+        ],
+    )
+    mock_receipt = SimpleNamespace(receipt_id="rcpt_v2_idem")
+    mock_attribution = MagicMock()
+    mock_attribution.to_response_headers.return_value = {}
+    mock_attribution.to_rhumb_block.return_value = {"provider": {"id": "brave-search-api"}}
+    mock_billing_stream = SimpleNamespace(emit=MagicMock())
+    breaker = SimpleNamespace(state=SimpleNamespace(value="closed"))
+    breaker_registry = SimpleNamespace(get=lambda *_args, **_kwargs: breaker)
+    mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
+
+    request_body = {
+        "parameters": {"q": "rhumb"},
+        "credential_mode": "byo",
+        "interface": "rest",
+    }
+    if payload_key is not None:
+        request_body["idempotency_key"] = payload_key
+
+    headers = {"X-Rhumb-Key": FAKE_RHUMB_KEY}
+    if header_key is not None:
+        headers["X-Rhumb-Idempotency-Key"] = header_key
+
+    with (
+        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])) as mock_forward,
+        patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
+        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
+        patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
+        patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
+        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_idem")),
+        patch("routes.resolve_v2.store_explanation"),
+        patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
+        patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
+    ):
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json=request_body,
+                headers=headers,
+            )
+
+    assert resp.status_code == 200
+    execute_call = mock_forward.await_args_list[1]
+    assert execute_call.kwargs["json_body"]["idempotency_key"] == expected_key
+    receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
+    assert receipt_input.idempotency_key == expected_key
+    assert resp.json()["data"]["_rhumb_v2"]["translated_from"]["idempotency_header_used"] is header_used
+
+
+@pytest.mark.anyio
 async def test_v2_execute_direct_capability_rejects_stale_allow_only_provider(app):
     with (
         patch(
