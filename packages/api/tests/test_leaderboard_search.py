@@ -775,6 +775,22 @@ def test_search_http_rejects_blank_query_with_canonical_envelope():
     cached_fetch.assert_not_awaited()
 
 
+def test_search_http_rejects_missing_query_with_canonical_envelope():
+    """Missing search queries should use route-owned validation, not framework 422s."""
+    from app import create_app
+
+    with patch("routes.search._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        client = TestClient(create_app())
+        response = client.get("/v1/search")
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'q' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty search query."
+    cached_fetch.assert_not_awaited()
+
+
 @pytest.mark.asyncio
 async def test_search_limit(mock_catalog_supabase):
     """Test search limit parameter works."""

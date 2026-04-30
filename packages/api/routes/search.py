@@ -156,8 +156,8 @@ def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[s
     return list(canonical_rows.values())
 
 
-def _validated_search_query(query: str) -> str:
-    normalized = query.strip()
+def _validated_search_query(query: str | None) -> str:
+    normalized = str(query or "").strip()
     if normalized:
         return normalized
 
@@ -181,7 +181,7 @@ def _validated_search_limit(limit: int) -> int:
 
 @router.get("/search")
 async def search_services(
-    q: str,
+    q: str | None = Query(default=None),
     limit: int = Query(default=10),
 ) -> dict:
     """Search services by free-text query (slug, name, category, description).
