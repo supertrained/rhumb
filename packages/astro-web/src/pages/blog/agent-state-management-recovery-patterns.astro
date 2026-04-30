@@ -75,6 +75,13 @@ const CHAINED_BUG_RECOVERY_DRILL = [
   "Link recovery evidence to observability traces and loop budgets, because the next bug is often hidden in cost, retries, or stale route context.",
 ];
 
+const CHECKPOINT_REASON_DRILL = [
+  "Normalize the checkpoint reason before the outbox, audit stream, billing stream, score-audit chain, or execution-receipt head can observe it.",
+  "Reject missing, blank, or whitespace-only reasons as typed parameter failures instead of signing a meaningless manual snapshot.",
+  "Preserve the normalized reason with stream name, source head hash, source sequence, verification status, flush choice, and operator metadata.",
+  "Treat the reason as recovery evidence: if tomorrow's worker cannot tell why the checkpoint exists, the checkpoint is not enough to resume safely.",
+];
+
 const MULTI_LLM_STATE_DRILL = [
   "Checkpoint which provider and model were active when context was counted, trimmed, summarized, or compressed.",
   "Do not reuse one token estimate across providers; tokenizer mismatch can turn a safe resume into a silent overflow.",
@@ -120,6 +127,7 @@ const STATE_DESIGN_CHECKLIST = [
   "Do verification reads return the side effect reliably after create or update?",
   "Is the work unit small enough that restart cost stays acceptable?",
   "If the process dies mid-call, what exact state tells the next worker how to resume?",
+  "If a checkpoint was created manually, does the reason explain why that head is safe to trust?",
 ];
 
 const CHECKPOINT_SNIPPET = String.raw`{
@@ -146,7 +154,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Agent State Management: How to Build Workflows That Recover Without You",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-26T00:00:00Z",
+  dateModified: "2026-04-30T09:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production agent reliability depends on checkpointing, verification, bounded work units, and explicit recovery paths, not just whether an API usually returns 200.",
@@ -178,7 +186,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="uppercase tracking-widest text-amber">Recovery Patterns</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">Updated April 24, 2026</span>
+          <span class="text-slate-500">Updated April 30, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -294,6 +302,26 @@ const ARTICLE_JSON_LD = {
               </ul>
               <p class="mt-4 leading-relaxed text-slate-300">
                 The follow-through belongs in <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">observability traces</a> and <a href="/blog/llm-apis-agent-loops" class="text-amber hover:text-amber-200 transition-colors">loop-budget evidence</a>, not just in a prompt changelog.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <div class="rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300">Checkpoint reason gate</div>
+              <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+                A manual checkpoint without a reason is not recovery evidence
+              </h2>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                Durable checkpoints are supposed to tell the next worker which chain head was safe to resume from and why it was captured. If an admin path can sign a blank reason, the checkpoint still looks official but loses the operator intent needed during recovery. Normalize the reason first, reject empty values, and only then snapshot the audit, billing, score, or receipt stream.
+              </p>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {CHECKPOINT_REASON_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 leading-relaxed text-slate-300">
+                Pair this with <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">observability evidence</a>: signed state is useful only when the reason, stream, and verification policy explain the recovery decision.
               </p>
             </div>
           </section>
