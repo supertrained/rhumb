@@ -48,6 +48,13 @@ const WALLET_TOPUP_PREFLIGHT_GATES = [
   "Keep the top-up id, requested amount, wallet identity, org id, proof family, and verification outcome in trace context so operators can distinguish bad input from replay, mismatch, or settlement failure.",
 ];
 
+const SETTLEMENT_CONVERSION_GATES = [
+  "Validate total_usd_cents as a positive integer before settlement batch state, ledger reconciliation, or invoice reporting can observe the conversion result.",
+  "Reject missing, zero, negative, boolean, decimal, blank, or malformed cent totals as typed parameter failures instead of preserving ambiguous settlement state.",
+  "Trim optional Coinbase conversion ids and store blank values as absent evidence, not as whitespace identifiers that look like real reconciliation proof.",
+  "Preserve batch id, normalized USD-cent total, conversion id presence, actor, and rejection reason in trace context so finance review can separate bad admin input from processor, wallet, or ledger drift.",
+];
+
 const PROXY_REQUEST_PREFLIGHT_GATES = [
   "Normalize and validate the proxy request method and path before route lookup, credential selection, budget attribution, proxy dispatch, or provider code observes the request.",
   "Reject missing, blank, whitespace-only, or unsupported methods as typed input failures instead of letting them become generic upstream proxy errors.",
@@ -60,7 +67,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-04-30T09:00:00Z",
+  dateModified: "2026-04-30T16:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -380,6 +387,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           This is the payment-specific version of the same <a href="/blog/how-agents-actually-pay-x402-dogfood" class="text-amber hover:underline underline-offset-2">x402 dogfood lesson</a>: proof format errors and mismatched payment-request ids should be typed authority outcomes, not ambiguous billing failures.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-lime-500/20 bg-lime-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-lime-300 mb-3">Settlement conversion gate</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Settlement totals should validate before finance state believes them
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Manual settlement conversion is still part of the execution trust boundary. If an admin marks a batch converted with a missing, zero, boolean, decimal, or whitespace-shaped USD-cent total, the failure should stop before ledger reconciliation, invoice reporting, or finance review treats the batch as converted. Normalize the cent total and conversion id first; then write settlement state.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {SETTLEMENT_CONVERSION_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          This extends wallet-prefund reliability beyond payment proof parsing: conversion evidence must be typed before finance state can confuse bad admin input with processor, wallet, or ledger drift.
         </p>
       </section>
 
