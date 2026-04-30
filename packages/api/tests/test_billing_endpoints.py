@@ -114,6 +114,35 @@ def _ledger_entry(
 
 
 # ---------------------------------------------------------------------------
+# POST /billing/checkout
+# ---------------------------------------------------------------------------
+
+
+class TestCheckout:
+    """Tests for checkout validation before governed-key auth."""
+
+    @pytest.mark.parametrize("amount", [4.99, 5000.01])
+    def test_invalid_amount_rejected_before_auth(self, client: TestClient, amount: float) -> None:
+        require_org_mock = AsyncMock()
+        checkout_mock = AsyncMock()
+
+        with (
+            patch("routes.billing._require_org", require_org_mock),
+            patch("routes.billing.create_checkout_session", checkout_mock),
+        ):
+            resp = client.post(
+                "/v1/billing/checkout",
+                json={"amount_usd": amount},
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "amount_usd must be between 5 and 5000"
+        require_org_mock.assert_not_awaited()
+        checkout_mock.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
 # GET /billing/balance
 # ---------------------------------------------------------------------------
 
@@ -468,39 +497,41 @@ class TestAutoReload:
         assert data["auto_reload_threshold_usd"] is None
         assert data["auto_reload_amount_usd"] is None
 
-    def test_validation_threshold_must_be_positive(self, client: TestClient) -> None:
-        resp = client.put(
-            "/v1/billing/auto-reload",
-            json={"enabled": True, "threshold_usd": 0, "amount_usd": 10.0},
-            headers=_auth_headers(),
-        )
-        assert resp.status_code == 400
-        assert "threshold_usd" in resp.json()["detail"]
+    @pytest.mark.parametrize(
+        ("payload", "detail_fragment"),
+        [
+            ({"enabled": True, "threshold_usd": 0, "amount_usd": 10.0}, "threshold_usd"),
+            ({"enabled": True, "amount_usd": 10.0}, "threshold_usd"),
+            ({"enabled": True, "threshold_usd": 5.0, "amount_usd": 4.99}, "amount_usd"),
+            ({"enabled": True, "threshold_usd": 5.0}, "amount_usd"),
+        ],
+    )
+    def test_invalid_enabled_config_rejected_before_auth(
+        self,
+        client: TestClient,
+        payload: dict[str, float | bool],
+        detail_fragment: str,
+    ) -> None:
+        require_org_mock = AsyncMock()
+        fetch_mock = AsyncMock()
+        patch_mock = AsyncMock()
 
-    def test_validation_threshold_required_when_enabled(self, client: TestClient) -> None:
-        resp = client.put(
-            "/v1/billing/auto-reload",
-            json={"enabled": True, "amount_usd": 10.0},
-            headers=_auth_headers(),
-        )
-        assert resp.status_code == 400
+        with (
+            patch("routes.billing._require_org", require_org_mock),
+            patch("routes.billing.supabase_fetch", fetch_mock),
+            patch("routes.billing.supabase_patch", patch_mock),
+        ):
+            resp = client.put(
+                "/v1/billing/auto-reload",
+                json=payload,
+                headers=_auth_headers(),
+            )
 
-    def test_validation_amount_minimum(self, client: TestClient) -> None:
-        resp = client.put(
-            "/v1/billing/auto-reload",
-            json={"enabled": True, "threshold_usd": 5.0, "amount_usd": 4.99},
-            headers=_auth_headers(),
-        )
         assert resp.status_code == 400
-        assert "amount_usd" in resp.json()["detail"]
-
-    def test_validation_amount_required_when_enabled(self, client: TestClient) -> None:
-        resp = client.put(
-            "/v1/billing/auto-reload",
-            json={"enabled": True, "threshold_usd": 5.0},
-            headers=_auth_headers(),
-        )
-        assert resp.status_code == 400
+        assert detail_fragment in resp.json()["detail"]
+        require_org_mock.assert_not_awaited()
+        fetch_mock.assert_not_awaited()
+        patch_mock.assert_not_awaited()
 
     def test_enable_requires_saved_payment_method_before_patch(self, client: TestClient) -> None:
         patch_mock = AsyncMock()

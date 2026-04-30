@@ -97,6 +97,29 @@ class AutoReloadRequest(BaseModel):
     amount_usd: float | None = None
 
 
+def _validate_checkout_amount(amount_usd: float) -> None:
+    if amount_usd < MIN_AMOUNT_USD or amount_usd > MAX_AMOUNT_USD:
+        raise HTTPException(
+            status_code=400,
+            detail=f"amount_usd must be between {MIN_AMOUNT_USD:.0f} and {MAX_AMOUNT_USD:.0f}",
+        )
+
+
+def _validate_auto_reload_request(body: AutoReloadRequest) -> None:
+    if not body.enabled:
+        return
+    if body.threshold_usd is None or body.threshold_usd <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="threshold_usd must be > 0 when auto-reload is enabled",
+        )
+    if body.amount_usd is None or body.amount_usd < MIN_AMOUNT_USD:
+        raise HTTPException(
+            status_code=400,
+            detail=f"amount_usd must be >= {MIN_AMOUNT_USD:.1f} when auto-reload is enabled",
+        )
+
+
 async def _require_org(api_key: str | None) -> str:
     """Validate API key against the identity store and return org_id.
 
@@ -398,13 +421,8 @@ async def checkout(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Create a Stripe Checkout Session to purchase credits."""
+    _validate_checkout_amount(body.amount_usd)
     org_id = await _require_org(x_rhumb_key)
-
-    if body.amount_usd < MIN_AMOUNT_USD or body.amount_usd > MAX_AMOUNT_USD:
-        raise HTTPException(
-            status_code=400,
-            detail=f"amount_usd must be between {MIN_AMOUNT_USD:.0f} and {MAX_AMOUNT_USD:.0f}",
-        )
 
     amount_cents = int(round(body.amount_usd * 100))
     result = await create_checkout_session(
@@ -792,19 +810,10 @@ async def update_auto_reload(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Update the auto-reload configuration for an org's credit wallet."""
+    _validate_auto_reload_request(body)
     org_id = await _require_org(x_rhumb_key)
 
     if body.enabled:
-        if body.threshold_usd is None or body.threshold_usd <= 0:
-            raise HTTPException(
-                status_code=400,
-                detail="threshold_usd must be > 0 when auto-reload is enabled",
-            )
-        if body.amount_usd is None or body.amount_usd < 5.0:
-            raise HTTPException(
-                status_code=400,
-                detail="amount_usd must be >= 5.0 when auto-reload is enabled",
-            )
         await _require_saved_payment_method_for_auto_reload(org_id)
 
     payload: dict = {
