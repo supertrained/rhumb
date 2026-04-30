@@ -70,6 +70,13 @@ class RecipeExecuteRequest(BaseModel):
     )
 
 
+def _normalized_idempotency_key(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None
+
+
 async def _get_idempotency_store() -> DurableIdempotencyStore:
     global _idempotency_store
     if _idempotency_store is None:
@@ -1082,7 +1089,9 @@ async def execute_recipe(
             detail=outbox_health.reason or "Retry after the durable event outbox recovers.",
         )
 
-    effective_idempotency_key = payload.idempotency_key or x_rhumb_idempotency_key
+    payload_idempotency_key = _normalized_idempotency_key(payload.idempotency_key)
+    header_idempotency_key = _normalized_idempotency_key(x_rhumb_idempotency_key)
+    effective_idempotency_key = payload_idempotency_key or header_idempotency_key
     execution_id = f"rexec_{uuid.uuid4().hex[:24]}"
     safety_gate = get_safety_gate()
     preflight = safety_gate.check_pre_execution(
