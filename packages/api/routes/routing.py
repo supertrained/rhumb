@@ -8,9 +8,9 @@ GET  /v1/agent/spend            — spend breakdown
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Body, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from services.error_envelope import RhumbError
@@ -82,6 +82,68 @@ class SetRoutingStrategyRequest(BaseModel):
     max_cost_per_call_usd: float | None = Field(None, ge=0)
 
 
+def _routing_strategy_payload_error(message: str, detail: str) -> RhumbError:
+    return RhumbError("INVALID_PARAMETERS", message=message, detail=detail)
+
+
+def _parse_non_negative_float(value: Any, field_name: str, *, max_value: float | None = None) -> float:
+    if isinstance(value, bool):
+        raise _routing_strategy_payload_error(
+            f"Invalid '{field_name}'.",
+            f"Provide {field_name} as a number"
+            + (f" between 0 and {max_value:g}." if max_value is not None else " greater than or equal to 0."),
+        )
+
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise _routing_strategy_payload_error(
+            f"Invalid '{field_name}'.",
+            f"Provide {field_name} as a number"
+            + (f" between 0 and {max_value:g}." if max_value is not None else " greater than or equal to 0."),
+        ) from exc
+
+    if parsed < 0 or (max_value is not None and parsed > max_value):
+        raise _routing_strategy_payload_error(
+            f"Invalid '{field_name}'.",
+            f"Provide {field_name} as a number"
+            + (f" between 0 and {max_value:g}." if max_value is not None else " greater than or equal to 0."),
+        )
+    return parsed
+
+
+def _validate_routing_strategy_payload(body: Any) -> SetRoutingStrategyRequest:
+    """Normalize route-owned routing strategy input before auth/state reads."""
+    if not isinstance(body, dict):
+        raise _routing_strategy_payload_error(
+            "Invalid routing strategy payload.",
+            "Provide a JSON object payload.",
+        )
+
+    raw_strategy = body.get("strategy", "balanced")
+    strategy = str(raw_strategy or "").strip().lower() if isinstance(raw_strategy, str) else ""
+    if strategy not in {"cheapest", "fastest", "highest_quality", "balanced"}:
+        raise _routing_strategy_payload_error(
+            "Invalid 'strategy'.",
+            "Provide one of: cheapest, fastest, highest_quality, balanced.",
+        )
+
+    quality_floor = _parse_non_negative_float(body.get("quality_floor", 6.0), "quality_floor", max_value=10)
+
+    max_cost_per_call_usd: float | None = None
+    if body.get("max_cost_per_call_usd") is not None:
+        max_cost_per_call_usd = _parse_non_negative_float(
+            body.get("max_cost_per_call_usd"),
+            "max_cost_per_call_usd",
+        )
+
+    return SetRoutingStrategyRequest(
+        strategy=strategy,
+        quality_floor=quality_floor,
+        max_cost_per_call_usd=max_cost_per_call_usd,
+    )
+
+
 @router.get("/routing-strategy", response_model=RoutingStrategyResponse)
 async def get_routing_strategy(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
@@ -102,16 +164,17 @@ async def get_routing_strategy(
 
 @router.put("/routing-strategy", response_model=RoutingStrategyResponse)
 async def set_routing_strategy(
-    body: SetRoutingStrategyRequest,
+    body: Any = Body(default_factory=dict),
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Set agent's routing strategy."""
+    validated = _validate_routing_strategy_payload(body)
     agent_id = await _extract_agent_id(x_rhumb_key)
     strat = await _engine.set_strategy(
         agent_id=agent_id,
-        strategy=body.strategy,
-        quality_floor=body.quality_floor,
-        max_cost_per_call_usd=body.max_cost_per_call_usd,
+        strategy=validated.strategy,
+        quality_floor=validated.quality_floor,
+        max_cost_per_call_usd=validated.max_cost_per_call_usd,
     )
     return RoutingStrategyResponse(
         agent_id=agent_id,

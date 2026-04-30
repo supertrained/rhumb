@@ -315,7 +315,69 @@ class TestRoutingRoutes:
             headers={"X-Rhumb-Key": "test_key"},
             json={"strategy": "yolo"},
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid 'strategy'."
+        assert error["detail"] == "Provide one of: cheapest, fastest, highest_quality, balanced."
+
+    def test_set_strategy_rejects_invalid_payload_before_auth(self):
+        with patch("routes.routing._extract_agent_id", new_callable=AsyncMock) as mock_extract:
+            resp = self.client.put(
+                "/v1/agent/routing-strategy",
+                headers={"X-Rhumb-Key": "test_key"},
+                json=["balanced"],
+            )
+
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid routing strategy payload."
+        assert error["detail"] == "Provide a JSON object payload."
+        mock_extract.assert_not_awaited()
+
+    def test_set_strategy_rejects_invalid_quality_floor_before_auth(self):
+        with patch("routes.routing._extract_agent_id", new_callable=AsyncMock) as mock_extract:
+            resp = self.client.put(
+                "/v1/agent/routing-strategy",
+                headers={"X-Rhumb-Key": "test_key"},
+                json={"strategy": "balanced", "quality_floor": 11},
+            )
+
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid 'quality_floor'."
+        assert error["detail"] == "Provide quality_floor as a number between 0 and 10."
+        mock_extract.assert_not_awaited()
+
+    def test_set_strategy_normalizes_valid_payload_before_engine_write(self):
+        with patch("routes.routing._engine") as mock_engine:
+            mock_engine.set_strategy = AsyncMock(return_value=RoutingStrategy(
+                strategy="fastest",
+                quality_floor=8.5,
+                max_cost_per_call_usd=0.02,
+                weight_score=0.10,
+                weight_cost=0.10,
+                weight_health=0.80,
+            ))
+            resp = self.client.put(
+                "/v1/agent/routing-strategy",
+                headers={"X-Rhumb-Key": "test_key"},
+                json={
+                    "strategy": " FaStEsT ",
+                    "quality_floor": "8.5",
+                    "max_cost_per_call_usd": "0.02",
+                },
+            )
+
+        assert resp.status_code == 200
+        mock_engine.set_strategy.assert_awaited_once_with(
+            agent_id="agent_test123",
+            strategy="fastest",
+            quality_floor=8.5,
+            max_cost_per_call_usd=0.02,
+        )
 
     def test_get_spend_requires_auth(self):
         resp = self.client.get("/v1/agent/spend")
