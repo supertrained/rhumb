@@ -8,7 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 from httpx import ASGITransport, AsyncClient
+from starlette.requests import Request
 
+import routes.resolve_v2 as resolve_v2_route
 from app import create_app
 from schemas.agent_identity import AgentIdentitySchema
 from services.budget_enforcer import BudgetStatus
@@ -18,6 +20,14 @@ from services.receipt_service import hash_response_payload
 from services.resolve_policy_store import ResolvePolicyStore
 
 FAKE_RHUMB_KEY = "rhumb_test_key_v2"
+
+
+def _request_with_headers(headers: dict[str, str]) -> Request:
+    raw_headers = [
+        (key.lower().encode("latin-1"), value.encode("latin-1"))
+        for key, value in headers.items()
+    ]
+    return Request({"type": "http", "method": "POST", "path": "/", "headers": raw_headers})
 
 
 def _mock_agent() -> AgentIdentitySchema:
@@ -295,6 +305,26 @@ def _passthrough_inject_auth_request_parts(
 ):
     del service_slug, auth_method
     return headers, body, params
+
+
+@pytest.mark.anyio
+async def test_resolve_policy_agent_id_normalizes_blank_agent_header(_mock_identity_store):
+    request = _request_with_headers({"X-Rhumb-Agent-Id": "   "})
+
+    agent_id = await resolve_v2_route._resolve_policy_agent_id(request)
+
+    assert agent_id == "x402_anonymous"
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_resolve_policy_agent_id_trims_agent_header(_mock_identity_store):
+    request = _request_with_headers({"X-Rhumb-Agent-Id": "  agent-header-123  "})
+
+    agent_id = await resolve_v2_route._resolve_policy_agent_id(request)
+
+    assert agent_id == "agent-header-123"
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
 
 
 @pytest.mark.anyio

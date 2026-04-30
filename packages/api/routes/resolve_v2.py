@@ -436,6 +436,14 @@ def _normalized_governed_key(raw_request: Request) -> str | None:
     return normalized or None
 
 
+def _normalized_agent_id_header(raw_request: Request) -> str | None:
+    raw_agent_id = raw_request.headers.get("X-Rhumb-Agent-Id")
+    if raw_agent_id is None:
+        return None
+    normalized = raw_agent_id.strip()
+    return normalized or None
+
+
 def _normalized_idempotency_key(value: str | None) -> str | None:
     if value is None:
         return None
@@ -471,7 +479,7 @@ async def _resolve_policy_agent(raw_request: Request):
 async def _resolve_policy_agent_id(raw_request: Request) -> str:
     x_rhumb_key = _normalized_governed_key(raw_request)
     if not x_rhumb_key:
-        return raw_request.headers.get("X-Rhumb-Agent-Id") or "x402_anonymous"
+        return _normalized_agent_id_header(raw_request) or "x402_anonymous"
 
     agent = await v1_execute._get_identity_store().verify_api_key_with_agent(x_rhumb_key)
     if agent is None:
