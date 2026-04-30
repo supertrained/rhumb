@@ -680,6 +680,34 @@ def test_get_usage_report_rejects_blank_organization_before_usage_meter_reads(
     fake_usage_meter.get_org_monthly_usage.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    ("params", "message", "detail"),
+    [
+        ({"month": "2026-04"}, "Invalid 'organization_id' filter.", "Provide a non-empty organization_id value."),
+        ({"organization_id": "org_route_usage_alias"}, "Invalid 'month' filter.", "Use YYYY-MM."),
+    ],
+)
+def test_get_usage_report_rejects_missing_required_filters_before_usage_meter_reads(
+    admin_client: TestClient,
+    billing_aggregator: BillingAggregator,
+    stripe_manager: StripeIntegrationManager,
+    params: dict[str, str],
+    message: str,
+    detail: str,
+) -> None:
+    fake_usage_meter = SimpleNamespace(get_org_monthly_usage=AsyncMock())
+    set_test_billing_stores(fake_usage_meter, billing_aggregator, stripe_manager)
+
+    response = admin_client.get("/v1/admin/billing/usage", params=params)
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == message
+    assert payload["error"]["detail"] == detail
+    fake_usage_meter.get_org_monthly_usage.assert_not_awaited()
+
+
 def test_get_usage_report_normalizes_surrounding_whitespace_in_month_filter(
     admin_client: TestClient,
     billing_aggregator: BillingAggregator,
@@ -892,6 +920,24 @@ def test_list_invoices_rejects_blank_organization_before_aggregator_reads(
     fake_billing_aggregator.list_invoices.assert_not_called()
 
 
+def test_list_invoices_rejects_missing_organization_before_aggregator_reads(
+    admin_client: TestClient,
+    usage_meter: UsageMeterEngine,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_billing_aggregator = SimpleNamespace(list_invoices=Mock(return_value=[]))
+    set_test_billing_stores(usage_meter, fake_billing_aggregator, stripe_manager)
+
+    response = admin_client.get("/v1/admin/billing/invoices")
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'organization_id' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty organization_id value."
+    fake_billing_aggregator.list_invoices.assert_not_called()
+
+
 def test_generate_invoice_endpoint(
     admin_client: TestClient,
     usage_meter: UsageMeterEngine,
@@ -986,6 +1032,24 @@ def test_forecast_spend_rejects_blank_organization_before_usage_meter_reads(
         "/v1/admin/billing/forecast",
         params={"organization_id": "   "},
     )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'organization_id' filter."
+    assert payload["error"]["detail"] == "Provide a non-empty organization_id value."
+    fake_usage_meter.get_org_daily_average_calls.assert_not_awaited()
+
+
+def test_forecast_spend_rejects_missing_organization_before_usage_meter_reads(
+    admin_client: TestClient,
+    billing_aggregator: BillingAggregator,
+    stripe_manager: StripeIntegrationManager,
+) -> None:
+    fake_usage_meter = SimpleNamespace(get_org_daily_average_calls=AsyncMock())
+    set_test_billing_stores(fake_usage_meter, billing_aggregator, stripe_manager)
+
+    response = admin_client.get("/v1/admin/billing/forecast")
 
     assert response.status_code == 400
     payload = response.json()

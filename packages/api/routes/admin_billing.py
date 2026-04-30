@@ -204,8 +204,8 @@ def _canonicalize_invoice_line_items(line_items: Any) -> list[dict[str, Any]]:
 
 @router.get("/admin/billing/usage")
 async def get_usage_report(
-    organization_id: str = Query(...),
-    month: str = Query(..., description="Month in YYYY-MM format"),
+    organization_id: str | None = Query(default=None),
+    month: str | None = Query(default=None, description="Month in YYYY-MM format"),
 ) -> Dict[str, Any]:
     """Return organization monthly usage report."""
     normalized_organization_id = _normalize_billing_organization_id(organization_id)
@@ -230,7 +230,7 @@ async def get_usage_report(
 
 
 @router.get("/admin/billing/invoices")
-async def list_invoices(organization_id: str = Query(...)) -> List[Dict[str, Any]]:
+async def list_invoices(organization_id: str | None = Query(default=None)) -> List[Dict[str, Any]]:
     """List invoices for one organization."""
     normalized_organization_id = _normalize_billing_organization_id(organization_id)
     aggregator = _get_billing_aggregator()
@@ -297,7 +297,7 @@ async def send_invoice(invoice_id: str) -> Dict[str, Any]:
 
 
 @router.get("/admin/billing/forecast")
-async def forecast_spend(organization_id: str = Query(...)) -> Dict[str, Any]:
+async def forecast_spend(organization_id: str | None = Query(default=None)) -> Dict[str, Any]:
     """Forecast monthly spend from trailing 7-day daily average."""
     normalized_organization_id = _normalize_billing_organization_id(organization_id)
     usage_meter = _get_usage_meter()
