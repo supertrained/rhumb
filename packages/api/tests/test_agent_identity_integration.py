@@ -1365,6 +1365,52 @@ class TestAdminRoutes:
         detail_resp2 = admin_client.get(f"/v1/admin/agents/{agent_id}")
         assert "stripe" not in detail_resp2.json()["services"]
 
+    def test_grant_access_route_rejects_blank_service_before_store_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Blank grant service payloads should fail before identity-store reads."""
+        mock_store = AsyncMock()
+        mock_store.get_agent = AsyncMock(return_value=None)
+        mock_store.get_service_access = AsyncMock(return_value=None)
+        mock_store.grant_service_access = AsyncMock(return_value="access-1")
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post(
+                "/v1/admin/agents/agent-123/grant-access",
+                json={"service": "  "},
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'service' field."
+        assert payload["error"]["detail"] == "Provide a non-empty service value."
+        get_store.assert_not_called()
+        mock_store.get_agent.assert_not_awaited()
+        mock_store.get_service_access.assert_not_awaited()
+        mock_store.grant_service_access.assert_not_awaited()
+
+    def test_revoke_access_route_rejects_blank_service_before_store_write(
+        self, admin_client: TestClient
+    ) -> None:
+        """Blank revoke service payloads should fail before identity-store writes."""
+        mock_store = AsyncMock()
+        mock_store.revoke_service_access_by_agent_service = AsyncMock(return_value=False)
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post(
+                "/v1/admin/agents/agent-123/revoke-access",
+                json={"service": "  "},
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'service' field."
+        assert payload["error"]["detail"] == "Provide a non-empty service value."
+        get_store.assert_not_called()
+        mock_store.revoke_service_access_by_agent_service.assert_not_awaited()
+
     def test_alias_backed_grant_and_revoke_routes_stay_canonical(
         self,
         admin_client: TestClient,

@@ -78,6 +78,19 @@ def _public_service_label(service: str) -> str:
     return public_service_slug(cleaned) or cleaned
 
 
+def _validated_access_service_field(service: str) -> str:
+    """Normalize admin access-grant services and reject blanks before store reads/writes."""
+    normalized = _public_service_label(service)
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'service' field.",
+        detail="Provide a non-empty service value.",
+    )
+
+
 def _validated_public_service_filter(service: Optional[str]) -> Optional[str]:
     """Normalize optional usage service filters and reject blanks before broad reads."""
     cleaned = _validated_optional_text_filter(service, "service")
@@ -395,6 +408,7 @@ async def grant_service_access(
 ) -> GrantAccessResponse:
     """Grant an agent access to a service."""
     agent_id = _validated_required_path_value(agent_id, "agent_id")
+    service = _validated_access_service_field(body.service)
     store = _get_identity_store()
 
     # Verify agent exists
@@ -403,17 +417,16 @@ async def grant_service_access(
         raise HTTPException(status_code=404, detail="Agent not found")
 
     # Check for existing active access
-    existing = await store.get_service_access(agent_id, body.service)
+    existing = await store.get_service_access(agent_id, service)
     if existing is not None:
-        public_service = _public_service_label(body.service)
         raise HTTPException(
             status_code=409,
-            detail=f"Agent already has active access to '{public_service}'",
+            detail=f"Agent already has active access to '{service}'",
         )
 
     access_id = await store.grant_service_access(
         agent_id=agent_id,
-        service=body.service,
+        service=service,
         rate_limit_override=body.rate_limit_override,
         credential_account_id=body.credential_account_id,
     )
@@ -426,16 +439,16 @@ async def revoke_service_access(
 ) -> Dict[str, str]:
     """Revoke an agent's access to a service."""
     agent_id = _validated_required_path_value(agent_id, "agent_id")
+    service = _validated_access_service_field(body.service)
     store = _get_identity_store()
 
     revoked = await store.revoke_service_access_by_agent_service(
-        agent_id, body.service
+        agent_id, service
     )
     if not revoked:
-        public_service = _public_service_label(body.service)
         raise HTTPException(
             status_code=404,
-            detail=f"No active access found for agent '{agent_id}' to service '{public_service}'",
+            detail=f"No active access found for agent '{agent_id}' to service '{service}'",
         )
 
     return {"status": "success"}
