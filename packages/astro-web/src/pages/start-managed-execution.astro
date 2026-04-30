@@ -122,6 +122,13 @@ const AUTH_HEADER_PREFLIGHT = [
   "Treat header validation failures as typed preflight outcomes, not provider errors. The boundary is working when a bad key never becomes a billable or side-effecting attempt.",
 ];
 
+const ADMIN_AGENT_PREFLIGHT = [
+  "Create the agent only after name, organization id, and global QPM are normalized and validated. Blank owner fields and out-of-range rate limits should fail before identity-store writes.",
+  "Grant service access only after the service name is canonicalized onto the public slug and the per-service QPM override is bounded. Aliases should collapse before policy, credential, or usage state sees them.",
+  "Reject blank agent ids, blank service values, invalid status filters, and invalid usage windows before broad admin reads or writes can run.",
+  "Keep service labels canonical in usage summaries so one provider lane does not split into multiple budgets, traces, or dashboard rows just because the caller used an alias.",
+];
+
 const PROOF_SPRINT_SCOPE = [
   "one capability or workflow you would actually put behind an agent",
   "the failure you care about: scope escape, quota burn, stale provider contract, credential exposure, replay, or bad recovery",
@@ -270,6 +277,26 @@ const REQUEST_FIRST_BRIEF = [
         </ul>
         <p class="mt-6 text-sm leading-6 text-slate-400">
           For E-006, count a governed-key click as stronger intent only when the downstream path preserves the normalized auth mode and budget owner through estimate, execute, receipt, and recovery. Otherwise it is just another ambiguous CTA click.
+        </p>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Agent admin preflight</div>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">The governed key lane starts before the first API key is issued.</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            A managed-execution proof sprint is only trustworthy if the admin surface creates agents, grants service access, and reports usage with the same boundary discipline as the execution path. The newest product truth treats agent names, owners, services, and rate limits as authority inputs, not dashboard decoration.
+          </p>
+        </div>
+        <ul class="mt-6 grid gap-4 md:grid-cols-2">
+          {ADMIN_AGENT_PREFLIGHT.map((item) => (
+            <li class="rounded-3xl border border-slate-800 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm leading-6 text-slate-400">
+          For E-006, a governed-key signup is stronger evidence only when the admin setup preserves a bounded actor, canonical service grant, quota owner, and typed rejection path before any managed call can spend budget.
         </p>
       </div>
     </section>
