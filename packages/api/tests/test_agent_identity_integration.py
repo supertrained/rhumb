@@ -1408,6 +1408,26 @@ class TestAdminRoutes:
         assert payload["error"]["detail"] == "Provide a non-empty 'organization_id' value."
         mock_analytics.get_organization_usage.assert_not_awaited()
 
+    @pytest.mark.parametrize("limit", [0, 1001])
+    def test_ingest_evidence_route_rejects_invalid_limit_before_adapter_read(
+        self, admin_client: TestClient, limit: int
+    ) -> None:
+        """Invalid evidence-ingest limits should fail before opening ingestion state."""
+        adapter_factory = AsyncMock()
+
+        with patch("routes.admin_agents._get_evidence_adapter", adapter_factory):
+            resp = admin_client.post(
+                "/v1/admin/evidence/ingest",
+                json={"limit": limit},
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'limit' field."
+        assert payload["error"]["detail"] == "Provide an integer between 1 and 1000."
+        adapter_factory.assert_not_awaited()
+
     def test_grant_and_revoke_access_route(self, admin_client: TestClient) -> None:
         """Grant then revoke service access via admin routes."""
         # Create agent

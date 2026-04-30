@@ -156,6 +156,19 @@ def _validated_usage_days(days: int) -> int:
     )
 
 
+def _validated_ingest_limit(limit: int) -> int:
+    """Reject invalid evidence-ingest windows before opening ingestion state."""
+    normalized = int(limit)
+    if 1 <= normalized <= 1000:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'limit' field.",
+        detail="Provide an integer between 1 and 1000.",
+    )
+
+
 def _canonicalize_usage_summary(summary: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """Merge alias-backed usage buckets onto canonical public service ids."""
     normalized = dict(summary or {})
@@ -308,7 +321,7 @@ class EvidenceIngestRequest(BaseModel):
         default=None,
         description="Only ingest source rows observed on or after this timestamp",
     )
-    limit: int = Field(default=100, ge=1, le=1000)
+    limit: int = Field(default=100)
 
 
 # ── Helper: get stores (overridable in tests) ───────────────────────
@@ -601,9 +614,9 @@ async def get_organization_usage(
 @router.post("/evidence/ingest")
 async def ingest_evidence(body: Optional[EvidenceIngestRequest] = None) -> Dict[str, Any]:
     """Trigger evidence ingestion from operational facts and usage events."""
-    adapter = await _get_evidence_adapter()
     since = body.since if body is not None else None
-    limit = body.limit if body is not None else 100
+    limit = _validated_ingest_limit(body.limit if body is not None else 100)
+    adapter = await _get_evidence_adapter()
     operational_result = await adapter.ingest_operational_facts(
         since=since,
         limit=limit,
