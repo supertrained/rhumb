@@ -1,0 +1,305 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const ANSWER_POINTS = [
+  "Managed API execution means the agent asks for a capability or workflow outcome, while a governed execution layer handles the provider path, credential rail, budget boundary, and trace evidence.",
+  "It is not a connector directory. It should make one supported action safer to repeat, not expose every possible upstream API as model-visible inventory.",
+  `Today Rhumb's public scope is ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions for discovery, with ${PUBLIC_TRUTH.callableProvidersLabel} callable providers strongest for ${PUBLIC_TRUTH.beachheadLabel}.`,
+  "The honest buying question is: which one repeat workflow is important enough that the first paid call should feel boring, traceable, and bounded?",
+];
+
+const NOT_MANAGED_EXECUTION = [
+  "a catalog page that only tells an agent which SDKs exist",
+  "a Zapier-style integration list renamed for agents",
+  "a service account that flattens every user, budget, and downstream credential into one principal",
+  "an LLM router that picks a provider before the workflow, authority class, and cost ceiling are explicit",
+  "a promise that every scored service is executable today",
+];
+
+const EXECUTION_STACK = [
+  {
+    step: "1",
+    title: "Capability first",
+    body: "Start with the job: search.query, extract a page, generate an artifact, enrich one record, or another repeat action. A capability gives the agent a smaller surface than a connector catalog.",
+  },
+  {
+    step: "2",
+    title: "Authority before routing",
+    body: "Decide which rail has permission to act: governed Rhumb key, wallet-prefund, x402, BYOK, Agent Vault, or provider pinning. Bad headers, bad tokens, or missing owner context should fail before provider state observes the request.",
+  },
+  {
+    step: "3",
+    title: "Routing with constraints",
+    body: "Resolve should route within a supported capability set using score, availability, cost, credential mode, latency proxy, and policy constraints — or let the agent pin a supported provider path explicitly.",
+  },
+  {
+    step: "4",
+    title: "Traceable side effects",
+    body: "The call should leave evidence: normalized auth mode, budget owner, provider path, receipt, denial case, idempotency key, and recovery state when the workflow can create side effects.",
+  },
+];
+
+const FIRST_WORKFLOW_CHECKLIST = [
+  "Name the repeat workflow in one sentence, not the platform you want someday.",
+  "Choose the data boundary: Rhumb-managed provider, your provider account, workspace data, database connection, or another system of record.",
+  "Set a repeat volume and cost ceiling before the agent loops unattended.",
+  "Write one denial case: the neighboring tenant, domain, row, amount, or tool call that must fail closed.",
+  "Define the trace proof that would make the first paid call safe enough to repeat.",
+];
+
+const RHUMB_RAILS = [
+  {
+    rail: "Discovery",
+    when: "You are still comparing services, trust classes, or failure modes.",
+    link: "/blog/how-to-evaluate-apis-for-agents",
+    cta: "Use the evaluation guide",
+  },
+  {
+    rail: "Proof sprint",
+    when: "You know the repeat workflow and want price, fit, denial case, and trace proof before wiring it into a loop.",
+    link: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-proof-sprint",
+    cta: "Scope the first paid call",
+  },
+  {
+    rail: "Resolve docs",
+    when: "You need the exact mental model for services, capabilities, routing, and credential paths.",
+    link: "/resolve/what-is-resolve?rhumb_source=managed-api-execution-guide-resolve-docs",
+    cta: "Read what Resolve is",
+  },
+];
+
+const MEASUREMENT = [
+  "E-006-tagged visits from this guide into /start-managed-execution",
+  "pricing or governed-key movement after the proof-sprint CTA",
+  "workflow-fit mailto requests that name one repeat capability",
+  "qualitative developer asks about search, extraction, generation, enrichment, or database-read execution",
+];
+
+const RELATED_READING = [
+  {
+    href: "/resolve/what-is-resolve",
+    title: "What Is Rhumb Resolve?",
+    description: "The product mental model for services, capabilities, routing, credential modes, and execution layers.",
+  },
+  {
+    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-related",
+    title: "Start Managed Execution",
+    description: "Request-first proof sprint path: price one repeat workflow before wiring it into an agent loop.",
+  },
+  {
+    href: "/blog/capability-first-agent-onboarding",
+    title: "Capability-First Agent Onboarding",
+    description: "Why agents adopt clear managed superpowers before broad connector catalogs.",
+  },
+  {
+    href: "/blog/api-reliability-checklist",
+    title: "API Reliability Checklist",
+    description: "The reliability gates that make unattended API calls boring enough to repeat.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "What Is Managed API Execution for AI Agents?",
+  datePublished: "2026-04-30T00:00:00Z",
+  dateModified: "2026-04-30T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "Managed API execution lets an AI agent ask for one supported capability while a governed layer handles routing, credentials, budget boundaries, and trace evidence.",
+  url: "https://rhumb.dev/blog/what-is-managed-api-execution-for-ai-agents",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/what-is-managed-api-execution-for-ai-agents",
+};
+---
+
+<Layout
+  title="What Is Managed API Execution for AI Agents? | Rhumb"
+  description="Managed API execution lets an AI agent ask for one supported capability while a governed layer handles routing, credentials, budget boundaries, and trace evidence."
+  canonical="/blog/what-is-managed-api-execution-for-ai-agents"
+  ogTitle="What Is Managed API Execution for AI Agents?"
+  ogDescription="A practical definition for agent builders: capability first, authority before routing, bounded budget, and trace proof before repeat execution."
+  ogUrl="https://rhumb.dev/blog/what-is-managed-api-execution-for-ai-agents"
+  ogType="article"
+  twitterTitle="What Is Managed API Execution for AI Agents?"
+  twitterDescription="Managed execution is not a connector catalog. It is a governed path for one supported repeat capability."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-amber/10 via-emerald-500/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-emerald-300">Managed execution</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 30, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">10 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex rounded-full border border-amber/25 bg-amber/10 px-4 py-2 text-xs font-mono uppercase tracking-[0.22em] text-amber">
+              Answer target: managed API execution for AI agents
+            </div>
+            <h1 class="max-w-4xl font-display text-4xl font-bold leading-tight tracking-tight text-slate-100 sm:text-5xl">
+              What Is Managed API Execution for AI Agents?
+            </h1>
+            <p class="mt-6 max-w-3xl text-lg leading-relaxed text-slate-400">
+              Managed API execution is the layer between an autonomous agent and the external APIs it wants to use. The agent asks for a supported capability; the execution layer keeps routing, credentials, budget, and evidence legible before the call is allowed to repeat.
+            </p>
+          </div>
+
+          <aside class="rounded-[32px] border border-slate-800 bg-surface/80 p-6 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fast answer</div>
+            <div class="space-y-3">
+              {ANSWER_POINTS.map((point) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-300">{point}</div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-6xl px-6 py-12">
+      <div class="mb-10 rounded-[32px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Definition</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          Managed API execution for AI agents means a governed system executes a supported API capability on the agent's behalf while preserving who is allowed to act, which provider path is eligible, which budget can be spent, which credential rail is in use, and what evidence proves the call was safe to retry or deny.
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div class="space-y-14">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Managed execution is not a connector catalog</h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A connector catalog tells an agent what might exist. Managed execution decides what can safely happen now. That difference matters because agents do not merely browse integrations; they can repeat calls, spend budget, mutate state, and carry stale assumptions into tomorrow's run.
+              </p>
+              <p>
+                The useful unit is not "we support hundreds of connectors." The useful unit is one repeat workflow with a known authority boundary, cost ceiling, provider path, denial case, and trace proof.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Do not count this as managed execution</div>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {NOT_MANAGED_EXECUTION.map((item) => (<li>{item}</li>))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">The four-part execution stack</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+              {EXECUTION_STACK.map((item) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                  <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-full border border-amber/30 bg-amber/10 font-mono text-sm text-amber">{item.step}</div>
+                  <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                  <p class="text-sm leading-6 text-slate-400">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">What should the first managed workflow be?</h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The first workflow should be narrow enough to price and deny before launch. "Help my agent use APIs" is too broad. "Search the web for one research question, return source-backed findings, and refuse blocked domains" is closer.
+              </p>
+              <p>
+                Rhumb's current launchable surface is strongest for {PUBLIC_TRUTH.beachheadLabel}. The public index is broader than current execution coverage, so the proof sprint should ask whether one repeat workflow fits the supported surface before assuming every scored service is callable.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+              <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Proof-sprint checklist</div>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {FIRST_WORKFLOW_CHECKLIST.map((item) => (<li>{item}</li>))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">How Rhumb frames the path</h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Rhumb separates the free research problem from the paid execution problem. <a href="/blog/how-to-evaluate-apis-for-agents" class="text-amber transition-colors hover:text-amber-200">Rhumb Index</a> helps agents and operators compare services. <a href="/resolve/what-is-resolve" class="text-amber transition-colors hover:text-amber-200">Rhumb Resolve</a> is the governed execution layer for supported capabilities.
+              </p>
+              <p>
+                That separation keeps the evidence honest: discovery breadth does not become a false execution claim, and a managed execution request can stay focused on one workflow that deserves budget.
+              </p>
+            </div>
+            <div class="mt-6 grid gap-4 md:grid-cols-3">
+              {RHUMB_RAILS.map((rail) => (
+                <a href={rail.link} class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 transition-colors hover:border-amber/40">
+                  <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">{rail.rail}</div>
+                  <p class="mb-4 text-sm leading-6 text-slate-400">{rail.when}</p>
+                  <div class="text-sm font-semibold text-slate-100">{rail.cta} &rarr;</div>
+                </a>
+              ))}
+            </div>
+          </section>
+
+          <section class="rounded-[32px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Measurement hook</div>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">What would prove this page is working?</h2>
+            <p class="mb-5 leading-relaxed text-slate-400">
+              This guide supports E-006, the request-first managed-execution checkpoint. It should not be graded by applause. It should be graded by whether high-intent readers move toward one priced, bounded, repeat workflow.
+            </p>
+            <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+              {MEASUREMENT.map((item) => (<li>{item}</li>))}
+            </ul>
+          </section>
+        </div>
+
+        <aside class="lg:sticky lg:top-24 space-y-5">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Current scope</div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4">
+                <div class="font-display text-2xl font-bold text-slate-100">{PUBLIC_TRUTH.servicesLabel}</div>
+                <div class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">Scored services</div>
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4">
+                <div class="font-display text-2xl font-bold text-slate-100">{PUBLIC_TRUTH.callableProvidersLabel}</div>
+                <div class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">Callable providers</div>
+              </div>
+            </div>
+            <p class="mt-4 text-sm leading-6 text-slate-400">{PUBLIC_TRUTH.callableRealitySummary}</p>
+          </div>
+
+          <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
+            <p class="mb-4 text-sm leading-6 text-slate-300">
+              If you can name one repeat workflow, ask for a proof sprint before wiring it into an agent loop.
+            </p>
+            <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-sidebar" class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy transition-colors hover:bg-emerald-300">
+              Scope the workflow &rarr;
+            </a>
+          </div>
+        </aside>
+      </div>
+
+      <section class="mt-16 rounded-[32px] border border-slate-800 bg-surface/80 p-6 sm:p-8">
+        <div class="mb-6 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Related reading</div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {RELATED_READING.map((item) => (
+            <a href={item.href} class="rounded-2xl border border-slate-800 bg-navy/70 p-5 transition-colors hover:border-amber/40">
+              <h3 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h3>
+              <p class="text-sm leading-6 text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </article>
+  </div>
+</Layout>
