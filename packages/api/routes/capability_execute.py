@@ -753,11 +753,23 @@ def _normalize_x402_payment_header(
     x_payment: str | None,
     payment_signature: str | None,
 ) -> str | None:
-    """Bridge PAYMENT-SIGNATURE into the existing X-Payment flow when needed."""
-    if payment_signature and (not x_payment or x_payment == "required"):
+    """Normalize x402 payment headers before payment parsing/state opens."""
+    normalized_x_payment = str(x_payment).strip() if x_payment is not None else None
+    if normalized_x_payment == "":
+        normalized_x_payment = None
+
+    normalized_payment_signature = (
+        str(payment_signature).strip() if payment_signature is not None else None
+    )
+    if normalized_payment_signature == "":
+        normalized_payment_signature = None
+
+    if normalized_payment_signature and (
+        not normalized_x_payment or normalized_x_payment == "required"
+    ):
         logger.info("x402_payment_signature_bridged")
-        return payment_signature
-    return x_payment
+        return normalized_payment_signature
+    return normalized_x_payment
 
 
 def _extract_standard_x402_authorization(payment_data: dict[str, Any] | None) -> dict[str, Any] | None:

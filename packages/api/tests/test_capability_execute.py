@@ -119,6 +119,19 @@ def _mock_required_execution_patch():
         yield
 
 
+def test_normalize_x402_payment_header_trims_payment_marker():
+    assert capability_execute._normalize_x402_payment_header(" required ", None) == "required"
+    assert capability_execute._normalize_x402_payment_header("   ", None) is None
+
+
+def test_normalize_x402_payment_header_trims_bridged_payment_signature():
+    assert (
+        capability_execute._normalize_x402_payment_header(" required ", "  signed-proof  ")
+        == "signed-proof"
+    )
+    assert capability_execute._normalize_x402_payment_header(None, "   ") is None
+
+
 def test_x402_interop_trace_canonicalizes_alias_backed_provider_ids():
     request = MagicMock()
     request.state = SimpleNamespace(request_id="req_cap_exec_alias_trace")
