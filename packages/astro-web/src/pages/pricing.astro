@@ -575,6 +575,12 @@ const agentContext =
             <li class="flex gap-3"><span class="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-300"></span><span>Use the governed API key path when repeat traffic matters more than one-off wallet authorization.</span></li>
             <li class="flex gap-3"><span class="mt-2 h-1.5 w-1.5 rounded-full bg-emerald-300"></span><span>If the call needs your own provider account or a system-specific bridge, switch to credential-path review instead of forcing managed execution.</span></li>
           </ul>
+          <div class="mt-5 rounded-xl border border-emerald-500/20 bg-navy/50 p-4" data-proof="admin-billing-query-preflight">
+            <p class="text-xs font-mono uppercase tracking-[0.2em] text-emerald-300">Billing read preflight</p>
+            <p class="mt-2 text-sm leading-6 text-slate-300">
+              Usage, invoice, and forecast reads only count as proof when the organization and month filters are explicit. Missing or blank filters fail as typed parameter errors before usage meters, invoice aggregators, or spend forecasts read billing state.
+            </p>
+          </div>
         </div>
 
         <div class="rounded-2xl border border-slate-800 bg-surface p-6">
