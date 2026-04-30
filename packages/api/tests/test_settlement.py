@@ -472,10 +472,10 @@ class TestSettlementAdminRoutes:
             "routes.admin_billing.mark_batch_converted",
             new_callable=AsyncMock,
             return_value=True,
-        ):
+        ) as mock_mark:
             resp = client.post(
                 f"/v1/admin/settlement/{BATCH_ID}/converted",
-                json={"total_usd_cents": 29850, "coinbase_conversion_id": "cb_123"},
+                json={"total_usd_cents": 29850, "coinbase_conversion_id": "  cb_123  "},
                 headers=_admin_headers(),
             )
 
@@ -483,6 +483,7 @@ class TestSettlementAdminRoutes:
         data = resp.json()
         assert data["status"] == "converted"
         assert data["batch_id"] == BATCH_ID
+        mock_mark.assert_awaited_once_with(BATCH_ID, 29850, "cb_123")
 
     def test_mark_converted_not_found(self, client: TestClient) -> None:
         with patch(
@@ -531,11 +532,36 @@ class TestSettlementAdminRoutes:
         assert resp_pending.status_code == 401
         assert resp_convert.status_code == 401
 
-    def test_mark_converted_validation_requires_positive_cents(self, client: TestClient) -> None:
-        """total_usd_cents must be > 0."""
-        resp = client.post(
-            f"/v1/admin/settlement/{BATCH_ID}/converted",
-            json={"total_usd_cents": 0},
-            headers=_admin_headers(),
-        )
-        assert resp.status_code == 422
+    def test_mark_converted_validation_requires_positive_cents_before_settlement_writes(self, client: TestClient) -> None:
+        """total_usd_cents must be route-validated before settlement writes."""
+        with patch(
+            "routes.admin_billing.mark_batch_converted",
+            new_callable=AsyncMock,
+        ) as mock_mark:
+            resp = client.post(
+                f"/v1/admin/settlement/{BATCH_ID}/converted",
+                json={"total_usd_cents": 0},
+                headers=_admin_headers(),
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'total_usd_cents' value."
+        assert payload["error"]["detail"] == "Provide a positive integer number of USD cents."
+        mock_mark.assert_not_awaited()
+
+    def test_mark_converted_normalizes_blank_conversion_id_before_settlement_writes(self, client: TestClient) -> None:
+        with patch(
+            "routes.admin_billing.mark_batch_converted",
+            new_callable=AsyncMock,
+            return_value=True,
+        ) as mock_mark:
+            resp = client.post(
+                f"/v1/admin/settlement/{BATCH_ID}/converted",
+                json={"total_usd_cents": "100", "coinbase_conversion_id": "   "},
+                headers=_admin_headers(),
+            )
+
+        assert resp.status_code == 200
+        mock_mark.assert_awaited_once_with(BATCH_ID, 100, None)

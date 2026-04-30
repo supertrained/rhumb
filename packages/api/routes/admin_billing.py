@@ -330,10 +330,53 @@ async def pending_settlements() -> Dict[str, Any]:
 class MarkConvertedRequest(BaseModel):
     """Request payload for marking a batch as converted."""
 
-    total_usd_cents: int = Field(..., gt=0, description="Total USD received in cents")
-    coinbase_conversion_id: str | None = Field(
+    total_usd_cents: Any = Field(default=None, description="Total USD received in cents")
+    coinbase_conversion_id: Any = Field(
         default=None, description="Coinbase conversion ID (optional in Phase 1)"
     )
+
+
+def _normalize_positive_usd_cents(value: Any) -> int:
+    """Validate and normalize manual settlement USD-cent totals before writes."""
+    if isinstance(value, bool) or value is None:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'total_usd_cents' value.",
+            detail="Provide a positive integer number of USD cents.",
+        )
+
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError) as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'total_usd_cents' value.",
+            detail="Provide a positive integer number of USD cents.",
+        ) from exc
+
+    if str(value).strip() != str(normalized) and not isinstance(value, int):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'total_usd_cents' value.",
+            detail="Provide a positive integer number of USD cents.",
+        )
+
+    if normalized <= 0:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'total_usd_cents' value.",
+            detail="Provide a positive integer number of USD cents.",
+        )
+
+    return normalized
+
+
+def _normalize_optional_conversion_id(value: Any) -> str | None:
+    """Normalize optional settlement conversion IDs before persistence."""
+    if value is None:
+        return None
+    normalized = str(value).strip()
+    return normalized or None
 
 
 @router.post("/admin/settlement/{batch_id}/converted")
@@ -343,10 +386,12 @@ async def mark_converted(
 ) -> Dict[str, Any]:
     """Mark a settlement batch as converted to USD (manual Phase 1 step)."""
     normalized_batch_id = _normalize_required_path_value(batch_id, "batch_id")
+    total_usd_cents = _normalize_positive_usd_cents(body.total_usd_cents)
+    conversion_id = _normalize_optional_conversion_id(body.coinbase_conversion_id)
     success = await mark_batch_converted(
         normalized_batch_id,
-        body.total_usd_cents,
-        body.coinbase_conversion_id,
+        total_usd_cents,
+        conversion_id,
     )
     if not success:
         raise HTTPException(status_code=404, detail="Batch not found")
