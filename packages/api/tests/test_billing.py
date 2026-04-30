@@ -799,6 +799,38 @@ def test_generate_invoice_rejects_blank_organization_before_aggregator_reads(
     fake_billing_aggregator.generate_invoice.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    ("body", "message", "detail"),
+    [
+        ([], "Invalid invoice generation payload.", "Provide a JSON object with organization_id and month."),
+        ({"month": "2026-04"}, "Invalid 'organization_id' filter.", "Provide a non-empty organization_id value."),
+        ({"organization_id": "org_invoice_alias"}, "Invalid 'month' filter.", "Use YYYY-MM."),
+    ],
+)
+def test_generate_invoice_rejects_malformed_payloads_before_aggregator_reads(
+    admin_client: TestClient,
+    usage_meter: UsageMeterEngine,
+    stripe_manager: StripeIntegrationManager,
+    body: object,
+    message: str,
+    detail: str,
+) -> None:
+    fake_billing_aggregator = SimpleNamespace(generate_invoice=AsyncMock())
+    set_test_billing_stores(usage_meter, fake_billing_aggregator, stripe_manager)
+
+    response = admin_client.post(
+        "/v1/admin/billing/invoices/generate",
+        json=body,
+    )
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == message
+    assert payload["error"]["detail"] == detail
+    fake_billing_aggregator.generate_invoice.assert_not_awaited()
+
+
 def test_generate_invoice_normalizes_surrounding_whitespace_in_month_filter(
     admin_client: TestClient,
     usage_meter: UsageMeterEngine,

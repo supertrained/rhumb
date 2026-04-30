@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from services.billing_aggregation import BillingAggregator, get_billing_aggregator
@@ -23,13 +23,6 @@ from services.service_slugs import public_service_slug
 from services.usage_metering import COST_PER_CALL_USD, UsageMeterEngine, get_usage_meter_engine
 
 router = APIRouter(tags=["admin-billing"])
-
-
-class GenerateInvoiceRequest(BaseModel):
-    """Request payload for invoice generation."""
-
-    organization_id: str = Field(...)
-    month: str = Field(..., description="Month in YYYY-MM format")
 
 
 _test_usage_meter: Optional[UsageMeterEngine] = None
@@ -61,8 +54,14 @@ def _get_stripe_manager() -> StripeIntegrationManager:
     return _test_stripe_manager or get_stripe_integration_manager()
 
 
-def _normalize_billing_month(month: str) -> str:
+def _normalize_billing_month(month: Any) -> str:
     """Validate and normalize public admin billing month filters."""
+    if month is None:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'month' filter.",
+            detail="Use YYYY-MM.",
+        )
     normalized = str(month).strip()
     try:
         datetime.strptime(normalized, "%Y-%m")
@@ -75,8 +74,14 @@ def _normalize_billing_month(month: str) -> str:
     return normalized
 
 
-def _normalize_billing_organization_id(organization_id: str) -> str:
+def _normalize_billing_organization_id(organization_id: Any) -> str:
     """Validate and normalize public admin billing organization filters."""
+    if organization_id is None:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'organization_id' filter.",
+            detail="Provide a non-empty organization_id value.",
+        )
     normalized = str(organization_id).strip()
     if not normalized:
         raise RhumbError(
@@ -85,6 +90,20 @@ def _normalize_billing_organization_id(organization_id: str) -> str:
             detail="Provide a non-empty organization_id value.",
         )
     return normalized
+
+
+def _normalize_generate_invoice_body(body: Any) -> tuple[str, str]:
+    """Validate and normalize invoice-generation payloads before aggregator reads."""
+    if not isinstance(body, dict):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid invoice generation payload.",
+            detail="Provide a JSON object with organization_id and month.",
+        )
+
+    organization_id = _normalize_billing_organization_id(body.get("organization_id"))
+    month = _normalize_billing_month(body.get("month"))
+    return organization_id, month
 
 
 def _normalize_required_path_value(value: str, field: str) -> str:
@@ -235,10 +254,9 @@ async def list_invoices(organization_id: str = Query(...)) -> List[Dict[str, Any
 
 
 @router.post("/admin/billing/invoices/generate")
-async def generate_invoice(body: GenerateInvoiceRequest) -> Dict[str, Any]:
+async def generate_invoice(body: Any = Body(default=None)) -> Dict[str, Any]:
     """Generate a draft invoice for organization + month."""
-    normalized_organization_id = _normalize_billing_organization_id(body.organization_id)
-    normalized_month = _normalize_billing_month(body.month)
+    normalized_organization_id, normalized_month = _normalize_generate_invoice_body(body)
     aggregator = _get_billing_aggregator()
     invoice = await aggregator.generate_invoice(normalized_organization_id, normalized_month)
 
