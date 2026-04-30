@@ -1026,7 +1026,7 @@ async def execute_recipe(
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
     recipe_id = _validated_recipe_path_id(recipe_id)
-    api_key = raw_request.headers.get("X-Rhumb-Key")
+    api_key = str(raw_request.headers.get("X-Rhumb-Key") or "").strip()
     if not api_key:
         raise RhumbError(
             "CREDENTIAL_MISSING",

@@ -332,11 +332,16 @@ async def test_get_recipe_rejects_blank_recipe_id_before_reads(app):
 
 
 @pytest.mark.anyio
-async def test_execute_recipe_requires_valid_governed_api_key(app):
-    with patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch):
+@pytest.mark.parametrize("headers", [{}, {"X-Rhumb-Key": "  \t  "}])
+async def test_execute_recipe_requires_valid_governed_api_key_before_policy_or_reads(app, headers):
+    with (
+        patch("routes.recipes_v2._resolve_policy_agent", new_callable=AsyncMock) as mock_resolve_agent,
+        patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase_fetch) as mock_fetch,
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post(
                 "/v2/recipes/transcribe_and_notify/execute",
+                headers=headers,
                 json={
                     "inputs": {
                         "audio_url": "https://example.com/audio.mp3",
@@ -351,6 +356,8 @@ async def test_execute_recipe_requires_valid_governed_api_key(app):
     assert body["error"]["code"] == "CREDENTIAL_MISSING"
     assert body["error"]["message"] == "Recipe execution requires a valid governed API key."
     assert body["error"]["detail"] == "Provide X-Rhumb-Key for Layer 3 recipe execution."
+    mock_resolve_agent.assert_not_awaited()
+    mock_fetch.assert_not_awaited()
 
 
 @pytest.mark.anyio
