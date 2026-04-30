@@ -463,6 +463,52 @@ async def test_db_query_read_success_agent_vault(app, monkeypatch) -> None:
     assert mock_connect.call_args[0][0] == token_dsn
 
 
+def test_db_execute_normalizes_agent_vault_mode_and_token(app, monkeypatch) -> None:
+    """DB agent_vault execute trims mode and X-Agent-Token before DSN resolution."""
+    monkeypatch.delenv("RHUMB_DB_CONN_READER", raising=False)
+    token_dsn = "postgresql://reader:pass@localhost:5432/test"
+
+    with (
+        patch.object(
+            db_execute_route,
+            "resolve_agent_vault_dsn",
+            return_value=token_dsn,
+        ) as mock_resolve,
+        patch.object(postgres_read_executor.psycopg.AsyncConnection, "connect") as mock_connect,
+    ):
+        cursor = FakeCursor(
+            rows=[{"count": 1}],
+            description=[SimpleNamespace(name="count", type_code="int8")],
+        )
+        conn = FakeConnection(cursor)
+        mock_connect.return_value = conn
+
+        response = TestClient(app).post(
+            "/v1/capabilities/db.query.read/execute",
+            headers={
+                "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                "X-Agent-Token": "  rhdbv1-test-token  ",
+            },
+            json={
+                "connection_ref": "conn_reader",
+                "credential_mode": " AGENT_VAULT ",
+                "query": "SELECT 1",
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["credential_mode"] == "agent_vault"
+    assert body["rows"] == [{"count": 1}]
+    mock_resolve.assert_called_once_with(
+        "rhdbv1-test-token",
+        expected_connection_ref="conn_reader",
+        expected_agent_id="agent_db_test",
+        expected_org_id="org_db_test",
+    )
+    assert mock_connect.call_args[0][0] == token_dsn
+
+
 @pytest.mark.asyncio
 async def test_db_query_read_success_agent_vault_signed_token(app, monkeypatch) -> None:
     """Signed DB agent_vault tokens resolve to the bound PostgreSQL DSN."""

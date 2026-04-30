@@ -122,7 +122,11 @@ async def handle_db_execute(
             started_at=start,
         )
 
-    credential_mode = body.get("credential_mode", credential_mode)
+    raw_credential_mode = body.get("credential_mode", credential_mode)
+    if isinstance(raw_credential_mode, str):
+        credential_mode = raw_credential_mode.strip().lower()
+    else:
+        credential_mode = str(raw_credential_mode)
     if credential_mode not in {"byok", "agent_vault"}:
         return await _failure_response(
             raw_request=raw_request,
@@ -142,8 +146,9 @@ async def handle_db_execute(
 
     dsn_override: str | None = None
     if credential_mode == "agent_vault":
-        agent_token = raw_request.headers.get("x-agent-token")
-        if not agent_token or not agent_token.strip():
+        raw_agent_token = raw_request.headers.get("x-agent-token")
+        agent_token = raw_agent_token.strip() if raw_agent_token else ""
+        if not agent_token:
             return await _failure_response(
                 raw_request=raw_request,
                 agent_id=agent_id,
