@@ -918,6 +918,32 @@ class TestAdminRoutes:
             tags=["launch", "audit"],
         )
 
+    @pytest.mark.parametrize("rate_limit_qpm", [0, 1001])
+    def test_create_agent_route_rejects_invalid_rate_limit_before_store_write(
+        self, admin_client: TestClient, rate_limit_qpm: int
+    ) -> None:
+        """Invalid create-agent rate limits should fail before identity-store writes."""
+        mock_store = AsyncMock()
+        mock_store.register_agent = AsyncMock(return_value=("agent_test", "rhumb_test"))
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post(
+                "/v1/admin/agents",
+                json={
+                    "name": "route-test-agent",
+                    "organization_id": "org_admin",
+                    "rate_limit_qpm": rate_limit_qpm,
+                },
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'rate_limit_qpm' field."
+        assert payload["error"]["detail"] == "Provide an integer between 1 and 1000."
+        get_store.assert_not_called()
+        mock_store.register_agent.assert_not_awaited()
+
     def test_list_agents_route(self, admin_client: TestClient) -> None:
         """GET /v1/admin/agents returns created agents."""
         admin_client.post(
@@ -1459,6 +1485,32 @@ class TestAdminRoutes:
         assert payload["error"]["detail"] == "Provide a non-empty service value."
         get_store.assert_not_called()
         mock_store.revoke_service_access_by_agent_service.assert_not_awaited()
+
+    @pytest.mark.parametrize("rate_limit_override", [-1, 1001])
+    def test_grant_access_route_rejects_invalid_rate_limit_override_before_store_read(
+        self, admin_client: TestClient, rate_limit_override: int
+    ) -> None:
+        """Invalid grant overrides should fail before identity-store reads."""
+        mock_store = AsyncMock()
+        mock_store.get_agent = AsyncMock(return_value=None)
+        mock_store.get_service_access = AsyncMock(return_value=None)
+        mock_store.grant_service_access = AsyncMock(return_value="access-1")
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post(
+                "/v1/admin/agents/agent-123/grant-access",
+                json={"service": "stripe", "rate_limit_override": rate_limit_override},
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'rate_limit_override' field."
+        assert payload["error"]["detail"] == "Provide an integer between 0 and 1000."
+        get_store.assert_not_called()
+        mock_store.get_agent.assert_not_awaited()
+        mock_store.get_service_access.assert_not_awaited()
+        mock_store.grant_service_access.assert_not_awaited()
 
     def test_alias_backed_grant_and_revoke_routes_stay_canonical(
         self,

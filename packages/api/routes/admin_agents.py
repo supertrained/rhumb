@@ -71,6 +71,25 @@ def _normalized_optional_tags(tags: Optional[List[str]]) -> Optional[List[str]]:
     return [tag for tag in normalized_tags if tag]
 
 
+def _validated_qpm_field(
+    value: int,
+    field: str,
+    *,
+    minimum: int,
+    maximum: int = 1000,
+) -> int:
+    """Validate admin QPM fields before opening identity-store writes."""
+    normalized = int(value)
+    if minimum <= normalized <= maximum:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field}' field.",
+        detail=f"Provide an integer between {minimum} and {maximum}.",
+    )
+
+
 def _validated_required_path_value(value: str, field: str) -> str:
     """Trim required path values and reject blanks before admin store reads/writes."""
     normalized = str(value or "").strip()
@@ -352,11 +371,16 @@ async def create_agent(body: CreateAgentRequest) -> CreateAgentResponse:
     organization_id = _validated_required_body_text(body.organization_id, "organization_id")
     description = _normalized_optional_body_text(body.description)
     tags = _normalized_optional_tags(body.tags)
+    rate_limit_qpm = _validated_qpm_field(
+        body.rate_limit_qpm,
+        "rate_limit_qpm",
+        minimum=1,
+    )
     store = _get_identity_store()
     agent_id, api_key = await store.register_agent(
         name=name,
         organization_id=organization_id,
-        rate_limit_qpm=body.rate_limit_qpm,
+        rate_limit_qpm=rate_limit_qpm,
         description=description,
         tags=tags,
     )
@@ -440,6 +464,12 @@ async def grant_service_access(
     """Grant an agent access to a service."""
     agent_id = _validated_required_path_value(agent_id, "agent_id")
     service = _validated_access_service_field(body.service)
+    rate_limit_override = _validated_qpm_field(
+        body.rate_limit_override,
+        "rate_limit_override",
+        minimum=0,
+    )
+    credential_account_id = _normalized_optional_body_text(body.credential_account_id)
     store = _get_identity_store()
 
     # Verify agent exists
@@ -458,8 +488,8 @@ async def grant_service_access(
     access_id = await store.grant_service_access(
         agent_id=agent_id,
         service=service,
-        rate_limit_override=body.rate_limit_override,
-        credential_account_id=body.credential_account_id,
+        rate_limit_override=rate_limit_override,
+        credential_account_id=credential_account_id,
     )
     return GrantAccessResponse(access_id=access_id)
 
