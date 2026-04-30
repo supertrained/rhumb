@@ -139,3 +139,47 @@ def test_get_score_history_rejects_invalid_limit_before_reads():
     body = resp.json()
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert "limit" in body["error"]["message"]
+
+
+def test_get_score_history_rejects_non_integer_limit_with_canonical_error_before_reads():
+    from app import create_app
+
+    with (
+        patch("routes.scores_v2.get_score_cache", side_effect=AssertionError("score cache read opened")),
+        patch("routes.scores_v2.get_audit_chain", side_effect=AssertionError("audit chain read opened")),
+    ):
+        client = TestClient(create_app())
+        resp = client.get("/v2/scores/brave-search/history?limit=ten")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'limit' filter."
+    assert "between 1 and 200" in body["error"]["detail"]
+
+
+def test_get_score_history_trims_numeric_limit_before_audit_read():
+    from app import create_app
+
+    chain = ScoreAuditChain()
+    with (
+        patch("routes.scores_v2.get_score_cache") as get_score_cache,
+        patch("routes.scores_v2.get_audit_chain", return_value=chain),
+        patch.object(chain, "history", return_value=[]) as history,
+    ):
+        get_score_cache.return_value.get.return_value = CachedScore(
+            service_slug="brave-search-api",
+            an_score=74.2,
+            execution_score=81.4,
+            access_readiness_score=67.5,
+            autonomy_score=72.1,
+            confidence=0.93,
+            tier="A2",
+            refreshed_at=0.0,
+        )
+        client = TestClient(create_app())
+        resp = client.get("/v2/scores/brave-search/history?limit=%2007%20")
+
+    assert resp.status_code == 200
+    history.assert_called_once()
+    assert history.call_args.kwargs["limit"] == 7

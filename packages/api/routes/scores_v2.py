@@ -164,9 +164,23 @@ def _cached_score_for_provider_id(provider_id: str) -> CachedScore | None:
     return None
 
 
-def _validated_history_limit(limit: int) -> int:
-    if 1 <= limit <= 200:
-        return limit
+def _validated_history_limit(limit: Any) -> int:
+    if isinstance(limit, bool):
+        parsed_limit: int | None = None
+    elif isinstance(limit, int):
+        parsed_limit = limit
+    elif isinstance(limit, str):
+        stripped = limit.strip()
+        if stripped and re.fullmatch(r"[+-]?\d+", stripped):
+            parsed_limit = int(stripped)
+        else:
+            parsed_limit = None
+    else:
+        parsed_limit = None
+
+    if parsed_limit is not None and 1 <= parsed_limit <= 200:
+        return parsed_limit
+
     raise RhumbError(
         "INVALID_PARAMETERS",
         message="Invalid 'limit' filter.",
@@ -199,7 +213,7 @@ async def get_provider_score(provider_id: str) -> dict[str, Any]:
 @router.get("/{provider_id}/history")
 async def get_provider_score_history(
     provider_id: str,
-    limit: int = 50,
+    limit: Any = 50,
 ) -> dict[str, Any]:
     """Get the AN Score change audit trail for a provider.
 
