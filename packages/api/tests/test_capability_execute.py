@@ -468,6 +468,102 @@ async def test_execute_explicit_provider(app):
 
 
 @pytest.mark.anyio
+async def test_execute_blank_idempotency_key_skips_durable_idempotency_reads(app):
+    """Whitespace-only idempotency keys should not open durable-idempotency state."""
+    _, mock_pool = _build_patches()
+    mock_idempotency_store = MagicMock()
+    mock_idempotency_store.claim = AsyncMock(return_value=None)
+    mock_idempotency_store.store = AsyncMock(return_value=None)
+    mock_idempotency_store.release = AsyncMock(return_value=None)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
+        ),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch(
+            "routes.capability_execute._get_idempotency_store",
+            new_callable=AsyncMock,
+            return_value=mock_idempotency_store,
+        ) as mock_get_idempotency_store,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                    "idempotency_key": "  \t  ",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    mock_get_idempotency_store.assert_not_awaited()
+    mock_idempotency_store.claim.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_execute_trims_idempotency_key_before_durable_idempotency_reads(app):
+    """Padded idempotency keys should claim/store the same key as bare values."""
+    _, mock_pool = _build_patches()
+    mock_idempotency_store = MagicMock()
+    mock_idempotency_store.claim = AsyncMock(return_value=None)
+    mock_idempotency_store.store = AsyncMock(return_value=None)
+    mock_idempotency_store.release = AsyncMock(return_value=None)
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=lambda slug, auth, h, body, params: (h, body, params),
+        ),
+        patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
+        patch(
+            "routes.capability_execute._get_idempotency_store",
+            new_callable=AsyncMock,
+            return_value=mock_idempotency_store,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json={
+                    "provider": "sendgrid",
+                    "method": "POST",
+                    "path": "/v3/mail/send",
+                    "body": {"to": "test@example.com"},
+                    "idempotency_key": "  idem-123  ",
+                },
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 200
+    mock_idempotency_store.claim.assert_awaited_once()
+    assert mock_idempotency_store.claim.await_args.args[0] == "idem-123"
+    mock_idempotency_store.store.assert_awaited_once()
+    assert mock_idempotency_store.store.await_args.args[0] == "idem-123"
+
+
+@pytest.mark.anyio
 async def test_execute_rejects_explicit_byok_missing_path_before_mapping_reads(
     app,
     _mock_rate_limiter,

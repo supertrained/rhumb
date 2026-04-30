@@ -364,6 +364,14 @@ def _normalize_governed_api_key_header(value: Optional[str]) -> Optional[str]:
     return text or None
 
 
+def _normalize_idempotency_key(value: Optional[str]) -> Optional[str]:
+    """Normalize optional idempotency keys before durable-idempotency reads."""
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
 def _direct_execute_auth_required_response(
     raw_request: Request,
     *,
@@ -1201,6 +1209,7 @@ async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteReque
         try:
             request = CapabilityExecuteRequest.model_validate(query_overrides)
             request.credential_mode = _canonicalize_credential_mode(request.credential_mode) or "auto"
+            request.idempotency_key = _normalize_idempotency_key(request.idempotency_key)
             return request
         except ValidationError as exc:
             raise RequestValidationError(exc.errors()) from exc
@@ -1229,6 +1238,7 @@ async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteReque
     try:
         request = CapabilityExecuteRequest.model_validate(payload)
         request.credential_mode = _canonicalize_credential_mode(request.credential_mode) or "auto"
+        request.idempotency_key = _normalize_idempotency_key(request.idempotency_key)
         return request
     except ValidationError as exc:
         raise RequestValidationError(exc.errors()) from exc
