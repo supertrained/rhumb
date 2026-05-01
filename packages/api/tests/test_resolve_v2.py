@@ -454,6 +454,79 @@ async def test_v2_capabilities_rejects_invalid_offset_filter(app):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("params", "message", "detail"),
+    [
+        ({"limit": "ten"}, "Invalid 'limit' filter.", "Provide an integer between 1 and 100."),
+        ({"limit": "true"}, "Invalid 'limit' filter.", "Provide an integer between 1 and 100."),
+        ({"limit": "   "}, "Invalid 'limit' filter.", "Provide an integer between 1 and 100."),
+        ({"offset": "false"}, "Invalid 'offset' filter.", "Provide an integer greater than or equal to 0."),
+    ],
+)
+async def test_v2_capabilities_rejects_malformed_pagination_before_reads(
+    app,
+    params,
+    message,
+    detail,
+):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities", params=params)
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == message
+    assert body["error"]["detail"] == detail
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_v2_capabilities_normalizes_padded_pagination(app):
+    async def mock_cached_fetch(table: str, path: str, ttl: float = 30.0):
+        del table, ttl
+        if path.startswith("capabilities?"):
+            return [
+                {
+                    "id": "email.send",
+                    "domain": "email",
+                    "action": "send",
+                    "description": "Send email",
+                    "input_hint": "recipient, subject, body",
+                    "outcome": "Email delivered",
+                },
+                {
+                    "id": "image.generate",
+                    "domain": "media",
+                    "action": "generate",
+                    "description": "Generate an image",
+                    "input_hint": "prompt",
+                    "outcome": "Image generated",
+                },
+            ]
+        if path.startswith("capability_services?"):
+            return []
+        return []
+
+    with (
+        patch("routes.capabilities._cached_fetch", new=AsyncMock(side_effect=mock_cached_fetch)) as mock_fetch,
+        patch("routes.capabilities._synthetic_capability_records", return_value=[]),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities",
+                params={"limit": " 01 ", "offset": " 01 "},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["limit"] == 1
+    assert data["offset"] == 1
+    assert [item["id"] for item in data["items"]] == ["image.generate"]
+    assert mock_fetch.await_count == 2
+
+
+@pytest.mark.anyio
 async def test_v2_capabilities_rejects_blank_search_filter(app):
     with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
