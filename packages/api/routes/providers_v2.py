@@ -340,7 +340,36 @@ def _validated_provider_list_capability_query(capability: str | None) -> str | N
     )
 
 
-def _validated_provider_list_limit(limit: int) -> int:
+def _parse_provider_list_int_filter(value: Any, *, field: str) -> int:
+    if isinstance(value, bool):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field}' filter.",
+            detail=(
+                "Provide an integer between 1 and 200."
+                if field == "limit"
+                else "Provide an integer greater than or equal to 0."
+            ),
+        )
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized and normalized.isdecimal():
+            return int(normalized)
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field}' filter.",
+        detail=(
+            "Provide an integer between 1 and 200."
+            if field == "limit"
+            else "Provide an integer greater than or equal to 0."
+        ),
+    )
+
+
+def _validated_provider_list_limit(limit: Any) -> int:
+    limit = _parse_provider_list_int_filter(limit, field="limit")
     if 1 <= limit <= 200:
         return limit
 
@@ -351,7 +380,8 @@ def _validated_provider_list_limit(limit: int) -> int:
     )
 
 
-def _validated_provider_list_offset(offset: int) -> int:
+def _validated_provider_list_offset(offset: Any) -> int:
+    offset = _parse_provider_list_int_filter(offset, field="offset")
     if offset >= 0:
         return offset
 
@@ -867,8 +897,8 @@ async def list_providers(
         alias="status",
         description="Filter by status (callable, scored, listed)",
     ),
-    limit: int = Query(default=50),
-    offset: int = Query(default=0),
+    limit: Any = Query(default=50),
+    offset: Any = Query(default=0),
 ) -> dict[str, Any]:
     """List available providers with optional filters.
 

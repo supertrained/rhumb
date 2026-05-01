@@ -570,6 +570,27 @@ class TestListProviders:
         assert body["error"]["detail"] == "Provide an integer between 1 and 200."
         mock_fetch.assert_not_awaited()
 
+    def test_list_rejects_malformed_limit_before_reads(self, client):
+        with patch("routes.providers_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+            resp = client.get("/v2/providers?limit=ten")
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'limit' filter."
+        assert body["error"]["detail"] == "Provide an integer between 1 and 200."
+        mock_fetch.assert_not_awaited()
+
+    def test_list_rejects_boolean_like_pagination_before_reads(self, client):
+        with patch("routes.providers_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+            resp = client.get("/v2/providers?limit=true&offset=false")
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'limit' filter."
+        mock_fetch.assert_not_awaited()
+
     def test_list_rejects_invalid_offset_directly(self):
         with pytest.raises(RhumbError) as exc_info:
             _validated_provider_list_offset(-1)
@@ -588,6 +609,30 @@ class TestListProviders:
         assert body["error"]["message"] == "Invalid 'offset' filter."
         assert body["error"]["detail"] == "Provide an integer greater than or equal to 0."
         mock_fetch.assert_not_awaited()
+
+    def test_list_rejects_blank_offset_before_reads(self, client):
+        with patch("routes.providers_v2.supabase_fetch", new=AsyncMock()) as mock_fetch:
+            resp = client.get("/v2/providers?offset=%20%20")
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'offset' filter."
+        assert body["error"]["detail"] == "Provide an integer greater than or equal to 0."
+        mock_fetch.assert_not_awaited()
+
+    def test_list_normalizes_padded_pagination_values(self, client):
+        with (
+            patch.dict("routes.providers_v2.SERVICE_REGISTRY", {"openai": {}, "anthropic": {}}, clear=True),
+            patch("routes.providers_v2._all_direct_provider_mappings", return_value=[]),
+            patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch),
+        ):
+            resp = client.get("/v2/providers?limit=%2002%20&offset=%2001%20")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["limit"] == 2
+        assert data["offset"] == 1
 
     def test_list_normalizes_capability_filter_whitespace(self, client):
         with (
