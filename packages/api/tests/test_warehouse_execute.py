@@ -176,6 +176,89 @@ async def test_warehouse_query_read_success(app, monkeypatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_warehouse_query_read_normalizes_explicit_credential_mode(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+) -> None:
+    monkeypatch.setenv(
+        "RHUMB_WAREHOUSE_BQ_MAIN",
+        json.dumps(
+            {
+                "provider": "bigquery",
+                "auth_mode": "service_account_json",
+                "service_account_json": {
+                    "type": "service_account",
+                    "project_id": "proj",
+                    "client_email": "rhumb@example.iam.gserviceaccount.com",
+                    "private_key": "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",
+                },
+                "allowed_dataset_refs": ["proj.analytics"],
+                "allowed_table_refs": ["proj.analytics.events"],
+                "billing_project_id": "proj",
+                "location": "US",
+            }
+        ),
+    )
+
+    captured: dict[str, object] = {}
+
+    async def fake_execute_read_query(request, *, bundle, execution_id):
+        captured["credential_mode_present"] = hasattr(request, "credential_mode")
+        return WarehouseQueryReadResponse(
+            provider_used="bigquery",
+            credential_mode="byok",
+            capability_id="warehouse.query.read",
+            receipt_id="pending",
+            execution_id="pending",
+            warehouse_ref=request.warehouse_ref,
+            billing_project_id="proj",
+            location="US",
+            bounded_by=WarehouseQueryBounds(
+                row_limit_applied=2,
+                timeout_ms_applied=5000,
+                max_bytes_billed_applied=50000000,
+                result_bytes_limit_applied=262144,
+            ),
+            query_summary=WarehouseQuerySummary(
+                statement_type="select",
+                tables_referenced=["proj.analytics.events"],
+                dry_run_performed=True,
+                dry_run_bytes_processed=1234,
+                truncated=False,
+            ),
+            columns=[WarehouseColumnSchema(name="user_id", type="STRING", nullable=True, mode="NULLABLE")],
+            rows=[{"user_id": "u_1"}],
+            row_count_returned=1,
+            truncated=False,
+            dry_run_bytes_estimate=1234,
+            actual_bytes_billed=1111,
+            duration_ms=12,
+        )
+
+    with patch.object(warehouse_execute_route, "execute_read_query", new=fake_execute_read_query):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/capabilities/warehouse.query.read/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": " BYOK ",
+                    "warehouse_ref": "bq_main",
+                    "query": "SELECT user_id FROM proj.analytics.events",
+                    "max_rows": 2,
+                    "timeout_ms": 5000,
+                },
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["credential_mode"] == "byok"
+    assert captured["credential_mode_present"] is False
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.credential_mode == "byok"
+
+
+@pytest.mark.asyncio
 async def test_warehouse_execute_rejects_missing_bundle(
     app,
     monkeypatch,
