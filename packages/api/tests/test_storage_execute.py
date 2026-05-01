@@ -8,6 +8,7 @@ from importlib import import_module
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
 from app import create_app
@@ -170,6 +171,58 @@ async def test_object_list_success(app, monkeypatch) -> None:
     assert body["data"]["provider_used"] == "aws-s3"
     assert body["data"]["receipt_id"] == "rcpt_test_storage_00000001"
     assert "Listed 1 objects" in body["summary"]
+
+
+def test_object_list_normalizes_byok_credential_mode(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+) -> None:
+    """Padded/case-varied BYOK mode normalizes before route branching."""
+    monkeypatch.setenv(
+        "RHUMB_STORAGE_ST_DOCS",
+        json.dumps(
+            {
+                "provider": "aws-s3",
+                "region": "us-west-1",
+                "aws_access_key_id": "AKIA...",
+                "aws_secret_access_key": "secret",
+                "allowed_buckets": ["docs-bucket"],
+            }
+        ),
+    )
+
+    response_model = ObjectListResponse(
+        provider_used="aws-s3",
+        credential_mode="byok",
+        capability_id="object.list",
+        receipt_id="pending",
+        execution_id="pending",
+        storage_ref="st_docs",
+        bucket="docs-bucket",
+        objects=[],
+        object_count_returned=0,
+        is_truncated=False,
+        next_continuation_token=None,
+    )
+
+    with patch.object(storage_execute_route, "list_objects", new=AsyncMock(return_value=response_model)):
+        response = TestClient(app).post(
+            "/v1/capabilities/object.list/execute",
+            headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            json={
+                "credential_mode": " BYOK ",
+                "storage_ref": "st_docs",
+                "bucket": "docs-bucket",
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["error"] is None
+    assert body["data"]["credential_mode"] == "byok"
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.credential_mode == "byok"
 
 
 @pytest.mark.asyncio

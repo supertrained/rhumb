@@ -50,6 +50,15 @@ def _client_ip(raw_request: Request) -> str | None:
     return None
 
 
+def _normalize_credential_mode(value: Any, default: str = "byok") -> str:
+    """Normalize storage credential modes before route branching/auditing."""
+    if value is None:
+        return default
+    if isinstance(value, str):
+        return value.strip().lower()
+    return str(value)
+
+
 async def handle_storage_execute(
     *,
     capability_id: str,
@@ -97,7 +106,7 @@ async def handle_storage_execute(
             started_at=start,
         )
 
-    requested_mode = body.get("credential_mode", credential_mode)
+    requested_mode = _normalize_credential_mode(body.get("credential_mode", credential_mode))
     if requested_mode != "byok":
         return await _failure_response(
             raw_request=raw_request,
@@ -107,7 +116,7 @@ async def handle_storage_execute(
             execution_id=execution_id,
             capability_id=capability_id,
             provider_used=provider_used,
-            credential_mode=str(requested_mode),
+            credential_mode=requested_mode,
             request_payload=body,
             code="storage_credential_mode_invalid",
             message="Storage capabilities currently support credential_mode 'byok' only",
