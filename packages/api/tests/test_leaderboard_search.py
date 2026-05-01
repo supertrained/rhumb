@@ -562,6 +562,17 @@ async def test_get_leaderboard_limit(mock_catalog_supabase):
     assert result["data"]["count"] <= 1
 
 
+def test_get_leaderboard_trims_padded_numeric_limit():
+    """Padded numeric leaderboard limits should normalize before reads."""
+    async def fake_cached_fetch(table: str, path: str, ttl: float = 60.0):
+        return _mock_catalog_supabase(path)
+
+    with patch("routes.leaderboard._cached_fetch", new_callable=AsyncMock, side_effect=fake_cached_fetch):
+        result = asyncio.run(get_leaderboard("email", limit=" 1 "))
+
+    assert result["data"]["count"] <= 1
+
+
 def test_get_leaderboard_rejects_out_of_range_limit_before_reads():
     """Out-of-range leaderboard limits should fail before catalog/cache reads."""
     with patch("routes.leaderboard._cached_fetch", new_callable=AsyncMock) as cached_fetch:
@@ -593,6 +604,23 @@ def test_leaderboard_http_rejects_out_of_range_limit_with_canonical_envelope():
     with patch("routes.leaderboard._cached_fetch", new_callable=AsyncMock) as cached_fetch:
         client = TestClient(create_app())
         response = client.get("/v1/leaderboard/email", params={"limit": 0})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'limit' filter."
+    assert payload["error"]["detail"] == "Use a limit between 1 and 50."
+    cached_fetch.assert_not_awaited()
+
+
+@pytest.mark.parametrize("bad_limit", ["ten", "true", ""])
+def test_leaderboard_http_rejects_malformed_limits_before_reads(bad_limit: str):
+    """Malformed HTTP leaderboard limits should fail canonically before catalog reads."""
+    from app import create_app
+
+    with patch("routes.leaderboard._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        client = TestClient(create_app())
+        response = client.get("/v1/leaderboard/email", params={"limit": bad_limit})
 
     assert response.status_code == 400
     payload = response.json()

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, Query
 
@@ -193,9 +193,23 @@ def _validated_leaderboard_category(
     )
 
 
-def _validated_leaderboard_limit(limit: int) -> int:
-    if 1 <= limit <= 50:
-        return limit
+def _parse_leaderboard_integer_filter(value: Any) -> int | None:
+    if not isinstance(value, int):
+        value = getattr(value, "default", value)
+
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized.isdigit():
+            return int(normalized)
+    return None
+
+
+def _validated_leaderboard_limit(limit: Any) -> int:
+    parsed_limit = _parse_leaderboard_integer_filter(limit)
+    if parsed_limit is not None and 1 <= parsed_limit <= 50:
+        return parsed_limit
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -207,7 +221,7 @@ def _validated_leaderboard_limit(limit: int) -> int:
 @router.get("/leaderboard/{category}")
 async def get_leaderboard(
     category: str,
-    limit: Optional[int] = Query(default=10),
+    limit: Any = Query(default=10),
 ) -> dict:
     """Fetch ranked services by category.
 
@@ -217,8 +231,6 @@ async def get_leaderboard(
 
     Returns leaderboard items ranked by aggregate AN Score.
     """
-    if not isinstance(limit, int):
-        limit = getattr(limit, "default", 10)
     limit = _validated_leaderboard_limit(limit)
     requested_category = _validated_leaderboard_category_presence(category)
 
