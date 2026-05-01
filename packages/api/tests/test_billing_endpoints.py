@@ -305,7 +305,7 @@ class TestGetLedger:
         for path in captured_paths:
             assert "event_type=eq.credit_added" in path
 
-    def test_event_type_filter_trims_valid_whitespace(self, client: TestClient) -> None:
+    def test_event_type_filter_trims_and_canonicalizes_valid_whitespace(self, client: TestClient) -> None:
         captured_paths: list[str] = []
 
         async def _capture_fetch(path: str):
@@ -318,14 +318,15 @@ class TestGetLedger:
         ):
             resp = client.get(
                 "/v1/billing/ledger",
-                params={"event_type": " credit_added "},
+                params={"event_type": " Credit_Added "},
                 headers=_auth_headers(),
             )
 
         assert resp.status_code == 200
         for path in captured_paths:
             assert "event_type=eq.credit_added" in path
-            assert "event_type=eq.%20credit_added%20" not in path
+            assert "event_type=eq.Credit_Added" not in path
+            assert "event_type=eq.%20Credit_Added%20" not in path
 
     def test_invalid_event_type_rejected_before_auth_or_supabase_reads(self, client: TestClient) -> None:
         fetch_mock = AsyncMock()

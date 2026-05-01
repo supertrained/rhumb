@@ -157,7 +157,7 @@ def _validated_ledger_event_type(event_type: str | None) -> str | None:
     if event_type is None:
         return None
 
-    normalized = event_type.strip()
+    normalized = event_type.strip().lower()
     if not normalized:
         raise RhumbError(
             "INVALID_PARAMETERS",
