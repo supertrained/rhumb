@@ -230,7 +230,13 @@ async def test_list_recipes_rejects_blank_category_filter_before_query(app):
     [
         ({"limit": 0}, "limit", "between 1 and 200"),
         ({"limit": 201}, "limit", "between 1 and 200"),
+        ({"limit": "many"}, "limit", "between 1 and 200"),
+        ({"limit": "   "}, "limit", "between 1 and 200"),
+        ({"limit": "true"}, "limit", "between 1 and 200"),
         ({"offset": -1}, "offset", "greater than or equal to 0"),
+        ({"offset": "later"}, "offset", "greater than or equal to 0"),
+        ({"offset": "   "}, "offset", "greater than or equal to 0"),
+        ({"offset": "false"}, "offset", "greater than or equal to 0"),
     ],
 )
 async def test_list_recipes_rejects_invalid_pagination_before_query(app, params, field, detail):
@@ -244,6 +250,27 @@ async def test_list_recipes_rejects_invalid_pagination_before_query(app, params,
     assert body["error"]["message"] == f"Invalid '{field}' filter."
     assert detail in body["error"]["detail"]
     mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_list_recipes_trims_padded_pagination_before_query(app):
+    queries: list[str] = []
+
+    async def _capturing_fetch(query: str):
+        queries.append(query)
+        return [RECIPE_ROW]
+
+    with patch("routes.recipes_v2.supabase_fetch", new_callable=AsyncMock, side_effect=_capturing_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v2/recipes", params={"limit": " 2 ", "offset": " 3 "})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["limit"] == 2
+    assert body["data"]["offset"] == 3
+    assert queries == [
+        "recipes?select=recipe_id,name,version,category,stability,tier,step_count,max_total_cost_usd,published,updated_at&published=eq.true&order=updated_at.desc.nullslast,recipe_id.asc&limit=2&offset=3"
+    ]
 
 
 @pytest.mark.anyio

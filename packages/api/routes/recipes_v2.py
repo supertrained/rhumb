@@ -165,9 +165,17 @@ def _validated_recipe_category_before_reads(category: str | None) -> str | None:
     )
 
 
-def _validated_recipe_list_limit(limit: int) -> int:
-    if 1 <= limit <= 200:
-        return limit
+def _validated_recipe_list_limit(limit: Any) -> int:
+    if isinstance(limit, bool):
+        parsed: int | None = None
+    elif isinstance(limit, int):
+        parsed = limit
+    else:
+        text = str(limit or "").strip()
+        parsed = int(text) if text.isdecimal() else None
+
+    if parsed is not None and 1 <= parsed <= 200:
+        return parsed
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -176,9 +184,17 @@ def _validated_recipe_list_limit(limit: int) -> int:
     )
 
 
-def _validated_recipe_list_offset(offset: int) -> int:
-    if offset >= 0:
-        return offset
+def _validated_recipe_list_offset(offset: Any) -> int:
+    if isinstance(offset, bool):
+        parsed: int | None = None
+    elif isinstance(offset, int):
+        parsed = offset
+    else:
+        text = str(offset or "").strip()
+        parsed = int(text) if text.isdecimal() else None
+
+    if parsed is not None and parsed >= 0:
+        return parsed
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -969,8 +985,8 @@ async def _persist_execution(
 async def list_recipes(
     category: str | None = Query(default=None, description="Filter by recipe category"),
     stability: str | None = Query(default=None, description="Filter by recipe stability (stable, beta, all)"),
-    limit: int = Query(default=50),
-    offset: int = Query(default=0),
+    limit: Any = Query(default=50),
+    offset: Any = Query(default=0),
 ) -> JSONResponse:
     limit = _validated_recipe_list_limit(limit)
     offset = _validated_recipe_list_offset(offset)
