@@ -45,6 +45,10 @@ def _client_ip(raw_request: Request) -> str | None:
     return None
 
 
+def _normalized_actions_credential_mode(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
 async def handle_actions_execute(
     *,
     capability_id: str,
@@ -92,7 +96,7 @@ async def handle_actions_execute(
             started_at=start,
         )
 
-    requested_mode = body.get("credential_mode", credential_mode)
+    requested_mode = _normalized_actions_credential_mode(body.get("credential_mode", credential_mode))
     if requested_mode != "byok":
         return await _failure_response(
             raw_request=raw_request,
@@ -102,21 +106,24 @@ async def handle_actions_execute(
             execution_id=execution_id,
             capability_id=capability_id,
             provider_used=provider_used,
-            credential_mode=str(requested_mode),
+            credential_mode=requested_mode,
             request_payload=body,
             code="actions_credential_mode_invalid",
             message="GitHub Actions capabilities currently support credential_mode 'byok' only",
             status_code=400,
             started_at=start,
         )
+    credential_mode = requested_mode
+    request_body = dict(body)
+    request_body.pop("credential_mode", None)
 
     try:
         if capability_id == "workflow_run.list":
-            request = WorkflowRunListRequest.model_validate(body)
+            request = WorkflowRunListRequest.model_validate(request_body)
             bundle = resolve_actions_bundle(request.actions_ref)
             result = await list_workflow_runs(request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "workflow_run.get":
-            request = WorkflowRunGetRequest.model_validate(body)
+            request = WorkflowRunGetRequest.model_validate(request_body)
             bundle = resolve_actions_bundle(request.actions_ref)
             result = await get_workflow_run(request, bundle=bundle, execution_id=execution_id)
         else:

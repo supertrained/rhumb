@@ -179,6 +179,62 @@ async def test_workflow_run_list_success(app, monkeypatch) -> None:
     assert "Listed 1 GitHub Actions workflow runs" in body["summary"]
 
 
+def test_workflow_run_list_normalizes_explicit_byok_credential_mode(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+) -> None:
+    monkeypatch.setenv(
+        "RHUMB_ACTIONS_GH_MAIN",
+        json.dumps(
+            {
+                "provider": "github",
+                "auth_mode": "bearer_token",
+                "bearer_token": "secret",
+                "allowed_repositories": ["openclaw/openclaw"],
+            }
+        ),
+    )
+
+    response_model = WorkflowRunListResponse(
+        provider_used="github",
+        credential_mode="byok",
+        capability_id="workflow_run.list",
+        receipt_id="pending",
+        execution_id="pending",
+        actions_ref="gh_main",
+        repository="openclaw/openclaw",
+        workflow_runs=[],
+        run_count_returned=0,
+        total_count=0,
+        has_more=False,
+        next_page=None,
+    )
+
+    async def _run():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post(
+                "/v1/capabilities/workflow_run.list/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": " BYOK ",
+                    "actions_ref": "gh_main",
+                    "repository": "openclaw/openclaw",
+                },
+            )
+
+    with patch.object(actions_execute_route, "list_workflow_runs", new=AsyncMock(return_value=response_model)) as mock_list:
+        response = asyncio.run(_run())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["error"] is None
+    assert body["data"]["credential_mode"] == "byok"
+    mock_list.assert_awaited_once()
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.credential_mode == "byok"
+
+
 @pytest.mark.asyncio
 async def test_workflow_run_list_rejects_missing_actions_ref_env(
     app,
