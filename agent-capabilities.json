@@ -129,7 +129,7 @@
     "capabilities": 435,
     "domains": 50,
     "categories": 92,
-    "providers_with_execution": 28,
+    "providers_with_execution": 18,
     "credential_modes": [
       "byok",
       "rhumb_managed",

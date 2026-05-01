@@ -79,7 +79,7 @@ Treat broader multi-system business automation as future scope, not the current 
 
 ### Rhumb Resolve — Execute
 
-**435 capability definitions** across **28 callable providers today**. Resolve chooses the best-fit supported provider for the call using AN Score, availability / circuit state, estimated cost, latency proxy, credential mode, and explicit policy constraints.
+**435 capability definitions** across **18 callable providers today**. Resolve chooses the best-fit supported provider for the call using AN Score, availability / circuit state, estimated cost, latency proxy, credential mode, and explicit policy constraints.
 
 - `execute_capability` — Call a Capability through Rhumb Resolve
 - `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, and machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, plus typo recovery when the capability ID is wrong
@@ -95,7 +95,7 @@ Treat broader multi-system business automation as future scope, not the current 
 | Surface | What it is for | Current honest boundary |
 |---------|----------------|-------------------------|
 | **Rhumb Index** | Free service discovery, AN Score lookup, alternatives, and failure-mode research | Broad discovery is not the same as execution readiness |
-| **Rhumb Resolve** | Governed execution for supported capabilities with estimates, receipts, budgets, and telemetry | 28 callable providers today; best fit is research, extraction, generation, and narrow enrichment |
+| **Rhumb Resolve** | Governed execution for supported capabilities with estimates, receipts, budgets, and telemetry | 18 runtime-callable providers today; best fit is research, extraction, generation, and narrow enrichment |
 | **MCP package** | Agent-native entry point for Claude, Cursor, and other MCP clients | Discovery works without auth; execution needs a governed key, wallet-prefund, or x402 where supported |
 | **API** | Public read endpoints plus authenticated execution endpoints | Use current API responses as source of truth for readiness and callable coverage |
 
@@ -161,7 +161,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 - `routing` — Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability
 - `usage_telemetry` — Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage
 
-> Discovery spans 999 scored services, but current governed execution spans 28 callable providers.
+> Discovery spans 999 scored services, but current governed execution spans 18 callable providers.
 
 > Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists.
 
