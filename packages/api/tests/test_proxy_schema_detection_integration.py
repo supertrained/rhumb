@@ -591,14 +591,31 @@ class TestProxySchemaIntegration:
 
         too_small = client.get("/v1/admin/schema-alerts?limit=0")
         too_large = client.get("/v1/admin/schema-alerts?limit=101")
+        non_integer = client.get("/v1/admin/schema-alerts?limit=ten")
+        boolean_like = client.get("/v1/admin/schema-alerts?limit=true")
+        blank = client.get("/v1/admin/schema-alerts?limit=%20%20")
 
-        assert too_small.status_code == 400
-        too_small_payload = too_small.json()
-        assert too_small_payload["error"]["code"] == "INVALID_PARAMETERS"
-        assert too_small_payload["error"]["message"] == "Invalid 'limit' filter."
-        assert too_small_payload["error"]["detail"] == "Provide an integer between 1 and 100."
-        assert too_large.status_code == 400
-        too_large_payload = too_large.json()
-        assert too_large_payload["error"]["code"] == "INVALID_PARAMETERS"
-        assert too_large_payload["error"]["message"] == "Invalid 'limit' filter."
-        assert too_large_payload["error"]["detail"] == "Provide an integer between 1 and 100."
+        for response in (too_small, too_large, non_integer, boolean_like, blank):
+            assert response.status_code == 400
+            payload = response.json()
+            assert payload["error"]["code"] == "INVALID_PARAMETERS"
+            assert payload["error"]["message"] == "Invalid 'limit' filter."
+            assert payload["error"]["detail"] == "Provide an integer between 1 and 100."
+
+    def test_admin_schema_alerts_normalize_padded_limit_filter(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class DummyDispatcher:
+            def query_alerts(self, *, service, severity, limit):
+                assert service is None
+                assert severity is None
+                assert limit == 7
+                return []
+
+        monkeypatch.setattr(proxy_module, "get_schema_alert_dispatcher", lambda: DummyDispatcher())
+
+        response = client.get("/v1/admin/schema-alerts?limit=%2007%20")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["data"]["count"] == 0

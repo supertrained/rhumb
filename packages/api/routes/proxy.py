@@ -479,10 +479,24 @@ def _validated_schema_alert_service(service: str | None) -> str | None:
     )
 
 
-def _validated_schema_alert_limit(limit: int) -> int:
+def _parse_integer_filter(value: Any) -> int | None:
+    if not isinstance(value, int):
+        value = getattr(value, "default", value)
+
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized.isdigit():
+            return int(normalized)
+    return None
+
+
+def _validated_schema_alert_limit(limit: Any) -> int:
     """Validate the public admin schema-alert limit before opening the alert store."""
-    if 1 <= limit <= 100:
-        return limit
+    parsed_limit = _parse_integer_filter(limit)
+    if parsed_limit is not None and 1 <= parsed_limit <= 100:
+        return parsed_limit
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -1285,7 +1299,7 @@ async def get_schema_snapshot(
 async def list_schema_alerts(
     service: str | None = Query(default=None),
     severity: str | None = Query(default=None),
-    limit: int = Query(default=10),
+    limit: Any = Query(default=10),
 ) -> dict[str, Any]:
     """Query recent schema alerts (in-app channel)."""
     proxy_service = _validated_schema_alert_service(service)
