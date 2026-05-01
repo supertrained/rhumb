@@ -150,13 +150,15 @@ def _validated_agent_status(status: Optional[str]) -> Optional[str]:
     return normalized
 
 
-def _public_service_label(service: str) -> str:
+def _public_service_label(service: Any) -> str:
     """Normalize admin-facing service ids onto canonical public slugs."""
+    if service is None:
+        return ""
     cleaned = str(service).strip().lower()
     return public_service_slug(cleaned) or cleaned
 
 
-def _validated_access_service_field(service: str) -> str:
+def _validated_access_service_field(service: Any) -> str:
     """Normalize admin access-grant services and reject blanks before store reads/writes."""
     normalized = _public_service_label(service)
     if normalized:
@@ -521,17 +523,20 @@ async def get_agent_details(agent_id: str) -> AgentDetailResponse:
 
 @router.post("/agents/{agent_id}/grant-access", response_model=GrantAccessResponse)
 async def grant_service_access(
-    agent_id: str, body: GrantAccessRequest
+    agent_id: str, body: Any = Body(default=None)
 ) -> GrantAccessResponse:
     """Grant an agent access to a service."""
+    payload = _validated_body_object(
+        body, endpoint="POST /v1/admin/agents/{agent_id}/grant-access"
+    )
     agent_id = _validated_required_path_value(agent_id, "agent_id")
-    service = _validated_access_service_field(body.service)
+    service = _validated_access_service_field(payload.get("service"))
     rate_limit_override = _validated_qpm_field(
-        body.rate_limit_override,
+        payload.get("rate_limit_override", 0),
         "rate_limit_override",
         minimum=0,
     )
-    credential_account_id = _normalized_optional_body_text(body.credential_account_id)
+    credential_account_id = _normalized_optional_body_text(payload.get("credential_account_id"))
     store = _get_identity_store()
 
     # Verify agent exists
@@ -558,11 +563,14 @@ async def grant_service_access(
 
 @router.post("/agents/{agent_id}/revoke-access")
 async def revoke_service_access(
-    agent_id: str, body: RevokeAccessRequest
+    agent_id: str, body: Any = Body(default=None)
 ) -> Dict[str, str]:
     """Revoke an agent's access to a service."""
+    payload = _validated_body_object(
+        body, endpoint="POST /v1/admin/agents/{agent_id}/revoke-access"
+    )
     agent_id = _validated_required_path_value(agent_id, "agent_id")
-    service = _validated_access_service_field(body.service)
+    service = _validated_access_service_field(payload.get("service"))
     store = _get_identity_store()
 
     revoked = await store.revoke_service_access_by_agent_service(
