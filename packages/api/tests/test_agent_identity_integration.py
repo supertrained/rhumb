@@ -1266,20 +1266,25 @@ class TestAdminRoutes:
         mock_store.get_agent.assert_not_awaited()
         mock_analytics.get_usage_summary.assert_not_awaited()
 
-    @pytest.mark.parametrize("days", ["0", "366"])
-    def test_get_agent_usage_route_rejects_invalid_days_before_usage_read(
+    @pytest.mark.parametrize("days", ["0", "366", "ten", "true", "%20%20"])
+    def test_get_agent_usage_route_rejects_invalid_days_before_store_or_usage_read(
         self, admin_client: TestClient, days: str
     ) -> None:
-        """Invalid usage windows should fail before opening usage aggregation reads."""
+        """Invalid usage windows should fail before opening store or usage reads."""
         create_resp = admin_client.post(
             "/v1/admin/agents",
             json={"name": "usage-invalid-days", "organization_id": "org_usage_days"},
         )
         agent_id = create_resp.json()["agent_id"]
+        mock_store = AsyncMock()
+        mock_store.get_agent = AsyncMock(return_value=None)
         mock_analytics = AsyncMock()
         mock_analytics.get_usage_summary = AsyncMock(return_value={})
 
-        with patch("routes.admin_agents._get_analytics", return_value=mock_analytics):
+        with (
+            patch("routes.admin_agents._get_identity_store", return_value=mock_store),
+            patch("routes.admin_agents._get_analytics", return_value=mock_analytics),
+        ):
             resp = admin_client.get(
                 f"/v1/admin/agents/{agent_id}/usage?days={days}"
             )
@@ -1289,7 +1294,37 @@ class TestAdminRoutes:
         assert payload["error"]["code"] == "INVALID_PARAMETERS"
         assert payload["error"]["message"] == "Invalid 'days' filter."
         assert payload["error"]["detail"] == "Provide an integer between 1 and 365."
+        mock_store.get_agent.assert_not_awaited()
         mock_analytics.get_usage_summary.assert_not_awaited()
+
+    def test_get_agent_usage_route_trims_padded_days_before_usage_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Padded usage windows should parse before usage aggregation reads."""
+        create_resp = admin_client.post(
+            "/v1/admin/agents",
+            json={"name": "usage-padded-days", "organization_id": "org_usage_days"},
+        )
+        agent_id = create_resp.json()["agent_id"]
+        mock_store = AsyncMock()
+        mock_store.get_agent = AsyncMock(return_value={"agent_id": agent_id})
+        mock_analytics = AsyncMock()
+        mock_analytics.get_usage_summary = AsyncMock(return_value={})
+
+        with (
+            patch("routes.admin_agents._get_identity_store", return_value=mock_store),
+            patch("routes.admin_agents._get_analytics", return_value=mock_analytics),
+        ):
+            resp = admin_client.get(
+                f"/v1/admin/agents/{agent_id}/usage?days=%2007%20"
+            )
+
+        assert resp.status_code == 200
+        mock_analytics.get_usage_summary.assert_awaited_once_with(
+            agent_id,
+            service=None,
+            days=7,
+        )
 
     def test_get_organization_usage_route_canonicalizes_alias_backed_runtime_rows(
         self,
@@ -1371,7 +1406,7 @@ class TestAdminRoutes:
             "people-data-labs": {"calls": 3, "success_rate": 0.6667},
         }
 
-    @pytest.mark.parametrize("days", ["0", "366"])
+    @pytest.mark.parametrize("days", ["0", "366", "ten", "false", "%20%20"])
     def test_get_organization_usage_route_rejects_invalid_days_before_usage_read(
         self, admin_client: TestClient, days: str
     ) -> None:
@@ -1390,6 +1425,26 @@ class TestAdminRoutes:
         assert payload["error"]["message"] == "Invalid 'days' filter."
         assert payload["error"]["detail"] == "Provide an integer between 1 and 365."
         mock_analytics.get_organization_usage.assert_not_awaited()
+
+    def test_get_organization_usage_route_trims_padded_days_before_usage_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Padded organization usage windows should parse before usage aggregation reads."""
+        mock_analytics = AsyncMock()
+        mock_analytics.get_organization_usage = AsyncMock(
+            return_value={"organization_id": "org_usage_days", "agents": {}}
+        )
+
+        with patch("routes.admin_agents._get_analytics", return_value=mock_analytics):
+            resp = admin_client.get(
+                "/v1/admin/usage/organization/org_usage_days?days=%2007%20"
+            )
+
+        assert resp.status_code == 200
+        mock_analytics.get_organization_usage.assert_awaited_once_with(
+            "org_usage_days",
+            days=7,
+        )
 
     def test_get_organization_usage_route_rejects_blank_org_id_before_usage_read(
         self, admin_client: TestClient

@@ -145,10 +145,24 @@ def _validated_public_service_filter(service: Optional[str]) -> Optional[str]:
     return _public_service_label(cleaned)
 
 
-def _validated_usage_days(days: int) -> int:
+def _parse_integer_filter(value: Any) -> int | None:
+    if not isinstance(value, int):
+        value = getattr(value, "default", value)
+
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized.isdigit():
+            return int(normalized)
+    return None
+
+
+def _validated_usage_days(days: Any) -> int:
     """Reject invalid usage windows before opening usage aggregation reads."""
-    if 1 <= days <= 365:
-        return days
+    parsed_days = _parse_integer_filter(days)
+    if parsed_days is not None and 1 <= parsed_days <= 365:
+        return parsed_days
     raise RhumbError(
         "INVALID_PARAMETERS",
         message="Invalid 'days' filter.",
@@ -571,7 +585,7 @@ async def enable_agent(agent_id: str) -> Dict[str, str]:
 async def get_agent_usage(
     agent_id: str,
     service: Optional[str] = Query(default=None),
-    days: int = Query(default=30),
+    days: Any = Query(default=30),
 ) -> Dict[str, Any]:
     """Get usage summary for an agent."""
     agent_id = _validated_required_path_value(agent_id, "agent_id")
@@ -597,7 +611,7 @@ async def get_agent_usage(
 @router.get("/usage/organization/{organization_id}")
 async def get_organization_usage(
     organization_id: str,
-    days: int = Query(default=30),
+    days: Any = Query(default=30),
 ) -> Dict[str, Any]:
     """Get aggregated usage for an entire organization."""
     organization_id = _validated_required_path_value(organization_id, "organization_id")
