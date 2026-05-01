@@ -66,6 +66,10 @@ def _client_ip(raw_request: Request) -> str | None:
     return None
 
 
+def _normalized_crm_credential_mode(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
 async def handle_crm_execute(
     *,
     capability_id: str,
@@ -112,7 +116,7 @@ async def handle_crm_execute(
             started_at=start,
         )
 
-    requested_mode = body.get("credential_mode", credential_mode)
+    requested_mode = _normalized_crm_credential_mode(body.get("credential_mode", credential_mode))
     if requested_mode != "byok":
         return await _failure_response(
             raw_request=raw_request,
@@ -129,20 +133,23 @@ async def handle_crm_execute(
             status_code=400,
             started_at=start,
         )
+    credential_mode = requested_mode
+    request_body = dict(body)
+    request_body.pop("credential_mode", None)
 
     try:
         if capability_id == "crm.object.describe":
-            request = CrmObjectDescribeRequest.model_validate(body)
+            request = CrmObjectDescribeRequest.model_validate(request_body)
             bundle = resolve_crm_bundle(request.crm_ref)
             provider_used = bundle.provider
             result = await _execute_describe(request=request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "crm.record.search":
-            request = CrmRecordSearchRequest.model_validate(body)
+            request = CrmRecordSearchRequest.model_validate(request_body)
             bundle = resolve_crm_bundle(request.crm_ref)
             provider_used = bundle.provider
             result = await _execute_search(request=request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "crm.record.get":
-            request = CrmRecordGetRequest.model_validate(body)
+            request = CrmRecordGetRequest.model_validate(request_body)
             bundle = resolve_crm_bundle(request.crm_ref)
             provider_used = bundle.provider
             result = await _execute_get(request=request, bundle=bundle, execution_id=execution_id)

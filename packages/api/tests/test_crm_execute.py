@@ -245,6 +245,66 @@ async def test_crm_record_search_rejects_non_byok_credential_mode(
 
 
 @pytest.mark.asyncio
+async def test_crm_record_search_normalizes_explicit_byok_credential_mode(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+) -> None:
+    monkeypatch.setenv(
+        "RHUMB_CRM_HS_MAIN",
+        json.dumps(
+            {
+                "provider": "hubspot",
+                "auth_mode": "private_app_token",
+                "private_app_token": "secret",
+                "allowed_object_types": ["contacts"],
+                "allowed_properties_by_object": {"contacts": ["email"]},
+            }
+        ),
+    )
+
+    response_model = CrmRecordSearchResponse(
+        provider_used="hubspot",
+        credential_mode="byok",
+        capability_id="crm.record.search",
+        receipt_id="pending",
+        execution_id="pending",
+        crm_ref="hs_main",
+        object_type="contacts",
+        records=[
+            HubSpotCrmRecordSummary(
+                record_id="101",
+                archived=False,
+                created_at="2026-04-09T17:00:00Z",
+                updated_at="2026-04-09T17:01:00Z",
+                properties={"email": "ada@example.com"},
+            )
+        ],
+        record_count_returned=1,
+        next_after=None,
+    )
+
+    with patch.object(crm_execute_route, "search_hubspot_records", new=AsyncMock(return_value=response_model)):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/capabilities/crm.record.search/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": " BYOK ",
+                    "crm_ref": "hs_main",
+                    "object_type": "contacts",
+                },
+            )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["error"] is None
+    assert body["data"]["credential_mode"] == "byok"
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.credential_mode == "byok"
+
+
+@pytest.mark.asyncio
 async def test_crm_execute_rejects_non_object_body_before_crm_reads(
     app,
     _mock_receipt_service,
