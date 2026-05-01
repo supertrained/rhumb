@@ -385,22 +385,29 @@ class TestGetLedger:
         [
             ({"limit": 999}, "limit", "Provide an integer between 1 and 200."),
             ({"limit": 0}, "limit", "Provide an integer between 1 and 200."),
+            ({"limit": "ten"}, "limit", "Provide an integer between 1 and 200."),
+            ({"limit": "true"}, "limit", "Provide an integer between 1 and 200."),
+            ({"limit": "   "}, "limit", "Provide an integer between 1 and 200."),
             ({"offset": -1}, "offset", "Provide an integer greater than or equal to 0."),
+            ({"offset": "false"}, "offset", "Provide an integer greater than or equal to 0."),
+            ({"offset": "   "}, "offset", "Provide an integer greater than or equal to 0."),
         ],
     )
-    def test_invalid_pagination_rejected_before_supabase_reads(
+    def test_invalid_pagination_rejected_before_auth_or_supabase_reads(
         self,
         client: TestClient,
-        params: dict[str, int],
+        params: dict[str, object],
         field: str,
         detail: str,
     ) -> None:
         fetch_mock = AsyncMock()
         count_mock = AsyncMock()
+        require_org_mock = AsyncMock()
 
         with (
             patch("routes.billing.supabase_fetch", fetch_mock),
             patch("routes.billing.supabase_count", count_mock),
+            patch("routes.billing._require_org", require_org_mock),
         ):
             resp = client.get(
                 "/v1/billing/ledger",
@@ -413,8 +420,33 @@ class TestGetLedger:
         assert payload["error"]["code"] == "INVALID_PARAMETERS"
         assert payload["error"]["message"] == f"Invalid '{field}' filter."
         assert payload["error"]["detail"] == detail
+        require_org_mock.assert_not_awaited()
         fetch_mock.assert_not_awaited()
         count_mock.assert_not_awaited()
+
+    def test_padded_pagination_values_are_normalized(self, client: TestClient) -> None:
+        captured_path: list[str] = []
+
+        async def _capture_fetch(path: str):
+            captured_path.append(path)
+            return []
+
+        with (
+            patch("routes.billing.supabase_fetch", side_effect=_capture_fetch),
+            patch("routes.billing.supabase_count", new_callable=AsyncMock, return_value=0),
+        ):
+            resp = client.get(
+                "/v1/billing/ledger",
+                params={"limit": " 10 ", "offset": " 20 "},
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["limit"] == 10
+        assert data["offset"] == 20
+        assert "limit=10" in captured_path[0]
+        assert "offset=20" in captured_path[0]
 
     def test_empty_ledger(self, client: TestClient) -> None:
         with (

@@ -176,9 +176,23 @@ def _validated_ledger_event_type(event_type: str | None) -> str | None:
     return normalized
 
 
-def _validated_ledger_limit(limit: int) -> int:
-    if 1 <= limit <= 200:
-        return limit
+def _parse_integer_filter(value: Any) -> int | None:
+    if not isinstance(value, int):
+        value = getattr(value, "default", value)
+
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized.isdigit():
+            return int(normalized)
+    return None
+
+
+def _validated_ledger_limit(limit: Any) -> int:
+    parsed_limit = _parse_integer_filter(limit)
+    if parsed_limit is not None and 1 <= parsed_limit <= 200:
+        return parsed_limit
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -187,9 +201,10 @@ def _validated_ledger_limit(limit: int) -> int:
     )
 
 
-def _validated_ledger_offset(offset: int) -> int:
-    if offset >= 0:
-        return offset
+def _validated_ledger_offset(offset: Any) -> int:
+    parsed_offset = _parse_integer_filter(offset)
+    if parsed_offset is not None and parsed_offset >= 0:
+        return parsed_offset
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -767,8 +782,8 @@ async def get_balance(
 @router.get("/billing/ledger")
 async def get_ledger(
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
-    limit: int = Query(50),
-    offset: int = Query(0),
+    limit: Any = Query(50),
+    offset: Any = Query(0),
     event_type: str | None = Query(None),
 ) -> dict:
     """Return paginated, optionally filtered ledger entries for the org."""
