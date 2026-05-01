@@ -74,7 +74,9 @@ const routeExamples = [
   {
     title: "Web extraction",
     body:
-      "When structure and extraction quality matter more than generic ranking, Resolve can route to the provider that best fits extraction work.",
+      "When structure and extraction quality matter more than generic ranking, Resolve can route to the provider that best fits extraction work. Use the web extraction safety guide to bound domains, output class, credentials, budget, denials, and trace evidence before repeat runs.",
+    href: "/blog/choose-web-extraction-api-for-ai-agents-without-unsafe-browser",
+    cta: "Read the extraction safety guide",
   },
   {
     title: "Generation / transform",
@@ -404,6 +406,11 @@ const agentContext =
               <div class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
                 <h3 class="font-display font-semibold text-lg text-slate-100">{item.title}</h3>
                 <p class="mt-2 text-sm leading-6 text-slate-400">{item.body}</p>
+                {item.href && (
+                  <a href={item.href} class="mt-4 inline-flex text-sm font-display font-semibold text-amber hover:text-amber-200 transition-colors">
+                    {item.cta ?? "Read more"} &rarr;
+                  </a>
+                )}
               </div>
             ))}
           </div>

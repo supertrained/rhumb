@@ -296,7 +296,7 @@ const services: Service[] = [
             </div>
           </div>
           <p class="mt-5 text-sm leading-7 text-slate-400">
-            This is where web scraping selection meets <a href="/blog/mcp-prompt-injection-scope-constraints" class="text-amber hover:text-amber-200 transition-colors">MCP scope constraints</a> and <a href="/blog/tool-level-permission-scoping-mcp" class="text-amber hover:text-amber-200 transition-colors">tool-level permission scoping</a>: broad scraping tools should become narrow, auditable lanes before the model ever sees them as one generic web-access superpower.
+            This is where web scraping selection meets <a href="/blog/choose-web-extraction-api-for-ai-agents-without-unsafe-browser" class="text-amber hover:text-amber-200 transition-colors">the web extraction safety guide</a>, <a href="/blog/mcp-prompt-injection-scope-constraints" class="text-amber hover:text-amber-200 transition-colors">MCP scope constraints</a>, and <a href="/blog/tool-level-permission-scoping-mcp" class="text-amber hover:text-amber-200 transition-colors">tool-level permission scoping</a>: broad scraping tools should become narrow, auditable lanes before the model ever sees them as one generic web-access superpower.
           </p>
         </div>
       </section>
@@ -332,9 +332,13 @@ const services: Service[] = [
             Choosing the scraper is only the first operator decision
           </h2>
           <p class="text-slate-300 leading-relaxed mb-5">
-            Once extraction sits inside unattended loops, the next questions are what breaks when retries pile up, how crawl budgets and provider quotas get contained, and how fetch credentials stay narrow when the workflow expands. These three pages carry the scraping comparison into live operations.
+            Once extraction sits inside unattended loops, the next questions are what breaks when retries pile up, how crawl budgets and provider quotas get contained, and how fetch credentials stay narrow when the workflow expands. These pages carry the scraping comparison into live operations.
           </p>
-          <div class="grid gap-3 sm:grid-cols-3">
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <a href="/blog/choose-web-extraction-api-for-ai-agents-without-unsafe-browser" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Choosing Web Extraction APIs Safely</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">How to turn Firecrawl, ScraperAPI, Apify, or browser automation into a bounded extraction lane.</p>
+            </a>
             <a href="/blog/llm-apis-agent-loops" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">LLM APIs in Agent Loops</div>
               <p class="mt-2 text-sm text-slate-400 leading-relaxed">What actually breaks once fetch, parse, and summarization calls start compounding inside live agent runs.</p>

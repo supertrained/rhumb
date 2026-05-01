@@ -1,0 +1,302 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const FAST_ANSWER = [
+  "Choose a web extraction API for agents by naming the extraction boundary first: page-to-markdown, raw HTML at scale, browser automation, platform actor, screenshot, or structured schema output.",
+  "Do not hand an agent a generic browser or 40-tool scraper catalog as the default route. Turn the extraction job into a bounded lane with allowed domains, output class, credential rail, crawl budget, denial case, and trace evidence.",
+  "Firecrawl is the clean default for page-to-markdown and AI-ready extraction, ScraperAPI is the raw HTML / proxy reliability pick, and Apify is strongest when a platform-specific actor or browser workflow is the actual job.",
+  `Rhumb's current public scope is ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions for discovery, with ${PUBLIC_TRUTH.callableProvidersLabel} callable providers strongest for ${PUBLIC_TRUTH.beachheadLabel}. Treat scored extraction providers as candidates until the governed route is verified for your workflow.`,
+];
+
+const EXTRACTION_JOBS = [
+  {
+    job: "Page-to-markdown extraction",
+    provider: "Firecrawl",
+    useWhen: "The agent needs readable page content, docs, articles, or lightweight crawl output that can feed summarization or research without building an HTML parser first.",
+    boundary: "URL allowlist, crawl depth, markdown size cap, source URL preservation, and freshness timestamp.",
+  },
+  {
+    job: "Raw HTML at scale",
+    provider: "ScraperAPI",
+    useWhen: "The workflow needs reliable fetches through proxy rotation, anti-bot handling, and region choices, while your own code controls parsing and downstream schema extraction.",
+    boundary: "Proxy pool, target domain policy, response byte cap, parser version, and retry budget.",
+  },
+  {
+    job: "Platform-specific actors",
+    provider: "Apify",
+    useWhen: "The task maps to a known site or marketplace actor where structured output matters more than generic URL fetching.",
+    boundary: "Actor identity, input schema, dataset scope, per-run cost ceiling, and tenant-safe output storage.",
+  },
+  {
+    job: "Browser-state verification",
+    provider: "Browser / actor lane",
+    useWhen: "The agent must verify UI state, screenshots, logged-in pages, or JavaScript-rendered content after an API or workflow step.",
+    boundary: "Session identity, cookies, screenshot retention, navigation allowlist, and explicit human/privacy review when sensitive data is visible.",
+  },
+];
+
+const SAFE_ROUTE_STEPS = [
+  {
+    step: "1",
+    title: "Name the output class",
+    body: "Decide whether the agent needs markdown, raw HTML, JSON entities, a screenshot, a dataset, or a verification artifact. Output class determines the safety checks more than the vendor logo does.",
+  },
+  {
+    step: "2",
+    title: "Constrain the target set",
+    body: "List allowed domains, URL patterns, robots/policy constraints, tenant boundaries, and disallowed data classes before the first crawl or browser session starts.",
+  },
+  {
+    step: "3",
+    title: "Pick the credential and budget rail",
+    body: "Attach the run to a governed key, BYOK credential, Agent Vault token, wallet/prefund rail, or direct provider credential so quota, proxy spend, and downstream enrichment cost have one owner.",
+  },
+  {
+    step: "4",
+    title: "Require denial and recovery proof",
+    body: "The unsafe neighbor — blocked domain, oversized crawl, wrong tenant, stale cookie, or out-of-scope extraction request — should fail as a typed policy outcome before the provider or browser sees it.",
+  },
+];
+
+const PREFLIGHT_CHECKS = [
+  "What exact content should the agent extract: article body, table rows, product fields, contact records, screenshots, or post-action UI evidence?",
+  "Which URL/domain patterns are allowed, and which adjacent targets must fail closed before navigation?",
+  "Is JavaScript execution required, or would browser automation only increase authority and privacy risk?",
+  "What output cap prevents one large page, crawl, actor run, screenshot set, or dataset from flooding the model or blowing the budget?",
+  "Which credential rail owns proxy cost, captcha spend, provider quota, and downstream enrichment calls?",
+  "What trace evidence would let an operator debug the run tomorrow: normalized URL, provider route, actor id, parser version, output class, denial rule, and recovery checkpoint?",
+];
+
+const FAILURE_MODES = [
+  {
+    title: "Browser convenience becomes broad authority",
+    body: "A full browser can click, scroll, read cookies, expose logged-in state, and collect screenshots. Use it only when the workflow requires browser state; otherwise prefer narrower fetch or extraction lanes.",
+  },
+  {
+    title: "Actor marketplace choice hides the real capability",
+    body: "A platform actor can be excellent, but the actor identity, input schema, dataset, and pricing model are now part of the execution contract. The agent should not discover them ad hoc mid-run.",
+  },
+  {
+    title: "Raw extraction loses source evidence",
+    body: "Markdown, HTML, JSON, and screenshots all need source URL, fetch time, normalized target, and provider route preserved together. Otherwise a plausible summary is not auditable.",
+  },
+  {
+    title: "Retry loops look like scraping scale",
+    body: "Crawl failures, empty pages, CAPTCHAs, and parser drift can produce runaway retries. A safe lane caps attempts, output size, crawl depth, and fallback branches before the loop starts.",
+  },
+];
+
+const RELATED = [
+  {
+    href: "/blog/firecrawl-vs-scraperapi-vs-apify",
+    title: "Firecrawl vs ScraperAPI vs Apify",
+    description: "The provider comparison this guide turns into a governed extraction-lane decision.",
+  },
+  {
+    href: "/blog/mcp-prompt-injection-scope-constraints",
+    title: "MCP Prompt Injection and Scope Constraints",
+    description: "Why URL, path, domain, and target constraints must be enforced at execution time.",
+  },
+  {
+    href: "/blog/tool-level-permission-scoping-mcp",
+    title: "Tool-Level Permission Scoping for MCP",
+    description: "How broad tools become narrow, typed, auditable permissions before invocation.",
+  },
+  {
+    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=web-extraction-safety-guide-proof-sprint",
+    title: "Scope an extraction proof sprint",
+    description: "Name one repeat extraction workflow, allowed target set, budget ceiling, denial case, and trace proof.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "How to Choose a Web Extraction API for Agents Without Turning MCP Into an Unsafe Browser",
+  datePublished: "2026-05-01T00:00:00Z",
+  dateModified: "2026-05-01T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A practical guide to choosing Firecrawl, ScraperAPI, Apify, or browser automation for AI-agent extraction workflows while preserving domain constraints, credentials, budget, denials, and trace evidence.",
+  url: "https://rhumb.dev/blog/choose-web-extraction-api-for-ai-agents-without-unsafe-browser",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/choose-web-extraction-api-for-ai-agents-without-unsafe-browser",
+};
+---
+
+<Layout
+  title="How to Choose a Web Extraction API for Agents | Rhumb"
+  description="Choose Firecrawl, ScraperAPI, Apify, or browser automation for an AI-agent extraction workflow without turning MCP into an unsafe browser."
+  canonical="/blog/choose-web-extraction-api-for-ai-agents-without-unsafe-browser"
+  ogTitle="How to Choose a Web Extraction API for Agents"
+  ogDescription="Provider choice is only half the extraction decision. The repeat workflow needs domain constraints, output class, credential rail, budget, denials, and trace evidence."
+  ogUrl="https://rhumb.dev/blog/choose-web-extraction-api-for-ai-agents-without-unsafe-browser"
+  ogType="article"
+  twitterTitle="How to Choose a Web Extraction API for Agents"
+  twitterDescription="Firecrawl, ScraperAPI, Apify, or browser automation — then bound the extraction lane before the agent loops."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-amber/10 via-emerald-500/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-emerald-300">Resolve guide</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 30, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">10 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex rounded-full border border-amber/25 bg-amber/10 px-4 py-2 text-xs font-mono uppercase tracking-[0.22em] text-amber">
+              Answer target: web extraction API for agents
+            </div>
+            <h1 class="max-w-4xl font-display text-4xl font-bold leading-tight tracking-tight text-slate-100 sm:text-5xl">
+              How to Choose a Web Extraction API for Agents Without Turning MCP Into an Unsafe Browser
+            </h1>
+            <p class="mt-6 max-w-3xl text-lg leading-relaxed text-slate-400">
+              Web extraction looks simple until an agent loops over it. A fetch can become a browser session, a screenshot set, a proxy bill, a platform actor, or a tenant-sensitive dataset. Choose the provider for the extraction job, then bound the execution lane before the model treats web access as one generic superpower.
+            </p>
+          </div>
+
+          <aside class="rounded-[32px] border border-slate-800 bg-surface/80 p-6 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fast answer</div>
+            <div class="space-y-3">
+              {FAST_ANSWER.map((point) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-300">{point}</div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-6xl px-6 py-12">
+      <div class="mb-10 rounded-[32px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Decision rule</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          Pick the extraction provider for the output class, then pick the execution boundary for the authority risk. Firecrawl, ScraperAPI, and Apify answer different extraction jobs; a governed lane answers whether this agent may fetch, crawl, render, store, retry, and spend budget on this target set now.
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div class="space-y-14">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Start with the extraction job, not the scraping catalog</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              A broad scraper, crawler, browser, screenshot, and platform-actor catalog is useful inventory. It is not one safe capability. The first operator decision is what output the agent needs and how narrow the target set can be.
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+              {EXTRACTION_JOBS.map((item) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                  <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">{item.provider}</div>
+                  <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.job}</h3>
+                  <p class="mb-4 text-sm leading-6 text-slate-400">{item.useWhen}</p>
+                  <p class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-xs leading-5 text-slate-400">
+                    <span class="font-mono uppercase tracking-widest text-slate-500">Boundary:</span> {item.boundary}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Turn extraction into a bounded route</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              Provider selection answers the fetch shape. Safe execution answers who may fetch, where they may go, which credential burns quota, what output can cross the boundary, and how a failed extraction recovers without widening the lane.
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+              {SAFE_ROUTE_STEPS.map((item) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                  <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 font-mono text-sm text-emerald-300">{item.step}</div>
+                  <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                  <p class="text-sm leading-6 text-slate-400">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section class="rounded-[32px] border border-amber/25 bg-amber/8 p-6 sm:p-8" id="scrape-extract-route">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Runnable framing</div>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Treat <code class="font-mono text-amber">scrape.extract</code> as a narrow workflow, not a browser license</h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              The safe first workflow is not “let the agent browse.” It is a scoped extraction request: one output class, one target set, one credential rail, one budget ceiling, and a denial case that proves the adjacent unsafe target fails before navigation or provider dispatch.
+            </p>
+            <div class="grid gap-4 lg:grid-cols-3">
+              <div class="rounded-2xl border border-slate-800 bg-navy p-5">
+                <p class="mb-2 text-xs font-mono uppercase tracking-widest text-emerald-300">1. Define</p>
+                <p class="text-sm leading-6 text-slate-400">Output: markdown summary of docs pages, with source URLs and fetch timestamps preserved.</p>
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-navy p-5">
+                <p class="mb-2 text-xs font-mono uppercase tracking-widest text-emerald-300">2. Bound</p>
+                <p class="text-sm leading-6 text-slate-400">Targets: allowed domains, crawl depth, byte cap, blocked paths, and typed denial for the nearest unsafe neighbor.</p>
+              </div>
+              <div class="rounded-2xl border border-slate-800 bg-navy p-5">
+                <p class="mb-2 text-xs font-mono uppercase tracking-widest text-emerald-300">3. Prove</p>
+                <p class="text-sm leading-6 text-slate-400">Trace: caller, normalized URL, provider route, credential mode, output class, denial rule, and recovery checkpoint.</p>
+              </div>
+            </div>
+            <div class="mt-6 flex flex-wrap gap-3">
+              <a href="/blog/firecrawl-vs-scraperapi-vs-apify" class="inline-flex items-center justify-center rounded-xl bg-amber px-5 py-3 text-sm font-display font-semibold text-navy transition-colors hover:bg-amber-dark">
+                Compare extraction providers &rarr;
+              </a>
+              <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=web-extraction-safety-guide-main-cta" class="inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-display font-semibold text-slate-200 transition-colors hover:border-emerald-400 hover:text-emerald-300">
+                Scope an extraction proof sprint &rarr;
+              </a>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Preflight questions before the first repeat extraction</h2>
+            <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+              <ul class="ml-5 list-disc list-outside space-y-3 leading-relaxed text-slate-300">
+                {PREFLIGHT_CHECKS.map((check) => (<li>{check}</li>))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Common failure modes</h2>
+            <div class="space-y-4">
+              {FAILURE_MODES.map((failure) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                  <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{failure.title}</h3>
+                  <p class="text-sm leading-6 text-slate-400">{failure.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
+        <aside class="space-y-5 lg:sticky lg:top-24">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Conversion hypothesis</div>
+            <p class="text-sm leading-6 text-slate-400">
+              Extraction comparison readers should move into E-006 when they can name one repeat scrape/extract workflow, target set, output class, budget ceiling, and denial case worth proving.
+            </p>
+          </div>
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Related reading</div>
+            <div class="space-y-4">
+              {RELATED.map((item) => (
+                <a href={item.href} class="block rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-amber/50">
+                  <div class="mb-1 font-display text-sm font-semibold tracking-tight text-slate-100">{item.title}</div>
+                  <p class="text-xs leading-5 text-slate-500">{item.description}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+</Layout>
