@@ -1,0 +1,362 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const FAST_ANSWER = [
+  "Composio, Arcade, and Nango are not the same product with different logos. They sit on different parts of the agent-integration stack.",
+  "Use Composio when the problem is broad tool access, delegated auth, sandboxed tool execution, and agent-optimized connectors across many apps.",
+  "Use Arcade when the problem is MCP runtime, secure agent authorization, and production tool calling against app actions.",
+  "Use Nango when the problem is product integrations: OAuth for many APIs, tenant-isolated syncs, webhooks, and code-first integration functions.",
+  "Use Rhumb when the first question is not 'which connector catalog?' but 'which capability should this agent call, on which rail, with what budget, denial, and receipt proof?'",
+];
+
+const OPTIONS = [
+  {
+    name: "Composio",
+    category: "Tool access and agent connectors",
+    best: "Teams that want agents to discover and call many app tools with managed auth, sandboxes, triggers, and tool execution plans.",
+    proof: "The agent can find the right tool, complete delegated auth, run the action in a controlled environment, and get a result without hand-rolling every connector.",
+    watch: "Do not mistake broad tool inventory for workflow fitness. A catalog still needs provider fit, budget caps, typed denials, and trace evidence before repeat loops.",
+    href: "https://composio.dev/",
+    accent: "text-violet-300",
+    className: "border-violet-500/20 bg-violet-500/5",
+  },
+  {
+    name: "Arcade",
+    category: "MCP runtime and secure tool calling",
+    best: "Teams standardizing on MCP who need secure authorization, reliable tool calling, and governance around real actions in apps such as Gmail, Slack, GitHub, Salesforce, and related systems.",
+    proof: "The MCP runtime preserves user authorization, tool scope, approval flow, and execution reliability when the agent acts on behalf of a user.",
+    watch: "MCP runtime quality is not the same as route selection. You still need to decide whether the requested action is the right capability and whether the denied neighbor fails closed.",
+    href: "https://www.arcade.dev/",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+  },
+  {
+    name: "Nango",
+    category: "Product integrations and OAuth infrastructure",
+    best: "SaaS teams that need code-first integrations, OAuth for many APIs, tenant isolation, syncs, webhooks, and integration functions that can also be exposed to AI agents.",
+    proof: "Customer accounts connect reliably, credentials refresh, sync jobs run, webhooks land, and integration functions execute under tenant boundaries.",
+    watch: "An integration platform can get the account connected and the data moving, but the agent loop still needs execution policy, cost ceiling, denial proof, and receipts.",
+    href: "https://nango.dev/",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+  },
+  {
+    name: "Rhumb",
+    category: "Capability routing and governed execution proof",
+    best: `Teams that want to choose a supported capability from ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions, then run one repeat workflow through a governed rail when the current callable surface fits.`,
+    proof: "Resolve the capability, estimate the route, choose the credential rail, cap the budget, test the denied neighbor, and keep trace/receipt evidence after execution.",
+    watch: `Current callable execution is narrower at ${PUBLIC_TRUTH.callableProvidersLabel} callable providers strongest for ${PUBLIC_TRUTH.beachheadLabel}. Do not treat Rhumb as a universal connector replacement.`,
+    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=competitive-alternatives-rhumb-card",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+  },
+];
+
+const DECISION_RULES = [
+  "If the core job is account connection, refresh tokens, syncs, and webhooks inside your SaaS product, start with Nango-like integration infrastructure.",
+  "If the core job is secure MCP tool calling and authorization around app actions, compare Arcade-like runtime layers first.",
+  "If the core job is giving agents many app tools with delegated auth and sandboxed execution, compare Composio-like tool platforms first.",
+  "If the core job is choosing the right capability and proving one repeat execution path before the loop runs, start with Rhumb's Resolve / managed-execution path.",
+  "If the workflow touches your customer systems, bring BYOK, Agent Vault, or your integration layer into the design instead of forcing a governed-key path to act like a connector platform.",
+];
+
+const RHUMB_JOB = [
+  {
+    label: "Resolve",
+    body: "Convert the operator's intent into a capability and candidate provider path before a model improvises with a tool catalog.",
+  },
+  {
+    label: "Estimate",
+    body: "Price the route, credential mode, and provider constraint before the first paid call or unattended retry.",
+  },
+  {
+    label: "Authorize",
+    body: "Pick the rail — governed key, BYOK, Agent Vault, x402, wallet-prefund, or provider pinning — by actor, quota owner, and allowed surface.",
+  },
+  {
+    label: "Deny",
+    body: "Name the adjacent target that must fail closed: tenant, domain, account, row, amount, path, or tool action.",
+  },
+  {
+    label: "Receipt",
+    body: "Preserve capability id, provider, credential mode, budget owner, outcome, idempotency, denial, and recovery evidence after the call.",
+  },
+];
+
+const NOT_RHUMB = [
+  "A replacement for every OAuth connector, SaaS integration, sync job, webhook pipeline, or enterprise iPaaS workflow.",
+  "A broad claim that every service in the Index can be executed today through one managed key.",
+  "A shortcut around customer-owned provider accounts, workspace permissions, compliance boundaries, or tenant-specific data access.",
+  "A leaderboard-only decision. Scores narrow candidates; execution proof decides whether the agent should repeat the call.",
+];
+
+const PROOF_CHECKLIST = [
+  "Capability: what exact repeat job will the agent call?",
+  "Provider path: should Resolve choose the route, or should the operator pin a provider?",
+  "Credential rail: governed key, BYOK, Agent Vault, x402, wallet-prefund, or provider-owned account?",
+  "Budget owner: whose quota, contract, wallet, or balance burns when the call repeats?",
+  "Allowed surface: which tenant, domain, account, path, row, object, or action is in scope?",
+  "Denied neighbor: what adjacent action proves the boundary fails closed?",
+  "Trace proof: which receipt fields let recovery tell success, denial, retry, and provider drift apart?",
+];
+
+const WHEN_TO_COMBINE = [
+  "Use Nango or a similar integration layer to connect customer accounts, then use Rhumb-style resolve / estimate / receipt checks for the specific agent action that will repeat.",
+  "Use Arcade or a similar MCP runtime to expose authorized tools, then use Rhumb's failure-mode and capability-selection frame to decide which tool action is safe enough to automate.",
+  "Use Composio or a similar tool platform when broad app actions matter, then require a workflow-level denied-neighbor and budget ceiling before the agent starts looping.",
+  "Use Rhumb alone only when the workflow fits the current managed capability surface and does not need deep customer-system integration first.",
+];
+
+const RELATED = [
+  {
+    href: "/blog/what-is-managed-api-execution-for-ai-agents?rhumb_experiment=e006&rhumb_source=competitive-alternatives-managed-definition",
+    title: "What Is Managed API Execution?",
+    description: "The category definition: capability first, authority before routing, bounded budget, and trace proof.",
+  },
+  {
+    href: "/blog/agent-credential-paths-managed-key-byok-agent-vault-x402?rhumb_experiment=e006&rhumb_source=competitive-alternatives-credentials",
+    title: "Agent Credential Paths",
+    description: "Choose governed key, BYOK, Agent Vault, x402, or provider pinning by authority and budget boundary.",
+  },
+  {
+    href: "/blog/price-first-repeat-agent-workflow-before-loop?rhumb_experiment=e006&rhumb_source=competitive-alternatives-pricing",
+    title: "Price the First Repeat Workflow",
+    description: "Estimate route, rail, cost ceiling, denial, and receipt proof before agent execution repeats.",
+  },
+  {
+    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=competitive-alternatives-start",
+    title: "Start Managed Execution",
+    description: "Scope one narrow repeat workflow and ask for proof before the first paid call.",
+  },
+];
+
+const MEASUREMENT = [
+  "E-006 visits from this page into /start-managed-execution with rhumb_source=competitive-alternatives-*.",
+  "Readers moving from competitive alternatives into credential-path, pricing-first, or managed-execution definition guides.",
+  "Qualitative asks that compare Rhumb to Composio, Arcade, Nango, connector catalogs, MCP runtimes, or OAuth integration platforms.",
+  "Future search and answer-engine visibility for Composio alternatives, Arcade alternatives, Nango alternatives, governed agent execution, and managed API execution alternatives.",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Composio, Arcade, Nango Alternatives: What Job Is Rhumb Actually Doing?",
+  datePublished: "2026-05-01T16:00:00Z",
+  dateModified: "2026-05-01T16:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A practical comparison of Composio, Arcade, Nango, and Rhumb for AI-agent integrations, MCP runtime, OAuth infrastructure, capability routing, and governed execution proof.",
+  url: "https://rhumb.dev/blog/composio-arcade-nango-alternatives-governed-agent-execution",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/composio-arcade-nango-alternatives-governed-agent-execution",
+};
+---
+
+<Layout
+  title="Composio, Arcade, Nango Alternatives: What Job Is Rhumb Actually Doing? | Rhumb"
+  description="Compare Composio, Arcade, Nango, and Rhumb by the job each layer does for AI agents: tool access, MCP runtime, OAuth integrations, or governed execution proof."
+  canonical="/blog/composio-arcade-nango-alternatives-governed-agent-execution"
+  ogTitle="Composio, Arcade, Nango Alternatives for Agent Execution"
+  ogDescription="Do not compare connector catalogs as if they solve the same problem. Pick the layer by job: integration, runtime, tool access, or governed execution proof."
+  ogUrl="https://rhumb.dev/blog/composio-arcade-nango-alternatives-governed-agent-execution"
+  ogType="article"
+  twitterTitle="Composio, Arcade, Nango Alternatives for Agent Execution"
+  twitterDescription="Composio, Arcade, Nango, and Rhumb sit on different layers of the agent-integration stack. Pick by job, not logo."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-violet-500/10 via-sky-500/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-violet-300">Competitive alternatives</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 1, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">11 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.04fr_0.96fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex rounded-full border border-violet-500/25 bg-violet-500/10 px-4 py-2 text-xs font-mono uppercase tracking-[0.22em] text-violet-300">
+              Answer target: governed execution alternatives
+            </div>
+            <h1 class="max-w-4xl font-display text-4xl font-bold leading-tight tracking-tight text-slate-100 sm:text-5xl">
+              Composio, Arcade, Nango alternatives: what job is Rhumb actually doing?
+            </h1>
+            <p class="mt-6 max-w-3xl text-lg leading-relaxed text-slate-400">
+              Agent integration platforms get compared too casually. The useful question is not who has the biggest catalog. It is which layer you need before an agent repeats a real API action.
+            </p>
+          </div>
+
+          <aside class="rounded-[32px] border border-slate-800 bg-surface/80 p-6 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fast answer</div>
+            <div class="space-y-3">
+              {FAST_ANSWER.map((point) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-300">{point}</div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-6xl px-6 py-12">
+      <div class="mb-10 rounded-[32px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Current truth boundary</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          Rhumb is strongest when the operator wants to resolve a concrete capability, estimate a governed route, choose a credential rail, and preserve receipt proof. It is not a universal connector catalog. Public discovery covers {PUBLIC_TRUTH.servicesLabel} scored services and {PUBLIC_TRUTH.capabilitiesLabel} capability definitions, while current callable execution is narrower at {PUBLIC_TRUTH.callableProvidersLabel} callable providers strongest for {PUBLIC_TRUTH.beachheadLabel}.
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div class="space-y-14">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Start with the job, not the vendor list</h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A team asking for "Composio alternatives," "Arcade alternatives," or "Nango alternatives" may be asking four different questions. Do they need app tools? Secure MCP runtime? OAuth and sync infrastructure? Or proof that one repeat agent workflow can execute with the right route, budget, denial, and receipt?
+              </p>
+              <p>
+                Rhumb's honest wedge is the last one. It helps an agent move from broad service discovery into a bounded capability execution path. That can sit beside connector platforms and integration infrastructure; it should not be inflated into a claim that every connector problem is solved by one managed key.
+              </p>
+            </div>
+            <div class="mt-6 grid gap-3">
+              {DECISION_RULES.map((rule) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/75 p-4 text-sm leading-6 text-slate-300">{rule}</div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Comparison by layer</h2>
+            <div class="grid gap-4">
+              {OPTIONS.map((option) => (
+                <div class={`rounded-[28px] border p-6 ${option.className}`}>
+                  <div class={`mb-3 text-[11px] font-mono uppercase tracking-[0.24em] ${option.accent}`}>{option.name}</div>
+                  <div class="grid gap-4 md:grid-cols-4">
+                    <div>
+                      <h3 class="mb-2 font-display text-lg font-semibold text-slate-100">Layer</h3>
+                      <p class="text-sm leading-6 text-slate-300">{option.category}</p>
+                    </div>
+                    <div>
+                      <h3 class="mb-2 font-display text-lg font-semibold text-slate-100">Best when</h3>
+                      <p class="text-sm leading-6 text-slate-300">{option.best}</p>
+                    </div>
+                    <div>
+                      <h3 class="mb-2 font-display text-lg font-semibold text-slate-100">Must prove</h3>
+                      <p class="text-sm leading-6 text-slate-300">{option.proof}</p>
+                    </div>
+                    <div>
+                      <h3 class="mb-2 font-display text-lg font-semibold text-slate-100">Watch out</h3>
+                      <p class="text-sm leading-6 text-slate-300">{option.watch}</p>
+                      <a href={option.href} class="mt-4 inline-flex text-xs font-mono uppercase tracking-[0.18em] text-slate-400 hover:text-amber transition-colors">Inspect path &rarr;</a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">The job Rhumb is actually doing</h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Rhumb should be evaluated as a capability-routing and proof layer. The operator should be able to say: this is the supported job, this is the route, this is the rail, this is the cost ceiling, this is the denied neighbor, and this is the receipt that makes retries boring.
+              </p>
+            </div>
+            <div class="mt-6 grid gap-4 md:grid-cols-5">
+              {RHUMB_JOB.map((item) => (
+                <div class="rounded-3xl border border-slate-800 bg-surface/75 p-5">
+                  <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">{item.label}</div>
+                  <p class="text-sm leading-6 text-slate-300">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">What Rhumb is not</h2>
+            <div class="grid gap-3">
+              {NOT_RHUMB.map((item) => (
+                <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">The proof checklist before any agent loops</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              The same checklist applies whether the execution path uses a connector catalog, MCP runtime, product-integration platform, or Rhumb-managed capability. If it will repeat unattended, it needs a boundary you can observe.
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+              {PROOF_CHECKLIST.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/75 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">When the answer is "use both"</h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The strongest architecture is often layered. Account connection, app authorization, runtime tool calling, and workflow-level execution proof can be separate responsibilities. The mistake is pretending one layer proves the others.
+              </p>
+            </div>
+            <div class="mt-6 grid gap-3">
+              {WHEN_TO_COMBINE.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/75 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+          </section>
+
+          <section class="rounded-[32px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">E-006 proof sprint</div>
+            <h2 class="font-display text-3xl font-bold tracking-tight text-slate-100">Have one repeat workflow? Price and prove that, not the whole integration strategy.</h2>
+            <p class="mt-4 leading-relaxed text-slate-300">
+              Send the narrow job, expected repeat volume, credential rail, denied neighbor, and trace proof you would trust. The goal is not a magic demo; it is making the first paid execution boring enough to repeat.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-3">
+              <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=competitive-alternatives-proof-sprint" class="rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-navy transition-colors hover:bg-emerald-300">
+                Scope managed execution
+              </a>
+              <a data-rhumb-propagate href="/blog/price-first-repeat-agent-workflow-before-loop?rhumb_experiment=e006&rhumb_source=competitive-alternatives-price-first" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-200 transition-colors hover:border-amber/50 hover:text-slate-100">
+                Price first workflow
+              </a>
+            </div>
+          </section>
+        </div>
+
+        <aside class="sticky top-24 space-y-4">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Measure this page by</div>
+            <ul class="space-y-3 text-sm leading-6 text-slate-400">
+              {MEASUREMENT.map((item) => (
+                <li class="rounded-2xl border border-slate-800 bg-navy/60 p-3">{item}</li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Related</div>
+            <div class="space-y-3">
+              {RELATED.map((item) => (
+                <a data-rhumb-propagate href={item.href} class="block rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-amber/40">
+                  <div class="mb-1 font-display text-base font-semibold text-slate-100">{item.title}</div>
+                  <p class="text-sm leading-6 text-slate-400">{item.description}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+</Layout>
