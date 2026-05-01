@@ -5,8 +5,9 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 from functools import lru_cache
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from config import settings
 from db.repository import (
@@ -541,9 +542,20 @@ def _validated_compare_service_slugs(services: str) -> list[str]:
     )
 
 
-def _validated_alert_limit(limit: int) -> int:
-    if 1 <= limit <= 100:
-        return limit
+def _validated_alert_limit(limit: Any) -> int:
+    if not isinstance(limit, int):
+        limit = getattr(limit, "default", limit)
+
+    parsed_limit: int | None = None
+    if isinstance(limit, int) and not isinstance(limit, bool):
+        parsed_limit = limit
+    elif isinstance(limit, str):
+        normalized = limit.strip()
+        if normalized.isdigit():
+            parsed_limit = int(normalized)
+
+    if parsed_limit is not None and 1 <= parsed_limit <= 100:
+        return parsed_limit
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -624,7 +636,7 @@ async def evaluate_stack() -> dict:
 
 
 @router.get("/alerts")
-async def get_alerts(limit: int = 50) -> dict:
+async def get_alerts(limit: Any = Query(default=50)) -> dict:
     """Fetch schema/score change alerts derived from probe telemetry."""
     safe_limit = _validated_alert_limit(limit)
     service_slugs = [spec.service_slug for spec in DEFAULT_PROBE_SPECS]

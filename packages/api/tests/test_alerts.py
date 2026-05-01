@@ -245,3 +245,56 @@ def test_alerts_http_rejects_invalid_limit_with_canonical_envelope() -> None:
     assert payload["error"]["code"] == "INVALID_PARAMETERS"
     assert payload["error"]["message"] == "Invalid 'limit' filter."
     assert payload["error"]["detail"] == "Provide an integer between 1 and 100."
+
+
+def test_alerts_http_rejects_malformed_limits_before_probe_reads() -> None:
+    """Malformed alert limits should reject canonically before probe repository reads."""
+    from app import create_app
+    from routes import scores as score_routes
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            score_routes,
+            "get_probe_repository",
+            lambda: pytest.fail("get_probe_repository should not run on rejected input"),
+        )
+
+        client = TestClient(create_app())
+        responses = [
+            client.get("/v1/alerts", params={"limit": value})
+            for value in ("ten", "true", " ", "0", "101")
+        ]
+
+    for response in responses:
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'limit' filter."
+        assert payload["error"]["detail"] == "Provide an integer between 1 and 100."
+
+
+def test_alerts_http_normalizes_padded_limit_before_probe_reads() -> None:
+    """Padded numeric alert limits should parse before generating alerts."""
+    from app import create_app
+    from routes import scores as score_routes
+
+    observed: dict[str, int] = {}
+
+    class FakeAlertService:
+        def __init__(self, *, repository, watched_services):
+            self.repository = repository
+            self.watched_services = watched_services
+
+        def generate_alerts(self, *, limit: int):
+            observed["limit"] = limit
+            return []
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(score_routes, "get_probe_repository", lambda: object())
+        monkeypatch.setattr(score_routes, "ProbeAlertService", FakeAlertService)
+
+        client = TestClient(create_app())
+        response = client.get("/v1/alerts", params={"limit": " 07 "})
+
+    assert response.status_code == 200
+    assert observed["limit"] == 7
