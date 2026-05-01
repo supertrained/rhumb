@@ -16,6 +16,7 @@ Target: 20+ tests.
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime
 from typing import Any, Generator
 from unittest.mock import AsyncMock, patch
 
@@ -1499,9 +1500,9 @@ class TestAdminRoutes:
         assert payload["error"]["detail"] == "Provide a non-empty 'organization_id' value."
         mock_analytics.get_organization_usage.assert_not_awaited()
 
-    @pytest.mark.parametrize("limit", [0, 1001])
+    @pytest.mark.parametrize("limit", [0, 1001, "ten", " ", True])
     def test_ingest_evidence_route_rejects_invalid_limit_before_adapter_read(
-        self, admin_client: TestClient, limit: int
+        self, admin_client: TestClient, limit: Any
     ) -> None:
         """Invalid evidence-ingest limits should fail before opening ingestion state."""
         adapter_factory = AsyncMock()
@@ -1518,6 +1519,72 @@ class TestAdminRoutes:
         assert payload["error"]["message"] == "Invalid 'limit' field."
         assert payload["error"]["detail"] == "Provide an integer between 1 and 1000."
         adapter_factory.assert_not_awaited()
+
+    @pytest.mark.parametrize("body", [["not", "object"], "not-object"])
+    def test_ingest_evidence_route_rejects_body_shapes_before_adapter_read(
+        self, admin_client: TestClient, body: Any
+    ) -> None:
+        """Malformed evidence-ingest bodies should fail before opening ingestion state."""
+        adapter_factory = AsyncMock()
+
+        with patch("routes.admin_agents._get_evidence_adapter", adapter_factory):
+            resp = admin_client.post("/v1/admin/evidence/ingest", json=body)
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid request body."
+        assert (
+            payload["error"]["detail"]
+            == "POST /v1/admin/evidence/ingest requires a JSON object payload."
+        )
+        adapter_factory.assert_not_awaited()
+
+    def test_ingest_evidence_route_rejects_invalid_since_before_adapter_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Malformed evidence-ingest timestamps should fail before opening ingestion state."""
+        adapter_factory = AsyncMock()
+
+        with patch("routes.admin_agents._get_evidence_adapter", adapter_factory):
+            resp = admin_client.post(
+                "/v1/admin/evidence/ingest",
+                json={"since": "not-a-date"},
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'since' field."
+        assert payload["error"]["detail"] == "Provide an ISO 8601 timestamp or omit the field."
+        adapter_factory.assert_not_awaited()
+
+    def test_ingest_evidence_route_normalizes_padded_inputs_before_adapter_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Valid evidence-ingest inputs should canonicalize before adapter reads."""
+        class _FakeIngestResult:
+            def merge(self, other: Any) -> "_FakeIngestResult":
+                return self
+
+            def to_dict(self) -> dict[str, Any]:
+                return {"status": "ok"}
+
+        adapter = AsyncMock()
+        adapter.ingest_operational_facts = AsyncMock(return_value=_FakeIngestResult())
+        adapter.ingest_usage_summaries = AsyncMock(return_value=_FakeIngestResult())
+        adapter_factory = AsyncMock(return_value=adapter)
+
+        with patch("routes.admin_agents._get_evidence_adapter", adapter_factory):
+            resp = admin_client.post(
+                "/v1/admin/evidence/ingest",
+                json={"limit": " 7 ", "since": " 2026-05-01T14:00:00Z "},
+            )
+
+        assert resp.status_code == 200
+        since = datetime.fromisoformat("2026-05-01T14:00:00+00:00")
+        adapter.ingest_operational_facts.assert_awaited_once_with(since=since, limit=7)
+        adapter.ingest_usage_summaries.assert_awaited_once_with(since=since, limit=7)
 
     def test_grant_and_revoke_access_route(self, admin_client: TestClient) -> None:
         """Grant then revoke service access via admin routes."""

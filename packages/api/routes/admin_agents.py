@@ -122,6 +122,13 @@ def _validated_body_object(body: Any, *, endpoint: str) -> dict[str, Any]:
     )
 
 
+def _validated_optional_body_object(body: Any, *, endpoint: str) -> dict[str, Any]:
+    """Allow omitted bodies, but reject malformed JSON before route-owned reads."""
+    if body is None:
+        return {}
+    return _validated_body_object(body, endpoint=endpoint)
+
+
 def _validated_required_path_value(value: str, field: str) -> str:
     """Trim required path values and reject blanks before admin store reads/writes."""
     normalized = str(value or "").strip()
@@ -204,16 +211,37 @@ def _validated_usage_days(days: Any) -> int:
     )
 
 
-def _validated_ingest_limit(limit: int) -> int:
+def _validated_ingest_limit(limit: Any) -> int:
     """Reject invalid evidence-ingest windows before opening ingestion state."""
-    normalized = int(limit)
-    if 1 <= normalized <= 1000:
+    normalized = _parse_integer_filter(limit)
+    if normalized is not None and 1 <= normalized <= 1000:
         return normalized
 
     raise RhumbError(
         "INVALID_PARAMETERS",
         message="Invalid 'limit' field.",
         detail="Provide an integer between 1 and 1000.",
+    )
+
+
+def _validated_ingest_since(since: Any) -> Optional[datetime]:
+    """Parse optional evidence-ingest timestamps before opening ingestion state."""
+    if since is None:
+        return None
+    if isinstance(since, datetime):
+        return since
+    if isinstance(since, str):
+        normalized = since.strip()
+        if normalized:
+            try:
+                return datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+            except ValueError:
+                pass
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'since' field.",
+        detail="Provide an ISO 8601 timestamp or omit the field.",
     )
 
 
@@ -669,10 +697,13 @@ async def get_organization_usage(
 
 
 @router.post("/evidence/ingest")
-async def ingest_evidence(body: Optional[EvidenceIngestRequest] = None) -> Dict[str, Any]:
+async def ingest_evidence(body: Any = Body(default=None)) -> Dict[str, Any]:
     """Trigger evidence ingestion from operational facts and usage events."""
-    since = body.since if body is not None else None
-    limit = _validated_ingest_limit(body.limit if body is not None else 100)
+    payload = _validated_optional_body_object(
+        body, endpoint="POST /v1/admin/evidence/ingest"
+    )
+    since = _validated_ingest_since(payload.get("since"))
+    limit = _validated_ingest_limit(payload.get("limit", 100))
     adapter = await _get_evidence_adapter()
     operational_result = await adapter.ingest_operational_facts(
         since=since,
