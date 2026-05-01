@@ -588,10 +588,18 @@ def _validated_proxy_request_path(path: str) -> str:
     )
 
 
-def _validated_schema_snapshot_limit(limit: int) -> int:
+def _validated_schema_snapshot_limit(limit: Any) -> int:
     """Validate the admin schema-snapshot history limit before detector reads."""
-    if 1 <= limit <= 50:
-        return limit
+    if isinstance(limit, bool):
+        parsed: int | None = None
+    elif isinstance(limit, int):
+        parsed = limit
+    else:
+        text = str(limit or "").strip()
+        parsed = int(text) if text.isdecimal() else None
+
+    if parsed is not None and 1 <= parsed <= 50:
+        return parsed
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -1233,7 +1241,7 @@ async def get_schema_snapshot(
     service: str,
     endpoint: str,
     agent_id: str = Query(default="default"),
-    limit: int = Query(default=5),
+    limit: Any = Query(default=5),
 ) -> dict[str, Any]:
     """Return latest schema fingerprint and recent change history."""
     proxy_service = _validated_proxy_service_path(service)

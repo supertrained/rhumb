@@ -208,6 +208,9 @@ class TestProxySchemaIntegration:
         blank_endpoint = client.get(f"/v1/admin/schema/stripe/%20%20?agent_id={_BYPASS_AGENT_ID}")
         too_small = client.get("/v1/admin/schema/stripe/customers?limit=0")
         too_large = client.get("/v1/admin/schema/stripe/customers?limit=51")
+        non_integer = client.get("/v1/admin/schema/stripe/customers?limit=five")
+        boolean_like = client.get("/v1/admin/schema/stripe/customers?limit=true")
+        blank_limit = client.get("/v1/admin/schema/stripe/customers?limit=%20%20")
 
         assert blank_service.status_code == 400
         blank_service_payload = blank_service.json()
@@ -242,6 +245,37 @@ class TestProxySchemaIntegration:
         assert too_large_payload["error"]["code"] == "INVALID_PARAMETERS"
         assert too_large_payload["error"]["message"] == "Invalid 'limit' filter."
         assert too_large_payload["error"]["detail"] == "Provide an integer between 1 and 50."
+        for response in (non_integer, boolean_like, blank_limit):
+            assert response.status_code == 400
+            payload = response.json()
+            assert payload["error"]["code"] == "INVALID_PARAMETERS"
+            assert payload["error"]["message"] == "Invalid 'limit' filter."
+            assert payload["error"]["detail"] == "Provide an integer between 1 and 50."
+
+    def test_admin_schema_endpoint_trims_valid_limit_before_detector_read(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        captured: dict[str, object] = {}
+
+        class FakeDetector:
+            def get_latest_fingerprint(self, service: str, endpoint: str, *, status_code: int):
+                captured["fingerprint"] = (service, endpoint, status_code)
+                return None
+
+            def get_change_history(self, service: str, endpoint: str, *, limit: int, status_code: int):
+                captured["history"] = (service, endpoint, limit, status_code)
+                return []
+
+        monkeypatch.setattr(proxy_module, "get_schema_detector", lambda: FakeDetector())
+
+        response = client.get(
+            f"/v1/admin/schema/stripe/customers?agent_id={_BYPASS_AGENT_ID}&limit=%2007%20"
+        )
+
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["endpoint"] == "customers"
+        assert captured["history"] == ("stripe", f"{_BYPASS_AGENT_ID}:customers", 7, 200)
 
     def test_admin_schema_endpoint_trims_valid_endpoint(
         self, client: TestClient, httpx_mock
