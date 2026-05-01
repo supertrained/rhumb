@@ -167,9 +167,23 @@ def _validated_capability_domain_filter(
     )
 
 
-def _validated_capability_list_limit(limit: int) -> int:
-    if 1 <= limit <= 100:
-        return limit
+def _parse_capability_integer_filter(value: Any) -> int | None:
+    if not isinstance(value, int):
+        value = getattr(value, "default", value)
+
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized.isdigit():
+            return int(normalized)
+    return None
+
+
+def _validated_capability_list_limit(limit: Any) -> int:
+    parsed_limit = _parse_capability_integer_filter(limit)
+    if parsed_limit is not None and 1 <= parsed_limit <= 100:
+        return parsed_limit
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -178,9 +192,10 @@ def _validated_capability_list_limit(limit: int) -> int:
     )
 
 
-def _validated_capability_list_offset(offset: int) -> int:
-    if offset >= 0:
-        return offset
+def _validated_capability_list_offset(offset: Any) -> int:
+    parsed_offset = _parse_capability_integer_filter(offset)
+    if parsed_offset is not None and parsed_offset >= 0:
+        return parsed_offset
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -2938,8 +2953,8 @@ async def _suggested_capabilities(query: str, *, limit: int = 3) -> list[dict[st
 async def list_capabilities(
     domain: str | None = Query(default=None, description="Filter by domain (e.g. 'email', 'payment')"),
     search: str | None = Query(default=None, description="Search capabilities by text"),
-    limit: int = Query(default=50),
-    offset: int = Query(default=0),
+    limit: Any = Query(default=50),
+    offset: Any = Query(default=0),
 ) -> dict:
     """List capabilities with optional domain filter and text search.
 

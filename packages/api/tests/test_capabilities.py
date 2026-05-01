@@ -834,6 +834,43 @@ async def test_list_capabilities_rejects_invalid_offset_before_registry_reads(ap
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    ("query", "field", "detail"),
+    [
+        ("limit=ten", "limit", "Provide an integer between 1 and 100."),
+        ("limit=true", "limit", "Provide an integer between 1 and 100."),
+        ("limit=", "limit", "Provide an integer between 1 and 100."),
+        ("offset=true", "offset", "Provide an integer greater than or equal to 0."),
+        ("offset=", "offset", "Provide an integer greater than or equal to 0."),
+    ],
+)
+async def test_list_capabilities_rejects_malformed_pagination_before_registry_reads(app, query, field, detail):
+    with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(f"/v1/capabilities?{query}")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == f"Invalid '{field}' filter."
+    assert body["error"]["detail"] == detail
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_list_capabilities_normalizes_padded_pagination_filters(app):
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities?limit=%2002%20&offset=%2001%20")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["limit"] == 2
+    assert data["offset"] == 1
+    assert len(data["items"]) <= 2
+
+
+@pytest.mark.anyio
 async def test_list_capabilities_rejects_blank_search_before_registry_reads(app):
     with patch("routes.capabilities._cached_fetch", new=AsyncMock()) as mock_fetch:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
