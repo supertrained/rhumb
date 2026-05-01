@@ -199,3 +199,47 @@ def test_events_rejects_invalid_limit_before_auth_or_stream_reads():
     assert "between 1 and 200" in body["error"]["detail"]
     require_org.assert_not_awaited()
     mock_stream.assert_not_called()
+
+
+def test_events_rejects_malformed_limit_before_auth_or_stream_reads():
+    from app import create_app
+    from fastapi.testclient import TestClient
+
+    require_org = AsyncMock(return_value="org_test")
+    with (
+        patch("routes.billing_v2._require_org_or_401", new=require_org),
+        patch("routes.billing_v2.get_billing_event_stream") as mock_stream,
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/billing/events?limit=ten",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'limit' filter."
+    assert "integer" in body["error"]["detail"]
+    require_org.assert_not_awaited()
+    mock_stream.assert_not_called()
+
+
+def test_events_normalizes_padded_limit_before_stream_query():
+    from app import create_app
+    from fastapi.testclient import TestClient
+
+    mock_stream = MagicMock()
+    mock_stream.query.return_value = []
+
+    with (
+        patch("routes.billing_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.billing_v2.get_billing_event_stream", return_value=mock_stream),
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/billing/events?limit=%2007%20",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    mock_stream.query.assert_called_once()
+    assert mock_stream.query.call_args.kwargs["limit"] == 7

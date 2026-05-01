@@ -188,9 +188,31 @@ def _validated_since_timestamp(since: str | None) -> datetime | None:
     return parsed_since
 
 
-def _validated_events_limit(limit: int) -> int:
-    if 1 <= limit <= 200:
-        return limit
+def _parse_query_int(value: Any, *, field_name: str) -> int:
+    if isinstance(value, bool):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' filter.",
+            detail="Provide an integer value.",
+        )
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized and normalized.lstrip("+-").isdigit():
+            return int(normalized)
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail="Provide an integer value.",
+    )
+
+
+def _validated_events_limit(limit: Any) -> int:
+    parsed = _parse_query_int(limit, field_name="limit")
+    if 1 <= parsed <= 200:
+        return parsed
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -379,7 +401,7 @@ async def query_billing_events(
     raw_request: Request,
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
     event_type: str | None = Query(None, description="Filter by event type"),
-    limit: int = Query(50),
+    limit: Any = Query(50),
     since: str | None = Query(None, description="ISO timestamp filter"),
 ) -> dict[str, Any] | JSONResponse:
     """Query billing events for the authenticated org.
