@@ -152,6 +152,42 @@ def test_capture_click_event_rejects_invalid_event_before_write(
     assert "provider_click" in payload["error"]["detail"]
 
 
+def test_capture_click_event_rejects_non_object_payload_before_write(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    async def fail_insert(table: str, payload: dict[str, object]) -> bool:
+        raise AssertionError("Click write should not run for non-object payloads")
+
+    monkeypatch.setattr("routes.launch.supabase_insert", fail_insert)
+
+    response = client.post("/v1/clicks", json=[{"event_type": "provider_click"}])
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid click event payload."
+    assert payload["error"]["detail"] == "Provide a JSON object with event_type and destination_url."
+
+
+def test_capture_click_event_rejects_missing_required_payload_fields_before_write(
+    client: TestClient,
+    monkeypatch,
+) -> None:
+    async def fail_insert(table: str, payload: dict[str, object]) -> bool:
+        raise AssertionError("Click write should not run for incomplete payloads")
+
+    monkeypatch.setattr("routes.launch.supabase_insert", fail_insert)
+
+    response = client.post("/v1/clicks", json={"event_type": "provider_click"})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid click event payload."
+    assert payload["error"]["detail"] == "Provide a JSON object with event_type and destination_url."
+
+
 def test_capture_click_event_rejects_blank_destination_before_write(
     client: TestClient,
     monkeypatch,

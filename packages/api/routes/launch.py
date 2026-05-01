@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import UTC, datetime
+from typing import Any
 from urllib.parse import urlsplit
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, Field, ValidationError
 
 from routes._supabase import supabase_fetch, supabase_insert
 from routes.admin_auth import require_launch_dashboard_access
@@ -67,6 +69,24 @@ def _validated_click_event_type(event_type: str) -> str:
     )
 
 
+def _validated_click_payload(payload: Any) -> ClickEventRequest:
+    if not isinstance(payload, Mapping):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid click event payload.",
+            detail="Provide a JSON object with event_type and destination_url.",
+        )
+
+    try:
+        return ClickEventRequest.model_validate(dict(payload))
+    except ValidationError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid click event payload.",
+            detail="Provide a JSON object with event_type and destination_url.",
+        ) from exc
+
+
 def _normalized_optional_click_text(value: str | None) -> str | None:
     if value is None:
         return None
@@ -103,8 +123,9 @@ def _extract_destination_domain(destination_url: str) -> str:
 
 
 @router.post("/clicks")
-async def capture_click_event(body: ClickEventRequest, request: Request) -> dict:
+async def capture_click_event(request: Request, body: Any = Body(default=None)) -> dict:
     """Capture an outbound click event for launch tracking."""
+    body = _validated_click_payload(body)
     event_type = _validated_click_event_type(body.event_type)
     destination_url = str(body.destination_url or "").strip()
     destination_domain = _extract_destination_domain(destination_url)
