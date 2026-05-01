@@ -76,6 +76,10 @@ def _client_ip(raw_request: Request) -> str | None:
     return None
 
 
+def _normalized_support_credential_mode(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
 async def handle_support_execute(
     *,
     capability_id: str,
@@ -123,7 +127,7 @@ async def handle_support_execute(
             started_at=start,
         )
 
-    requested_mode = body.get("credential_mode", credential_mode)
+    requested_mode = _normalized_support_credential_mode(body.get("credential_mode", credential_mode))
     if requested_mode != "byok":
         return await _failure_response(
             raw_request=raw_request,
@@ -133,37 +137,40 @@ async def handle_support_execute(
             execution_id=execution_id,
             capability_id=capability_id,
             provider_used=provider_used,
-            credential_mode=str(requested_mode),
+            credential_mode=requested_mode,
             request_payload=body,
             code="support_credential_mode_invalid",
             message="Support capabilities currently support credential_mode 'byok' only",
             status_code=400,
             started_at=start,
         )
+    credential_mode = requested_mode
+    request_body = dict(body)
+    request_body.pop("credential_mode", None)
 
     try:
         if capability_id == "ticket.search":
-            request = TicketSearchRequest.model_validate(body)
+            request = TicketSearchRequest.model_validate(request_body)
             bundle = resolve_zendesk_support_bundle(request.support_ref)
             result = await search_tickets(request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "ticket.get":
-            request = TicketGetRequest.model_validate(body)
+            request = TicketGetRequest.model_validate(request_body)
             bundle = resolve_zendesk_support_bundle(request.support_ref)
             result = await get_ticket(request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "ticket.list_comments":
-            request = TicketListCommentsRequest.model_validate(body)
+            request = TicketListCommentsRequest.model_validate(request_body)
             bundle = resolve_zendesk_support_bundle(request.support_ref)
             result = await list_comments(request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "conversation.list":
-            request = ConversationListRequest.model_validate(body)
+            request = ConversationListRequest.model_validate(request_body)
             bundle = resolve_intercom_support_bundle(request.support_ref)
             result = await list_conversations(request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "conversation.get":
-            request = ConversationGetRequest.model_validate(body)
+            request = ConversationGetRequest.model_validate(request_body)
             bundle = resolve_intercom_support_bundle(request.support_ref)
             result = await get_conversation(request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "conversation.list_parts":
-            request = ConversationListPartsRequest.model_validate(body)
+            request = ConversationListPartsRequest.model_validate(request_body)
             bundle = resolve_intercom_support_bundle(request.support_ref)
             result = await list_conversation_parts(request, bundle=bundle, execution_id=execution_id)
         else:

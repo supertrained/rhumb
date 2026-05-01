@@ -169,6 +169,72 @@ async def test_ticket_search_success(app, monkeypatch) -> None:
     assert "Searched 1 Zendesk tickets" in body["summary"]
 
 
+def test_ticket_search_normalizes_explicit_byok_credential_mode(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+) -> None:
+    monkeypatch.setenv(
+        "RHUMB_SUPPORT_SUP_HELP",
+        json.dumps(
+            {
+                "provider": "zendesk",
+                "subdomain": "acme",
+                "auth_mode": "bearer_token",
+                "bearer_token": "secret",
+                "allowed_group_ids": [123],
+            }
+        ),
+    )
+
+    response_model = TicketSearchResponse(
+        provider_used="zendesk",
+        credential_mode="byok",
+        capability_id="ticket.search",
+        receipt_id="pending",
+        execution_id="pending",
+        support_ref="sup_help",
+        tickets=[
+            ZendeskTicketSummary(
+                ticket_id=101,
+                subject="Login broken",
+                status="open",
+                priority="high",
+                group_id=123,
+                snippet="Customer cannot sign in",
+            )
+        ],
+        result_count_returned=1,
+        has_more=False,
+        next_page_after=None,
+    )
+
+    async def _run():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post(
+                "/v1/capabilities/ticket.search/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": " BYOK ",
+                    "support_ref": "sup_help",
+                    "query": "login",
+                },
+            )
+
+    with patch.object(support_execute_route, "search_tickets", new=AsyncMock(return_value=response_model)) as mock_search:
+        response = asyncio.run(_run())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["error"] is None
+    assert body["data"]["credential_mode"] == "byok"
+    request = mock_search.await_args.args[0]
+    assert request.support_ref == "sup_help"
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.status == "success"
+    assert receipt_input.credential_mode == "byok"
+
+
 @pytest.mark.asyncio
 async def test_ticket_search_rejects_missing_support_ref_env(
     app,
