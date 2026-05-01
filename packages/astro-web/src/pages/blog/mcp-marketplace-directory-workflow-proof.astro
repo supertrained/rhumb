@@ -1,0 +1,305 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const FAST_ANSWER = [
+  "MCP marketplaces and server directories are useful for recall, but server count is not production readiness.",
+  "Before an agent uses a listed server, narrow the candidate set by workflow, trust class, authority, budget owner, denied neighbor, and post-call evidence.",
+  "A registry entry can help you find options. It does not prove this caller can authenticate, see the right tools, fail closed, or recover after a bad call.",
+  `Rhumb's role is not to out-directory every directory. It is to turn discovery across ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions into a smaller, proof-backed route when the workflow fits.`,
+];
+
+const DIRECTORY_SIGNALS = [
+  {
+    label: "Large marketplace",
+    useful: "Broad recall. You find projects, servers, skills, and adapters that would be invisible in a hand-built shortlist.",
+    risk: "The model may treat inventory volume as quality and rank a mixed-authority surface before trust filters run.",
+  },
+  {
+    label: "Curated registry",
+    useful: "Editorial inclusion, metadata, install hints, and maintenance signals reduce obvious junk.",
+    risk: "A curated listing still does not prove caller-specific auth, runtime scope, typed denials, or freshness at invocation time.",
+  },
+  {
+    label: "Install wrapper",
+    useful: "One-click setup and client config make it easier to test the server quickly.",
+    risk: "Convenient install can widen authority if the wrapper writes credentials or tool config without preserving the actor and rollback path.",
+  },
+  {
+    label: "Quality score",
+    useful: "A score can make the shortlist more legible and expose static weaknesses faster than manual inspection.",
+    risk: "Static scoring must stay separate from live execution proof. Scores are the map; failure modes are the production test.",
+  },
+];
+
+const PROOF_FILTERS = [
+  "Workflow: what repeat job does this server make safer, cheaper, or more reliable?",
+  "Trust class: local helper, read-mostly tool, reversible write, high-side-effect execution, or shared remote integration?",
+  "Authority: which principal acts after installation, and which tools are hidden from this caller?",
+  "Credential rail: public, static key, delegated user auth, governed key, BYOK, Agent Vault, or provider-pinned account?",
+  "Budget owner: whose quota, contract, wallet, or shared provider limit burns when the agent retries?",
+  "Denied neighbor: what adjacent tenant, path, domain, row, amount, or action must fail closed?",
+  "Freshness: did handshake, auth, schema, and endpoint behavior pass recently enough for an unattended loop?",
+  "Receipt: can an operator reconstruct success, denial, retry, cost, provider drift, and recovery after the call?",
+];
+
+const SELECTION_FLOW = [
+  {
+    step: "1. Use directories for recall",
+    body: "Search marketplaces, registries, GitHub, and docs to gather candidates. Keep this phase broad and cheap, but do not promote anything yet.",
+  },
+  {
+    step: "2. Collapse by workflow",
+    body: "Remove servers that do not fit the exact repeated job. A generic catalog hit is not useful if the agent still has to improvise the action shape.",
+  },
+  {
+    step: "3. Apply authority filters",
+    body: "Check trust class, auth shape, caller-visible tool scope, side-effect class, and quota owner before semantic relevance ranks the final set.",
+  },
+  {
+    step: "4. Run the denied-neighbor drill",
+    body: "Pick the nearest unsafe adjacent target and prove it fails closed with a typed denial before you let the agent repeat the happy path.",
+  },
+  {
+    step: "5. Keep a receipt",
+    body: "Preserve capability, server/provider, principal, credential mode, cost, denial, outcome, and recovery context so retries do not become folklore.",
+  },
+];
+
+const WHEN_RHUMB_HELPS = [
+  "The operator starts with a capability or repeat job, not a favorite server name.",
+  "The answer should distinguish discovery breadth from the current callable execution surface.",
+  "Provider choice, credential rail, budget ceiling, denied neighbor, and trace proof matter more than catalog size.",
+  "The team wants to prove one narrow workflow before exposing a wider tool set to an agent loop.",
+];
+
+const NOT_ENOUGH = [
+  "Thousands of listed servers",
+  "A green install command",
+  "A maintainer badge or launch post",
+  "Tool count or star count",
+  "A demo that never tests the wrong tenant, wrong path, wrong budget, or expired credential",
+];
+
+const RELATED = [
+  {
+    href: "/blog/runtime-mcp-discovery-trust-filters",
+    title: "Runtime MCP Discovery Needs Trust Filters",
+    description: "Why candidate ranking should run after caller-visible authority, not before it.",
+  },
+  {
+    href: "/blog/how-to-evaluate-mcp-servers",
+    title: "How to Evaluate MCP Servers",
+    description: "Workflow fit, trust class, capability shape, and runtime reality before adoption.",
+  },
+  {
+    href: "/blog/mcp-server-scoring-methodology",
+    title: "MCP Server Scoring Methodology",
+    description: "How structural scoring becomes useful when it stays separate from live proof.",
+  },
+  {
+    href: "/blog/remote-mcp-production-readiness-checklist",
+    title: "Remote MCP Production Readiness Checklist",
+    description: "The operator checklist for auth, scope, tenant isolation, governors, recovery, and auditability.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Marketplaces Are Discovery, Not Production Proof",
+  description: "A practical guide for using MCP directories and marketplaces without confusing server count, curated listings, or one-click installs with workflow-level execution proof.",
+  datePublished: "2026-05-01T22:13:00-07:00",
+  dateModified: "2026-05-01T22:13:00-07:00",
+  author: { "@type": "Organization", name: "Rhumb" },
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-marketplace-directory-workflow-proof",
+};
+---
+
+<Layout
+  title="MCP Marketplaces Are Discovery, Not Production Proof | Rhumb"
+  description="Use MCP directories and marketplaces for recall, then choose servers by workflow fit, trust class, authority, budget, denial, and receipt evidence."
+  canonical="/blog/mcp-marketplace-directory-workflow-proof"
+  ogTitle="MCP Marketplaces Are Discovery, Not Production Proof"
+  ogDescription="Server count is not readiness. Use directories for recall, then prove the workflow boundary before agents repeat tool calls."
+  ogUrl="https://rhumb.dev/blog/mcp-marketplace-directory-workflow-proof"
+  ogType="article"
+  twitterTitle="MCP Marketplaces Are Discovery, Not Production Proof"
+  twitterDescription="Use MCP directories for recall. Promote servers only after workflow, authority, budget, denial, and receipt proof survive."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-amber/10 via-emerald-500/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-amber">MCP directories</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 1, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">9 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.04fr_0.96fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex rounded-full border border-amber/25 bg-amber/10 px-4 py-2 text-xs font-mono uppercase tracking-[0.22em] text-amber">
+              Answer target: MCP marketplace readiness
+            </div>
+            <h1 class="max-w-4xl font-display text-4xl font-bold leading-tight tracking-tight text-slate-100 sm:text-5xl">
+              MCP marketplaces are discovery, not production proof
+            </h1>
+            <p class="mt-6 max-w-3xl text-lg leading-relaxed text-slate-400">
+              The MCP ecosystem is getting noisier fast: directories, marketplaces, registries, package managers, skills indexes, and one-click installers all promise more surface area. That is useful for recall. It is not enough for an unattended agent.
+            </p>
+          </div>
+
+          <aside class="rounded-[32px] border border-slate-800 bg-surface/80 p-6 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fast answer</div>
+            <div class="space-y-3">
+              {FAST_ANSWER.map((point) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-300">{point}</div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-6xl px-6 py-12">
+      <div class="mb-10 rounded-[32px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Current truth boundary</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          Treat directory inventory as a way to find candidates, not as a claim that the candidate is safe to run. Rhumb separates discovery breadth ({PUBLIC_TRUTH.servicesLabel} scored services and {PUBLIC_TRUTH.capabilitiesLabel} capability definitions) from the narrower current callable surface ({PUBLIC_TRUTH.callableProvidersLabel} callable providers strongest for {PUBLIC_TRUTH.beachheadLabel}).
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div class="space-y-14">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">The mistake: ranking before filtering</h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A giant MCP directory solves a real problem: agents and developers need to discover what exists. But production selection has a different failure mode. If the model sees every listed server before trust filters run, semantic relevance can outrank authority, freshness, cost, and blast radius.
+              </p>
+              <p>
+                The operator sequence should be recall first, proof second. Use marketplaces to discover candidates, then collapse the pool to the smallest workflow-safe set before the agent plans with it.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">What each directory signal can and cannot prove</h2>
+            <div class="grid gap-4">
+              {DIRECTORY_SIGNALS.map((item) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                  <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">{item.label}</div>
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <h3 class="mb-2 font-display text-lg font-semibold text-slate-100">Useful for</h3>
+                      <p class="text-sm leading-6 text-slate-300">{item.useful}</p>
+                    </div>
+                    <div>
+                      <h3 class="mb-2 font-display text-lg font-semibold text-slate-100">Cannot prove</h3>
+                      <p class="text-sm leading-6 text-slate-300">{item.risk}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">The proof filters before promotion</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              A server should not move from directory hit to agent candidate until these filters are explicit. They are the difference between a useful marketplace and a tool graveyard with better search.
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+              {PROOF_FILTERS.map((item) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/75 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">A safer selection flow</h2>
+            <div class="grid gap-4">
+              {SELECTION_FLOW.map((item) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                  <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">{item.step}</div>
+                  <p class="text-sm leading-6 text-slate-300">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Where Rhumb fits</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              Rhumb should not try to be the loudest marketplace. The stronger wedge is workflow-level proof: resolve the capability, estimate the route, choose the credential rail, cap the budget, test the denied neighbor, and preserve the receipt.
+            </p>
+            <div class="grid gap-3">
+              {WHEN_RHUMB_HELPS.map((item) => (
+                <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Signals that are not enough</h2>
+            <div class="grid gap-3 sm:grid-cols-2">
+              {NOT_ENOUGH.map((item) => (
+                <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+          </section>
+
+          <section class="rounded-[32px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">E-006 proof sprint</div>
+            <h2 class="font-display text-3xl font-bold tracking-tight text-slate-100">Have one server or workflow you want to promote? Prove the boundary first.</h2>
+            <p class="mt-4 leading-relaxed text-slate-300">
+              Send the repeat job, candidate server/provider, credential rail, expected volume, denied neighbor, and receipt fields you would need before letting an agent loop. The useful artifact is not another list; it is a proof path for one workflow.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-3">
+              <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-marketplace-proof-sprint" class="rounded-xl bg-emerald-400 px-5 py-3 text-sm font-semibold text-navy transition-colors hover:bg-emerald-300">
+                Scope managed execution
+              </a>
+              <a data-rhumb-propagate href="/blog/remote-mcp-production-readiness-checklist?rhumb_source=mcp-marketplace-readiness-checklist" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-200 transition-colors hover:border-amber/50 hover:text-slate-100">
+                Use the readiness checklist
+              </a>
+            </div>
+          </section>
+        </div>
+
+        <aside class="sticky top-24 space-y-4">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Measure this page by</div>
+            <ul class="space-y-3 text-sm leading-6 text-slate-400">
+              <li class="rounded-2xl border border-slate-800 bg-navy/60 p-3">Search impressions for MCP marketplace, MCP directory, MCP server registry, and production readiness queries.</li>
+              <li class="rounded-2xl border border-slate-800 bg-navy/60 p-3">Readers moving into readiness, scoring methodology, or managed-execution proof-sprint paths.</li>
+              <li class="rounded-2xl border border-slate-800 bg-navy/60 p-3">Inbound asks that name a specific server, workflow, denied neighbor, or receipt requirement.</li>
+            </ul>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Related</div>
+            <div class="space-y-3">
+              {RELATED.map((item) => (
+                <a data-rhumb-propagate href={item.href} class="block rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-amber/40">
+                  <div class="mb-1 font-display text-base font-semibold text-slate-100">{item.title}</div>
+                  <p class="text-sm leading-6 text-slate-400">{item.description}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+</Layout>
