@@ -347,6 +347,44 @@ def test_usage_endpoint_rejects_invalid_days_before_reads(client: TestClient) ->
     mock_fetch.assert_not_called()
 
 
+def test_usage_endpoint_rejects_malformed_days_before_auth() -> None:
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = TestClient(app).get("/v1/telemetry/usage", params={"days": "nope"})
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'days' filter."
+    assert "between 1 and 90" in body["error"]["detail"]
+    mock_fetch.assert_not_called()
+    mock_store.verify_api_key_with_agent.assert_not_called()
+
+
+def test_usage_endpoint_trims_padded_days_before_query(client: TestClient) -> None:
+    captured: dict[str, str] = {}
+
+    async def _fetch(path: str):
+        captured["path"] = path
+        return []
+
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock, side_effect=_fetch),
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = client.get("/v1/telemetry/usage", params={"days": " 7 "})
+
+    assert response.status_code == 200
+    assert response.json()["data"]["period_days"] == 7
+    assert "limit=10000" in captured["path"]
+
+
 def test_usage_endpoint_rejects_invalid_group_by_before_reads(client: TestClient) -> None:
     mock_store = AsyncMock()
     mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
@@ -437,6 +475,21 @@ def test_provider_health_rejects_invalid_hours_before_reads() -> None:
     mock_fetch.assert_not_called()
 
 
+def test_provider_health_rejects_malformed_hours_before_reads() -> None:
+    with patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        response = TestClient(app).get(
+            "/v1/telemetry/provider-health",
+            params={"hours": "true"},
+        )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'hours' filter."
+    assert "between 1 and 168" in body["error"]["detail"]
+    mock_fetch.assert_not_called()
+
+
 def test_recent_endpoint_canonicalizes_alias_backed_provider_ids(client: TestClient) -> None:
     row = _execution_row(execution_id="exec_recent_alias", provider_used="brave-search")
     row["fallback_attempted"] = True
@@ -511,6 +564,24 @@ def test_recent_endpoint_rejects_invalid_limit_before_reads(client: TestClient) 
     assert body["error"]["message"] == "Invalid 'limit' filter."
     assert "between 1 and 100" in body["error"]["detail"]
     mock_fetch.assert_not_called()
+
+
+def test_recent_endpoint_rejects_malformed_limit_before_auth() -> None:
+    mock_store = AsyncMock()
+    mock_store.verify_api_key_with_agent = AsyncMock(return_value=_mock_agent())
+    with (
+        patch("routes.telemetry.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
+        patch("routes.telemetry.get_agent_identity_store", return_value=mock_store),
+    ):
+        response = TestClient(app).get("/v1/telemetry/recent", params={"limit": "many"})
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'limit' filter."
+    assert "between 1 and 100" in body["error"]["detail"]
+    mock_fetch.assert_not_called()
+    mock_store.verify_api_key_with_agent.assert_not_called()
 
 
 def test_recent_endpoint_rejects_invalid_success_filter_before_reads(client: TestClient) -> None:

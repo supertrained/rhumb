@@ -92,9 +92,17 @@ def _validated_optional_filter(value: str | None, *, field_name: str) -> str | N
     )
 
 
-def _validated_int_range(value: int, *, field_name: str, minimum: int, maximum: int) -> int:
-    if minimum <= value <= maximum:
-        return value
+def _validated_int_range(value: Any, *, field_name: str, minimum: int, maximum: int) -> int:
+    if isinstance(value, bool):
+        parsed: int | None = None
+    elif isinstance(value, int):
+        parsed = value
+    else:
+        text = str(value or "").strip()
+        parsed = int(text) if text.isdecimal() else None
+
+    if parsed is not None and minimum <= parsed <= maximum:
+        return parsed
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -505,7 +513,7 @@ def _health_rows_to_payload(provider: str, rows: list[dict[str, Any]]) -> dict[s
 @router.get("/telemetry/usage")
 async def get_usage_telemetry(
     request: Request,
-    days: int = Query(7, description="Lookback window in days."),
+    days: Any = Query(7, description="Lookback window in days."),
     capability_id: str | None = Query(None, description="Filter to a capability ID."),
     provider: str | None = Query(None, description="Filter to a provider."),
     group_by: str | None = Query(
@@ -558,7 +566,7 @@ async def get_usage_telemetry(
 @router.get("/telemetry/provider-health")
 async def get_provider_health(
     provider: str | None = Query(None, description="Filter to one provider."),
-    hours: int = Query(24, description="Lookback window in hours."),
+    hours: Any = Query(24, description="Lookback window in hours."),
 ) -> dict[str, Any]:
     """Return aggregate provider health from execution telemetry."""
     provider = _validated_optional_filter(provider, field_name="provider")
@@ -598,7 +606,7 @@ async def get_provider_health(
 @router.get("/telemetry/recent")
 async def get_recent_executions(
     request: Request,
-    limit: int = Query(20, description="Maximum number of recent executions."),
+    limit: Any = Query(20, description="Maximum number of recent executions."),
     capability_id: str | None = Query(None, description="Filter to a capability ID."),
     success: str | bool | None = Query(None, description="Filter by success/failure."),
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
