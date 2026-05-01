@@ -28,7 +28,7 @@ from typing import Any, Optional
 from urllib.parse import quote, urlencode
 
 import httpx
-from fastapi import APIRouter, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Body, Header, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
@@ -49,6 +49,8 @@ from routes.proxy import (
 )
 from schemas.agent_identity import AgentIdentityStore, get_agent_identity_store
 from schemas.db_capabilities import (
+    DB_AGENT_VAULT_TOKEN_DEFAULT_TTL_SECONDS,
+    DB_AGENT_VAULT_TOKEN_MAX_TTL_SECONDS,
     DbAgentVaultTokenizeRequest,
     DbAgentVaultTokenizeResponse,
 )
@@ -1136,9 +1138,91 @@ class CapabilityExecuteRequest(BaseModel):
     interface: str = Field("rest", description="Client interface (rest, mcp, cli, sdk)")
 
 
+def _invalid_tokenize_payload(message: str, detail: str) -> RhumbError:
+    return RhumbError(
+        "INVALID_PARAMETERS",
+        message=message,
+        detail=detail,
+    )
+
+
+def _parse_tokenize_ttl(raw_ttl: Any) -> int:
+    if raw_ttl is None:
+        return DB_AGENT_VAULT_TOKEN_DEFAULT_TTL_SECONDS
+    if isinstance(raw_ttl, bool):
+        raise _invalid_tokenize_payload(
+            "Invalid 'ttl_seconds' field.",
+            f"Provide an integer between 1 and {DB_AGENT_VAULT_TOKEN_MAX_TTL_SECONDS}.",
+        )
+    if isinstance(raw_ttl, int):
+        ttl_seconds = raw_ttl
+    elif isinstance(raw_ttl, str) and raw_ttl.strip().lstrip("+-").isdigit():
+        ttl_seconds = int(raw_ttl.strip())
+    else:
+        raise _invalid_tokenize_payload(
+            "Invalid 'ttl_seconds' field.",
+            f"Provide an integer between 1 and {DB_AGENT_VAULT_TOKEN_MAX_TTL_SECONDS}.",
+        )
+
+    if 1 <= ttl_seconds <= DB_AGENT_VAULT_TOKEN_MAX_TTL_SECONDS:
+        return ttl_seconds
+
+    raise _invalid_tokenize_payload(
+        "Invalid 'ttl_seconds' field.",
+        f"Provide an integer between 1 and {DB_AGENT_VAULT_TOKEN_MAX_TTL_SECONDS}.",
+    )
+
+
+def _parse_db_agent_vault_tokenize_request(payload: Any) -> DbAgentVaultTokenizeRequest:
+    if not isinstance(payload, dict):
+        raise _invalid_tokenize_payload(
+            "Invalid tokenize payload.",
+            "Provide a JSON object with connection_ref and dsn fields.",
+        )
+
+    raw_connection_ref = payload.get("connection_ref")
+    if not isinstance(raw_connection_ref, str):
+        raise _invalid_tokenize_payload(
+            "Invalid 'connection_ref' field.",
+            "Provide a non-empty connection_ref value.",
+        )
+    connection_ref = raw_connection_ref.strip()
+    if not connection_ref:
+        raise _invalid_tokenize_payload(
+            "Invalid 'connection_ref' field.",
+            "Provide a non-empty connection_ref value.",
+        )
+
+    raw_dsn = payload.get("dsn")
+    if not isinstance(raw_dsn, str):
+        raise _invalid_tokenize_payload(
+            "Invalid 'dsn' field.",
+            "Provide a non-empty PostgreSQL DSN.",
+        )
+    dsn = raw_dsn.strip()
+    if not dsn:
+        raise _invalid_tokenize_payload(
+            "Invalid 'dsn' field.",
+            "Provide a non-empty PostgreSQL DSN.",
+        )
+    if len(dsn) > 4096:
+        raise _invalid_tokenize_payload(
+            "Invalid 'dsn' field.",
+            "Provide a PostgreSQL DSN no longer than 4096 characters.",
+        )
+
+    ttl_seconds = _parse_tokenize_ttl(payload.get("ttl_seconds"))
+
+    return DbAgentVaultTokenizeRequest(
+        connection_ref=connection_ref,
+        dsn=dsn,
+        ttl_seconds=ttl_seconds,
+    )
+
+
 @router.post("/db/agent-vault/tokenize")
 async def tokenize_db_agent_vault(
-    request: DbAgentVaultTokenizeRequest,
+    body: Any = Body(default=None),
     x_rhumb_key: str | None = Header(default=None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Exchange a raw PostgreSQL DSN for a short-lived opaque DB vault token.
@@ -1147,6 +1231,7 @@ async def tokenize_db_agent_vault(
     The issued token is encrypted, bound to the authenticated agent, and scoped
     to the provided connection_ref.
     """
+    request = _parse_db_agent_vault_tokenize_request(body)
     x_rhumb_key = _normalize_governed_api_key_header(x_rhumb_key)
     if not x_rhumb_key:
         raise HTTPException(status_code=401, detail="X-Rhumb-Key header required")

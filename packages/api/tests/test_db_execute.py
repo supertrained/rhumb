@@ -826,6 +826,68 @@ def test_db_agent_vault_tokenize_rejects_blank_key_before_identity_store(
     _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ([], "Invalid tokenize payload."),
+        ({}, "Invalid 'connection_ref' field."),
+        ({"connection_ref": "   ", "dsn": "postgresql://reader:pass@localhost:5432/app"}, "Invalid 'connection_ref' field."),
+        ({"connection_ref": 123, "dsn": "postgresql://reader:pass@localhost:5432/app"}, "Invalid 'connection_ref' field."),
+        ({"connection_ref": "conn_reader", "dsn": "   "}, "Invalid 'dsn' field."),
+        ({"connection_ref": "conn_reader", "dsn": True}, "Invalid 'dsn' field."),
+        ({"connection_ref": "conn_reader", "dsn": "postgresql://reader:pass@localhost:5432/app", "ttl_seconds": "nope"}, "Invalid 'ttl_seconds' field."),
+        ({"connection_ref": "conn_reader", "dsn": "postgresql://reader:pass@localhost:5432/app", "ttl_seconds": 0}, "Invalid 'ttl_seconds' field."),
+    ],
+)
+def test_db_agent_vault_tokenize_rejects_malformed_payloads_before_identity_store(
+    app,
+    _mock_identity_store,
+    payload,
+    message,
+) -> None:
+    """Malformed tokenization payloads reject canonically before auth state reads."""
+    client = TestClient(app)
+    try:
+        response = client.post(
+            "/v1/db/agent-vault/tokenize",
+            headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            json=payload,
+        )
+    finally:
+        client.close()
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == message
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
+
+
+def test_db_agent_vault_tokenize_trims_payload_fields(app, monkeypatch) -> None:
+    """Valid tokenization fields canonicalize before token issuance."""
+    monkeypatch.setenv("RHUMB_DB_AGENT_VAULT_SECRET", "test-db-agent-vault-secret")
+
+    client = TestClient(app)
+    try:
+        response = client.post(
+            "/v1/db/agent-vault/tokenize",
+            headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            json={
+                "connection_ref": "  conn_reader  ",
+                "dsn": "  postgresql://reader:pass@localhost:5432/app  ",
+                "ttl_seconds": " 300 ",
+            },
+        )
+    finally:
+        client.close()
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["connection_ref"] == "conn_reader"
+    assert body["ttl_seconds"] == 300
+    assert "postgresql://reader:pass@localhost:5432/app" not in body["token"]
+
+
 def test_db_direct_execute_rejects_blank_key_before_identity_store(
     app,
     _mock_identity_store,
