@@ -112,9 +112,23 @@ def _validated_service_list_category(
     )
 
 
-def _validated_service_list_limit(limit: int) -> int:
-    if 1 <= limit <= 500:
-        return limit
+def _parse_integer_filter(value: Any) -> int | None:
+    if not isinstance(value, int):
+        value = getattr(value, "default", value)
+
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized.isdigit():
+            return int(normalized)
+    return None
+
+
+def _validated_service_list_limit(limit: Any) -> int:
+    parsed_limit = _parse_integer_filter(limit)
+    if parsed_limit is not None and 1 <= parsed_limit <= 500:
+        return parsed_limit
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -123,9 +137,10 @@ def _validated_service_list_limit(limit: int) -> int:
     )
 
 
-def _validated_service_list_offset(offset: int) -> int:
-    if offset >= 0:
-        return offset
+def _validated_service_list_offset(offset: Any) -> int:
+    parsed_offset = _parse_integer_filter(offset)
+    if parsed_offset is not None and parsed_offset >= 0:
+        return parsed_offset
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -134,9 +149,10 @@ def _validated_service_list_offset(offset: int) -> int:
     )
 
 
-def _validated_service_history_limit(limit: int) -> int:
-    if 1 <= limit <= 100:
-        return limit
+def _validated_service_history_limit(limit: Any) -> int:
+    parsed_limit = _parse_integer_filter(limit)
+    if parsed_limit is not None and 1 <= parsed_limit <= 100:
+        return parsed_limit
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -432,8 +448,8 @@ def _not_found_response(
 
 @router.get("/services")
 async def list_services(
-    limit: int = Query(default=50),
-    offset: int = Query(default=0),
+    limit: Any = Query(default=50),
+    offset: Any = Query(default=0),
     category: str | None = Query(default=None),
 ) -> dict:
     """List indexed services with optional category filter.
@@ -854,7 +870,7 @@ async def get_failures(slug: str, raw_request: Request):
 
 
 @router.get("/services/{slug}/history")
-async def get_history(slug: str, raw_request: Request, limit: int = Query(default=20)):
+async def get_history(slug: str, raw_request: Request, limit: Any = Query(default=20)):
     """Fetch historical AN score entries for a service."""
     canonical_slug = _validated_service_path_slug(slug)
     effective_limit = _validated_service_history_limit(limit)
