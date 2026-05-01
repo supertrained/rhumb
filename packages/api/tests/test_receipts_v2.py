@@ -196,7 +196,11 @@ def test_query_receipts_invalid_status_uses_explicit_invalid_parameters(client):
     [
         ("limit=0", "limit", "between 1 and 200"),
         ("limit=201", "limit", "between 1 and 200"),
+        ("limit=ten", "limit", "integer value"),
+        ("limit=true", "limit", "integer value"),
+        ("limit=%20%20", "limit", "integer value"),
         ("offset=-1", "offset", "greater than or equal to 0"),
+        ("offset=page-two", "offset", "integer value"),
     ],
 )
 def test_query_receipts_rejects_invalid_pagination_before_reads(client, query, field, detail):
@@ -209,6 +213,20 @@ def test_query_receipts_rejects_invalid_pagination_before_reads(client, query, f
     assert body["error"]["message"] == f"Invalid '{field}' filter."
     assert detail in body["error"]["detail"]
     assert mock_fetch.await_count == 0
+
+
+def test_query_receipts_trims_padded_pagination_before_reads(client):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = []
+        resp = client.get("/v2/receipts?limit=%2007%20&offset=%2003%20")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["data"]["limit"] == 7
+    assert body["data"]["offset"] == 3
+    query = mock_fetch.await_args.args[0]
+    assert "limit=7" in query
+    assert "offset=3" in query
 
 
 @pytest.mark.parametrize(
@@ -402,7 +420,7 @@ def test_verify_chain_invalid_range_uses_explicit_invalid_parameters(client):
     assert mock_fetch.await_count == 0
 
 
-@pytest.mark.parametrize("query", ["limit=0", "limit=1001"])
+@pytest.mark.parametrize("query", ["limit=0", "limit=1001", "limit=ten", "limit=false", "limit=%20%20"])
 def test_verify_chain_rejects_invalid_limit_before_reads(client, query):
     with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
         resp = client.get(f"/v2/receipts/chain/verify?{query}")
@@ -411,5 +429,39 @@ def test_verify_chain_rejects_invalid_limit_before_reads(client, query):
     body = resp.json()
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'limit' filter."
-    assert "between 1 and 1000" in body["error"]["detail"]
+    assert "between 1 and 1000" in body["error"]["detail"] or "integer value" in body["error"]["detail"]
     assert mock_fetch.await_count == 0
+
+
+@pytest.mark.parametrize(
+    ("query", "field"),
+    [
+        ("start_sequence=first", "start_sequence"),
+        ("start_sequence=%20%20", "start_sequence"),
+        ("end_sequence=false", "end_sequence"),
+        ("end_sequence=0", "end_sequence"),
+    ],
+)
+def test_verify_chain_rejects_invalid_sequence_filters_before_reads(client, query, field):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        resp = client.get(f"/v2/receipts/chain/verify?{query}")
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == f"Invalid '{field}' filter."
+    assert mock_fetch.await_count == 0
+
+
+def test_verify_chain_trims_numeric_filters_before_reads(client):
+    with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+        mock_fetch.return_value = []
+        resp = client.get(
+            "/v2/receipts/chain/verify?start_sequence=%2002%20&end_sequence=%2009%20&limit=%2007%20"
+        )
+
+    assert resp.status_code == 200
+    query = mock_fetch.await_args.args[0]
+    assert "chain_sequence=gte.2" in query
+    assert "chain_sequence=lte.9" in query
+    assert "limit=7" in query

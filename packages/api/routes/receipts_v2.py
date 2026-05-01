@@ -67,9 +67,37 @@ def _validated_receipt_status(status: str | None) -> str | None:
     )
 
 
-def _validated_int_range(value: int, *, field_name: str, minimum: int, maximum: int) -> int:
-    if minimum <= value <= maximum:
-        return value
+def _parsed_int_filter(value: str | int | None, *, field_name: str) -> int:
+    raw = "" if value is None else str(value).strip()
+    if not raw:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' filter.",
+            detail="Provide an integer value or omit the filter.",
+        )
+    if raw.lower() in {"true", "false"}:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' filter.",
+            detail="Provide an integer value or omit the filter.",
+        )
+
+    try:
+        parsed = int(raw)
+    except ValueError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' filter.",
+            detail="Provide an integer value or omit the filter.",
+        ) from exc
+
+    return parsed
+
+
+def _validated_int_range(value: str | int | None, *, field_name: str, minimum: int, maximum: int) -> int:
+    parsed = _parsed_int_filter(value, field_name=field_name)
+    if minimum <= parsed <= maximum:
+        return parsed
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -78,9 +106,10 @@ def _validated_int_range(value: int, *, field_name: str, minimum: int, maximum: 
     )
 
 
-def _validated_non_negative_int(value: int, *, field_name: str) -> int:
-    if value >= 0:
-        return value
+def _validated_non_negative_int(value: str | int | None, *, field_name: str) -> int:
+    parsed = _parsed_int_filter(value, field_name=field_name)
+    if parsed >= 0:
+        return parsed
 
     raise RhumbError(
         "INVALID_PARAMETERS",
@@ -108,6 +137,21 @@ def _validate_chain_range(start_sequence: int | None, end_sequence: int | None) 
             message="Invalid receipt chain range.",
             detail="'start_sequence' must be less than or equal to 'end_sequence'.",
         )
+
+
+def _validated_optional_positive_int(value: str | int | None, *, field_name: str) -> int | None:
+    if value is None:
+        return None
+
+    parsed = _parsed_int_filter(value, field_name=field_name)
+    if parsed >= 1:
+        return parsed
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail="Use a positive chain sequence number.",
+    )
 
 
 @router.get("/receipts/{receipt_id}")
@@ -189,8 +233,8 @@ async def query_receipts(
     capability_id: Optional[str] = Query(default=None, description="Filter by capability ID"),
     provider_id: Optional[str] = Query(default=None, description="Filter by provider ID"),
     status: Optional[str] = Query(default=None, description="Filter by status (success, failure, timeout, rejected)"),
-    limit: int = Query(default=50, description="Max results"),
-    offset: int = Query(default=0, description="Pagination offset"),
+    limit: str = Query(default="50", description="Max results"),
+    offset: str = Query(default="0", description="Pagination offset"),
 ) -> dict[str, Any]:
     """Query execution receipts with optional filters."""
     agent_id = _validated_optional_filter(agent_id, field_name="agent_id")
@@ -223,9 +267,9 @@ async def query_receipts(
 
 @router.get("/receipts/chain/verify")
 async def verify_chain(
-    start_sequence: Optional[int] = Query(default=None, description="Start chain sequence (inclusive)"),
-    end_sequence: Optional[int] = Query(default=None, description="End chain sequence (inclusive)"),
-    limit: int = Query(default=100, description="Max receipts to check"),
+    start_sequence: Optional[str] = Query(default=None, description="Start chain sequence (inclusive)"),
+    end_sequence: Optional[str] = Query(default=None, description="End chain sequence (inclusive)"),
+    limit: str = Query(default="100", description="Max receipts to check"),
 ) -> dict[str, Any]:
     """Verify the integrity of the receipt chain.
 
@@ -233,6 +277,8 @@ async def verify_chain(
     preceding receipt's receipt_hash. Returns verification results
     including any broken chain links detected.
     """
+    start_sequence = _validated_optional_positive_int(start_sequence, field_name="start_sequence")
+    end_sequence = _validated_optional_positive_int(end_sequence, field_name="end_sequence")
     _validate_chain_range(start_sequence, end_sequence)
     limit = _validated_int_range(limit, field_name="limit", minimum=1, maximum=1000)
     service = get_receipt_service()
