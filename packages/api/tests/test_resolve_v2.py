@@ -669,6 +669,56 @@ async def test_v2_execute_rejects_blank_capability_id_before_policy_reads(app):
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "json_body",
+    [
+        ["not", "an", "object"],
+        {"parameters": "not-an-object"},
+        {"parameters": {}, "unexpected": True},
+    ],
+)
+async def test_v2_execute_rejects_malformed_payloads_before_policy_reads(app, json_body):
+    with (
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward,
+        patch("routes.resolve_v2._resolve_policy_agent", new=AsyncMock()) as mock_agent,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                json=json_body,
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid v2 execute payload."
+    assert body["error"]["detail"] == "Provide a JSON object matching the v2 execute envelope."
+    mock_agent.assert_not_awaited()
+    mock_forward.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_v2_execute_rejects_missing_payload_before_policy_reads(app):
+    with (
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward,
+        patch("routes.resolve_v2._resolve_policy_agent", new=AsyncMock()) as mock_agent,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v2/capabilities/search.query/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid v2 execute payload."
+    mock_agent.assert_not_awaited()
+    mock_forward.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_rewrites_nested_recovery_urls_for_alternate_handoff(app):
     with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

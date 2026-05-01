@@ -30,9 +30,9 @@ from typing import Any
 import httpx
 
 logger = logging.getLogger(__name__)
-from fastapi import APIRouter, Header, Query, Request
+from fastapi import APIRouter, Body, Header, Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from routes import capabilities as v1_capabilities
 from routes import capability_execute as v1_execute
@@ -210,6 +210,25 @@ class V2CapabilityExecuteRequest(BaseModel):
         default="rest",
         description="Calling surface label for analytics and compat reporting.",
     )
+
+
+def _validated_v2_execute_payload(payload: Any) -> V2CapabilityExecuteRequest:
+    """Validate the v2 execute body before policy/forwarding state opens."""
+    if not isinstance(payload, dict):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid v2 execute payload.",
+            detail="Provide a JSON object matching the v2 execute envelope.",
+        )
+
+    try:
+        return V2CapabilityExecuteRequest.model_validate(payload)
+    except ValidationError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid v2 execute payload.",
+            detail="Provide a JSON object matching the v2 execute envelope.",
+        ) from exc
 
 
 def _compat_headers() -> dict[str, str]:
@@ -1030,11 +1049,12 @@ async def estimate_capability_v2(
 @router.post("/capabilities/{capability_id}/execute")
 async def execute_capability_v2(
     capability_id: str,
-    payload: V2CapabilityExecuteRequest,
     raw_request: Request,
+    payload: Any = Body(default=None),
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
     capability_id = _validated_capability_path_id(capability_id)
+    payload = _validated_v2_execute_payload(payload)
     canonical_credential_mode = _canonicalize_credential_mode(payload.credential_mode)
     payload_idempotency_key = _normalized_idempotency_key(payload.idempotency_key)
     header_idempotency_key = _normalized_idempotency_key(x_rhumb_idempotency_key)
