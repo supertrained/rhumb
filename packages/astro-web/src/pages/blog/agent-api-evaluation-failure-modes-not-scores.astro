@@ -1,0 +1,276 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const FAST_ANSWER = [
+  "Scores are useful for shortlisting APIs, but failure modes decide whether an agent can run the API unattended.",
+  "An aggregate score hides the reason a workflow fails: auth drift, ambiguous errors, rate-limit collapse, schema change, side-effect replay, or missing evidence.",
+  "The practical evaluation order is: shortlist by score, inspect the dominant failure mode, test the denial case, then decide whether the workflow needs a governed execution layer.",
+  `Rhumb uses scores across ${PUBLIC_TRUTH.servicesLabel} services as the map, but the operator question is still whether one repeat workflow can survive the specific failure pattern it will hit in production.`,
+];
+
+const FAILURE_MODES = [
+  {
+    name: "Authority drift",
+    looksLike: "The call succeeds, but it used the wrong principal, shared key, tenant, workspace grant, or provider account.",
+    test: "Ask which actor, credential rail, and budget owner the provider saw before any business state changed.",
+  },
+  {
+    name: "Ambiguous denial",
+    looksLike: "The API returns a generic 400/401/403/500, so the agent cannot distinguish bad input, missing scope, expired auth, quota pressure, or a provider outage.",
+    test: "Force the adjacent-dangerous value and confirm it fails with a typed, caller-legible reason before retry logic starts.",
+  },
+  {
+    name: "State replay",
+    looksLike: "A timeout, worker restart, or model replan repeats a payment, email, ticket, row write, or external mutation.",
+    test: "Persist the idempotency key and prove a replay produces the same resource or a typed duplicate outcome.",
+  },
+  {
+    name: "Contract drift",
+    looksLike: "A model ID retires, a field stops enforcing policy, a result shape changes, or a preview endpoint becomes the assumed production contract.",
+    test: "Read the current contract object or response shape before execution, not just the docs or the last successful write.",
+  },
+  {
+    name: "Budget collapse",
+    looksLike: "Rate limits, token-heavy tool output, retries, fallback branches, or shared upstream quotas turn a small task into runaway spend or starvation.",
+    test: "Attach cost ceilings, output caps, backoff behavior, and quota ownership to the workflow before the loop can repeat.",
+  },
+  {
+    name: "Evidence gap",
+    looksLike: "The result looks plausible, but no one can prove which route, credential, denial case, receipt, or recovery checkpoint made it safe.",
+    test: "Require trace proof that survives the handoff from discovery to routing to provider execution to recovery.",
+  },
+];
+
+const SCORE_LIMITS = [
+  "They compress different risks into one number, so two APIs with similar scores can fail for opposite reasons.",
+  "They can be stale unless runtime checks re-verify availability, auth behavior, response shape, and policy enforcement.",
+  "They do not decide your workflow boundary: customer data, workspace data, paid side effects, and read-only research need different tests.",
+  "They cannot replace a denial case. The unsafe neighbor still has to fail in the exact lane your agent will use.",
+];
+
+const EVALUATION_SEQUENCE = [
+  {
+    step: "1",
+    title: "Use the score to narrow the field",
+    body: "Scores are still the right map for discovery. Use them to avoid obviously weak candidates and to understand which surfaces deserve deeper inspection.",
+  },
+  {
+    step: "2",
+    title: "Name the dominant failure mode",
+    body: "Do not ask whether the API is good in general. Ask whether this workflow is most likely to fail through auth, limits, schema drift, replay, or missing evidence.",
+  },
+  {
+    step: "3",
+    title: "Test the denial case",
+    body: "The next tenant, forbidden domain, stale token, malformed path, duplicate write, or over-budget branch should fail before provider state can mutate.",
+  },
+  {
+    step: "4",
+    title: "Choose the execution lane",
+    body: "Some workflows can call the provider directly. Others need managed credentials, Agent Vault, BYOK, x402, provider pinning, or a governed Resolve path before repetition is safe.",
+  },
+];
+
+const WHEN_TO_USE_RHUMB = [
+  "You are comparing providers and need score-backed discovery before committing to a path.",
+  "You know the repeat workflow but need authority, budget, denial, and trace proof before wiring it into an agent loop.",
+  "You need a supported capability routed through a governed execution layer instead of exposing a whole connector catalog to the model.",
+];
+
+const RELATED = [
+  {
+    href: "/blog/how-to-evaluate-apis-for-agents",
+    title: "How to Evaluate APIs for AI Agents",
+    description: "The 20-dimension scoring framework that gives you the first map.",
+  },
+  {
+    href: "/blog/api-failure-modes-engineering",
+    title: "How APIs Fail When Agents Use Them",
+    description: "The deeper failure engineering guide behind this answer page.",
+  },
+  {
+    href: "/blog/api-reliability-checklist",
+    title: "API Reliability Checklist",
+    description: "The preflight checks for 3am agent calls.",
+  },
+  {
+    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=failure-modes-not-scores-proof-sprint",
+    title: "Scope one managed workflow",
+    description: "Turn a failure-mode concern into a bounded proof sprint.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Why Agent API Evaluation Needs Failure Modes, Not Just Scores",
+  datePublished: "2026-04-30T00:00:00Z",
+  dateModified: "2026-04-30T00:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "API scores help agents shortlist services. Failure modes tell operators whether a repeat workflow can run safely when auth, limits, schema drift, replay, and evidence break.",
+  url: "https://rhumb.dev/blog/agent-api-evaluation-failure-modes-not-scores",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/agent-api-evaluation-failure-modes-not-scores",
+};
+---
+
+<Layout
+  title="Why Agent API Evaluation Needs Failure Modes, Not Just Scores | Rhumb"
+  description="API scores help agents shortlist services. Failure modes tell operators whether a repeat workflow can run safely when auth, limits, schema drift, replay, and evidence break."
+  canonical="/blog/agent-api-evaluation-failure-modes-not-scores"
+  ogTitle="Why Agent API Evaluation Needs Failure Modes, Not Just Scores"
+  ogDescription="Scores are the map. Failure modes are the production test for autonomous API calls."
+  ogUrl="https://rhumb.dev/blog/agent-api-evaluation-failure-modes-not-scores"
+  ogType="article"
+  twitterTitle="Why Agent API Evaluation Needs Failure Modes, Not Just Scores"
+  twitterDescription="Scores shortlist APIs. Failure modes decide whether the agent can run the workflow unattended."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-amber/10 via-emerald-500/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-emerald-300">Methodology</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">April 30, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">9 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex rounded-full border border-amber/25 bg-amber/10 px-4 py-2 text-xs font-mono uppercase tracking-[0.22em] text-amber">
+              Answer target: agent API evaluation failure modes
+            </div>
+            <h1 class="max-w-4xl font-display text-4xl font-bold leading-tight tracking-tight text-slate-100 sm:text-5xl">
+              Why Agent API Evaluation Needs Failure Modes, Not Just Scores
+            </h1>
+            <p class="mt-6 max-w-3xl text-lg leading-relaxed text-slate-400">
+              Scores help an agent or operator shortlist APIs. Failure modes explain what will actually break once that API runs inside an unattended loop with credentials, budgets, retries, and side effects.
+            </p>
+          </div>
+
+          <aside class="rounded-[32px] border border-slate-800 bg-surface/80 p-6 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fast answer</div>
+            <div class="space-y-3">
+              {FAST_ANSWER.map((point) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-300">{point}</div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-6xl px-6 py-12">
+      <div class="mb-10 rounded-[32px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Short answer</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          Agent API evaluation needs both. A score tells you where to look. A failure-mode read tells you what to test before an agent is trusted to repeat the call. The mistake is treating a high score as proof that your specific workflow can survive auth drift, budget pressure, schema change, retries, and missing trace evidence.
+        </p>
+      </div>
+
+      <div class="space-y-14">
+        <section>
+          <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Scores are the map, not the production test</h2>
+          <div class="space-y-4 leading-relaxed text-slate-400">
+            <p>
+              Aggregate scores are valuable because developers and agents need a way to compare a large field quickly. Rhumb Index exists for exactly that: discovery, ranking, and comparison before you burn time on the wrong surface.
+            </p>
+            <p>
+              But an autonomous workflow does not fail as an average. It fails because a token expired, a provider accepted a stale policy write, a response shape changed, a retry repeated a side effect, or a shared quota was exhausted by another agent. Those are failure modes, not score deltas.
+            </p>
+          </div>
+          <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Where scores stop</div>
+            <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+              {SCORE_LIMITS.map((item) => (<li>{item}</li>))}
+            </ul>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">The six failure modes to inspect after the score</h2>
+          <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {FAILURE_MODES.map((mode) => (
+              <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                <h3 class="mb-3 font-display text-xl font-semibold tracking-tight text-slate-100">{mode.name}</h3>
+                <p class="mb-4 text-sm leading-6 text-slate-400">{mode.looksLike}</p>
+                <div class="rounded-2xl border border-amber/20 bg-amber/5 p-4 text-sm leading-6 text-slate-300">
+                  <span class="font-mono text-[11px] uppercase tracking-[0.18em] text-amber">Test: </span>{mode.test}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">A better evaluation sequence</h2>
+          <div class="grid gap-4 md:grid-cols-2">
+            {EVALUATION_SEQUENCE.map((item) => (
+              <div class="rounded-[28px] border border-slate-800 bg-navy/65 p-6">
+                <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10 font-mono text-sm text-emerald-300">{item.step}</div>
+                <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                <p class="text-sm leading-6 text-slate-400">{item.body}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section class="rounded-[32px] border border-sky-500/20 bg-sky-500/5 p-6 sm:p-8">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">When this becomes a Rhumb problem</div>
+          <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Use Rhumb when the workflow needs a bounded lane, not just another list</h2>
+          <p class="mb-5 leading-relaxed text-slate-400">
+            The honest boundary is important: Rhumb does not claim every scored service is executable today. Current execution coverage is {PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest for {PUBLIC_TRUTH.beachheadLabel}. That makes failure-mode inspection more important, not less, because the first managed workflow should be narrow enough to prove before it repeats.
+          </p>
+          <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+            {WHEN_TO_USE_RHUMB.map((item) => (<li>{item}</li>))}
+          </ul>
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=failure-modes-not-scores-primary"
+              class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200"
+            >
+              Scope one repeat workflow &rarr;
+            </a>
+            <a
+              href="/blog/how-to-evaluate-apis-for-agents?rhumb_source=failure-modes-not-scores-methodology"
+              class="inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-display font-semibold text-slate-100 hover:border-emerald-400/60 hover:text-white transition-colors duration-200"
+            >
+              Read the scoring framework &rarr;
+            </a>
+          </div>
+        </section>
+
+        <section class="rounded-[32px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Measurement hook</div>
+          <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">What signal would make this article matter?</h2>
+          <p class="leading-relaxed text-slate-400">
+            This authority/MEO page should be judged by whether search and answer engines associate Rhumb with agent API evaluation, failure modes, and production-readiness questions — and whether readers continue into the reliability checklist, methodology, or E-006 managed-execution proof sprint. It does not move A-001 by itself until tagged pricing/auth/mailto movement, signup evidence, or a qualitative repeat-workflow ask appears.
+          </p>
+        </section>
+
+        <section>
+          <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Related reading</h2>
+          <div class="grid gap-4 md:grid-cols-2">
+            {RELATED.map((item) => (
+              <a href={item.href} class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 transition-colors hover:border-amber/40">
+                <h3 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                <p class="text-sm leading-6 text-slate-400">{item.description}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+      </div>
+    </article>
+  </div>
+</Layout>

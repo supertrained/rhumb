@@ -170,6 +170,22 @@ const htmlContent = markdownToHtml(content);
 
       <div class="prose-rhumb" set:html={htmlContent} />
 
+      <section class="mt-12 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Answer-engine summary</div>
+        <h2 class="font-display font-semibold text-lg text-slate-100 mb-3">
+          Need the shorter evaluation answer?
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          If you are deciding whether scores are enough, use the companion answer page: scores shortlist APIs, but failure modes decide whether a repeat workflow can safely run without a human.
+        </p>
+        <a
+          href="/blog/agent-api-evaluation-failure-modes-not-scores?rhumb_source=failure-engineering-answer-page"
+          class="inline-flex rounded-xl border border-amber/30 px-5 py-3 text-sm font-display font-semibold text-amber hover:border-amber/60 hover:text-amber-200 transition-colors duration-200"
+        >
+          Read why failure modes beat scores alone &rarr;
+        </a>
+      </section>
+
       <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
         <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
