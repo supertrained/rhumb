@@ -522,9 +522,9 @@ async def get_score(slug: str) -> ANScoreSchema:
     )
 
 
-def _validated_compare_service_slugs(services: str) -> list[str]:
+def _validated_compare_service_slugs(services: str | None) -> list[str]:
     requested: list[str] = []
-    for service in services.split(","):
+    for service in str(services or "").split(","):
         cleaned = service.strip()
         if not cleaned:
             continue
@@ -565,7 +565,7 @@ def _validated_alert_limit(limit: Any) -> int:
 
 
 @router.get("/compare")
-async def compare_services(services: str) -> dict:
+async def compare_services(services: str | None = Query(default=None)) -> dict:
     """Compare a comma-separated set of services."""
     requested = _validated_compare_service_slugs(services)
     scoring_service = get_scoring_service()
