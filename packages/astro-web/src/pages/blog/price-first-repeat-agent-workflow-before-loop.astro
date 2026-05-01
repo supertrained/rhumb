@@ -1,0 +1,357 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+import pricing from "../../../../shared/pricing.json";
+
+const managed = pricing.modes.rhumb_managed;
+const x402 = pricing.modes.x402;
+const byok = pricing.modes.byok;
+const estimateEndpoint = `${pricing.canonical_api_base_url}/capabilities/{capability_id}/execute/estimate`;
+
+const FAST_ANSWER = [
+  "Pick one repeat workflow before you pick a rail. A workflow is not priced until you can name the capability, provider path, repeat volume, cost ceiling, denied neighbor, and receipt proof.",
+  `For Rhumb-managed execution, use the estimate endpoint before the first paid call; the public pricing contract is upstream cost plus ${managed.margin_percent}% margin on the governed rail.`,
+  `Use BYOK or Agent Vault when provider billing must stay with your account; Rhumb currently adds ${byok.margin_percent}% markup on that path, but you still own upstream cost, quota, and credential hygiene.`,
+  `Use x402 only when per-request payment authorization is the point; the public x402 contract is USDC on ${x402.network} with upstream cost plus ${x402.margin_percent}% margin.`,
+  "Do not wire a loop until the boring-case estimate and the denied-neighbor failure both produce evidence you would trust during a retry.",
+];
+
+const WORKFLOW_FIELDS = [
+  {
+    label: "Capability",
+    question: "What exact job will the agent repeat?",
+    proof: "Use a concrete capability id such as search.query, email.send, image.generate, scrape.extract, or the current supported equivalent — not a broad product idea.",
+  },
+  {
+    label: "Provider path",
+    question: "Should Resolve choose the best supported provider, or should the agent pin one provider?",
+    proof: "A pinned provider is a constraint, not a price shortcut. Estimate, credential mode, denial, and receipt checks still apply.",
+  },
+  {
+    label: "Repeat volume",
+    question: "How many times can the agent call before a human reviews the result?",
+    proof: "Name per-run, per-hour, and per-day ceilings so the first loop cannot turn a good demo into a quiet spend spiral.",
+  },
+  {
+    label: "Cost ceiling",
+    question: "What is the maximum acceptable cost for one completed action?",
+    proof: "The ceiling should include retries, fallbacks, enrichment calls, and output expansion — not just the happy-path provider price.",
+  },
+  {
+    label: "Credential rail",
+    question: "Whose account, key, wallet, or quota pool pays when the workflow repeats?",
+    proof: "Governed key, wallet-prefund, x402, BYOK, Agent Vault, and provider pinning create different budget evidence.",
+  },
+  {
+    label: "Denied neighbor",
+    question: "What adjacent action must fail closed before the loop is trusted?",
+    proof: "If you cannot name the denied domain, tenant, amount, row, account, path, or side effect, the price is not production-real yet.",
+  },
+];
+
+const PRICE_MODEL = [
+  {
+    name: "Governed Rhumb key",
+    best: "Default for repeat managed execution when the workflow fits Rhumb's current callable surface.",
+    price: `Upstream execution cost plus ${managed.margin_percent}% margin under Rhumb-managed billing.`,
+    estimate: "Run resolve and execute estimate before the first paid call, then keep the estimate id, capability id, credential mode, and cost ceiling in trace context.",
+    href: "/auth/login?rhumb_experiment=e006&rhumb_source=price-first-guide-governed-key",
+    cta: "Get governed key",
+    accent: "text-emerald-300",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+  },
+  {
+    name: "Wallet-prefund",
+    best: "Wallet-native agents that will call repeatedly but should not authorize every request separately.",
+    price: "Wallet funds reusable balance, then repeat traffic executes on the stable X-Rhumb-Key rail.",
+    estimate: "Price the workflow like governed execution, but preserve wallet identity, top-up id, amount, and balance drawdown in the receipt trail.",
+    href: "/payments/agent#wallet-prefund",
+    cta: "Review wallet-prefund",
+    accent: "text-sky-300",
+    className: "border-sky-500/20 bg-sky-500/5",
+  },
+  {
+    name: "x402 per-call",
+    best: "Zero-signup or strict per-request payment flows where payment proof is part of the product experience.",
+    price: `USDC on ${x402.network}; upstream execution cost plus ${x402.margin_percent}% margin on the x402 rail.`,
+    estimate: "Expect payment instructions per request and prove payment_request_id, X-Payment proof, amount, wallet identity, and verification outcome before execution state changes.",
+    href: "/payments/agent?rhumb_source=price-first-guide-x402",
+    cta: "Review x402",
+    accent: "text-violet-300",
+    className: "border-violet-500/20 bg-violet-500/5",
+  },
+  {
+    name: "BYOK or Agent Vault",
+    best: "Workflows that must run through your provider account, contract, workspace, or compliance boundary.",
+    price: `${byok.passthrough_note} You still pay the provider directly.`,
+    estimate: "Estimate Rhumb-side routing and execution shape, then separately cap the provider account's quota, rate limits, and per-action cost exposure.",
+    href: "/blog/agent-credential-paths-managed-key-byok-agent-vault-x402?rhumb_experiment=e006&rhumb_source=price-first-guide-credential-paths",
+    cta: "Choose credential path",
+    accent: "text-amber",
+    className: "border-amber/20 bg-amber/5",
+  },
+];
+
+const LOOP_MATH = [
+  "Happy-path provider cost is only the first term. Add retries, fallback providers, search/extraction enrichment, validation reads, and output-processing calls before you call it costed.",
+  "Use a cost ceiling per completed user-visible action, not only per raw provider call. One successful action may include several API calls.",
+  "Separate fail-free reads from billable execution. Discovery, scoring, and browsing are free; side-effecting or provider-routed execution is the paid surface.",
+  "Provider errors should not become billable successes. The receipt needs a typed outcome so finance, retry, and recovery logic do not guess.",
+  "If a retry resumes a completed-but-unacknowledged write, idempotency must preserve the original side effect instead of buying a second one.",
+];
+
+const READY_CHECK = [
+  "A concrete capability id and supported provider path are known.",
+  "The estimate endpoint has been called for the exact credential mode and provider constraint you plan to use.",
+  "A human-readable cost ceiling exists for one completed action and for one unattended loop window.",
+  "The credential rail names the budget owner: Rhumb-managed account, wallet balance, x402 payment proof, provider account, or vault-bound connection.",
+  "The denied neighbor fails before provider execution, billing, or side effects observe it.",
+  "The receipt preserves capability id, provider, credential mode, estimate/cost fields, idempotency key, denial reason, and recovery state.",
+];
+
+const ANTI_PATTERNS = [
+  "Pricing a broad project such as 'automate sales ops' before pricing one repeat job such as 'enrich one inbound lead from these two sources'.",
+  "Using a leaderboard score as a cost model. Scores help choose candidates; estimates and receipts price execution.",
+  "Letting an agent choose a cheaper-looking provider after the first failure without a fallback cost ceiling.",
+  "Treating BYOK as free because Rhumb adds no markup while ignoring the provider contract, quota, and retry spend.",
+  "Using x402 for repeat production traffic when the actual need is durable budget ownership and operator-visible controls.",
+];
+
+const RELATED = [
+  {
+    href: "/pricing?rhumb_experiment=e006&rhumb_source=price-first-guide-pricing",
+    title: "Pricing",
+    description: "The public pricing contract and rail chooser for governed execution, wallet-prefund, x402, and BYOK / Agent Vault.",
+  },
+  {
+    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=price-first-guide-managed-execution",
+    title: "Start managed execution",
+    description: "Scope one narrow repeat workflow before asking Rhumb to run the first paid call.",
+  },
+  {
+    href: "/blog/what-is-managed-api-execution-for-ai-agents?rhumb_experiment=e006&rhumb_source=price-first-guide-managed-definition",
+    title: "What is managed API execution?",
+    description: "The category definition: capability first, authority before routing, bounded budget, and trace proof.",
+  },
+  {
+    href: "/blog/agent-credential-paths-managed-key-byok-agent-vault-x402?rhumb_experiment=e006&rhumb_source=price-first-guide-credentials",
+    title: "Agent credential paths",
+    description: "Choose governed key, BYOK, Agent Vault, x402, or provider pinning by authority and budget boundary.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Price the First Repeat Agent Workflow Before You Wire It Into a Loop",
+  datePublished: "2026-05-01T13:00:00Z",
+  dateModified: "2026-05-01T13:00:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A practical guide to pricing one repeat AI-agent workflow before it becomes an unattended loop, covering estimates, credential rails, cost ceilings, denied neighbors, and receipts.",
+  url: "https://rhumb.dev/blog/price-first-repeat-agent-workflow-before-loop",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/price-first-repeat-agent-workflow-before-loop",
+};
+---
+
+<Layout
+  title="Price the First Repeat Agent Workflow Before You Wire It Into a Loop | Rhumb"
+  description="Price one repeat AI-agent workflow before it becomes an unattended loop: estimate the route, pick the rail, cap cost, test denial, and preserve receipt proof."
+  canonical="/blog/price-first-repeat-agent-workflow-before-loop"
+  ogTitle="Price the First Repeat Agent Workflow Before the Loop"
+  ogDescription="A practical guide to estimating cost, choosing the right rail, and proving budget boundaries before agent execution repeats."
+  ogUrl="https://rhumb.dev/blog/price-first-repeat-agent-workflow-before-loop"
+  ogType="article"
+  twitterTitle="Price the First Repeat Agent Workflow Before the Loop"
+  twitterDescription="Estimate route, rail, cost ceiling, denial, and receipt proof before an AI agent repeats a paid API call."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-emerald-500/10 via-amber/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-emerald-300">Pricing repeat workflows</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 1, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">9 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.04fr_0.96fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-xs font-mono uppercase tracking-[0.22em] text-emerald-300">
+              Answer target: price agent workflow
+            </div>
+            <h1 class="max-w-4xl font-display text-4xl font-bold leading-tight tracking-tight text-slate-100 sm:text-5xl">
+              Price the first repeat agent workflow before you wire it into a loop.
+            </h1>
+            <p class="mt-6 max-w-3xl text-lg leading-relaxed text-slate-400">
+              The dangerous moment is not the first demo call. It is the second, tenth, or hundredth call after the agent starts retrying, falling back, enriching, and recovering without a human watching the bill.
+            </p>
+          </div>
+
+          <aside class="rounded-[32px] border border-slate-800 bg-surface/80 p-6 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fast answer</div>
+            <div class="space-y-3">
+              {FAST_ANSWER.map((point) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-300">{point}</div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-6xl px-6 py-12">
+      <div class="mb-10 rounded-[32px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Current truth boundary</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          Rhumb's discovery surface covers {PUBLIC_TRUTH.servicesLabel} scored services and {PUBLIC_TRUTH.capabilitiesLabel} capability definitions, but current callable execution is narrower at {PUBLIC_TRUTH.callableProvidersLabel} callable providers strongest for {PUBLIC_TRUTH.beachheadLabel}. Price the workflow that can actually run today, not the whole catalog.
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div class="space-y-14">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Start with the repeat job, not the platform idea</h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                "How much will agent execution cost?" is too broad to answer honestly. The useful unit is one repeated, observable job: search for ten fresh sources, extract one vendor page, send one approved email, generate one image, verify one lead, or classify one document.
+              </p>
+              <p>
+                Once that job is concrete, the price model becomes operational: resolve the supported capability, estimate the route, choose the credential rail, cap repeat volume, test the denied neighbor, and keep receipt evidence that survives retries.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">The six fields to price before launch</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+              {WORKFLOW_FIELDS.map((field) => (
+                <div class="rounded-[24px] border border-slate-800 bg-surface/75 p-5">
+                  <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">{field.label}</div>
+                  <h3 class="font-display text-lg font-semibold text-slate-100">{field.question}</h3>
+                  <p class="mt-3 text-sm leading-6 text-slate-400">{field.proof}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Choose the rail after the workflow is priced</h2>
+            <div class="grid gap-4">
+              {PRICE_MODEL.map((rail) => (
+                <div class={`rounded-[28px] border p-6 ${rail.className}`}>
+                  <div class={`mb-3 text-[11px] font-mono uppercase tracking-[0.24em] ${rail.accent}`}>{rail.name}</div>
+                  <div class="grid gap-4 md:grid-cols-3">
+                    <div>
+                      <h3 class="mb-2 font-display text-lg font-semibold text-slate-100">Best when</h3>
+                      <p class="text-sm leading-6 text-slate-300">{rail.best}</p>
+                    </div>
+                    <div>
+                      <h3 class="mb-2 font-display text-lg font-semibold text-slate-100">Pricing shape</h3>
+                      <p class="text-sm leading-6 text-slate-300">{rail.price}</p>
+                    </div>
+                    <div>
+                      <h3 class="mb-2 font-display text-lg font-semibold text-slate-100">Evidence to keep</h3>
+                      <p class="text-sm leading-6 text-slate-300">{rail.estimate}</p>
+                    </div>
+                  </div>
+                  <a data-rhumb-propagate href={rail.href} class="mt-5 inline-flex rounded-xl border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-amber/50 hover:text-amber">
+                    {rail.cta}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section class="rounded-[28px] border border-slate-800 bg-surface/80 p-6 sm:p-8">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Estimate before execution</div>
+            <h2 class="font-display text-2xl font-bold tracking-tight text-slate-100">The estimate call is the budget checkpoint</h2>
+            <p class="mt-4 leading-relaxed text-slate-400">
+              The pricing page exposes the canonical estimate shape at <code class="font-mono text-sm text-amber">{estimateEndpoint}</code>. Use it before promotion, with the same capability id, provider constraint, credential mode, and budget ceiling the agent will use in production.
+            </p>
+            <p class="mt-4 leading-relaxed text-slate-400">
+              The estimate is not just a number. It is the checkpoint where route, availability, credential mode, cost ceiling, policy constraint, and denial expectations become explicit enough to compare against the eventual receipt.
+            </p>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Loop math: price the completed action</h2>
+            <div class="space-y-3">
+              {LOOP_MATH.map((point) => (
+                <div class="rounded-2xl border border-slate-800 bg-surface/75 p-4 text-sm leading-6 text-slate-300">{point}</div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Ready-to-loop checklist</h2>
+            <div class="grid gap-3">
+              {READY_CHECK.map((item) => (
+                <div class="flex gap-3 rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-4 text-sm leading-6 text-slate-300">
+                  <span class="mt-1 h-2 w-2 flex-none rounded-full bg-emerald-300"></span>
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Anti-patterns</h2>
+            <div class="grid gap-3">
+              {ANTI_PATTERNS.map((pattern) => (
+                <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4 text-sm leading-6 text-slate-300">{pattern}</div>
+              ))}
+            </div>
+          </section>
+
+          <section class="rounded-[32px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">E-006 proof sprint</div>
+            <h2 class="font-display text-2xl font-bold tracking-tight text-slate-100">Ask for proof around one priced workflow</h2>
+            <p class="mt-4 leading-relaxed text-slate-300">
+              The best request is narrow: one capability, one repeat volume, one credential rail, one denied neighbor, and one receipt shape you would trust after a retry. That is enough to test whether the first paid call can be boring.
+            </p>
+            <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+              <a data-rhumb-propagate href="/pricing?rhumb_experiment=e006&rhumb_source=price-first-guide-primary" class="inline-flex justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors hover:bg-emerald-300">
+                Review pricing for one workflow
+              </a>
+              <a data-rhumb-propagate href="mailto:team@getsupertrained.com?subject=Rhumb%20managed%20execution%20fit%20check&body=Workflow%3A%0ACapability%20or%20provider%20path%3A%0ARepeat%20volume%3A%0ACost%20ceiling%3A%0ACredential%20rail%3A%0ADenied%20neighbor%3A%0AReceipt%20proof%20I%20would%20trust%3A%0ASource%3A%20price-first-guide" class="inline-flex justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-display font-semibold text-slate-200 transition-colors hover:border-amber/50 hover:text-amber">
+                Ask if my workflow fits
+              </a>
+            </div>
+          </section>
+        </div>
+
+        <aside class="space-y-6 lg:sticky lg:top-24">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Related routes</div>
+            <div class="space-y-3">
+              {RELATED.map((item) => (
+                <a data-rhumb-propagate href={item.href} class="block rounded-2xl border border-slate-800 bg-navy/65 p-4 transition-colors hover:border-slate-700">
+                  <div class="font-display text-sm font-semibold text-slate-100">{item.title}</div>
+                  <p class="mt-2 text-xs leading-5 text-slate-400">{item.description}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-navy/75 p-5">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Measurement hook</div>
+            <p class="text-sm leading-6 text-slate-400">
+              Watch E-006 movement from <code class="font-mono text-xs text-amber">rhumb_source=price-first-guide-*</code>: pricing visits, governed-key starts, workflow-fit mail, and any qualitative ask that names a repeat volume or cost ceiling.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+</Layout>
