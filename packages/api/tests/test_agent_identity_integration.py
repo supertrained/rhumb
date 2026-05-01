@@ -890,6 +890,42 @@ class TestAdminRoutes:
             assert body["error"]["detail"] == f"Provide a non-empty '{field}' value."
             mock_store.register_agent.assert_not_awaited()
 
+    def test_create_agent_route_rejects_invalid_body_shape_before_store_write(
+        self, admin_client: TestClient
+    ) -> None:
+        """Malformed create-agent bodies should fail before identity-store writes."""
+        mock_store = AsyncMock()
+        mock_store.register_agent = AsyncMock(return_value=("agent_test", "rhumb_test"))
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post("/v1/admin/agents", json=["not", "an", "object"])
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid request body."
+        assert body["error"]["detail"] == "POST /v1/admin/agents requires a JSON object payload."
+        get_store.assert_not_called()
+        mock_store.register_agent.assert_not_awaited()
+
+    def test_create_agent_route_rejects_missing_required_fields_before_store_write(
+        self, admin_client: TestClient
+    ) -> None:
+        """Missing create-agent fields should use route-owned canonical errors."""
+        mock_store = AsyncMock()
+        mock_store.register_agent = AsyncMock(return_value=("agent_test", "rhumb_test"))
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post("/v1/admin/agents", json={"organization_id": "org_admin"})
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'name' field."
+        assert body["error"]["detail"] == "Provide a non-empty 'name' value."
+        get_store.assert_not_called()
+        mock_store.register_agent.assert_not_awaited()
+
     def test_create_agent_route_trims_fields_before_store_write(
         self, admin_client: TestClient
     ) -> None:

@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from schemas.agent_identity import (
@@ -64,22 +64,42 @@ def _normalized_optional_body_text(value: Optional[str]) -> Optional[str]:
     return normalized or None
 
 
-def _normalized_optional_tags(tags: Optional[List[str]]) -> Optional[List[str]]:
+def _normalized_optional_tags(tags: Any) -> Optional[List[str]]:
     if tags is None:
         return None
+    if not isinstance(tags, list):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'tags' field.",
+            detail="Provide 'tags' as a list of strings or omit the field.",
+        )
     normalized_tags = [str(tag).strip() for tag in tags]
     return [tag for tag in normalized_tags if tag]
 
 
 def _validated_qpm_field(
-    value: int,
+    value: Any,
     field: str,
     *,
     minimum: int,
     maximum: int = 1000,
 ) -> int:
     """Validate admin QPM fields before opening identity-store writes."""
-    normalized = int(value)
+    normalized: int | None = None
+    if isinstance(value, int) and not isinstance(value, bool):
+        normalized = value
+    elif isinstance(value, str):
+        cleaned = value.strip()
+        if cleaned.isdecimal():
+            normalized = int(cleaned)
+
+    if normalized is None:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field}' field.",
+            detail=f"Provide an integer between {minimum} and {maximum}.",
+        )
+
     if minimum <= normalized <= maximum:
         return normalized
 
@@ -87,6 +107,18 @@ def _validated_qpm_field(
         "INVALID_PARAMETERS",
         message=f"Invalid '{field}' field.",
         detail=f"Provide an integer between {minimum} and {maximum}.",
+    )
+
+
+def _validated_body_object(body: Any, *, endpoint: str) -> dict[str, Any]:
+    """Reject malformed admin JSON bodies before route-owned writes run."""
+    if isinstance(body, dict):
+        return body
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid request body.",
+        detail=f"{endpoint} requires a JSON object payload.",
     )
 
 
@@ -392,14 +424,17 @@ async def _get_evidence_adapter() -> EvidenceIngestionAdapter:
 
 
 @router.post("/agents", response_model=CreateAgentResponse)
-async def create_agent(body: CreateAgentRequest) -> CreateAgentResponse:
+async def create_agent(body: Any = Body(default=None)) -> CreateAgentResponse:
     """Create a new agent and return its API key (shown once)."""
-    name = _validated_required_body_text(body.name, "name")
-    organization_id = _validated_required_body_text(body.organization_id, "organization_id")
-    description = _normalized_optional_body_text(body.description)
-    tags = _normalized_optional_tags(body.tags)
+    payload = _validated_body_object(body, endpoint="POST /v1/admin/agents")
+    name = _validated_required_body_text(payload.get("name"), "name")
+    organization_id = _validated_required_body_text(
+        payload.get("organization_id"), "organization_id"
+    )
+    description = _normalized_optional_body_text(payload.get("description"))
+    tags = _normalized_optional_tags(payload.get("tags"))
     rate_limit_qpm = _validated_qpm_field(
-        body.rate_limit_qpm,
+        payload.get("rate_limit_qpm", 100),
         "rate_limit_qpm",
         minimum=1,
     )
