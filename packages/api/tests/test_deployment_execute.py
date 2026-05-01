@@ -234,6 +234,66 @@ def test_deployment_list_rejects_non_object_body_before_deployment_reads(
     )
 
 
+def test_deployment_list_normalizes_explicit_byok_credential_mode(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+) -> None:
+    monkeypatch.setenv(
+        "RHUMB_DEPLOYMENT_DEP_MAIN",
+        json.dumps(
+            {
+                "provider": "vercel",
+                "auth_mode": "bearer_token",
+                "bearer_token": "secret",
+                "allowed_project_ids": ["prj_123"],
+                "allowed_targets": ["production"],
+            }
+        ),
+    )
+
+    response_model = DeploymentListResponse(
+        provider_used="vercel",
+        credential_mode="byok",
+        capability_id="deployment.list",
+        receipt_id="pending",
+        execution_id="pending",
+        deployment_ref="dep_main",
+        deployments=[],
+        deployment_count_returned=0,
+        has_more=False,
+        next_page_after=None,
+    )
+
+    captured: dict[str, object] = {}
+
+    async def _list_deployments(request, *, bundle, execution_id):
+        captured["credential_mode_present"] = hasattr(request, "credential_mode")
+        captured["deployment_ref"] = request.deployment_ref
+        return response_model
+
+    async def _run():
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            return await client.post(
+                "/v1/capabilities/deployment.list/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": " BYOK ",
+                    "deployment_ref": "dep_main",
+                },
+            )
+
+    with patch.object(deployment_execute_route, "list_deployments", new=_list_deployments):
+        response = asyncio.run(_run())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["data"]["credential_mode"] == "byok"
+    assert captured == {"credential_mode_present": False, "deployment_ref": "dep_main"}
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.credential_mode == "byok"
+
+
 @pytest.mark.asyncio
 async def test_deployment_list_rejects_non_byok_credential_mode(
     app,

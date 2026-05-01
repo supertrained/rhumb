@@ -48,6 +48,10 @@ def _client_ip(raw_request: Request) -> str | None:
     return None
 
 
+def _normalized_deployment_credential_mode(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
 async def handle_deployment_execute(
     *,
     capability_id: str,
@@ -95,7 +99,7 @@ async def handle_deployment_execute(
             started_at=start,
         )
 
-    requested_mode = body.get("credential_mode", credential_mode)
+    requested_mode = _normalized_deployment_credential_mode(body.get("credential_mode", credential_mode))
     if requested_mode != "byok":
         return await _failure_response(
             raw_request=raw_request,
@@ -105,21 +109,24 @@ async def handle_deployment_execute(
             execution_id=execution_id,
             capability_id=capability_id,
             provider_used=provider_used,
-            credential_mode=str(requested_mode),
+            credential_mode=requested_mode,
             request_payload=body,
             code="deployment_credential_mode_invalid",
             message="Deployment capabilities currently support credential_mode 'byok' only",
             status_code=400,
             started_at=start,
         )
+    credential_mode = requested_mode
+    request_body = dict(body)
+    request_body.pop("credential_mode", None)
 
     try:
         if capability_id == "deployment.list":
-            request = DeploymentListRequest.model_validate(body)
+            request = DeploymentListRequest.model_validate(request_body)
             bundle = resolve_deployment_bundle(request.deployment_ref)
             result = await list_deployments(request, bundle=bundle, execution_id=execution_id)
         elif capability_id == "deployment.get":
-            request = DeploymentGetRequest.model_validate(body)
+            request = DeploymentGetRequest.model_validate(request_body)
             bundle = resolve_deployment_bundle(request.deployment_ref)
             result = await get_deployment(request, bundle=bundle, execution_id=execution_id)
         else:
