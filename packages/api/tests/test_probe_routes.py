@@ -384,6 +384,64 @@ def test_run_probe_rejects_blank_fields_before_probe_service(
     assert body["error"]["detail"] == f"Provide a non-empty {field_name} value."
 
 
+def test_run_probe_rejects_non_object_body_before_probe_service(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-object probe-run payloads should fail with route-owned errors before storage opens."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+
+    def fail_probe_service() -> ProbeService:
+        raise AssertionError("probe service should not be opened")
+
+    monkeypatch.setattr(probe_routes, "get_probe_service", fail_probe_service)
+
+    response = client.post("/v1/probes/run", json=["not", "an", "object"])
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid probe-run payload."
+    assert body["error"]["detail"] == "Provide a JSON object payload."
+
+
+@pytest.mark.parametrize(
+    ("payload", "field_name", "detail"),
+    [
+        ({"service_slug": "stripe", "payload": ["not", "object"]}, "payload", "Provide payload as a JSON object or omit the field."),
+        ({"service_slug": "stripe", "target_url": 123}, "target_url", "Provide target_url as a string or omit the field."),
+        ({"service_slug": "stripe", "sample_count": 0}, "sample_count", "Provide an integer between 1 and 20."),
+        ({"service_slug": "stripe", "sample_count": 20.5}, "sample_count", "Provide an integer between 1 and 20."),
+    ],
+)
+def test_run_probe_rejects_malformed_fields_before_probe_service(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+    payload: dict,
+    field_name: str,
+    detail: str,
+) -> None:
+    """Malformed probe-run scalar/object fields should fail before opening probe storage."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+
+    def fail_probe_service() -> ProbeService:
+        raise AssertionError("probe service should not be opened")
+
+    monkeypatch.setattr(probe_routes, "get_probe_service", fail_probe_service)
+
+    response = client.post("/v1/probes/run", json=payload)
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == f"Invalid '{field_name}' field."
+    assert body["error"]["detail"] == detail
+
+
 def test_scheduler_rejects_blank_service_filters_before_scheduler_open(
     client,
     monkeypatch: pytest.MonkeyPatch,
@@ -409,6 +467,64 @@ def test_scheduler_rejects_blank_service_filters_before_scheduler_open(
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'service_slug' field."
     assert body["error"]["detail"] == "Provide a non-empty service_slug value."
+
+
+def test_scheduler_rejects_non_object_body_before_scheduler_open(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-object scheduler payloads should fail with route-owned errors before scheduler opens."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    def fail_scheduler() -> ProbeScheduler:
+        raise AssertionError("scheduler should not be opened")
+
+    monkeypatch.setattr(probe_routes, "get_probe_scheduler", fail_scheduler)
+
+    response = client.post("/v1/probes/schedule/run", json=["stripe"])
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid probe-schedule payload."
+    assert body["error"]["detail"] == "Provide a JSON object payload."
+
+
+@pytest.mark.parametrize(
+    ("payload", "field_name", "detail"),
+    [
+        ({"service_slugs": "stripe"}, "service_slugs", "Provide service_slugs as a list of service slugs or omit the field."),
+        ({"sample_count": True}, "sample_count", "Provide an integer between 1 and 20."),
+        ({"base_interval_minutes": 0}, "base_interval_minutes", "Provide an integer between 1 and 1440."),
+        ({"dry_run": "sometimes"}, "dry_run", "Provide dry_run as a boolean value."),
+    ],
+)
+def test_scheduler_rejects_malformed_fields_before_scheduler_open(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+    payload: dict,
+    field_name: str,
+    detail: str,
+) -> None:
+    """Malformed scheduled-probe fields should fail before opening scheduler state."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    def fail_scheduler() -> ProbeScheduler:
+        raise AssertionError("scheduler should not be opened")
+
+    monkeypatch.setattr(probe_routes, "get_probe_scheduler", fail_scheduler)
+
+    response = client.post("/v1/probes/schedule/run", json=payload)
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == f"Invalid '{field_name}' field."
+    assert body["error"]["detail"] == detail
 
 
 def test_scheduler_entrypoint_runs_seed_specs(client, monkeypatch: pytest.MonkeyPatch) -> None:

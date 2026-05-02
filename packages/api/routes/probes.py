@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 
 from config import settings
 from routes.admin_auth import require_admin_key
@@ -127,9 +128,155 @@ def _validated_schedule_service_slugs(service_slugs: list[str] | None) -> list[s
     return normalized
 
 
+def _validated_probe_payload_object(payload: Any, *, endpoint: str) -> dict[str, Any]:
+    if isinstance(payload, dict):
+        return payload
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid {endpoint} payload.",
+        detail="Provide a JSON object payload.",
+    )
+
+
+def _validated_probe_int_field(
+    value: Any,
+    *,
+    field_name: str,
+    default: int,
+    minimum: int,
+    maximum: int,
+) -> int:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' field.",
+            detail=f"Provide an integer between {minimum} and {maximum}.",
+        )
+    if isinstance(value, float) and not value.is_integer():
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' field.",
+            detail=f"Provide an integer between {minimum} and {maximum}.",
+        )
+    try:
+        normalized = int(str(value).strip())
+    except (TypeError, ValueError) as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' field.",
+            detail=f"Provide an integer between {minimum} and {maximum}.",
+        ) from exc
+    if minimum <= normalized <= maximum:
+        return normalized
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' field.",
+        detail=f"Provide an integer between {minimum} and {maximum}.",
+    )
+
+
+def _validated_probe_optional_dict(value: Any, *, field_name: str) -> dict[str, Any] | None:
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return value
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' field.",
+        detail=f"Provide {field_name} as a JSON object or omit the field.",
+    )
+
+
+def _validated_probe_optional_text(value: Any, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value.strip() or None
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' field.",
+        detail=f"Provide {field_name} as a string or omit the field.",
+    )
+
+
+def _validated_probe_bool_field(value: Any, *, field_name: str, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' field.",
+        detail=f"Provide {field_name} as a boolean value.",
+    )
+
+
+def _validated_probe_run_payload(payload: Any) -> ProbeRunRequestSchema:
+    body = _validated_probe_payload_object(payload, endpoint="probe-run")
+    service_slug = _validated_probe_run_service_slug(body.get("service_slug"))
+    probe_type = _validated_probe_text_field(body.get("probe_type", "health"), field_name="probe_type")
+    trigger_source = _validated_probe_text_field(
+        body.get("trigger_source", "internal"),
+        field_name="trigger_source",
+    )
+    return ProbeRunRequestSchema(
+        service_slug=service_slug,
+        probe_type=probe_type,
+        target_url=_validated_probe_optional_text(body.get("target_url"), field_name="target_url"),
+        payload=_validated_probe_optional_dict(body.get("payload"), field_name="payload"),
+        trigger_source=trigger_source,
+        sample_count=_validated_probe_int_field(
+            body.get("sample_count"),
+            field_name="sample_count",
+            default=1,
+            minimum=1,
+            maximum=20,
+        ),
+    )
+
+
+def _validated_probe_batch_payload(payload: Any) -> ProbeBatchRunRequestSchema:
+    body = _validated_probe_payload_object(payload, endpoint="probe-schedule")
+    service_slugs = body.get("service_slugs")
+    if service_slugs is not None and not isinstance(service_slugs, list):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'service_slugs' field.",
+            detail="Provide service_slugs as a list of service slugs or omit the field.",
+        )
+    return ProbeBatchRunRequestSchema(
+        service_slugs=_validated_schedule_service_slugs(service_slugs),
+        sample_count=_validated_probe_int_field(
+            body.get("sample_count"),
+            field_name="sample_count",
+            default=3,
+            minimum=1,
+            maximum=20,
+        ),
+        base_interval_minutes=_validated_probe_int_field(
+            body.get("base_interval_minutes"),
+            field_name="base_interval_minutes",
+            default=30,
+            minimum=1,
+            maximum=1440,
+        ),
+        dry_run=_validated_probe_bool_field(body.get("dry_run"), field_name="dry_run", default=False),
+    )
+
+
 @router.post("/probes/run", response_model=ProbeResultSchema, dependencies=[Depends(require_admin_key)])
-async def run_probe(payload: ProbeRunRequestSchema) -> ProbeResultSchema:
+async def run_probe(payload: Any = Body(default=None)) -> ProbeResultSchema:
     """Run a single internal probe and persist the result."""
+    payload = _validated_probe_run_payload(payload)
     service_slug = _validated_probe_run_service_slug(payload.service_slug)
     probe_type = _validated_probe_text_field(payload.probe_type, field_name="probe_type")
     trigger_source = _validated_probe_text_field(payload.trigger_source, field_name="trigger_source")
@@ -163,10 +310,11 @@ async def run_probe(payload: ProbeRunRequestSchema) -> ProbeResultSchema:
 
 @router.post("/probes/schedule/run", response_model=ProbeBatchRunResponseSchema, dependencies=[Depends(require_admin_key)])
 async def run_scheduled_probe_batch(
-    payload: ProbeBatchRunRequestSchema,
+    payload: Any = Body(default=None),
 ) -> ProbeBatchRunResponseSchema:
     """Run one scheduler batch for recurring probe specifications."""
-    service_slugs = _validated_schedule_service_slugs(payload.service_slugs)
+    payload = _validated_probe_batch_payload(payload)
+    service_slugs = payload.service_slugs
     scheduler = get_probe_scheduler()
     selected = scheduler.list_specs(service_slugs=service_slugs)
 
