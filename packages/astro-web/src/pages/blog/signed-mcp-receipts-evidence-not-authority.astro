@@ -65,8 +65,19 @@ const CONTEXT_FIELDS = [
   "side-effect class",
   "caller identity",
   "policy decision",
+  "decision-lineage reason",
+  "policy inputs considered",
+  "denied alternative or escalation path",
   "backend principal mapping",
   "environment or tenant boundary",
+];
+
+const DECISION_LINEAGE_FIELDS = [
+  "the user or agent objective that triggered the tool call",
+  "the candidate actions the runtime rejected before admission",
+  "the policy rule, budget ceiling, and trust class used for the allow decision",
+  "the denied-neighbor case that proves the boundary was not just logged",
+  "the recovery or human-review hint if the call failed, partially succeeded, or exceeded budget",
 ];
 
 const RELATED_READING = [
@@ -107,7 +118,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Signed MCP Receipts Create Evidence After the Call. They Do Not Make the Call Safe",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-14T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Signed MCP tool-call receipts improve auditability and forensic confidence after execution, but they do not replace scope control, trust-class filtering, or authority checks before the call.",
@@ -292,6 +303,17 @@ const ARTICLE_JSON_LD = {
               <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Context worth preserving</div>
               <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
                 {CONTEXT_FIELDS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Decision-lineage receipt drill</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                Fresh MCP observability work keeps proving that prompt logs are not enough. A useful receipt should preserve why the action was admitted, not only the fact that it ran.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {DECISION_LINEAGE_FIELDS.map((item) => (
                   <li>{item}</li>
                 ))}
               </ul>

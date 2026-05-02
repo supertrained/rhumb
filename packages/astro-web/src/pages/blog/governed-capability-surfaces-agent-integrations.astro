@@ -61,6 +61,7 @@ const EVALUATION_AREAS = [
     bullets: [
       "Is there a trace from capability invocation to downstream provider actions?",
       "Can you reconstruct who acted, with what authority, and why?",
+      "Does the evidence preserve the policy decision and rejected alternatives, not just the final call?",
       "Does the evidence survive multi-agent handoffs?",
       "Does the trace name the policy bundle, middleware hop, and downstream credential lane?",
     ],
@@ -248,6 +249,15 @@ const ARTICLE_JSON_LD = {
               </p>
               <p class="text-sm text-slate-400 leading-relaxed mt-3">
                 If the middleware only exports spans, headers, or pretty routing names, it is packaging. If it can prove the boundary held when the model tried to leave the lane, it is part of the control plane. That is the same evidence shape covered in <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">MCP observability and trace design</a>.
+              </p>
+            </div>
+            <div class="rounded-2xl border border-amber/20 bg-amber/5 p-5">
+              <h3 class="font-display font-semibold text-lg text-slate-100 mb-2 tracking-tight">Decision lineage is part of the capability contract</h3>
+              <p class="text-sm text-slate-400 leading-relaxed">
+                A governed capability should not only say what happened. It should preserve the decision path that made the action admissible: requested objective, candidate action, policy rule, budget or quota ceiling, denied neighbor, and escalation path when the runtime refused to proceed.
+              </p>
+              <p class="text-sm text-slate-400 leading-relaxed mt-3">
+                Without that lineage, auditability collapses into prompt archaeology. Operators can see the final tool call, but not whether the control plane compared safer options, applied the right trust class, or failed closed before the agent crossed a production boundary.
               </p>
             </div>
             <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5">

@@ -41,6 +41,7 @@ const DEMO_FLAGS = [
   "package managers write shared config into many clients without preserving per-client authority, rollback, and trace context",
   "remote command execution is exposed as a generic shell instead of a bounded runbook with target, timeout, environment, approval, and rollback evidence",
   "a self-hosted personal gateway hides several downstream credentials, tenants, and quota owners behind one friendly local endpoint",
+  "audit trails do not preserve the policy decision, rejected alternative, or recovery hint behind an allowed action",
   "audit trails do not map actions back to principals and scopes",
 ];
 
@@ -58,6 +59,7 @@ const CHECKLIST = [
   "Gateway brokerage: when one self-hosted MCP gateway fronts several providers, does each tool keep its credential lane, tenant scope, quota owner, revocation path, and denied-neighbor trace?",
   "Recovery: after partial failure, how does the caller re-verify state?",
   "Trace evidence: does every gateway trace carry the original actor, adapter version, policy bundle, redacted input class, caller-visible surface, downstream credential lane, and quota owner?",
+  "Decision lineage: can operators reconstruct the objective, policy decision, denied alternative, budget check, and recovery hint that surrounded the tool call?",
   "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
 ];
 
@@ -94,6 +96,13 @@ const PERSONAL_GATEWAY_DRILL = [
   "Keep local owner identity separate from downstream provider authority. The gateway host may be personal, but the action still spends a real account somewhere.",
   "Test denied neighbors across providers: wrong workspace, blocked tenant, expired secret, over-budget account, and a tool that should not be visible for this caller.",
   "Require trace evidence to name gateway instance, brokered provider, credential lane, normalized tenant, quota owner, policy rule, and denial reason before calling the setup production-ready.",
+];
+
+const DECISION_LINEAGE_DRILL = [
+  "Capture the workflow objective, selected tool, rejected alternatives, and policy rule before the remote server executes the call.",
+  "Tie the allow or deny decision to trust class, caller-visible scope, budget ceiling, quota owner, and backend credential lane.",
+  "Preserve the denied-neighbor result so incident review can prove the boundary held instead of only proving the happy path ran.",
+  "Attach recovery hints or human-review checkpoints when the decision was denied, partially successful, over budget, or required approval.",
 ];
 
 const FAILURE_CLASSES = [
@@ -427,6 +436,17 @@ const ARTICLE_JSON_LD = {
               <p>
                 If those fields vanish at the gateway, auditability becomes span plumbing. You can count calls, but you cannot prove which policy narrowed discovery, which scope denied the write, or whose shared budget the loop burned.
               </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Decision-lineage drill</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                Prompt logs explain what the model said. Production lineage has to explain why the control plane allowed, denied, escalated, or recovered around the action.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {DECISION_LINEAGE_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
             </div>
           </section>
 
