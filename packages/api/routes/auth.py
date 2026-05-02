@@ -15,6 +15,7 @@ on every page load.
 from __future__ import annotations
 
 import logging
+import math
 import secrets
 import time
 from datetime import UTC, datetime
@@ -816,20 +817,77 @@ async def me_agents(
     return JSONResponse({"agents": results})
 
 
+def _dashboard_agent_key_body(body: Any) -> dict[str, Any]:
+    """Reject malformed dashboard agent-key bodies before session or org reads."""
+    if isinstance(body, dict):
+        return body
+    raise HTTPException(status_code=400, detail="Invalid dashboard agent-key request body.")
+
+
+def _dashboard_required_text(payload: dict[str, Any], field: str) -> str:
+    value = payload.get(field)
+    if not isinstance(value, str):
+        return ""
+    return value.strip()
+
+
+def _dashboard_float_required(payload: dict[str, Any], field: str) -> float | None:
+    value = payload.get(field)
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if math.isfinite(parsed) else None
+
+
+def _dashboard_int_default(payload: dict[str, Any], field: str, default: int) -> int | None:
+    value = payload.get(field, default)
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and math.isfinite(value) and value.is_integer():
+        return int(value)
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized and normalized.isdecimal():
+            return int(normalized)
+    return None
+
+
+def _dashboard_bool_default(payload: dict[str, Any], field: str, default: bool) -> bool | None:
+    value = payload.get(field, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and value in {0, 1}:
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+    return None
+
+
 def _validate_dashboard_agent_key_request(
-    body: DashboardCreateAgentKeyRequest,
+    body: Any,
     *,
     fallback_description: str,
-) -> tuple[str, str, str, float, int]:
+) -> tuple[str, str, str, float, bool, int]:
     """Validate dashboard agent-key inputs before opening session/org state."""
-    name = body.name.strip()
+    payload = _dashboard_agent_key_body(body)
+
+    name = _dashboard_required_text(payload, "name")
     if not name:
         raise HTTPException(status_code=400, detail="name is required")
     if len(name) > 64:
         raise HTTPException(status_code=400, detail="name must be 64 characters or fewer")
 
-    budget_usd = float(body.budget_usd)
-    if budget_usd <= 0 or budget_usd > MAX_CHECKOUT_AMOUNT_USD:
+    budget_usd = _dashboard_float_required(payload, "budget_usd")
+    if budget_usd is None or budget_usd <= 0 or budget_usd > MAX_CHECKOUT_AMOUNT_USD:
         raise HTTPException(
             status_code=400,
             detail=(
@@ -838,27 +896,38 @@ def _validate_dashboard_agent_key_request(
             ),
         )
 
-    rate_limit_qpm = int(body.rate_limit_qpm)
-    if rate_limit_qpm < 1 or rate_limit_qpm > 1000:
+    rate_limit_qpm = _dashboard_int_default(payload, "rate_limit_qpm", 20)
+    if rate_limit_qpm is None or rate_limit_qpm < 1 or rate_limit_qpm > 1000:
         raise HTTPException(
             status_code=400,
             detail="rate_limit_qpm must be between 1 and 1000",
         )
 
-    period = _normalize_budget_period(body.period)
-    description = body.description.strip() if body.description else fallback_description
+    hard_limit = _dashboard_bool_default(payload, "hard_limit", True)
+    if hard_limit is None:
+        raise HTTPException(status_code=400, detail="hard_limit must be true or false")
+
+    period = _normalize_budget_period(str(payload.get("period", "monthly")))
+    raw_description = payload.get("description")
+    if raw_description is not None and not isinstance(raw_description, str):
+        raise HTTPException(status_code=400, detail="description must be text")
+    description = (
+        raw_description.strip()
+        if isinstance(raw_description, str) and raw_description.strip()
+        else fallback_description
+    )
     if len(description) > 240:
         raise HTTPException(status_code=400, detail="description must be 240 characters or fewer")
-    return name, description, period, budget_usd, rate_limit_qpm
+    return name, description, period, budget_usd, hard_limit, rate_limit_qpm
 
 
 @router.post("/me/agents")
 async def me_create_agent_key(
-    body: DashboardCreateAgentKeyRequest,
+    body: Any = Body(default=None),
     rhumb_session: Optional[str] = Cookie(default=None),
 ) -> JSONResponse:
     """Create a capped secondary governed key for the logged-in user's org."""
-    name, description, period, budget_usd, rate_limit_qpm = _validate_dashboard_agent_key_request(
+    name, description, period, budget_usd, hard_limit, rate_limit_qpm = _validate_dashboard_agent_key_request(
         body,
         fallback_description="Secondary agent key created from dashboard",
     )
@@ -905,7 +974,7 @@ async def me_create_agent_key(
             "agent_id": agent_id,
             "budget_usd": budget_usd,
             "period": period,
-            "hard_limit": bool(body.hard_limit),
+            "hard_limit": hard_limit,
             "alert_threshold_pct": 80,
         },
     )
@@ -931,7 +1000,7 @@ async def me_create_agent_key(
                 "budget_usd": float(budget_row.get("budget_usd")) if budget_row.get("budget_usd") is not None else budget_usd,
                 "spent_usd": float(budget_row.get("spent_usd")) if budget_row.get("spent_usd") is not None else 0.0,
                 "period": budget_row.get("period") or period,
-                "hard_limit": bool(budget_row.get("hard_limit")) if budget_row.get("hard_limit") is not None else bool(body.hard_limit),
+                "hard_limit": bool(budget_row.get("hard_limit")) if budget_row.get("hard_limit") is not None else hard_limit,
             },
             "message": "Save this key — it won't be shown again.",
         }

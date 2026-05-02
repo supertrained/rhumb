@@ -1078,12 +1078,27 @@ def test_me_agents_create_rejects_invalid_period_before_session_reads() -> None:
     require_session.assert_not_awaited()
 
 
+def test_me_agents_create_rejects_non_object_body_before_session_reads() -> None:
+    client = TestClient(_shared_app, raise_server_exceptions=False)
+
+    with patch("routes.auth._require_session", new_callable=AsyncMock) as require_session:
+        response = client.post("/v1/auth/me/agents", json=[])
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Invalid dashboard agent-key request body."
+    require_session.assert_not_awaited()
+
+
 @pytest.mark.parametrize(
     ("body_patch", "detail"),
     [
+        ({"budget_usd": None}, "budget_usd must be greater than 0 and no more than 5000"),
+        ({"budget_usd": "ten"}, "budget_usd must be greater than 0 and no more than 5000"),
         ({"budget_usd": 0}, "budget_usd must be greater than 0 and no more than 5000"),
         ({"budget_usd": 5000.01}, "budget_usd must be greater than 0 and no more than 5000"),
+        ({"hard_limit": "sometimes"}, "hard_limit must be true or false"),
         ({"rate_limit_qpm": 0}, "rate_limit_qpm must be between 1 and 1000"),
+        ({"rate_limit_qpm": "fast"}, "rate_limit_qpm must be between 1 and 1000"),
         ({"rate_limit_qpm": 1001}, "rate_limit_qpm must be between 1 and 1000"),
         ({"name": "A" * 65}, "name must be 64 characters or fewer"),
         ({"description": "D" * 241}, "description must be 240 characters or fewer"),
