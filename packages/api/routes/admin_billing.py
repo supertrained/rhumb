@@ -55,7 +55,7 @@ def _get_stripe_manager() -> StripeIntegrationManager:
 
 def _normalize_billing_month(month: Any) -> str:
     """Validate and normalize public admin billing month filters."""
-    if month is None:
+    if not isinstance(month, str):
         raise RhumbError(
             "INVALID_PARAMETERS",
             message="Invalid 'month' filter.",
@@ -75,7 +75,7 @@ def _normalize_billing_month(month: Any) -> str:
 
 def _normalize_billing_organization_id(organization_id: Any) -> str:
     """Validate and normalize public admin billing organization filters."""
-    if organization_id is None:
+    if not isinstance(organization_id, str):
         raise RhumbError(
             "INVALID_PARAMETERS",
             message="Invalid 'organization_id' filter.",
@@ -383,7 +383,13 @@ def _normalize_optional_conversion_id(value: Any) -> str | None:
     """Normalize optional settlement conversion IDs before persistence."""
     if value is None:
         return None
-    normalized = str(value).strip()
+    if not isinstance(value, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'coinbase_conversion_id' value.",
+            detail="Provide a string conversion ID or omit the field.",
+        )
+    normalized = value.strip()
     return normalized or None
 
 

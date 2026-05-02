@@ -832,7 +832,9 @@ def test_generate_invoice_rejects_blank_organization_before_aggregator_reads(
     [
         ([], "Invalid invoice generation payload.", "Provide a JSON object with organization_id and month."),
         ({"month": "2026-04"}, "Invalid 'organization_id' filter.", "Provide a non-empty organization_id value."),
+        ({"organization_id": 123, "month": "2026-04"}, "Invalid 'organization_id' filter.", "Provide a non-empty organization_id value."),
         ({"organization_id": "org_invoice_alias"}, "Invalid 'month' filter.", "Use YYYY-MM."),
+        ({"organization_id": "org_invoice_alias", "month": ["2026-04"]}, "Invalid 'month' filter.", "Use YYYY-MM."),
     ],
 )
 def test_generate_invoice_rejects_malformed_payloads_before_aggregator_reads(

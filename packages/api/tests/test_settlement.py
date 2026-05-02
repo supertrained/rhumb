@@ -584,3 +584,22 @@ class TestSettlementAdminRoutes:
 
         assert resp.status_code == 200
         mock_mark.assert_awaited_once_with(BATCH_ID, 100, None)
+
+    def test_mark_converted_rejects_non_string_conversion_id_before_settlement_writes(self, client: TestClient) -> None:
+        """Manual settlement conversion IDs must not be string-coerced before writes."""
+        with patch(
+            "routes.admin_billing.mark_batch_converted",
+            new_callable=AsyncMock,
+        ) as mock_mark:
+            resp = client.post(
+                f"/v1/admin/settlement/{BATCH_ID}/converted",
+                json={"total_usd_cents": 100, "coinbase_conversion_id": {"id": "cb_123"}},
+                headers=_admin_headers(),
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'coinbase_conversion_id' value."
+        assert payload["error"]["detail"] == "Provide a string conversion ID or omit the field."
+        mock_mark.assert_not_awaited()
