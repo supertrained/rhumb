@@ -29,7 +29,6 @@ from urllib.parse import quote, urlencode
 
 import httpx
 from fastapi import APIRouter, Body, Header, HTTPException, Query, Request
-from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
@@ -1266,14 +1265,28 @@ async def tokenize_db_agent_vault(
     }
 
 
+def _invalid_execute_payload(*, detail: str | None = None) -> RhumbError:
+    return RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid execute payload.",
+        detail=detail
+        or (
+            "Provide a JSON object with optional provider, method, path, body, "
+            "params, credential_mode, idempotency_key, and interface fields."
+        ),
+    )
+
+
 async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteRequest:
-    """Parse execute payloads even when clients omit Content-Type.
+    """Parse execute payloads before opening capability or provider reads.
 
     Some x402 buyers POST raw JSON bodies without setting
     ``Content-Type: application/json`` during discovery/retry. FastAPI's
     normal body parsing rejects those requests before the route can return a
     402 discovery envelope or process the paid retry. Parse the raw body
-    ourselves so valid JSON still reaches the execute logic.
+    ourselves so valid JSON still reaches the execute logic, while malformed
+    bodies return the same canonical INVALID_PARAMETERS envelope as the other
+    AUD-18 route-owned validators.
 
     Also support two legacy/client-friendly shapes that already appear in the
     wild:
@@ -1309,28 +1322,20 @@ async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteReque
             request.idempotency_key = _normalize_idempotency_key(request.idempotency_key)
             return request
         except ValidationError as exc:
-            raise RequestValidationError(exc.errors()) from exc
+            raise _invalid_execute_payload() from exc
 
     try:
         payload = json.loads(raw_body)
     except json.JSONDecodeError as exc:
-        raise RequestValidationError(
-            [
-                {
-                    "type": "value_error.jsondecode",
-                    "loc": ("body",),
-                    "msg": f"JSON decode error: {exc.msg}",
-                    "input": raw_body.decode("utf-8", errors="replace"),
-                    "ctx": {"error": exc.msg},
-                }
-            ]
-        ) from exc
+        raise _invalid_execute_payload(detail="Provide a valid JSON execute payload.") from exc
 
-    if isinstance(payload, dict):
-        if payload and not any(field in payload for field in envelope_fields):
-            payload = {"body": payload}
-        for key, value in query_overrides.items():
-            payload.setdefault(key, value)
+    if not isinstance(payload, dict):
+        raise _invalid_execute_payload()
+
+    if payload and not any(field in payload for field in envelope_fields):
+        payload = {"body": payload}
+    for key, value in query_overrides.items():
+        payload.setdefault(key, value)
 
     try:
         request = CapabilityExecuteRequest.model_validate(payload)
@@ -1338,7 +1343,7 @@ async def _parse_execute_request(raw_request: Request) -> CapabilityExecuteReque
         request.idempotency_key = _normalize_idempotency_key(request.idempotency_key)
         return request
     except ValidationError as exc:
-        raise RequestValidationError(exc.errors()) from exc
+        raise _invalid_execute_payload() from exc
 
 
 # ---------------------------------------------------------------------------
@@ -2303,11 +2308,11 @@ async def execute_capability(
             request_id=request_id,
         )
 
+    request = await _parse_execute_request(raw_request)
+
     capability = await _resolve_capability(capability_id)
     if capability is None:
         return await _capability_not_found_response(raw_request, capability_id)
-
-    request = await _parse_execute_request(raw_request)
 
     # ── Authentication: API key OR x402 payment ────────────────────
     is_x402_anonymous = False

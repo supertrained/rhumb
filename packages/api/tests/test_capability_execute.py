@@ -727,6 +727,59 @@ async def test_execute_rejects_blank_provider_field_before_mapping_reads(
 
 
 @pytest.mark.anyio
+async def test_execute_rejects_non_object_payload_before_capability_reads(
+    app,
+    _mock_identity_store,
+    _mock_rate_limiter,
+):
+    mock_fetch = AsyncMock(return_value=[])
+
+    with patch("routes.capability_execute.supabase_fetch", new=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                json=["not", "an", "object"],
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid execute payload."
+    mock_fetch.assert_not_awaited()
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
+    _mock_rate_limiter.check_and_increment.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_execute_rejects_malformed_json_before_capability_reads(
+    app,
+    _mock_identity_store,
+    _mock_rate_limiter,
+):
+    mock_fetch = AsyncMock(return_value=[])
+
+    with patch("routes.capability_execute.supabase_fetch", new=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                "/v1/capabilities/email.send/execute",
+                content=b'{"provider":',
+                headers={
+                    "Content-Type": "application/json",
+                    "X-Rhumb-Key": FAKE_RHUMB_KEY,
+                },
+            )
+
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["detail"] == "Provide a valid JSON execute payload."
+    mock_fetch.assert_not_awaited()
+    _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
+    _mock_rate_limiter.check_and_increment.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_execute_blocks_when_kill_switch_active(app):
     mock_registry = MagicMock()
     mock_registry.is_blocked.return_value = (
