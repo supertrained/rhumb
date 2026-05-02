@@ -138,6 +138,18 @@ def _required_text_field(payload: dict[str, Any], field: str) -> str:
     return normalized
 
 
+def _request_challenge_text_field(
+    payload: dict[str, Any], field: str, *, default: str
+) -> str:
+    """Validate request-challenge scalar fields before throttle or writes open."""
+    if field not in payload:
+        return default
+    value = payload.get(field)
+    if not isinstance(value, str):
+        raise HTTPException(status_code=400, detail=f"{field} must be a string")
+    return value.strip()
+
+
 @router.post("/request-challenge")
 async def request_challenge(request: Request) -> JSONResponse:
     """Generate a signable challenge for wallet authentication.
@@ -150,9 +162,9 @@ async def request_challenge(request: Request) -> JSONResponse:
     payload = await _json_object_body(request)
 
     # Validate inputs
-    raw_chain = str(payload.get("chain", "base"))
-    raw_address = str(payload.get("address", ""))
-    purpose = str(payload.get("purpose", "access"))
+    raw_chain = _request_challenge_text_field(payload, "chain", default="base")
+    raw_address = _request_challenge_text_field(payload, "address", default="")
+    purpose = _request_challenge_text_field(payload, "purpose", default="access")
 
     if purpose not in ("access", "topup", "link", "rotate_key"):
         raise HTTPException(status_code=400, detail=f"Invalid purpose: {purpose}")

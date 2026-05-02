@@ -320,6 +320,25 @@ class TestRequestChallengeEndpoint:
         assert "Invalid JSON object body" in resp.json()["detail"]
         mock_insert.assert_not_called()
 
+    @patch("routes.auth_wallet.get_challenge_throttle")
+    @patch("routes.auth_wallet.supabase_insert_returning")
+    def test_rejects_non_string_request_fields_before_throttle_or_store(
+        self, mock_insert, mock_throttle
+    ):
+        client = TestClient(_shared_app)
+
+        for body, field in (
+            ({"chain": ["base"], "address": TEST_ADDRESS_1}, "chain"),
+            ({"chain": "base", "address": {"value": TEST_ADDRESS_1}}, "address"),
+            ({"chain": "base", "address": TEST_ADDRESS_1, "purpose": ["access"]}, "purpose"),
+        ):
+            resp = client.post("/v1/auth/wallet/request-challenge", json=body)
+            assert resp.status_code == 400
+            assert resp.json()["detail"] == f"{field} must be a string"
+
+        mock_throttle.assert_not_called()
+        mock_insert.assert_not_called()
+
     @patch("routes.auth_wallet.supabase_insert_returning")
     def test_rejects_invalid_chain(self, mock_insert):
         client = TestClient(_shared_app)
