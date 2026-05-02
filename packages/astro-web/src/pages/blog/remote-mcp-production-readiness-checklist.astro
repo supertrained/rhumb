@@ -43,6 +43,7 @@ const DEMO_FLAGS = [
   "remote command execution is exposed as a generic shell instead of a bounded runbook with target, timeout, environment, approval, and rollback evidence",
   "a self-hosted personal gateway hides several downstream credentials, tenants, and quota owners behind one friendly local endpoint",
   "a 40-tool scraping catalog exposes search, crawl, browser, screenshot, and extraction authority without target, egress, quota, and data-use lanes",
+  "built-in client tools, sibling MCP servers, or bare tool names can shadow the governed tool namespace",
   "audit trails do not map actions back to principals and scopes",
 ];
 
@@ -60,6 +61,7 @@ const CHECKLIST = [
   "Remote command execution: is the shell surface constrained to named runbooks, allowed targets, safe directories, bounded timeouts, explicit environment access, and typed denials for adjacent hosts or commands?",
   "Gateway brokerage: when one self-hosted MCP gateway fronts several providers, does each tool keep its credential lane, tenant scope, quota owner, revocation path, and denied-neighbor trace?",
   "Scraping catalogs: when one server exposes many web-access tools, are target domains, egress, crawl depth, provider quota, output provenance, and data-use limits enforced per lane?",
+  "Tool namespace: can the runtime prove it denied built-ins, ambiguous bare names, and sibling server tools that would bypass the intended MCP lane?",
   "Decision lineage: can the operator reconstruct why a risky action was selected, which policy gates ran, and where quarantine or human review would have fired?",
   "Recovery: after partial failure, how does the caller re-verify state?",
   "Trace evidence: does every gateway trace carry the original actor, adapter version, policy bundle, redacted input class, caller-visible surface, downstream credential lane, and quota owner?",
@@ -120,6 +122,13 @@ const SCRAPING_CATALOG_DRILL = [
   "Require explicit target-domain and egress allowlists before any crawler or browser tool can leave the server boundary.",
   "Attribute provider quota, cache use, extraction cost, and blocked-target denials to the caller and workflow that caused them.",
   "Preserve provenance for extracted outputs so a downstream agent can distinguish allowed source data from scraped material that should not be reused.",
+];
+
+const TOOL_NAMESPACE_DRILL = [
+  "Inventory every tool the agent process can see, including SDK built-ins, remote MCP tools, local MCP tools, and host shell/browser/file helpers.",
+  "Deny built-ins and sibling tools that duplicate a governed lane, then require fully qualified names such as mcp__local__read_file in prompts, manifests, and allowed-tool config.",
+  "Test same-name collisions across servers with mismatched schemas and require a typed policy denial or no-candidate result instead of letting the model guess.",
+  "Preserve cwd, denied paths, selected namespace, rejected namespace, schema shape, and policy decision in trace evidence before calling the setup production-ready.",
 ];
 
 const FAILURE_CLASSES = [
@@ -250,7 +259,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">8 min read</span>
+          <span class="text-slate-600">9 min read</span>
         </div>
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
@@ -613,7 +622,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              16. What still counts as a demo, not infrastructure
+              16. Tool namespace shadowing is a readiness failure
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Recent production MCP writeups are making a quiet boundary visible: the remote server can be narrow while the agent process still has another way around it. Built-in file tools, shell helpers, browser tools, and same-name MCP tools from sibling servers are all part of the effective authority surface.
+              </p>
+              <p>
+                Readiness means proving the governed namespace is the only path for that workflow. If the agent can choose an unsandboxed <code>Read</code>, a bare <code>read_file</code> from the wrong server, or a host <code>Bash</code> helper when policy expected <code>mcp__local__read_file</code>, the remote MCP boundary failed before the server saw the call.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Tool namespace drill</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {TOOL_NAMESPACE_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              17. What still counts as a demo, not infrastructure
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>

@@ -44,6 +44,10 @@ const FAILURE_MODES = [
     title: "Endpoint-family drift",
     body: "One MCP endpoint has the right auth middleware, while the message or callback endpoint quietly accepts broad traffic by default.",
   },
+  {
+    title: "Tool shadowing",
+    body: "A sandboxed MCP tool sits beside built-in Read, Bash, or another server's read_file, so the agent escapes the lane without looking unauthenticated.",
+  },
 ];
 
 const SCRAPING_PERMISSION_CHECKS = [
@@ -53,11 +57,19 @@ const SCRAPING_PERMISSION_CHECKS = [
   "Do blocked domains, disallowed extraction outputs, and over-budget crawls return typed policy denials with traceable evidence?",
 ];
 
+const TOOL_NAMESPACE_CHECKS = [
+  "Treat the active tool list as default-deny: enumerate the MCP tools allowed for the workflow and explicitly remove broad built-ins such as Read, Write, Bash, Glob, and Grep when they bypass the governed lane.",
+  "Reference tools by fully qualified server namespace, not bare names. Two read_file tools with different schemas are different authorities, even if the label is identical.",
+  "Pin the working directory and denied paths so an accidental fallback cannot read the host app, sibling workspace, customer repo, or container filesystem outside policy.",
+  "Log selected tool, rejected sibling tools, namespace, schema version, and policy result so a wrong-tool incident is diagnosable instead of looking like generic model confusion.",
+];
+
 const SCOPING_CHECKLIST = [
   "Does each caller receive a tool manifest filtered to only the tools it should know about?",
   "Are tool calls checked against role or scope at execution time, not just at connection time?",
   "Are high-risk arguments constrained by policy, or can the model supply arbitrary paths, URLs, repo names, tenants, or write targets?",
   "Do all endpoints in the MCP family enforce the same authentication and authorization policy, including message, callback, and streaming endpoints?",
+  "Are built-in tools, bare tool names, and sibling MCP server tools explicitly denied when they would bypass the governed namespace?",
   "Do empty allowlists fail closed, or does the default accidentally mean allow-all?",
   "Can one low-risk workflow discover or invoke higher-risk tools such as deploy, delete, or write actions?",
   "Do denied calls emit typed policy errors instead of generic runtime failures?",
@@ -108,7 +120,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Updated May 2, 2026</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">8 min read</span>
+          <span class="text-slate-600">9 min read</span>
         </div>
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
@@ -274,7 +286,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              7. Endpoint-family parity is part of authorization
+              7. Tool namespaces and built-ins are part of the permission boundary
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A caller can pass server auth and still leave the intended lane if the agent has another tool with the same job. A sandboxed <code>mcp__local__read_file</code> is not narrow if the SDK still exposes a broad built-in <code>Read</code>, or if another MCP server also exports a bare <code>read_file</code> with different authority.
+              </p>
+              <p>
+                Treat tool selection as an authorization surface, not prompt hygiene. The manifest should say which names exist, the runtime should deny sibling names that bypass policy, and the trace should prove which namespace the agent selected before any filesystem, browser, GitHub, or shell authority is touched.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300">Tool namespace shadowing checks</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {TOOL_NAMESPACE_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              8. Endpoint-family parity is part of authorization
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -291,7 +325,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              8. Audit proof is the dependency most teams skip
+              9. Audit proof is the dependency most teams skip
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -317,7 +351,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              9. Secure by design means narrow authority before the first tool call
+              10. Secure by design means narrow authority before the first tool call
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
