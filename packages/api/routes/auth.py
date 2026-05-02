@@ -1026,9 +1026,10 @@ def _dashboard_float_field(payload: dict[str, Any], field: str) -> float | None:
     if value is None or isinstance(value, bool):
         return None
     try:
-        return float(value)
+        parsed = float(value)
     except (TypeError, ValueError):
         return None
+    return parsed if math.isfinite(parsed) else None
 
 
 def _validate_dashboard_checkout_amount(amount_usd: float | None, *, suffix: str = "") -> None:
@@ -1051,7 +1052,10 @@ def _validate_dashboard_checkout_body(body: Any) -> float:
 
 def _validate_dashboard_checkout_confirm_body(body: Any) -> str:
     payload = _dashboard_billing_body(body)
-    session_id = str(payload.get("session_id") or "").strip()
+    raw_session_id = payload.get("session_id")
+    if not isinstance(raw_session_id, str):
+        raise HTTPException(status_code=400, detail="session_id is required")
+    session_id = raw_session_id.strip()
     if not session_id:
         raise HTTPException(status_code=400, detail="session_id is required")
     return session_id

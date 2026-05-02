@@ -894,12 +894,13 @@ def test_me_billing_checkout_confirm_calls_stripe_confirm_service() -> None:
     assert mock_confirm.await_args.kwargs["expected_org_id"] == org_id
 
 
-def test_me_billing_checkout_rejects_invalid_amount_before_session_lookup() -> None:
+@pytest.mark.parametrize("amount_usd", [1.0, "NaN", "Infinity"])
+def test_me_billing_checkout_rejects_invalid_amount_before_session_lookup(amount_usd: object) -> None:
     with _auth_email_harness() as env:
         with patch("routes.auth._require_session", new_callable=AsyncMock) as mock_session:
             response = env.client.post(
                 "/v1/auth/me/billing/checkout",
-                json={"amount_usd": 1.0},
+                json={"amount_usd": amount_usd},
             )
 
     assert response.status_code == 400
@@ -927,12 +928,13 @@ def test_me_billing_rejects_non_object_bodies_before_session_lookup(
     mock_session.assert_not_awaited()
 
 
-def test_me_billing_checkout_confirm_rejects_blank_session_id_before_session_lookup() -> None:
+@pytest.mark.parametrize("session_id", ["   ", 12345, {"id": "cs_test"}])
+def test_me_billing_checkout_confirm_rejects_invalid_session_id_before_session_lookup(session_id: object) -> None:
     with _auth_email_harness() as env:
         with patch("routes.auth._require_session", new_callable=AsyncMock) as mock_session:
             response = env.client.post(
                 "/v1/auth/me/billing/checkout/confirm",
-                json={"session_id": "   "},
+                json={"session_id": session_id},
             )
 
     assert response.status_code == 400
@@ -940,22 +942,39 @@ def test_me_billing_checkout_confirm_rejects_blank_session_id_before_session_loo
     mock_session.assert_not_awaited()
 
 
-def test_me_billing_auto_reload_rejects_invalid_config_before_session_lookup() -> None:
+@pytest.mark.parametrize(
+    ("payload", "expected_detail"),
+    [
+        (
+            {"enabled": True, "threshold_usd": 0, "amount_usd": 50.0},
+            "threshold_usd must be > 0 when auto-reload is enabled",
+        ),
+        (
+            {"enabled": True, "threshold_usd": 10.0, "amount_usd": 1.0},
+            "amount_usd must be between",
+        ),
+        (
+            {"enabled": True, "threshold_usd": "Infinity", "amount_usd": 50.0},
+            "threshold_usd must be > 0 when auto-reload is enabled",
+        ),
+        (
+            {"enabled": True, "threshold_usd": 10.0, "amount_usd": "NaN"},
+            "amount_usd must be between",
+        ),
+    ],
+)
+def test_me_billing_auto_reload_rejects_invalid_config_before_session_lookup(
+    payload: dict[str, object], expected_detail: str
+) -> None:
     with _auth_email_harness() as env:
         with patch("routes.auth._require_session", new_callable=AsyncMock) as mock_session:
-            threshold_response = env.client.put(
+            response = env.client.put(
                 "/v1/auth/me/billing/auto-reload",
-                json={"enabled": True, "threshold_usd": 0, "amount_usd": 50.0},
-            )
-            amount_response = env.client.put(
-                "/v1/auth/me/billing/auto-reload",
-                json={"enabled": True, "threshold_usd": 10.0, "amount_usd": 1.0},
+                json=payload,
             )
 
-    assert threshold_response.status_code == 400
-    assert threshold_response.json()["detail"] == "threshold_usd must be > 0 when auto-reload is enabled"
-    assert amount_response.status_code == 400
-    assert "amount_usd must be between" in amount_response.json()["detail"]
+    assert response.status_code == 400
+    assert expected_detail in response.json()["detail"]
     mock_session.assert_not_awaited()
 
 
