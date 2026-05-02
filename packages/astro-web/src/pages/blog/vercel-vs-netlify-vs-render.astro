@@ -334,6 +334,22 @@ const description =
       </section>
 
       <section>
+        <div class="rounded-[28px] border border-amber/25 bg-amber/5 p-6 sm:p-8">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-amber">Release-gate proof</p>
+          <h2 class="mt-2 font-display text-2xl font-bold text-slate-100">Deployment APIs are release authority, not just convenience.</h2>
+          <p class="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
+            Vercel, Render, and Netlify make it easy for an agent to create builds, preview URLs, and production deploys. That does not mean the same credential should reach every environment. A governed deploy lane should prove project, branch, environment, artifact, approval, budget, verify command, and rollback path before production receives a new release.
+          </p>
+          <ul class="mt-5 grid gap-3 text-sm leading-6 text-slate-300 md:grid-cols-2">
+            <li class="rounded-2xl border border-amber/20 bg-navy/70 p-4">Preview deploys can be low-risk; production deploys need a separate policy decision.</li>
+            <li class="rounded-2xl border border-amber/20 bg-navy/70 p-4">A neighboring project, wrong environment, missing approval, or failed smoke test should return a typed denial before retry.</li>
+            <li class="rounded-2xl border border-amber/20 bg-navy/70 p-4">Build minutes, paid add-ons, and rollback attempts need the same quota owner as the agent workflow.</li>
+            <li class="rounded-2xl border border-amber/20 bg-navy/70 p-4">The release receipt should preserve preview URL, production alias, actor, approval, verification result, and recovery hint.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
         <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
           <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-emerald-300">Next honest step</p>
           <h2 class="mt-2 font-display text-2xl font-bold text-slate-100">Choose the execution lane after you choose the deploy platform</h2>

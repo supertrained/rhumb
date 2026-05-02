@@ -143,6 +143,13 @@ const REMOTE_COMMAND_PREFLIGHT = [
   "Carry command class, redacted arguments, target, approval source, exit code, stdout/stderr disposition, and recovery hint through the receipt so the next run can prove what happened.",
 ];
 
+const DEPLOY_RELEASE_PREFLIGHT = [
+  "Bind the release request to repo, branch, artifact, project, environment, and release class before deployment credentials or build minutes can be spent.",
+  "Separate preview from production. A preview URL, staging deploy, migration, and production alias change should not inherit one broad release grant.",
+  "Make wrong branch, neighboring project, missing approval, failed smoke test, and blocked rollback typed release-gate outcomes instead of retryable provider errors.",
+  "Carry build id, deploy id, actor, approval, verification result, quota owner, and rollback hint into the receipt before the lane can repeat.",
+];
+
 const OPERATOR_CONTROL_PREFLIGHT = [
   "Name the approver, channel, device class, and expiry window before a mobile or remote approval can unlock execution authority.",
   "Show the capability id, side-effect class, target, cost ceiling, credential lane, and denied-neighbor risk in the approval prompt, not only the agent's natural-language request.",
@@ -367,6 +374,26 @@ const REQUEST_FIRST_BRIEF = [
         </ul>
         <p class="mt-6 text-sm leading-6 text-slate-400">
           For E-006, a remote-command workflow-fit request is stronger only when the caller can name the allowed command class, denied neighboring target, approval source, and recovery proof that would make the first execution boring.
+        </p>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-amber/25 bg-amber/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Release-gate preflight</div>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">A deploy lane needs environment-scoped authority before production moves.</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            Agent-led releases are a useful managed-execution candidate only when build, preview, production deploy, migration, and rollback are separate policy decisions. The first paid path should prove which environment can move, who approved it, what verification passed, and how the lane stops if a neighboring release target appears.
+          </p>
+        </div>
+        <ul class="mt-6 grid gap-4 md:grid-cols-2">
+          {DEPLOY_RELEASE_PREFLIGHT.map((item) => (
+            <li class="rounded-3xl border border-amber/20 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm leading-6 text-slate-400">
+          For E-006, a deployment workflow-fit request is stronger only when the caller can name the target environment, denied neighboring release, approval gate, smoke test, budget owner, and rollback proof that would make repeat releases boring.
         </p>
       </div>
     </section>

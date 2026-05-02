@@ -232,6 +232,22 @@ const compared: ComparedService[] = [
         </div>
       </section>
 
+      <section class="mt-12" data-section="release-gate-proof">
+        <div class="rounded-[28px] border border-amber/25 bg-amber/5 p-6 sm:p-8">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-amber">Release-gate proof</p>
+          <h2 class="mt-2 font-display text-2xl font-bold text-slate-100">Do not let one CI token become production authority.</h2>
+          <p class="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
+            A CI/CD API is agent-ready only when pipeline trigger, artifact read, secret access, environment promotion, and rollback are separate authority steps. The agent should prove repo, branch, workflow, environment, approval state, cost or runner budget, and verification command before it can move from a green build to a production release.
+          </p>
+          <ul class="mt-5 grid gap-3 text-sm leading-6 text-slate-300 md:grid-cols-2">
+            <li class="rounded-2xl border border-amber/20 bg-navy/70 p-4">Preview and production should not share one broad deploy grant.</li>
+            <li class="rounded-2xl border border-amber/20 bg-navy/70 p-4">A skipped approval, wrong branch, neighboring environment, or missing verify step should fail as a typed release-gate outcome.</li>
+            <li class="rounded-2xl border border-amber/20 bg-navy/70 p-4">Secrets and environment variables should stay hidden until the pipeline path proves it needs that specific lane.</li>
+            <li class="rounded-2xl border border-amber/20 bg-navy/70 p-4">The receipt should name build id, artifact, actor, environment, approval, verify result, and rollback hint.</li>
+          </ul>
+        </div>
+      </section>
+
       <section class="mt-12">
         <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
           <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-emerald-300">Next honest step</p>
