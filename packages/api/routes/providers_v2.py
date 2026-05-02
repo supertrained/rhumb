@@ -88,6 +88,7 @@ _V2_NAVIGATION_URL_KEYS = {
 }
 
 _VALID_PROVIDER_LIST_STATUSES = frozenset({"callable", "listed", "scored"})
+_VALID_L1_EXECUTE_CREDENTIAL_MODES = frozenset({"auto", "byok", "rhumb_managed", "agent_vault"})
 
 
 def _canonicalize_provider_list_category(category: str | None) -> str | None:
@@ -103,6 +104,22 @@ def _normalized_idempotency_key(value: str | None) -> str | None:
         return None
     normalized = value.strip()
     return normalized or None
+
+
+def _validated_l1_execute_credential_mode(credential_mode: str | None) -> str:
+    """Normalize Layer 1 credential modes before provider/catalog reads."""
+    normalized = v1_execute._canonicalize_credential_mode(credential_mode)
+    if normalized in _VALID_L1_EXECUTE_CREDENTIAL_MODES:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid 'credential_mode' field.",
+        detail=(
+            "Use one of: auto, byok, rhumb_managed, agent_vault. "
+            "Legacy 'byo' is accepted as 'byok'."
+        ),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1140,6 +1157,7 @@ async def execute_on_provider(
     credentials, billing, observability, receipts.
     """
     t_start = time.monotonic()
+    payload.credential_mode = _validated_l1_execute_credential_mode(payload.credential_mode)
     payload_idempotency_key = _normalized_idempotency_key(payload.idempotency_key)
     header_idempotency_key = _normalized_idempotency_key(x_rhumb_idempotency_key)
     effective_idempotency_key = payload_idempotency_key or header_idempotency_key

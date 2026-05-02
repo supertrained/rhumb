@@ -1088,6 +1088,24 @@ class TestExecuteOnProvider:
         assert "non-empty provider id" in error["detail"]
         assert mock_detail.await_count == 0
 
+    def test_execute_rejects_invalid_credential_mode_before_reads(self, client):
+        with patch("routes.providers_v2._resolve_provider_detail", new_callable=AsyncMock) as mock_detail:
+            resp = client.post(
+                f"/v2/providers/{_TEST_PROVIDER_SLUG}/execute",
+                json={
+                    "capability": _TEST_CAPABILITY,
+                    "parameters": {},
+                    "credential_mode": "managed",
+                },
+            )
+
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid 'credential_mode' field."
+        assert "auto, byok, rhumb_managed, agent_vault" in error["detail"]
+        assert mock_detail.await_count == 0
+
     @patch("routes.providers_v2._resolve_agent_for_budget", new_callable=AsyncMock, return_value=None)
     @patch("routes.providers_v2.get_receipt_service")
     @patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch)
@@ -1232,6 +1250,68 @@ class TestExecuteOnProvider:
 
         receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
         assert receipt_input.idempotency_key == expected_key
+
+    @patch("routes.providers_v2._resolve_agent_for_budget", new_callable=AsyncMock, return_value=None)
+    @patch("routes.providers_v2.get_receipt_service")
+    @patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch)
+    def test_execute_normalizes_credential_mode_before_forwarding_and_receipts(
+        self,
+        mock_fetch,
+        mock_receipt_svc,
+        mock_budget,
+        client,
+    ):
+        mock_receipt = MagicMock()
+        mock_receipt.receipt_id = "rcpt_credential_mode_123"
+        mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
+
+        mock_execute_response = {
+            "data": {
+                "execution_id": "exec_credential_mode_123",
+                "result": {"text": "Hello"},
+                "provider_latency_ms": 100,
+                "agent_id": "test_agent",
+                "org_id": "test_org",
+            },
+            "error": None,
+        }
+
+        with patch("routes.providers_v2._forward_internal") as mock_forward:
+            estimate_resp = MagicMock()
+            estimate_resp.status_code = 200
+            estimate_resp.json.return_value = {
+                "data": {
+                    "provider": _TEST_PROVIDER_SLUG,
+                    "cost_estimate_usd": 0.005,
+                    "endpoint_pattern": "POST /v1/chat/completions",
+                },
+            }
+            estimate_resp.headers = {}
+
+            execute_resp = MagicMock()
+            execute_resp.status_code = 200
+            execute_resp.json.return_value = mock_execute_response
+            execute_resp.headers = {}
+
+            mock_forward.side_effect = [estimate_resp, execute_resp]
+
+            resp = client.post(
+                f"/v2/providers/{_TEST_PROVIDER_SLUG}/execute",
+                json={
+                    "capability": _TEST_CAPABILITY,
+                    "parameters": {"model": "gpt-4o", "messages": [{"role": "user", "content": "hi"}]},
+                    "credential_mode": " BYO ",
+                },
+            )
+
+        assert resp.status_code == 200
+        estimate_call = mock_forward.call_args_list[0]
+        assert estimate_call.kwargs["params"]["credential_mode"] == "byok"
+        execute_call = mock_forward.call_args_list[1]
+        assert execute_call.kwargs["json_body"]["credential_mode"] == "byok"
+
+        receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
+        assert receipt_input.credential_mode == "byok"
 
     @patch("routes.providers_v2._resolve_agent_for_budget", new_callable=AsyncMock, return_value=None)
     @patch("routes.providers_v2.get_receipt_service")
