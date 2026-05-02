@@ -29,6 +29,13 @@ const CONTROL_PILLARS = [
   },
 ];
 
+const DECISION_LINEAGE_CHECKS = [
+  "Record the candidate set the agent was allowed to see before routing, not only the final tool that ran.",
+  "Attach policy result, trust class, side-effect class, and blast-radius classification to the decision before execution.",
+  "Make quarantine, downgrade, human-review, and deny paths first-class outcomes instead of treating them as failed tool calls.",
+  "Join the final receipt back to the selection trace so post-call evidence explains both what happened and why it was admitted.",
+];
+
 const EVALUATION_AREAS = [
   {
     title: "Capability shape",
@@ -106,6 +113,8 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-500">April 14, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Updated May 2, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">8 min read</span>
         </div>
@@ -223,7 +232,29 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            5. The visible capability surface is becoming part of the trust boundary
+            5. Decision lineage belongs inside the capability contract
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              A governed capability is not only the final action. It is the decision path that made the action admissible. When an agent chooses a risky operation, operators need to see the allowed candidate set, the policy checks, the trust class, and the quarantine decision that would have stopped the call if the scope had been wrong.
+            </p>
+            <p>
+              That keeps observability from becoming prompt-log theater. The useful evidence says why the agent picked this lane, what narrower lane it rejected, and whether the runtime degraded safely before side effects attached.
+            </p>
+          </div>
+          <div class="mt-6 rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Decision-lineage control checks</div>
+            <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+              {DECISION_LINEAGE_CHECKS.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            6. The visible capability surface is becoming part of the trust boundary
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -264,7 +295,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            6. What to evaluate when someone claims a surface is agent-ready
+            7. What to evaluate when someone claims a surface is agent-ready
           </h2>
           <div class="space-y-6 text-slate-400 leading-relaxed">
             <p>
@@ -287,7 +318,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            7. Why this matters for Rhumb&rsquo;s evaluation model
+            8. Why this matters for Rhumb&rsquo;s evaluation model
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -307,7 +338,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            8. The practical recommendation
+            9. The practical recommendation
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>

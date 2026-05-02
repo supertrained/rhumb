@@ -69,6 +69,14 @@ const CONTEXT_FIELDS = [
   "environment or tenant boundary",
 ];
 
+const DECISION_LINEAGE_FIELDS = [
+  "the candidate tools or capabilities the agent was allowed to consider",
+  "the policy checks and trust-class filters that ran before selection",
+  "the reason a risky action was admitted, quarantined, downgraded, or denied",
+  "the context hash, route choice, and blast-radius class attached to the decision",
+  "the human-review or safe-degradation path when confidence or authority was too weak",
+];
+
 const RELATED_READING = [
   {
     href: "/blog/governed-capability-surfaces-agent-integrations",
@@ -107,7 +115,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Signed MCP Receipts Create Evidence After the Call. They Do Not Make the Call Safe",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-14T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Signed MCP tool-call receipts improve auditability and forensic confidence after execution, but they do not replace scope control, trust-class filtering, or authority checks before the call.",
@@ -143,6 +151,8 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-500">April 14, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Updated May 2, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">8 min read</span>
         </div>
@@ -281,7 +291,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              6. Receipts get stronger when joined to policy context
+              6. Decision lineage explains why the receipt exists
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+              <p>
+                Prompt logs and receipts answer different questions. The prompt log may show what text the model saw. The receipt can prove which tool ran. Decision lineage has to connect the middle: why this capability was selected, which policy gates shaped the choice, and where the runtime would have quarantined the action if the blast radius was too large.
+              </p>
+              <p>
+                Without that middle layer, incident review turns into archaeology. Operators can prove the call happened but still cannot tell whether the route, policy, or human-review gate did the right thing before execution.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Decision-lineage evidence</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {DECISION_LINEAGE_FIELDS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              7. Receipts get stronger when joined to policy context
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>

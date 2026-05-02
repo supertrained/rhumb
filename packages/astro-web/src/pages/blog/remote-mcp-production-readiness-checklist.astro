@@ -58,9 +58,17 @@ const CHECKLIST = [
   "Remote command execution: is the shell surface constrained to named runbooks, allowed targets, safe directories, bounded timeouts, explicit environment access, and typed denials for adjacent hosts or commands?",
   "Gateway brokerage: when one self-hosted MCP gateway fronts several providers, does each tool keep its credential lane, tenant scope, quota owner, revocation path, and denied-neighbor trace?",
   "Scraping catalogs: when one server exposes many web-access tools, are target domains, egress, crawl depth, provider quota, output provenance, and data-use limits enforced per lane?",
+  "Decision lineage: can the operator reconstruct why a risky action was selected, which policy gates ran, and where quarantine or human review would have fired?",
   "Recovery: after partial failure, how does the caller re-verify state?",
   "Trace evidence: does every gateway trace carry the original actor, adapter version, policy bundle, redacted input class, caller-visible surface, downstream credential lane, and quota owner?",
   "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
+];
+
+const DECISION_LINEAGE_DRILL = [
+  "Capture allowed candidate set, selected capability, rejected alternatives, and route/fallback choice before the tool runs.",
+  "Attach policy result, trust class, side-effect class, blast-radius label, and context hash to the decision record.",
+  "Treat quarantine, safe degradation, and human review as successful control outcomes with their own typed traces.",
+  "Join decision lineage to the final receipt or session summary so incident response can explain why the action happened, not only that it happened.",
 ];
 
 const PROTOCOL_CONTRACT_DRILL = [
@@ -443,7 +451,29 @@ const ARTICLE_JSON_LD = {
               </ul>
             </div>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              8. Auditability matters because blame eventually matters
+              8. Decision lineage turns prompt logs into operator evidence
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Prompt logs rarely explain why a remote MCP runtime chose a risky action. Production evidence has to preserve the decision path: which capabilities were visible, which route was selected, which policy checks ran, and where the system would have quarantined or downgraded the task.
+              </p>
+              <p>
+                That middle layer matters during incidents. If the only artifacts are the original prompt and the final tool receipt, operators still have to infer the control decision that connected them.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Decision-lineage drill</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {DECISION_LINEAGE_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              9. Auditability matters because blame eventually matters
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -463,7 +493,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              9. Gateway traces have to preserve authority context
+              10. Gateway traces have to preserve authority context
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -477,7 +507,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              10. Transport adapters and middleware stacks are not trust upgrades by themselves
+              11. Transport adapters and middleware stacks are not trust upgrades by themselves
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -494,7 +524,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              11. Package managers make install convenience part of the authority surface
+              12. Package managers make install convenience part of the authority surface
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -508,7 +538,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              12. Personal gateways still broker production authority
+              13. Personal gateways still broker production authority
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -530,7 +560,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              13. Remote command execution is production authority, not a convenience add-on
+              14. Remote command execution is production authority, not a convenience add-on
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -552,7 +582,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              14. What still counts as a demo, not infrastructure
+              15. What still counts as a demo, not infrastructure
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>
@@ -571,7 +601,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              14. The checklist in one page
+              16. The checklist in one page
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
