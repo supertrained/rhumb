@@ -48,6 +48,13 @@ const LIVE_REQUEST_SHAPE_DRILL = [
   "Fail closed when the provider accepts a replacement field but the downstream tool or parser still expects the retired shape; migration is complete only when both sides agree on the wire format.",
 ];
 
+const LIVE_SCHEMA_ENFORCEMENT_DRILL = [
+  "Validate request and response schemas at the managed-lane boundary, not only inside SDK helpers or documentation examples.",
+  "Reject unknown fields, missing required fields, enum drift, nullable surprises, and output variants as typed contract outcomes before policy, budget, or side effects attach.",
+  "Version the schema artifact that approved the call and carry that schema id into trace and receipt evidence for later replay or migration review.",
+  "Treat schema loosening as a trust change too: accepting extra shape without authority checks can widen what the agent is allowed to infer or write.",
+];
+
 const LIVE_MEDIATED_CHANGE_DRILL = [
   "Record which upstream contract, adapter version, policy bundle, and client-visible schema produced every tool result so drift can be localized instead of blamed on the whole agent stack.",
   "When a gRPC bridge, policy proxy, or middleware spine changes a field, error code, timeout, or auth decision, classify that as mediated contract drift, not harmless implementation detail.",
@@ -313,6 +320,20 @@ const ARTICLE_JSON_LD = {
               </ul>
               <p class="mt-4 text-slate-300 leading-relaxed">
                 This is why <a href="/blog/api-reliability-checklist" class="text-amber hover:text-amber-200 transition-colors">API reliability checks</a> need to include outbound payload shape, not only response parsing. The route is not safe until stale fields fail as typed migration work before credentials, budget, or side effects attach.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Live schema-enforcement drift test</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                Fresh API signal: strict schema enforcement is becoming reliability language because agents need a contract they can stop on. The trap is treating schema validation as documentation polish. In production, the schema is the gate that decides whether a call is still the same operation the policy, credential, and budget lane approved.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {LIVE_SCHEMA_ENFORCEMENT_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 text-slate-300 leading-relaxed">
+                Pair this with <a href="/blog/how-to-evaluate-apis-for-agents" class="text-amber hover:text-amber-200 transition-colors">API evaluation</a>: schema stability is not just whether the docs look tidy. It is whether an unattended caller can prove the same input and output contract still governs the next execution.
               </p>
             </div>
             <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">

@@ -69,6 +69,13 @@ const REQUEST_SHAPE_PREFLIGHT_GATES = [
   "Block side-effecting routes when the replacement request shape is not yet proven against the exact provider lane the agent will run unattended.",
 ];
 
+const STRICT_SCHEMA_GATES = [
+  "Require strict schemas at the boundary where policy, credentials, budget, and provider routing first meet the request.",
+  "Reject unknown fields, missing required fields, enum drift, nullable surprises, and unexpected output variants as typed contract failures before retry logic sees them.",
+  "Store schema id, schema version, validator result, rejected path, and fallback decision in trace context so a later receipt can explain why execution stopped or continued.",
+  "Fail closed when a schema loosening would allow the model to smuggle a broader target, action, tenant, or side-effect class than the original lane approved.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
@@ -450,6 +457,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           Pair this gate with <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:underline underline-offset-2">machine-readable change communication</a> and <a href="/blog/llm-apis-agent-loops" class="text-amber hover:underline underline-offset-2">LLM loop reliability</a>: request drift is safe only when it becomes a typed migration outcome before retries, fallback, credentials, or spend attach.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Strict schema gate</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Strict schemas are execution boundaries, not docs niceties
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          A strict schema is useful because it lets the workflow say no before ambiguity reaches policy, credentials, spend, or provider state. If unknown fields, nullable surprises, enum drift, or unexpected output variants pass through as soft warnings, the agent can widen the operation while every surrounding surface still claims the lane was approved.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {STRICT_SCHEMA_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          Connect this to <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:underline underline-offset-2">machine-readable change communication</a>: schema enforcement only stays safe when the caller can tell whether a rejection is stale input, provider drift, policy denial, or a real validation bug.
         </p>
       </section>
 

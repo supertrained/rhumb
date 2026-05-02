@@ -148,6 +148,29 @@ const ARTICLE_JSON_LD = {
           Execution reliability is an ongoing cost that compounds every time the agent makes a call.
         </p>
 
+        <section class="my-10 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6 not-prose">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Schema enforcement belongs in execution</div>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-3 tracking-tight">
+            A schema is only agent-ready when it can stop the wrong call
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            Strict request and response schemas matter because they turn ambiguous model output into a bounded execution decision. Unknown fields, missing required values, enum drift, and unexpected variants should fail as typed contract outcomes before provider routing, credentials, budget, or side effects attach.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4">
+              <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-violet-300">Good signal</div>
+              <p class="mt-2 text-sm leading-6 text-slate-300">The API names the schema id, rejected path, allowed enum, replacement hint, and whether retry, migration, or human approval is the safe next step.</p>
+            </div>
+            <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4">
+              <div class="text-[11px] font-mono uppercase tracking-[0.22em] text-violet-300">Bad signal</div>
+              <p class="mt-2 text-sm leading-6 text-slate-300">The agent gets a vague validation error, silently coerced input, or an output variant the parser never expected after the workflow already spent quota.</p>
+            </div>
+          </div>
+          <p class="mt-4 text-sm leading-6 text-slate-400">
+            For deeper operational checks, pair this methodology with the <a href="/blog/api-reliability-checklist" class="text-amber hover:underline underline-offset-2">reliability checklist</a> and <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:underline underline-offset-2">machine-readable change discipline</a>.
+          </p>
+        </section>
+
         <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">
           The AN Score: quantifying agent-nativeness
         </h2>
