@@ -164,6 +164,13 @@ const PER_ACTION_BUDGET_CHECKS = [
   "Feed observed cost-per-action deltas back into routing policy so future agents slow down, downgrade, or ask for approval before repeating the expensive path.",
 ];
 
+const MODEL_TIER_QUOTA_CHECKS = [
+  "Separate developer-sandbox quota, production-project quota, customer allowance, and workflow budget before a model route can migrate tiers.",
+  "Record old lane, new lane, project id, region, service account, quota bucket, billing owner, and reason for migration before retry traffic moves.",
+  "Re-run strict schema, safety, latency, and cost-per-action checks after the migration; more quota does not prove the same execution contract.",
+  "Stop a fleet-wide retry storm from promoting every agent at once. Tier migration should be scheduled, budgeted, and reversible per workflow lane.",
+];
+
 const MEDIA_DATA_QUOTA_CHECKS = [
   "Budget by asset and extraction job, not just by HTTP request. One video lookup can fan out into metadata, transcript, comments, channel, caption, and refresh calls.",
   "Separate provider daily quota, project quota, customer allowance, and workflow budget before fallback logic chooses another key or data source.",
@@ -235,6 +242,24 @@ const MEDIA_DATA_QUOTA_CHECKS = [
             <li class="rounded-2xl border border-amber/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</li>
           ))}
         </ul>
+      </section>
+
+      <section class="mt-14 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 sm:p-8">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Model tier quota migration</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-3">
+          A 429 fix can become a fleet-wide authority change
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          Moving a Gemini or other LLM workload from a friendly prototype surface into a production cloud project can be the right answer to rate limits. It is still a fleet migration. The old lane and new lane may differ in auth mode, project quota, region, billing owner, safety policy, and data-use terms, so promotion has to be observable and reversible.
+        </p>
+        <ul class="grid gap-3 sm:grid-cols-2">
+          {MODEL_TIER_QUOTA_CHECKS.map((item) => (
+            <li class="rounded-2xl border border-sky-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-5 text-sm leading-6 text-slate-400">
+          Pair this with <a href="/blog/llm-apis-agent-loops" class="text-amber hover:underline underline-offset-2">LLM loop recovery</a>: capacity migration is safe only when the loop can prove what changed before it resumes unattended retries.
+        </p>
       </section>
 
       <section class="mt-14 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6 sm:p-8">

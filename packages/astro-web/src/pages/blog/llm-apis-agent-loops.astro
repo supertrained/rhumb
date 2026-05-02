@@ -109,6 +109,13 @@ const REQUEST_SHAPE_DRIFT_GUARDRAILS = [
   "Log rejected field, provider lane, SDK version, model id, fallback decision, and final operator outcome so the next loop knows whether the failure was drift or bad input.",
 ];
 
+const PRODUCTION_TIER_MIGRATION_GUARDRAILS = [
+  "Classify 429 recovery as lane migration before retry logic widens provider access: free-tier, preview, consumer API, and production cloud project are different contracts.",
+  "Checkpoint model id, endpoint, region, project id, auth mode, quota bucket, safety setting, response schema, and billing owner before and after the move.",
+  "Run the same tool call, strict schema test, and over-budget branch through the new lane before allowing unattended loops to resume.",
+  "Fail closed when the migrated lane solves capacity by changing data retention, residency, consent, or policy evidence the original workflow depended on.",
+];
+
 const COST_PER_ACTION_GUARDRAILS = [
   "Track cost per completed user action, not only tokens per request, because retries, rejected outputs, and moderation detours all change unit economics.",
   "Split instant, reasoning, fallback, and enrichment branches in spend logs so a cheaper nominal model does not hide a more expensive workflow path.",
@@ -401,6 +408,24 @@ const htmlContent = markdownToHtml(content);
             <p class="mt-2 text-sm leading-relaxed text-slate-400">Credential drift and quota pain usually compound together once the same loops keep retrying behind one shared auth surface.</p>
           </a>
         </div>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Production-tier migration drill</div>
+        <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+          Moving from prototype quota to production quota is a state transition
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Fresh AI Studio to Vertex AI 429-migration chatter maps to a broader loop rule: when a route moves from a prototype surface to a production cloud project, the agent is not just getting more capacity. It is changing the identity, budget, region, safety, schema, and evidence surface that recovery depends on.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {PRODUCTION_TIER_MIGRATION_GUARDRAILS.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          Pair this with <a href="/blog/anthropic-vs-openai-vs-google-ai" class="text-amber hover:text-amber-200 transition-colors">provider selection</a> and <a href="/blog/agent-fleet-rate-limit-design" class="text-amber hover:text-amber-200 transition-colors">fleet rate-limit design</a>: the safe fix for 429s is a governed migration path, not an invisible hop to whichever tier has spare quota.
+        </p>
       </section>
 
       <section class="mt-10 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
