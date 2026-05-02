@@ -62,12 +62,19 @@ const PROXY_REQUEST_PREFLIGHT_GATES = [
   "Preserve normalized method, normalized path, caller, budget owner, proxy lane, credential lane, and rejection reason in trace context so operators can separate bad input from route miss, auth failure, and provider outage.",
 ];
 
+const REQUEST_SHAPE_PREFLIGHT_GATES = [
+  "Validate outbound payload fields, content part names, enum values, and SDK-normalized request bodies before the request can enter retry or fallback logic.",
+  "Treat provider rejections for retired or renamed fields as deterministic contract drift, not as user typo, model hesitation, or transient upstream failure.",
+  "Preserve provider, endpoint, SDK version, model or capability id, rejected field, replacement hint, and retry decision in trace context.",
+  "Block side-effecting routes when the replacement request shape is not yet proven against the exact provider lane the agent will run unattended.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-04-30T16:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -427,6 +434,24 @@ const htmlContent = markdownToHtml(content);
         </p>
       </section>
 
+
+      <section class="mt-10 rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Request-shape preflight</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Retired payload fields should fail before the loop calls them flaky
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          A provider can reject an outbound field that worked yesterday while the endpoint, model family, and SDK import still look familiar. If that rejection reaches generic retry code, the agent wastes budget and may fall back to a lane with different price, auth, or tool behavior. Normalize the payload contract first, then decide whether this is migration work or a runnable request.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {REQUEST_SHAPE_PREFLIGHT_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          Pair this gate with <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:underline underline-offset-2">machine-readable change communication</a> and <a href="/blog/llm-apis-agent-loops" class="text-amber hover:underline underline-offset-2">LLM loop reliability</a>: request drift is safe only when it becomes a typed migration outcome before retries, fallback, credentials, or spend attach.
+        </p>
+      </section>
 
       <section class="mt-10 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Side-effect replay gate</div>

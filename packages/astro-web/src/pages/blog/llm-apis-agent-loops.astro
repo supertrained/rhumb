@@ -48,7 +48,7 @@ const ranked = [...providers].sort(
   (a, b) => (b.data?.aggregateRecommendationScore ?? 0) - (a.data?.aggregateRecommendationScore ?? 0)
 );
 const leader = ranked[0];
-const editorialUpdatedAtISO = "2026-04-25T00:00:00Z";
+const editorialUpdatedAtISO = "2026-05-02T00:00:00Z";
 const computedUpdatedAtISO = leader?.data?.calculatedAt ? new Date(leader.data.calculatedAt).toISOString() : editorialUpdatedAtISO;
 const updatedAtISO = new Date(Math.max(Date.parse(computedUpdatedAtISO), Date.parse(editorialUpdatedAtISO))).toISOString();
 const updatedAt = new Date(updatedAtISO).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
@@ -100,6 +100,13 @@ const PRE_RELEASE_MODEL_GUARDRAILS = [
   "Treat new mode switches like instant versus reasoning or thinking as cost and latency branches, not harmless quality flags.",
   "Do not assume an aggregator or preview endpoint preserves the final schema, error taxonomy, rate limits, or billing fields the production loop will see.",
   "Gate production promotion on a contract test that exercises the exact first-party endpoint, response shape, pricing fields, and fallback behavior you will run unattended.",
+];
+
+const REQUEST_SHAPE_DRIFT_GUARDRAILS = [
+  "Contract-test the exact request body your loop sends, including content part labels, tool-call schema, output format flags, and provider-specific parameter names.",
+  "Classify retired-field and renamed-field rejections as migration work before retry policy, fallback routing, or model replanning can burn more budget.",
+  "When a fallback provider has a different request shape, translate and re-validate the payload instead of replaying the stale primary request unchanged.",
+  "Log rejected field, provider lane, SDK version, model id, fallback decision, and final operator outcome so the next loop knows whether the failure was drift or bad input.",
 ];
 
 const COST_PER_ACTION_GUARDRAILS = [
@@ -422,6 +429,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           The same recovery pattern carries into <a href="/blog/agent-state-management-recovery-patterns" class="text-amber hover:text-amber-200 transition-colors">agent state management</a>: if model routing changes mid-workflow, the saved state needs to include enough provider context for the next worker to trim, resume, or fail closed deliberately.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Request-shape drift drill</div>
+        <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+          A renamed payload field is a loop failure, not just an SDK annoyance
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Fresh provider incidents keep proving the same point: a field can disappear from the accepted request shape while the model brand and endpoint still look stable. For an agent loop, that is dangerous because the first failed call often triggers retries, fallback providers, or replanning before anyone classifies the break as deterministic contract drift.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {REQUEST_SHAPE_DRIFT_GUARDRAILS.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          The mitigation belongs with <a href="/blog/api-reliability-checklist" class="text-amber hover:text-amber-200 transition-colors">API reliability preflight</a> and <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:text-amber-200 transition-colors">machine-readable change discipline</a>: the loop should pause as migration work before it spends fallback budget or mutates state through a translated request.
         </p>
       </section>
 

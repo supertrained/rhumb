@@ -41,6 +41,12 @@ const LIVE_PROTOCOL_DRILL = [
   "Keep assertion suites close to the live wire format so protocol regressions surface before users discover them at transport time.",
 ];
 
+const LIVE_REQUEST_SHAPE_DRILL = [
+  "Pin request-field names, content part types, schema variants, and SDK helper defaults in contract tests instead of trusting examples copied into a wrapper months ago.",
+  "Classify unknown-field, missing-field, and renamed-field failures as deterministic request-shape drift before retry logic, fallback routing, or model replanning can amplify them.",
+  "Keep the attempted field contract, provider endpoint, SDK version, model or capability id, and rejection code in trace context so operators know which assumption broke.",
+  "Fail closed when the provider accepts a replacement field but the downstream tool or parser still expects the retired shape; migration is complete only when both sides agree on the wire format.",
+];
 
 const LIVE_MEDIATED_CHANGE_DRILL = [
   "Record which upstream contract, adapter version, policy bundle, and client-visible schema produced every tool result so drift can be localized instead of blamed on the whole agent stack.",
@@ -133,7 +139,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "API Versioning Is Table Stakes. Agent Readiness Depends on Machine-Parseable Change Communication",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-28T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "An API can be versioned and still be operationally unstable for agents. The real readiness test is whether non-human clients can detect drift in time to fail safely.",
@@ -166,7 +172,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-sky-400 uppercase tracking-widest">API Readiness</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">Updated April 28, 2026</span>
+          <span class="text-slate-500">Updated May 2, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -293,6 +299,20 @@ const ARTICLE_JSON_LD = {
               </ul>
               <p class="mt-4 text-slate-300 leading-relaxed">
                 That is why machine-parseable change discipline belongs with <a href="/blog/remote-mcp-production-readiness-checklist" class="text-amber hover:text-amber-200 transition-colors">production readiness</a>, not in a docs footnote. The contract has to stay valid on the wire, especially when edge cases tempt a server to improvise.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-orange-500/20 bg-orange-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-orange-300 mb-3">Live request-shape drift test: rejected payload fields</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                Fresh API signal: a provider can keep the same product name, endpoint family, and documentation tone while one request field stops being accepted. To an unattended loop, that should not look like random bad input or a transient model failure. It is contract drift at the request boundary.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {LIVE_REQUEST_SHAPE_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 text-slate-300 leading-relaxed">
+                This is why <a href="/blog/api-reliability-checklist" class="text-amber hover:text-amber-200 transition-colors">API reliability checks</a> need to include outbound payload shape, not only response parsing. The route is not safe until stale fields fail as typed migration work before credentials, budget, or side effects attach.
               </p>
             </div>
             <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
