@@ -127,6 +127,17 @@ async def _json_object_body(request: Request) -> dict[str, Any]:
     return payload
 
 
+def _required_text_field(payload: dict[str, Any], field: str) -> str:
+    """Validate a required text field before lookup/auth state opens."""
+    value = payload.get(field)
+    if not isinstance(value, str):
+        raise HTTPException(status_code=400, detail="challenge_id and signature are required")
+    normalized = value.strip()
+    if not normalized:
+        raise HTTPException(status_code=400, detail="challenge_id and signature are required")
+    return normalized
+
+
 @router.post("/request-challenge")
 async def request_challenge(request: Request) -> JSONResponse:
     """Generate a signable challenge for wallet authentication.
@@ -225,11 +236,8 @@ async def verify(request: Request) -> JSONResponse:
     """
     payload = await _json_object_body(request)
 
-    challenge_id = str(payload.get("challenge_id", "")).strip()
-    signature = str(payload.get("signature", "")).strip()
-
-    if not challenge_id or not signature:
-        raise HTTPException(status_code=400, detail="challenge_id and signature are required")
+    challenge_id = _required_text_field(payload, "challenge_id")
+    signature = _required_text_field(payload, "signature")
 
     # Load the challenge
     challenges = await supabase_fetch(

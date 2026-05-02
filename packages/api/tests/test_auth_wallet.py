@@ -604,6 +604,28 @@ class TestVerifyEndpoint:
         assert "Invalid JSON object body" in resp.json()["detail"]
         mock_fetch.assert_not_called()
 
+    @patch("routes.auth_wallet.supabase_fetch")
+    def test_rejects_non_string_challenge_id_before_challenge_read(self, mock_fetch):
+        client = TestClient(_shared_app)
+        resp = client.post("/v1/auth/wallet/verify", json={
+            "challenge_id": ["not", "text"],
+            "signature": "0x" + "ab" * 65,
+        })
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "challenge_id and signature are required"
+        mock_fetch.assert_not_called()
+
+    @patch("routes.auth_wallet.supabase_fetch")
+    def test_rejects_non_string_signature_before_challenge_read(self, mock_fetch):
+        client = TestClient(_shared_app)
+        resp = client.post("/v1/auth/wallet/verify", json={
+            "challenge_id": _MOCK_CHALLENGE_ID,
+            "signature": {"not": "text"},
+        })
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "challenge_id and signature are required"
+        mock_fetch.assert_not_called()
+
     def test_missing_fields_rejected(self):
         """Missing required fields should return 400."""
         client = TestClient(_shared_app)
