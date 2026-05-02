@@ -614,6 +614,30 @@ def test_compare_http_rejects_missing_services_filter_with_canonical_envelope(
     assert payload["error"]["detail"] == "Provide at least one service slug."
 
 
+def test_compare_http_rejects_excessive_services_filter_before_reads(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Oversized compare filters should fail before score service/repository reads."""
+    from routes import scores as score_routes
+
+    score_routes.get_scoring_service.cache_clear()
+
+    def _unexpected_scoring_service() -> ScoringService:
+        raise AssertionError("get_scoring_service should not run for oversized compare filters")
+
+    monkeypatch.setattr(score_routes, "get_scoring_service", _unexpected_scoring_service)
+
+    services = ",".join(f"service-{idx}" for idx in range(21))
+    response = client.get("/v1/compare", params={"services": services})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'services' filter."
+    assert payload["error"]["detail"] == "Compare at most 20 services in one request."
+
+
 def test_get_service_score_reads_alias_backed_stored_score_with_canonical_slug(
     client,
     monkeypatch: pytest.MonkeyPatch,

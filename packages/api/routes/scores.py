@@ -39,6 +39,7 @@ from services.service_slugs import (
 )
 
 router = APIRouter()
+_MAX_COMPARE_SERVICES = 20
 
 
 def _canonicalize_known_service_aliases(
@@ -559,6 +560,12 @@ def _validated_compare_service_slugs(services: str | None) -> list[str]:
         canonical_slug = public_service_slug(cleaned) or cleaned.lower()
         if canonical_slug not in requested:
             requested.append(canonical_slug)
+        if len(requested) > _MAX_COMPARE_SERVICES:
+            raise RhumbError(
+                "INVALID_PARAMETERS",
+                message="Invalid 'services' filter.",
+                detail=f"Compare at most {_MAX_COMPARE_SERVICES} services in one request.",
+            )
 
     if requested:
         return requested
