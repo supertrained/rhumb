@@ -4,8 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Body, Depends, HTTPException
 
 from routes.admin_auth import require_admin_key
 from services.audit_trail import AuditTrail, get_audit_trail
@@ -29,23 +28,69 @@ VALID_CHECKPOINT_STREAMS = {
 }
 
 
-class CreateChainCheckpointRequest(BaseModel):
-    """Request payload for manual active-head checkpoints."""
+def _validated_checkpoint_body(body: Any) -> dict[str, Any]:
+    if body is None:
+        return {}
+    if isinstance(body, dict):
+        return body
 
-    reason: str = Field(default="manual_head_snapshot", min_length=1, max_length=120)
-    metadata: dict[str, Any] = Field(default_factory=dict)
-    flush: bool = True
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid checkpoint payload",
+        detail="Provide a JSON object payload or omit the body.",
+    )
 
 
-def _validated_checkpoint_reason(reason: str) -> str:
-    normalized = str(reason or "").strip()
-    if normalized:
+def _validated_checkpoint_reason(reason: Any) -> str:
+    if reason is None:
+        return "manual_head_snapshot"
+    if not isinstance(reason, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid checkpoint reason",
+            detail="Provide a non-empty checkpoint reason string or omit the field.",
+        )
+
+    normalized = reason.strip()
+    if normalized and len(normalized) <= 120:
         return normalized
 
     raise RhumbError(
         "INVALID_PARAMETERS",
         message="Invalid checkpoint reason",
-        detail="Provide a non-empty checkpoint reason or omit the field.",
+        detail="Provide a non-empty checkpoint reason up to 120 characters, or omit the field.",
+    )
+
+
+def _validated_checkpoint_metadata(metadata: Any) -> dict[str, Any]:
+    if metadata is None:
+        return {}
+    if isinstance(metadata, dict):
+        return metadata
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid checkpoint metadata",
+        detail="Provide metadata as a JSON object or omit the field.",
+    )
+
+
+def _validated_checkpoint_flush(flush: Any) -> bool:
+    if flush is None:
+        return True
+    if isinstance(flush, bool):
+        return flush
+    if isinstance(flush, str):
+        normalized = flush.strip().lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message="Invalid checkpoint flush flag",
+        detail="Provide flush as a boolean value or omit the field.",
     )
 
 
@@ -91,9 +136,10 @@ def set_test_chain_integrity_stores(
 @router.post("/chain-checkpoints/{stream_name}", dependencies=[Depends(require_admin_key)])
 async def create_chain_checkpoint(
     stream_name: str,
-    body: CreateChainCheckpointRequest,
+    body: Any = Body(default=None),
 ) -> dict[str, Any]:
     """Persist a signed checkpoint for the current chain head."""
+    checkpoint_body = _validated_checkpoint_body(body)
     normalized_stream = stream_name.strip()
     if normalized_stream not in VALID_CHECKPOINT_STREAMS:
         valid_streams = ", ".join(sorted(VALID_CHECKPOINT_STREAMS))
@@ -103,7 +149,9 @@ async def create_chain_checkpoint(
             detail=f"Use one of: {valid_streams}.",
         )
 
-    reason = _validated_checkpoint_reason(body.reason)
+    reason = _validated_checkpoint_reason(checkpoint_body.get("reason"))
+    metadata = _validated_checkpoint_metadata(checkpoint_body.get("metadata"))
+    flush = _validated_checkpoint_flush(checkpoint_body.get("flush"))
 
     outbox = _test_outbox if _test_outbox is not None else get_event_outbox()
     if outbox is None:
@@ -113,38 +161,38 @@ async def create_chain_checkpoint(
         if normalized_stream == "audit_events":
             payload = await checkpoint_audit_head(
                 reason=reason,
-                metadata=body.metadata,
+                metadata=metadata,
                 outbox=outbox,
                 audit_trail=_test_audit_trail or get_audit_trail(),
-                flush=body.flush,
+                flush=flush,
             )
         elif normalized_stream == "billing_events":
             payload = await checkpoint_billing_head(
                 reason=reason,
-                metadata=body.metadata,
+                metadata=metadata,
                 outbox=outbox,
                 billing_stream=_test_billing_stream or get_billing_event_stream(),
-                flush=body.flush,
+                flush=flush,
             )
         elif normalized_stream == "score_audit_chain":
             payload = await checkpoint_score_audit_head(
                 reason=reason,
-                metadata=body.metadata,
+                metadata=metadata,
                 outbox=outbox,
                 latest_row=_test_score_audit_row,
                 latest_verified_row=_test_score_audit_verified_row,
                 row_count=_test_score_audit_count,
                 verified_row_count=_test_score_audit_verified_count,
-                flush=body.flush,
+                flush=flush,
             )
         else:
             payload = await checkpoint_execution_receipts_head(
                 reason=reason,
-                metadata=body.metadata,
+                metadata=metadata,
                 outbox=outbox,
                 latest_row=_test_execution_receipt_row,
                 row_count=_test_execution_receipt_count,
-                flush=body.flush,
+                flush=flush,
             )
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

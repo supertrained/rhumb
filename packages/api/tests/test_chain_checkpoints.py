@@ -390,6 +390,39 @@ def test_admin_route_rejects_blank_checkpoint_reason_before_outbox_read() -> Non
     get_event_outbox.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (["not", "an", "object"], "Invalid checkpoint payload"),
+        ({"metadata": "operator=pedro"}, "Invalid checkpoint metadata"),
+        ({"flush": "sometimes"}, "Invalid checkpoint flush flag"),
+        ({"reason": 123}, "Invalid checkpoint reason"),
+    ],
+)
+def test_admin_route_rejects_malformed_checkpoint_payload_before_outbox_read(
+    payload: object,
+    message: str,
+) -> None:
+    settings.rhumb_admin_secret = "test-secret"
+
+    app = FastAPI()
+    app.add_exception_handler(RhumbError, rhumb_error_handler)
+    app.include_router(router)
+    client = TestClient(app)
+
+    with patch("routes.admin_chain_integrity.get_event_outbox") as get_event_outbox:
+        response = client.post(
+            "/v1/admin/trust/chain-checkpoints/audit_events",
+            headers={"X-Rhumb-Admin-Key": "test-secret"},
+            json=payload,
+        )
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "INVALID_PARAMETERS"
+    assert response.json()["error"]["message"] == message
+    get_event_outbox.assert_not_called()
+
+
 def test_admin_route_creates_audit_checkpoint() -> None:
     settings.rhumb_admin_secret = "test-secret"
     outbox = FakeOutbox()
