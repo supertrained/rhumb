@@ -163,6 +163,13 @@ const PER_ACTION_BUDGET_CHECKS = [
   "Stop retries when the remaining action budget cannot finish safely; do not let rate-limit recovery quietly become margin loss.",
   "Feed observed cost-per-action deltas back into routing policy so future agents slow down, downgrade, or ask for approval before repeating the expensive path.",
 ];
+
+const MEDIA_DATA_QUOTA_CHECKS = [
+  "Budget by asset and extraction job, not just by HTTP request. One video lookup can fan out into metadata, transcript, comments, channel, caption, and refresh calls.",
+  "Separate provider daily quota, project quota, customer allowance, and workflow budget before fallback logic chooses another key or data source.",
+  "Preserve video id, dataset slice, credential lane, quota owner, cache hit, and retry decision in the trace so operators know whether the agent spent on new data or repeated stale work.",
+  "Fail closed when a fallback source has weaker licensing, freshness, or user-data guarantees than the lane the agent originally approved.",
+];
 ---
 
 <Layout
@@ -228,6 +235,24 @@ const PER_ACTION_BUDGET_CHECKS = [
             <li class="rounded-2xl border border-amber/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</li>
           ))}
         </ul>
+      </section>
+
+      <section class="mt-14 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6 sm:p-8">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Media data quota lanes</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-3">
+          Video and media data APIs turn one agent request into many quota decisions
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          Fresh API builders are still treating rate limits and API keys as paired concerns because media workflows make the coupling obvious: one "analyze this video" task can spend metadata, transcript, caption, comment, channel, and refresh quota before the agent has produced any user-visible answer. The safe design is a quota lane per asset and workflow, not a shared key pool that retries until the provider says no.
+        </p>
+        <ul class="grid gap-3 sm:grid-cols-2">
+          {MEDIA_DATA_QUOTA_CHECKS.map((item) => (
+            <li class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-5 text-sm leading-6 text-slate-400">
+          Pair this with <a href="/blog/api-credentials-agent-fleets" class="text-amber hover:underline underline-offset-2">credential fleet design</a>: key rotation only helps when the agent can prove which quota owner and data-rights boundary every retry would cross.
+        </p>
       </section>
 
       <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">

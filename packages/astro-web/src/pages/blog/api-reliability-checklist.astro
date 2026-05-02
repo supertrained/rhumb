@@ -76,6 +76,13 @@ const STRICT_SCHEMA_GATES = [
   "Fail closed when a schema loosening would allow the model to smuggle a broader target, action, tenant, or side-effect class than the original lane approved.",
 ];
 
+const QUOTA_KEY_PREFLIGHT_GATES = [
+  "Resolve the credential lane and quota owner before the first provider call, including backup-key eligibility and customer budget ceiling.",
+  "Classify 401, 403, 409, 422, and 429 outcomes separately so auth drift, scope denial, contract drift, and exhausted quota do not collapse into generic retry behavior.",
+  "Carry remaining allowance, reset window, selected key id, rejected fallback keys, and budget owner into trace context before retries or provider fallback can run.",
+  "Stop when the only runnable key would cross a different tenant, data-use class, billing owner, or workflow budget than the original request approved.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
@@ -475,6 +482,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           Connect this to <a href="/blog/machine-parseable-change-communication-for-agent-ready-apis" class="text-amber hover:underline underline-offset-2">machine-readable change communication</a>: schema enforcement only stays safe when the caller can tell whether a rejection is stale input, provider drift, policy denial, or a real validation bug.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Quota-key preflight</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Rate-limit recovery starts before the agent chooses a key
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Fresh API-key and rate-limit guidance is useful, but unattended agents need one more boundary: key selection is part of execution policy. If a workflow can hop from an exhausted key to a broader provider account without proving the same tenant, budget, data-use class, and authority lane, quota recovery has become permission expansion.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {QUOTA_KEY_PREFLIGHT_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          Use this preflight with <a href="/blog/agent-fleet-rate-limit-design" class="text-amber hover:underline underline-offset-2">fleet rate-limit design</a> and <a href="/blog/api-credentials-agent-fleets" class="text-amber hover:underline underline-offset-2">credential fleet controls</a>: the reliable answer to a 429 is not "try another key". It is a typed proof that another key is still allowed.
         </p>
       </section>
 
