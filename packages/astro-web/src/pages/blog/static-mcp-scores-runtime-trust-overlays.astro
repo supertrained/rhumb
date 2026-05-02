@@ -59,6 +59,14 @@ const REGISTRY_FIELDS = [
   "preview-contract probes for first-party endpoint, response shape, mode-specific cost, and fallback behavior",
   "context-portability probes for tokenizer, reasoning-mode, usage-accounting, and checkpoint drift across fallback providers",
   "drift alerts when current behavior diverges from the baseline model",
+  "proxy candidate-set drift when a routing layer claims to reduce tools but still exposes the wrong authority class",
+];
+
+const PROXY_CANDIDATE_SET_DRILL = [
+  "Record the raw tool pool, the filtered candidate set, and the final selected capability for the same task.",
+  "Probe whether the proxy narrows by principal, trust class, side-effect class, tenant, and budget lane before the model sees options.",
+  "Send an adjacent risky task and verify the proxy returns a typed no-candidate or policy-denial result instead of routing to a broad fallback tool.",
+  "Treat candidate-set expansion, hidden fallback routing, or blended quota attribution as overlay drift even when the final tool call succeeds.",
 ];
 
 const VALIDATION_DRILL = [
@@ -87,7 +95,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Static MCP Scores Are a Baseline. Runtime Trust Is the Missing Overlay",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-26T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Static MCP scoring and runtime trust are not competing systems. The useful operator model is baseline evaluation plus live overlays that catch drift, auth breakage, and caller-visible failure patterns.",
@@ -122,6 +130,8 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-500">April 14, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Updated May 2, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">8 min read</span>
         </div>
@@ -269,6 +279,18 @@ const ARTICLE_JSON_LD = {
                 ))}
               </ul>
             </div>
+            <div class="rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Proxy candidate-set drill</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                A proxy that collapses dozens of MCP tools into one route should be measured by the candidate set it removes, not the token count it saves. The runtime overlay has to prove the proxy narrowed authority before selection instead of hiding broad fallback power behind a cleaner interface.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {PROXY_CANDIDATE_SET_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+
             <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 mt-6">
               <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Reality-check drill</div>
               <p class="text-slate-300 leading-relaxed mb-4">

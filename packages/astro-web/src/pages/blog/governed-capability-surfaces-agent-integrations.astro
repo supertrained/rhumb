@@ -29,6 +29,13 @@ const CONTROL_PILLARS = [
   },
 ];
 
+const PROXY_BOUNDARY_CHECKS = [
+  "Can the proxy show the raw pool, filtered candidate set, selected capability, and denied alternatives for the same request?",
+  "Does filtering happen by principal, workflow intent, trust class, tenant, and side-effect class before the model sees a tool list?",
+  "When no safe candidate exists, does the proxy return a typed no-candidate or policy denial instead of routing to a generic fallback?",
+  "Do quota owner, downstream credential lane, and blast-radius class survive the proxy hop as operator-visible evidence?",
+];
+
 const DECISION_LINEAGE_CHECKS = [
   "Record the candidate set the agent was allowed to see before routing, not only the final tool that ran.",
   "Attach policy result, trust class, side-effect class, and blast-radius classification to the decision before execution.",
@@ -51,6 +58,7 @@ const EVALUATION_AREAS = [
       "Can visibility differ by principal, role, tenant, or session?",
       "Do budget and rate boundaries travel with the capability?",
       "Can middleware policy be bypass-tested against the direct route?",
+      "Can proxy layers prove bounded candidate sets instead of only claiming token savings?",
       "Can remote command or shell-capable actions be narrowed to one runbook, target set, and approval path?",
       "Is read-only versus write-capable use legible before invocation?",
     ],
@@ -232,7 +240,29 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            5. Decision lineage belongs inside the capability contract
+            5. Proxy layers have to prove bounded candidate sets
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Routing sixty tools through one proxy can reduce prompt clutter while still widening the real blast radius. The safer abstraction is not a smaller-looking catalog. It is a candidate-set boundary the operator can inspect before the model chooses an action.
+            </p>
+            <p>
+              A governed proxy should explain which tools were hidden, why one capability stayed visible, whose quota would burn, and what typed denial appears when the task falls outside the allowed lane.
+            </p>
+          </div>
+          <div class="mt-6 rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Proxy boundary checks</div>
+            <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+              {PROXY_BOUNDARY_CHECKS.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            6. Decision lineage belongs inside the capability contract
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -254,7 +284,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            6. The visible capability surface is becoming part of the trust boundary
+            7. The visible capability surface is becoming part of the trust boundary
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -295,7 +325,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            7. What to evaluate when someone claims a surface is agent-ready
+            8. What to evaluate when someone claims a surface is agent-ready
           </h2>
           <div class="space-y-6 text-slate-400 leading-relaxed">
             <p>
@@ -318,7 +348,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            8. Why this matters for Rhumb&rsquo;s evaluation model
+            9. Why this matters for Rhumb&rsquo;s evaluation model
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -338,7 +368,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            9. The practical recommendation
+            10. The practical recommendation
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
