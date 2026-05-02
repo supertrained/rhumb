@@ -140,7 +140,7 @@ async def create_chain_checkpoint(
 ) -> dict[str, Any]:
     """Persist a signed checkpoint for the current chain head."""
     checkpoint_body = _validated_checkpoint_body(body)
-    normalized_stream = stream_name.strip()
+    normalized_stream = stream_name.strip().lower()
     if normalized_stream not in VALID_CHECKPOINT_STREAMS:
         valid_streams = ", ".join(sorted(VALID_CHECKPOINT_STREAMS))
         raise RhumbError(

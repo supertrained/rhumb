@@ -453,6 +453,36 @@ def test_admin_route_creates_audit_checkpoint() -> None:
     assert outbox.flush_calls == 1
 
 
+def test_admin_route_canonicalizes_checkpoint_stream_before_outbox_read() -> None:
+    settings.rhumb_admin_secret = "test-secret"
+    outbox = FakeOutbox()
+    audit = AuditTrail()
+    audit.record(
+        AuditEventType.EXECUTION_STARTED,
+        "execute",
+        org_id="org_route",
+        detail={"provider": "brave-search"},
+    )
+    set_test_chain_integrity_stores(outbox=outbox, audit_trail=audit)
+
+    app = FastAPI()
+    app.include_router(router)
+    client = TestClient(app)
+
+    response = client.post(
+        "/v1/admin/trust/chain-checkpoints/%20Audit_Events%20",
+        headers={"X-Rhumb-Admin-Key": "test-secret"},
+        json={"reason": "external_anchor_candidate", "metadata": {"operator": "pedro"}},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "created"
+    assert body["stream_name"] == "audit_events"
+    assert body["checkpoint"]["stream_name"] == "audit_events"
+    assert outbox.flush_calls == 1
+
+
 def test_admin_route_trims_checkpoint_reason_before_write() -> None:
     settings.rhumb_admin_secret = "test-secret"
     outbox = FakeOutbox()
