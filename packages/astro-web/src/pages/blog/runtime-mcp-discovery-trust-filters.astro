@@ -91,6 +91,25 @@ const CURATED_REGISTRY_AUDIT = [
   },
 ];
 
+const VERIFIED_VERTICAL_AUDIT = [
+  {
+    title: "Verified source",
+    body: "Preserve which upstream registry, licensing body, or primary source verified the entry, not just that a marketplace label says verified.",
+  },
+  {
+    title: "Jurisdiction and allowed action",
+    body: "A lawyer, clinic, vendor, or domain expert may be valid for one region or job and unsafe for another. The discovery result should carry that boundary before ranking.",
+  },
+  {
+    title: "Freshness interval",
+    body: "The runtime needs the last verification time and refresh requirement, because stale professional or regulated data can be worse than no match.",
+  },
+  {
+    title: "No-advice / no-side-effect lane",
+    body: "Discovery, recommendation, outreach, payment, booking, and advice-like actions should stay separate until a policy gate promotes the workflow.",
+  },
+];
+
 const DISCOVERY_LADDER = [
   "Discoverable, the service exists in an index.",
   "Caller-visible, this principal can actually see it right now.",
@@ -104,7 +123,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful",
   datePublished: "2026-04-12T00:00:00Z",
-  dateModified: "2026-04-26T00:00:00Z",
+  dateModified: "2026-05-02T23:05:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Giant MCP indexes only become useful when trust class, auth shape, side-effect profile, caller visibility, and freshness narrow the pool before ranking.",
@@ -216,6 +235,21 @@ const ARTICLE_JSON_LD = {
               </p>
               <div class="grid gap-4 sm:grid-cols-2">
                 {CURATED_REGISTRY_AUDIT.map((item) => (
+                  <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4">
+                    <div class="mb-2 text-sm font-semibold text-slate-100">{item.title}</div>
+                    <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div class="mt-6 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Verified vertical discovery audit</div>
+              <p class="mb-5 leading-relaxed text-slate-300">
+                Vertical MCP directories are starting to advertise verified professional or domain-specific discovery. That is a stronger recall signal than a random catalog row, but it still needs runtime filters before an agent can act on it.
+              </p>
+              <div class="grid gap-4 sm:grid-cols-2">
+                {VERIFIED_VERTICAL_AUDIT.map((item) => (
                   <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4">
                     <div class="mb-2 text-sm font-semibold text-slate-100">{item.title}</div>
                     <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>

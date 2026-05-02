@@ -116,6 +116,13 @@ const TOOL_INVOCATION_MAP_DRILL = [
   "Require a no-candidate result when the task does not match any route card; falling back to a generic tool is a selection failure, not agent cleverness.",
 ];
 
+const VERIFIED_VERTICAL_DRILL = [
+  "Treat verified vertical discovery as a structured evidence source, not as an automatic recommendation. Preserve verifier, license or source id, jurisdiction, freshness, and allowed action in the candidate record.",
+  "Separate match quality from authority. A verified professional, vendor, or data source can be the right entity but still the wrong actor, geography, service type, price, or side-effect lane for this workflow.",
+  "Test denied neighbors: expired license, adjacent jurisdiction, unverified listing, stale registry record, out-of-scope practice area, or advice-like request where only discovery is allowed.",
+  "Promote the server only when it can return no-candidate, ask-human, downgrade-to-research, or typed policy-denial outcomes instead of turning every verified match into an action path.",
+];
+
 const RELATED_READING = [
   {
     href: "/blog/mcp-marketplace-directory-workflow-proof?rhumb_source=evaluate-mcp-directory-proof",
@@ -348,6 +355,20 @@ const ARTICLE_JSON_LD = {
               <p>
                 In practice, the cleanest selection shortcut is the same production split from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: ask what scope is reachable, which principal is acting, and what evidence survives after the call.
               </p>
+              <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+                <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Verified vertical drill</div>
+                <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+                  Verified discovery is still not permission to act.
+                </h3>
+                <p class="text-slate-300 leading-relaxed mb-4">
+                  Fresh vertical MCP submissions make discovery more domain-specific: verified lawyers, regulated data, specialty providers, and professional services can all be agent-visible. Evaluate them by whether the server preserves verification evidence, jurisdiction, allowed action, and denied-neighbor behavior before the model turns a match into a recommendation or side effect.
+                </p>
+                <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                  {VERIFIED_VERTICAL_DRILL.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              </div>
               <div class="rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
                 <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Tool invocation map drill</div>
                 <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">

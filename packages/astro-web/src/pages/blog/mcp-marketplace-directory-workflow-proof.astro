@@ -82,6 +82,13 @@ const NOT_ENOUGH = [
   "A demo that never tests the wrong tenant, wrong path, wrong budget, or expired credential",
 ];
 
+const VERIFIED_VERTICAL_DRILL = [
+  "Separate directory freshness from professional or regulatory verification. A fresh listing can still carry a stale license, jurisdiction, disciplinary status, or practice-area constraint.",
+  "Require the route card to preserve verified source, verification time, allowed jurisdiction, caller intent, and explicit non-advice boundary before the agent ranks the candidate.",
+  "Run the denied-neighbor test against an adjacent jurisdiction, expired credential, unverified profile, or out-of-scope service instead of only checking the happy-path listing.",
+  "Keep recommendation, contact, booking, payment, and advice-like actions as separate authority lanes. Discovery proof should not silently graduate into regulated side effects.",
+];
+
 const RELATED = [
   {
     href: "/blog/runtime-mcp-discovery-trust-filters",
@@ -111,7 +118,7 @@ const ARTICLE_JSON_LD = {
   headline: "MCP Marketplaces Are Discovery, Not Production Proof",
   description: "A practical guide for using MCP directories and marketplaces without confusing server count, curated listings, or one-click installs with workflow-level execution proof.",
   datePublished: "2026-05-01T22:13:00-07:00",
-  dateModified: "2026-05-01T22:13:00-07:00",
+  dateModified: "2026-05-02T16:05:00-07:00",
   author: { "@type": "Organization", name: "Rhumb" },
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   mainEntityOfPage: "https://rhumb.dev/blog/mcp-marketplace-directory-workflow-proof",
@@ -235,6 +242,18 @@ const ARTICLE_JSON_LD = {
                   <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">{item.step}</div>
                   <p class="text-sm leading-6 text-slate-300">{item.body}</p>
                 </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Verified vertical directories need a second proof gate</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              Fresh MCP submissions are starting to package vertical discovery — lawyers, vendors, marketplaces, data providers — as verified agent surfaces. That is useful, but verified discovery is still not execution authority. Regulated or high-trust verticals need proof that the listing, license, jurisdiction, freshness, and allowed action all match the exact workflow before the agent treats a directory hit as a route.
+            </p>
+            <div class="grid gap-4">
+              {VERIFIED_VERTICAL_DRILL.map((item) => (
+                <div class="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-4 text-sm leading-6 text-slate-300">{item}</div>
               ))}
             </div>
           </section>
