@@ -12,9 +12,9 @@ from datetime import timezone
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, Header, Query, Request
+from fastapi import APIRouter, Body, Header, Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from routes._supabase import (
     SupabaseWriteUnavailable,
@@ -68,6 +68,25 @@ class RecipeExecuteRequest(BaseModel):
         default=None,
         description="Optional Layer 2 provider policy forwarded to every step execution.",
     )
+
+
+def _validated_recipe_execute_payload(payload: Any) -> RecipeExecuteRequest:
+    """Validate Layer 3 execute payloads before auth, reads, or durable writes."""
+    if not isinstance(payload, Mapping):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid recipe execution payload.",
+            detail="Provide a JSON object with optional inputs, credential_mode, interface, idempotency_key, and policy.",
+        )
+
+    try:
+        return RecipeExecuteRequest.model_validate(dict(payload))
+    except ValidationError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid recipe execution payload.",
+            detail="Provide a JSON object with optional inputs, credential_mode, interface, idempotency_key, and policy.",
+        ) from exc
 
 
 def _normalized_idempotency_key(value: str | None) -> str | None:
@@ -1044,11 +1063,12 @@ async def get_recipe(recipe_id: str) -> JSONResponse:
 @router.post("/recipes/{recipe_id}/execute")
 async def execute_recipe(
     recipe_id: str,
-    payload: RecipeExecuteRequest,
     raw_request: Request,
+    payload: Any = Body(default=None),
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
     recipe_id = _validated_recipe_path_id(recipe_id)
+    payload = _validated_recipe_execute_payload(payload)
     api_key = str(raw_request.headers.get("X-Rhumb-Key") or "").strip()
     if not api_key:
         raise RhumbError(

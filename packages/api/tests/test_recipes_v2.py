@@ -388,6 +388,46 @@ async def test_execute_recipe_requires_valid_governed_api_key_before_policy_or_r
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "json_body",
+    [
+        None,
+        [],
+        {"inputs": "audio_url=https://example.com/audio.mp3"},
+        {"policy": "cheapest"},
+    ],
+)
+async def test_execute_recipe_rejects_invalid_payload_before_auth_or_reads(app, json_body):
+    with (
+        patch("routes.recipes_v2._resolve_policy_agent", new=AsyncMock()) as mock_resolve_agent,
+        patch("routes.recipes_v2.supabase_fetch", new=AsyncMock()) as mock_fetch,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            if json_body is None:
+                response = await client.post(
+                    "/v2/recipes/transcribe_and_notify/execute",
+                    headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                )
+            else:
+                response = await client.post(
+                    "/v2/recipes/transcribe_and_notify/execute",
+                    headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                    json=json_body,
+                )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid recipe execution payload."
+    assert body["error"]["detail"] == (
+        "Provide a JSON object with optional inputs, credential_mode, interface, "
+        "idempotency_key, and policy."
+    )
+    mock_resolve_agent.assert_not_awaited()
+    mock_fetch.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_execute_recipe_rejects_blank_recipe_id_before_auth_or_reads(app):
     with (
         patch("routes.recipes_v2._resolve_policy_agent", new=AsyncMock()) as mock_resolve_agent,
