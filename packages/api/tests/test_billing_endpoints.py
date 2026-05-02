@@ -674,6 +674,92 @@ class TestAutoReload:
 
 
 # ---------------------------------------------------------------------------
+# POST /billing/x402/topup/request
+# ---------------------------------------------------------------------------
+
+
+class TestLegacyWalletTopupRequest:
+    """Tests for legacy billing x402 top-up request validation before wallet-session reads."""
+
+    @pytest.mark.parametrize(
+        ("payload", "detail"),
+        [
+            (["not", "an", "object"], "JSON body must be an object"),
+            ({}, "amount_usd_cents must be between 25 and 500000"),
+            ({"amount_usd_cents": True}, "amount_usd_cents must be between 25 and 500000"),
+            ({"amount_usd_cents": "24"}, "amount_usd_cents must be between 25 and 500000"),
+            ({"amount_usd_cents": "500001"}, "amount_usd_cents must be between 25 and 500000"),
+            ({"amount_usd_cents": "25.5"}, "amount_usd_cents must be between 25 and 500000"),
+        ],
+    )
+    def test_rejects_invalid_request_payload_before_wallet_session(
+        self,
+        client: TestClient,
+        payload: object,
+        detail: str,
+    ) -> None:
+        require_session = AsyncMock()
+        create_payment_request = AsyncMock()
+
+        with (
+            patch("routes.billing._require_wallet_session", require_session),
+            patch("routes.billing._payment_requests.create_payment_request", create_payment_request),
+        ):
+            resp = client.post(
+                "/v1/billing/x402/topup/request",
+                json=payload,
+                headers={"Authorization": "Bearer wallet-session"},
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == detail
+        require_session.assert_not_awaited()
+        create_payment_request.assert_not_awaited()
+
+    def test_normalizes_amount_string_before_payment_request(self, client: TestClient) -> None:
+        require_session = AsyncMock(
+            return_value={
+                "wallet_identity_id": "wi_test",
+                "org_id": "org-test",
+                "wallet_address": "0xabc",
+                "chain": "base",
+            }
+        )
+        create_payment_request = AsyncMock(
+            return_value={
+                "id": "pr_test",
+                "amount_usdc_atomic": "1000000",
+                "network": "base",
+                "asset_address": "0xasset",
+                "pay_to_address": "0xpay",
+                "expires_at": "2026-05-01T20:00:00Z",
+            }
+        )
+        insert_topup = AsyncMock(return_value={"id": "topup_test", "status": "pending"})
+
+        with (
+            patch("routes.billing._require_wallet_session", require_session),
+            patch("routes.billing._payment_requests.create_payment_request", create_payment_request),
+            patch("routes.billing.supabase_insert_returning", insert_topup),
+        ):
+            resp = client.post(
+                "/v1/billing/x402/topup/request",
+                json={"amount_usd_cents": " 100 "},
+                headers={"Authorization": "Bearer wallet-session"},
+            )
+
+        assert resp.status_code == 200
+        create_payment_request.assert_awaited_once_with(
+            org_id="org-test",
+            capability_id=None,
+            amount_usd_cents=100,
+            purpose="prefund",
+        )
+        insert_topup.assert_awaited_once()
+        assert insert_topup.await_args.args[1]["amount_usd_cents"] == 100
+        assert resp.json()["data"]["amount_usd_cents"] == 100
+
+
 # POST /billing/x402/topup/verify
 # ---------------------------------------------------------------------------
 
@@ -684,6 +770,7 @@ class TestLegacyWalletTopupVerify:
     @pytest.mark.parametrize(
         ("payload", "detail"),
         [
+            (["not", "an", "object"], "JSON body must be an object"),
             ({"payment_request_id": "   ", "x_payment": "encoded-proof"}, "payment_request_id is required"),
             ({"payment_request_id": "pr_test", "x_payment": "   "}, "x_payment is required"),
         ],

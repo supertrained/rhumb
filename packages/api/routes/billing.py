@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from typing import Any, Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Body, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from routes._supabase import (
@@ -105,6 +105,60 @@ def _validate_checkout_amount(amount_usd: float) -> None:
         )
 
 
+def _validated_wallet_topup_amount_cents(value: Any) -> int:
+    """Normalize wallet top-up cents before wallet-session reads."""
+    if isinstance(value, bool) or value is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"amount_usd_cents must be between {MIN_WALLET_TOPUP_USD_CENTS} "
+                f"and {MAX_WALLET_TOPUP_USD_CENTS}"
+            ),
+        )
+
+    if isinstance(value, float):
+        if not value.is_integer():
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"amount_usd_cents must be between {MIN_WALLET_TOPUP_USD_CENTS} "
+                    f"and {MAX_WALLET_TOPUP_USD_CENTS}"
+                ),
+            )
+        normalized = int(value)
+    else:
+        try:
+            normalized = int(str(value).strip())
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"amount_usd_cents must be between {MIN_WALLET_TOPUP_USD_CENTS} "
+                    f"and {MAX_WALLET_TOPUP_USD_CENTS}"
+                ),
+            ) from exc
+
+    if MIN_WALLET_TOPUP_USD_CENTS <= normalized <= MAX_WALLET_TOPUP_USD_CENTS:
+        return normalized
+
+    raise HTTPException(
+        status_code=400,
+        detail=(
+            f"amount_usd_cents must be between {MIN_WALLET_TOPUP_USD_CENTS} "
+            f"and {MAX_WALLET_TOPUP_USD_CENTS}"
+        ),
+    )
+
+
+def _validated_wallet_topup_request(body: Any) -> WalletTopupRequest:
+    """Normalize wallet top-up request payloads before wallet-session reads."""
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="JSON body must be an object")
+    return WalletTopupRequest(
+        amount_usd_cents=_validated_wallet_topup_amount_cents(body.get("amount_usd_cents"))
+    )
+
+
 def _validate_auto_reload_request(body: AutoReloadRequest) -> None:
     if not body.enabled:
         return
@@ -121,10 +175,13 @@ def _validate_auto_reload_request(body: AutoReloadRequest) -> None:
 
 
 def _validated_wallet_topup_verify_request(
-    body: WalletTopupVerifyRequest,
+    body: Any,
 ) -> tuple[str, str]:
-    payment_request_id = str(body.payment_request_id or "").strip()
-    x_payment = str(body.x_payment or "").strip()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="JSON body must be an object")
+
+    payment_request_id = str(body.get("payment_request_id") or "").strip()
+    x_payment = str(body.get("x_payment") or "").strip()
 
     if not payment_request_id:
         raise HTTPException(status_code=400, detail="payment_request_id is required")
@@ -471,10 +528,11 @@ async def checkout(
 
 @router.post("/billing/x402/topup/request")
 async def wallet_topup_request(
-    body: WalletTopupRequest,
+    body: Any = Body(default=None),
     authorization: str | None = Header(None, alias="Authorization"),
 ) -> dict[str, Any]:
     """Mint an x402 payment request for a wallet-scoped prefund top-up."""
+    validated = _validated_wallet_topup_request(body)
     claims = await _require_wallet_session(authorization)
 
     wallet_identity_id = str(claims.get("wallet_identity_id", "")).strip()
@@ -488,7 +546,7 @@ async def wallet_topup_request(
     payment_request = await _payment_requests.create_payment_request(
         org_id=org_id,
         capability_id=None,
-        amount_usd_cents=body.amount_usd_cents,
+        amount_usd_cents=validated.amount_usd_cents,
         purpose="prefund",
     )
     payment_request_id = str(payment_request.get("id", "")).strip()
@@ -501,8 +559,9 @@ async def wallet_topup_request(
             "wallet_identity_id": wallet_identity_id,
             "org_id": org_id,
             "payment_request_id": payment_request_id,
-            "amount_usd_cents": body.amount_usd_cents,
-            "amount_usdc_atomic": payment_request.get("amount_usdc_atomic") or str(body.amount_usd_cents * 10000),
+            "amount_usd_cents": validated.amount_usd_cents,
+            "amount_usdc_atomic": payment_request.get("amount_usdc_atomic")
+            or str(validated.amount_usd_cents * 10000),
             "status": "pending",
             "metadata": {
                 "purpose": "prefund",
@@ -518,11 +577,11 @@ async def wallet_topup_request(
         "data": {
             "topup_id": topup.get("id"),
             "payment_request_id": payment_request_id,
-            "amount_usd_cents": body.amount_usd_cents,
-            "amount_usd": body.amount_usd_cents / 100,
+            "amount_usd_cents": validated.amount_usd_cents,
+            "amount_usd": validated.amount_usd_cents / 100,
             "status": topup.get("status", "pending"),
             "x402": _build_wallet_topup_x402_response(
-                amount_usd_cents=body.amount_usd_cents,
+                amount_usd_cents=validated.amount_usd_cents,
                 payment_request=payment_request,
             ),
         },
@@ -532,7 +591,7 @@ async def wallet_topup_request(
 
 @router.post("/billing/x402/topup/verify")
 async def wallet_topup_verify(
-    body: WalletTopupVerifyRequest,
+    body: Any = Body(default=None),
     authorization: str | None = Header(None, alias="Authorization"),
 ) -> dict[str, Any]:
     """Verify an x402 wallet top-up payment and credit the linked org balance."""
