@@ -43,6 +43,13 @@ const REGISTRY_HONESTY_DRILL = [
   "The production question is still whether this caller can use the server safely now, not whether an editor or launch-week review found it promising.",
 ];
 
+const PARAMETER_SCOPE_DRILL = [
+  "Do not score a tool as production-ready just because the schema type is valid. Path, URL, repo, tenant, environment, and write-target fields are part of the permission boundary.",
+  "Promotion evidence should include an allowed case and a denied-neighbor case, with the denial tied to a named policy rule instead of a vague exception.",
+  "If the same backend credential can reach broader resources than the workflow needs, the score needs a runtime caveat until caller-specific scope is enforced.",
+  "A strong methodology separates schema validity from authority containment: one proves shape, the other proves blast radius.",
+];
+
 const DIMENSION_GROUPS = [
   {
     title: "Execution reliability",
@@ -96,6 +103,7 @@ const FIVE_QUESTIONS = [
   "What happens when the request fails, times out, or retries under pressure?",
   "Can the intended caller authenticate cleanly, with the right principal and scope?",
   "How narrow is the callable surface, and does it stay inside the real job boundary?",
+  "Do high-risk arguments stay inside caller-specific allowlists at execution time, and can the denial prove which boundary fired?",
   "If the environment drifts tomorrow, how would the agent or operator notice before damage compounds?",
 ];
 
@@ -114,6 +122,11 @@ const RELATED_READING = [
     href: "/blog/mcp-security-model",
     title: "MCP Has a Security Model",
     description: "Why selection still depends on scope, acting principal, and whether evidence survives the runtime you are about to trust.",
+  },
+  {
+    href: "/blog/mcp-prompt-injection-scope-constraints",
+    title: "Prompt Injection Hits Harder When MCP Parameters Stay Unbounded",
+    description: "Why argument-level scope checks decide whether a legitimate tool call can still escape the intended lane.",
   },
   {
     href: "/blog/remote-mcp-auth-identity-vs-authority",
@@ -137,7 +150,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Server Scoring Methodology: How Rhumb Evaluates APIs for Agents",
   datePublished: "2026-04-19T00:00:00Z",
-  dateModified: "2026-04-24T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "How Rhumb scores APIs for autonomous agents: 20 dimensions across execution and access readiness, plus the honesty boundary around trust class and runtime evidence.",
@@ -169,7 +182,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="uppercase tracking-widest text-amber">MCP Methodology</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">Updated April 24, 2026</span>
+          <span class="text-slate-500">Updated May 2, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -295,8 +308,22 @@ const ARTICLE_JSON_LD = {
                 ))}
               </ul>
             </div>
+            <div class="mb-6 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Fresh security signal</div>
+              <h3 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+                Parameter scope is methodology, not implementation trivia
+              </h3>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                The current official-server audit pressure is mostly about unconstrained arguments: strings that can name any path, URL, repository, tenant, environment value, or write target after the model has already chosen a legitimate-looking tool. A score that ignores argument scope will overrate the safety of broad MCP surfaces.
+              </p>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {PARAMETER_SCOPE_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              4. Five questions before you trust a server in production
+              4. Six questions before you trust a server in production
             </h2>
             <ol class="ml-5 list-decimal list-outside space-y-3 leading-relaxed text-slate-300">
               {FIVE_QUESTIONS.map((question) => (

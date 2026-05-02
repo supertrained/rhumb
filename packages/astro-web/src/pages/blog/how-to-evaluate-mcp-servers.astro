@@ -76,6 +76,7 @@ const CHECKLIST = [
   "Which high-risk claims still need reality checks against live endpoints, schemas, repos, or pricing before promotion?",
   "Do tool outputs stay narrow enough that read access does not become broad environment, secret, or topology exposure?",
   "Do parameter descriptions tell the agent what safe values mean, or are path, env, repo, tenant, and write-target fields semantically blank?",
+  "Are path, URL, repository, tenant, environment, and write-target arguments normalized, allowlisted, and denied with a typed policy refusal when they cross scope?",
   "What happens on timeout, retry, partial success, or auth expiry?",
   "After the action, can an operator tell who invoked what and what actually happened?",
 ];
@@ -101,6 +102,13 @@ const SCHEMA_LEGIBILITY_DRILL = [
   "Promotion should preserve the schema version, output class, redaction rule, and denial reason in trace evidence so later recovery can tell safe inspection from accidental disclosure.",
 ];
 
+const PARAMETER_SCOPE_DRILL = [
+  "Treat path, URL, repository, tenant, environment, and write-target arguments as authorization inputs, not harmless strings after the tool was selected.",
+  "Normalize the value first, then compare it against the caller's allowed prefixes, domains, resources, and write lanes before any side effect or external read runs.",
+  "Test the denied neighbor: parent directory, adjacent repo, neighboring tenant, disallowed host, broader environment class, or unsafe write target.",
+  "A production-ready server should return a typed policy denial with caller, tool, argument, policy rule, and recovery hint instead of retrying, coercing, or hiding the refusal as a generic error.",
+];
+
 const RELATED_READING = [
   {
     href: "/blog/mcp-marketplace-directory-workflow-proof?rhumb_source=evaluate-mcp-directory-proof",
@@ -111,6 +119,11 @@ const RELATED_READING = [
     href: "/blog/mcp-security-model",
     title: "MCP Has a Security Model: Scope, Principals, and Evidence",
     description: "A shorter way to judge whether a server preserves narrow authority when the model is wrong.",
+  },
+  {
+    href: "/blog/mcp-prompt-injection-scope-constraints",
+    title: "Prompt Injection Hits Harder When MCP Parameters Stay Unbounded",
+    description: "Why paths, URLs, repositories, tenants, and write targets need server-side scope checks before execution.",
   },
   {
     href: "/blog/read-only-mcp-trust-class",
@@ -338,6 +351,20 @@ const ARTICLE_JSON_LD = {
                 </p>
                 <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
                   {SCHEMA_LEGIBILITY_DRILL.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+                <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Parameter-scope drill</div>
+                <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+                  Unconstrained strings turn narrow tools into broad authority.
+                </h3>
+                <p class="text-slate-300 leading-relaxed mb-4">
+                  The live MCP security-audit cluster keeps returning to the same production failure: the tool name sounds narrow, but a path, URL, repo, tenant, environment, or write-target argument is broad enough to escape the intended lane. Selection is incomplete until those arguments are bounded at execution time.
+                </p>
+                <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                  {PARAMETER_SCOPE_DRILL.map((item) => (
                     <li>{item}</li>
                   ))}
                 </ul>
