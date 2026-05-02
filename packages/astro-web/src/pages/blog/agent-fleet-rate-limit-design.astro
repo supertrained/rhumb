@@ -32,7 +32,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Designing Agent Fleets That Survive Rate Limits",
   datePublished: "2026-03-30T00:00:00Z",
-  dateModified: "2026-04-29T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: {
     "@type": "Person",
     name: "Pedro Nunes",
@@ -149,6 +149,13 @@ try {
 }
 
 const htmlContent = markdownToHtml(content);
+
+const GATEWAY_QUOTA_CHECKS = [
+  "Attribute quota to the real provider lane, not only to the gateway process. One personal gateway can hide several upstream budgets behind one local endpoint.",
+  "Keep per-agent and per-workflow ceilings even when the same self-hosted gateway brokers all traffic. Shared convenience should not become shared retry damage.",
+  "When a provider rate-limits the gateway, preserve which attached account, credential lane, tenant, and agent created the pressure before fallback or retry logic runs.",
+  "Deny broad fan-out by default. Adding another provider behind the gateway should create a new budget and trace family, not silently inherit the old one.",
+];
 ---
 
 <Layout
@@ -185,6 +192,21 @@ const htmlContent = markdownToHtml(content);
       </header>
 
       <div class="prose-rhumb" set:html={htmlContent} />
+
+      <section class="mt-14 rounded-[28px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Gateway quota brokerage</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-3">
+          A personal MCP gateway can turn many provider budgets into one hidden retry surface.
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          Self-hosting a gateway improves ownership, but it can also collapse several provider accounts, tenants, and agents into one convenient local endpoint. Fleet rate-limit design should preserve quota owner and credential lane before the gateway retries, falls back, or fans out.
+        </p>
+        <ul class="grid gap-3 sm:grid-cols-2">
+          {GATEWAY_QUOTA_CHECKS.map((item) => (
+            <li class="rounded-2xl border border-amber/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+      </section>
 
       <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>

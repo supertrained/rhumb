@@ -40,6 +40,7 @@ const DEMO_FLAGS = [
   "gateway traces show span IDs but omit the policy, adapter, scope, credential, and quota context that shaped the call",
   "package managers write shared config into many clients without preserving per-client authority, rollback, and trace context",
   "remote command execution is exposed as a generic shell instead of a bounded runbook with target, timeout, environment, approval, and rollback evidence",
+  "a self-hosted personal gateway hides several downstream credentials, tenants, and quota owners behind one friendly local endpoint",
   "audit trails do not map actions back to principals and scopes",
 ];
 
@@ -54,6 +55,7 @@ const CHECKLIST = [
   "Transport and middleware: does the adapter preserve identity, scope, typed errors, and quota attribution?",
   "Install automation: when a package manager writes config across clients, does each client keep distinct authority, credentials, rollback, and trace evidence?",
   "Remote command execution: is the shell surface constrained to named runbooks, allowed targets, safe directories, bounded timeouts, explicit environment access, and typed denials for adjacent hosts or commands?",
+  "Gateway brokerage: when one self-hosted MCP gateway fronts several providers, does each tool keep its credential lane, tenant scope, quota owner, revocation path, and denied-neighbor trace?",
   "Recovery: after partial failure, how does the caller re-verify state?",
   "Trace evidence: does every gateway trace carry the original actor, adapter version, policy bundle, redacted input class, caller-visible surface, downstream credential lane, and quota owner?",
   "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
@@ -85,6 +87,13 @@ const REMOTE_COMMAND_DRILL = [
   "Require human approval or an explicit pre-approved maintenance window before destructive commands, service restarts, deployments, migrations, or privilege changes can run.",
   "Pair every allowed command with adjacent denied cases: neighboring host, sibling directory, unapproved flag, missing ticket, or environment variable outside the allowlist.",
   "Make the trace preserve actor, approval source, command class, redacted arguments, target inventory, timeout, environment policy, exit code, stdout/stderr disposition, and recovery hint.",
+];
+
+const PERSONAL_GATEWAY_DRILL = [
+  "List every provider account the gateway can broker, then assign each one a credential lane, tenant scope, quota owner, and revocation path before it appears to the agent.",
+  "Keep local owner identity separate from downstream provider authority. The gateway host may be personal, but the action still spends a real account somewhere.",
+  "Test denied neighbors across providers: wrong workspace, blocked tenant, expired secret, over-budget account, and a tool that should not be visible for this caller.",
+  "Require trace evidence to name gateway instance, brokered provider, credential lane, normalized tenant, quota owner, policy rule, and denial reason before calling the setup production-ready.",
 ];
 
 const FAILURE_CLASSES = [
@@ -468,7 +477,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              11. Remote command execution is production authority, not a convenience add-on
+              11. Personal gateways still broker production authority
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Self-hosted personal MCP gateways can be a useful ownership move, but they do not make the trust problem disappear. The gateway becomes the place where provider credentials, tenant scope, quota ownership, and revocation paths are either preserved or blurred.
+              </p>
+              <p>
+                The readiness question is not only whether the gateway runs on your machine. It is whether each downstream provider lane remains visible enough that the agent cannot turn one friendly local endpoint into broad credential brokerage with no caller-visible evidence.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Personal gateway drill</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {PERSONAL_GATEWAY_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              12. Remote command execution is production authority, not a convenience add-on
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -490,7 +521,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              12. What still counts as a demo, not infrastructure
+              13. What still counts as a demo, not infrastructure
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>
@@ -509,7 +540,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              13. The checklist in one page
+              14. The checklist in one page
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
