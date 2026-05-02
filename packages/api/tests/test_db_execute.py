@@ -509,6 +509,43 @@ def test_db_execute_normalizes_agent_vault_mode_and_token(app, monkeypatch) -> N
     assert mock_connect.call_args[0][0] == token_dsn
 
 
+def test_db_execute_normalizes_legacy_byo_mode_before_reads(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Legacy BYO mode is canonicalized to BYOK before DB reads and receipts."""
+    monkeypatch.setenv("RHUMB_DB_CONN_READER", "postgresql://reader:pass@localhost:5432/test")
+
+    with patch.object(postgres_read_executor.psycopg.AsyncConnection, "connect") as mock_connect:
+        cursor = FakeCursor(
+            rows=[{"count": 1}],
+            description=[SimpleNamespace(name="count", type_code="int8")],
+        )
+        mock_connect.return_value = FakeConnection(cursor)
+
+        response = TestClient(app).post(
+            "/v1/capabilities/db.query.read/execute",
+            headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            json={
+                "connection_ref": "conn_reader",
+                "credential_mode": " BYO ",
+                "query": "SELECT 1",
+            },
+        )
+
+    assert response.status_code == 200
+    body = response.json()["data"]
+    assert body["credential_mode"] == "byok"
+    assert body["rows"] == [{"count": 1}]
+    assert mock_connect.call_args[0][0] == "postgresql://reader:pass@localhost:5432/test"
+
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.credential_mode == "byok"
+    assert _mock_supabase_writes.await_args.args[1]["credential_mode"] == "byok"
+
+
 @pytest.mark.asyncio
 async def test_db_query_read_success_agent_vault_signed_token(app, monkeypatch) -> None:
     """Signed DB agent_vault tokens resolve to the bound PostgreSQL DSN."""

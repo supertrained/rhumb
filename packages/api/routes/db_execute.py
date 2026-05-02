@@ -69,6 +69,16 @@ def _client_ip(raw_request: Request) -> str | None:
     return None
 
 
+def _normalized_db_credential_mode(value: Any, default: str = "byok") -> str:
+    """Normalize DB credential modes before route branching/auditing."""
+    if value is None:
+        return default
+    normalized = value.strip().lower() if isinstance(value, str) else str(value)
+    if normalized == "byo":
+        return "byok"
+    return normalized
+
+
 async def handle_db_execute(
     *,
     capability_id: str,
@@ -122,11 +132,9 @@ async def handle_db_execute(
             started_at=start,
         )
 
-    raw_credential_mode = body.get("credential_mode", credential_mode)
-    if isinstance(raw_credential_mode, str):
-        credential_mode = raw_credential_mode.strip().lower()
-    else:
-        credential_mode = str(raw_credential_mode)
+    credential_mode = _normalized_db_credential_mode(
+        body.get("credential_mode", credential_mode)
+    )
     if credential_mode not in {"byok", "agent_vault"}:
         return await _failure_response(
             raw_request=raw_request,
