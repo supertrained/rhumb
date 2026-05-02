@@ -136,6 +136,13 @@ const DB_AGENT_VAULT_PREFLIGHT = [
   "Preserve the normalized credential mode and connection reference in the result and failure audit so recovery can tell BYOK errors from Agent Vault authority errors.",
 ];
 
+const REMOTE_COMMAND_PREFLIGHT = [
+  "Name the runbook before execution. A broad shell request should not be promoted into provider credentials, target inventory, or billing until it maps to an approved command class.",
+  "Bind the target first: host group, container, working directory, environment allowlist, max runtime, and rollback or verify command should be explicit before the command runner starts.",
+  "Separate operator approval from retry. Missing approval, neighboring host, blocked flag, or unsafe directory should fail as a typed preflight outcome, not as a command error the agent retries.",
+  "Carry command class, redacted arguments, target, approval source, exit code, stdout/stderr disposition, and recovery hint through the receipt so the next run can prove what happened.",
+];
+
 const PROOF_SPRINT_SCOPE = [
   "one capability or workflow you would actually put behind an agent",
   "the failure you care about: scope escape, quota burn, stale provider contract, credential exposure, replay, or bad recovery",
@@ -333,6 +340,26 @@ const REQUEST_FIRST_BRIEF = [
         </ul>
         <p class="mt-6 text-sm leading-6 text-slate-400">
           For E-006, a database workflow-fit request is stronger only when the caller can name the connection reference, credential lane, denied neighboring connection, and audit proof that the vault token was normalized before a query could run.
+        </p>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Remote command boundary</div>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">If the agent can run commands, start smaller than a shell.</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            Remote-command MCPs are attractive because they turn suggestions into action. Managed execution should not copy that power as a generic terminal lane. The paid path is only honest when the first command-shaped workflow has a named runbook, bounded target, explicit approval rule, and receipt evidence before production systems are touched.
+          </p>
+        </div>
+        <ul class="mt-6 grid gap-4 md:grid-cols-2">
+          {REMOTE_COMMAND_PREFLIGHT.map((item) => (
+            <li class="rounded-3xl border border-rose-500/20 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm leading-6 text-slate-400">
+          For E-006, a remote-command workflow-fit request is stronger only when the caller can name the allowed command class, denied neighboring target, approval source, and recovery proof that would make the first execution boring.
         </p>
       </div>
     </section>

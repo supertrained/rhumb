@@ -39,6 +39,7 @@ const DEMO_FLAGS = [
   "transport or middleware upgrades are treated as trust upgrades without proving the same boundaries",
   "gateway traces show span IDs but omit the policy, adapter, scope, credential, and quota context that shaped the call",
   "package managers write shared config into many clients without preserving per-client authority, rollback, and trace context",
+  "remote command execution is exposed as a generic shell instead of a bounded runbook with target, timeout, environment, approval, and rollback evidence",
   "audit trails do not map actions back to principals and scopes",
 ];
 
@@ -52,6 +53,7 @@ const CHECKLIST = [
   "Protocol contract: do tool results stay inside spec-valid types, mime metadata, and error shapes even on edge cases?",
   "Transport and middleware: does the adapter preserve identity, scope, typed errors, and quota attribution?",
   "Install automation: when a package manager writes config across clients, does each client keep distinct authority, credentials, rollback, and trace evidence?",
+  "Remote command execution: is the shell surface constrained to named runbooks, allowed targets, safe directories, bounded timeouts, explicit environment access, and typed denials for adjacent hosts or commands?",
   "Recovery: after partial failure, how does the caller re-verify state?",
   "Trace evidence: does every gateway trace carry the original actor, adapter version, policy bundle, redacted input class, caller-visible surface, downstream credential lane, and quota owner?",
   "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
@@ -76,6 +78,13 @@ const DENIED_NEIGHBOR_DRILL = [
   "Run that pair through the same route families the agent can use: session, message, streaming, callback, management, and any gateway or adapter path.",
   "Require the denied neighbor to preserve caller, normalized value, endpoint family, policy rule, and downstream credential lane in trace evidence.",
   "Treat a generic 500, silent retry, partial side effect, or inconsistent denial across endpoints as readiness failure, not an observability TODO.",
+];
+
+const REMOTE_COMMAND_DRILL = [
+  "Replace generic shell access with a named runbook, allowed host or container group, working directory policy, maximum runtime, environment allowlist, and rollback or verify command.",
+  "Require human approval or an explicit pre-approved maintenance window before destructive commands, service restarts, deployments, migrations, or privilege changes can run.",
+  "Pair every allowed command with adjacent denied cases: neighboring host, sibling directory, unapproved flag, missing ticket, or environment variable outside the allowlist.",
+  "Make the trace preserve actor, approval source, command class, redacted arguments, target inventory, timeout, environment policy, exit code, stdout/stderr disposition, and recovery hint.",
 ];
 
 const FAILURE_CLASSES = [
@@ -170,7 +179,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-29T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, transport and middleware boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -459,7 +468,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              11. What still counts as a demo, not infrastructure
+              11. Remote command execution is production authority, not a convenience add-on
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Remote-command MCPs are useful because they collapse suggestion and execution into one operator surface. That is also why they need the sharpest readiness test. Once an agent can run commands on a server, the product question is no longer just whether MCP connects; it is whether the command path preserves target scope, approval, environment access, timeout, rollback, and evidence before the shell opens.
+              </p>
+              <p>
+                A generic terminal tool should not be treated as a harmless retry lane. It is a production capability that can restart services, read secrets, mutate state, or burn the wrong host if the target boundary is vague. The safer shape is a runbook-like capability with typed denials for neighboring hosts, directories, flags, and missing approvals.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Remote command drill</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {REMOTE_COMMAND_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              12. What still counts as a demo, not infrastructure
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>
@@ -478,7 +509,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              12. The checklist in one page
+              13. The checklist in one page
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>

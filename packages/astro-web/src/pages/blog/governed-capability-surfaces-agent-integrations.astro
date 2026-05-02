@@ -44,6 +44,7 @@ const EVALUATION_AREAS = [
       "Can visibility differ by principal, role, tenant, or session?",
       "Do budget and rate boundaries travel with the capability?",
       "Can middleware policy be bypass-tested against the direct route?",
+      "Can remote command or shell-capable actions be narrowed to one runbook, target set, and approval path?",
       "Is read-only versus write-capable use legible before invocation?",
     ],
   },
@@ -71,7 +72,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Governed Capabilities Are Becoming the Real Control Plane for Agent Integrations",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-29T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The safer agent interface is not raw endpoint sprawl and not merely fewer tools. It is a governed capability surface that preserves authority, policy, and failure semantics.",
@@ -247,6 +248,15 @@ const ARTICLE_JSON_LD = {
               </p>
               <p class="text-sm text-slate-400 leading-relaxed mt-3">
                 If the middleware only exports spans, headers, or pretty routing names, it is packaging. If it can prove the boundary held when the model tried to leave the lane, it is part of the control plane. That is the same evidence shape covered in <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">MCP observability and trace design</a>.
+              </p>
+            </div>
+            <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5">
+              <h3 class="font-display font-semibold text-lg text-slate-100 mb-2 tracking-tight">Remote command execution needs a runbook-shaped lane</h3>
+              <p class="text-sm text-slate-400 leading-relaxed">
+                The moment an MCP server can run commands on owned infrastructure, convenience becomes production authority. A governed capability should name the allowed runbook, target inventory, working directory, timeout, environment access, approval checkpoint, and rollback hint before the command runner sees a shell.
+              </p>
+              <p class="text-sm text-slate-400 leading-relaxed mt-3">
+                A broad <code class="rounded bg-navy/70 px-1 py-0.5 text-rose-200">run_command</code> tool is not safer because it sits behind a nicer agent workflow. The proof is that a neighboring host, blocked directory, missing approval, or dangerous flag returns a typed denial with trace evidence instead of becoming one more retryable terminal error.
               </p>
             </div>
           </div>
