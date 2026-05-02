@@ -9,12 +9,19 @@ const LIVE_AUDIT_CLUSTER = [
   "The useful denial is a typed refusal with preserved context, not a vague runtime error that hides whether scope control actually fired.",
 ];
 
+const SCRAPING_CATALOG_GUARDS = [
+  "Bind each scraping tool to explicit target-domain, egress, robots/compliance, and data-use policy before it reaches a live URL.",
+  "Keep extract, crawl, browser, screenshot, and search tools in separate permission lanes instead of one generic web-access authority.",
+  "Attribute quota and provider spend per target lane so a broad scraping catalog cannot hide which caller burned the shared budget.",
+  "Return typed denials for blocked domains, cross-tenant jobs, over-budget crawls, and disallowed extraction outputs instead of retryable transport errors.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-28T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Prompt injection hits harder in MCP when tools expose unconstrained parameters and the server leaves the blast radius wide open.",
@@ -48,6 +55,8 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-500">April 3, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Updated May 2, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">7 min read</span>
         </div>
@@ -226,7 +235,23 @@ const ARTICLE_JSON_LD = {
           </ol>
         </div>
 
-        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">6. The pattern is containment as design intent</h2>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">6. Web-scraping catalogs need egress boundaries, not just more tools</h2>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          Scraping-heavy MCP servers make the scope problem especially concrete. A catalog with dozens of fetch, crawl, browser, screenshot, and extraction tools can look productive while quietly becoming one broad remote web authority.
+        </p>
+        <p class="text-slate-400 leading-relaxed mb-4">
+          The safe shape is not “let the model pick any scraper.” It is a governed scraping lane: target domains, egress policy, provider quota, data-use limits, and output provenance are all part of the permission boundary before navigation or extraction runs.
+        </p>
+        <div class="my-8 rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300 mb-3">Scraping-catalog containment drill</div>
+          <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+            {SCRAPING_CATALOG_GUARDS.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+        </div>
+
+        <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">7. The pattern is containment as design intent</h2>
         <p class="text-slate-400 leading-relaxed mb-4">
           The production conversation is moving away from "MCP security" as a vague afterthought and toward a cleaner design split: what authority is visible, what scope is reachable, what principal is acting, and how much damage one wrong call can do.
         </p>

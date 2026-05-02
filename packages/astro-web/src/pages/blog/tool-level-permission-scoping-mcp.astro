@@ -46,6 +46,13 @@ const FAILURE_MODES = [
   },
 ];
 
+const SCRAPING_PERMISSION_CHECKS = [
+  "Does the manifest separate search, fetch, crawl, browser, screenshot, and extract tools by caller intent instead of exposing one large web surface?",
+  "Can policy constrain target domains, egress networks, crawl depth, output classes, and data-use rules before the first request leaves the server?",
+  "Are quotas attributed by caller, target lane, and upstream scraping provider rather than hidden behind one shared scraping key?",
+  "Do blocked domains, disallowed extraction outputs, and over-budget crawls return typed policy denials with traceable evidence?",
+];
+
 const SCOPING_CHECKLIST = [
   "Does each caller receive a tool manifest filtered to only the tools it should know about?",
   "Are tool calls checked against role or scope at execution time, not just at connection time?",
@@ -63,7 +70,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Tool-Level Permission Scoping in MCP: Why Server Authentication Isn't Enough",
   datePublished: "2026-04-04T00:00:00Z",
-  dateModified: "2026-04-27T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Server authentication and tool authorization are different layers. Production MCP needs caller-scoped manifests, typed denials, and auditable tool boundaries.",
@@ -98,6 +105,8 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-500">April 4, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Updated May 2, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">8 min read</span>
         </div>
@@ -243,7 +252,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              6. Endpoint-family parity is part of authorization
+              6. Scraping catalogs need per-lane permissions
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A 40-tool scraping server is the easiest place for “authenticated equals everything” to hide. Search, fetch, crawl, browser, screenshot, and extraction tools do not carry the same risk, spend profile, or data-use boundary. They should not all appear just because a caller passed server auth.
+              </p>
+              <p>
+                Treat web access as several permission lanes. A support summarizer may need one approved-domain fetch. A research agent may need bounded search. A compliance workflow may need extraction with provenance and retention limits. Those are different authorities even when the provider SDK sits behind one MCP server.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300">Scraping permission checks</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {SCRAPING_PERMISSION_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              7. Endpoint-family parity is part of authorization
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -260,7 +291,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              7. Audit proof is the dependency most teams skip
+              8. Audit proof is the dependency most teams skip
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -286,7 +317,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              8. Secure by design means narrow authority before the first tool call
+              9. Secure by design means narrow authority before the first tool call
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>

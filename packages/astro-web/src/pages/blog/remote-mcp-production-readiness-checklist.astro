@@ -41,6 +41,7 @@ const DEMO_FLAGS = [
   "package managers write shared config into many clients without preserving per-client authority, rollback, and trace context",
   "remote command execution is exposed as a generic shell instead of a bounded runbook with target, timeout, environment, approval, and rollback evidence",
   "a self-hosted personal gateway hides several downstream credentials, tenants, and quota owners behind one friendly local endpoint",
+  "a 40-tool scraping catalog exposes search, crawl, browser, screenshot, and extraction authority without target, egress, quota, and data-use lanes",
   "audit trails do not map actions back to principals and scopes",
 ];
 
@@ -56,6 +57,7 @@ const CHECKLIST = [
   "Install automation: when a package manager writes config across clients, does each client keep distinct authority, credentials, rollback, and trace evidence?",
   "Remote command execution: is the shell surface constrained to named runbooks, allowed targets, safe directories, bounded timeouts, explicit environment access, and typed denials for adjacent hosts or commands?",
   "Gateway brokerage: when one self-hosted MCP gateway fronts several providers, does each tool keep its credential lane, tenant scope, quota owner, revocation path, and denied-neighbor trace?",
+  "Scraping catalogs: when one server exposes many web-access tools, are target domains, egress, crawl depth, provider quota, output provenance, and data-use limits enforced per lane?",
   "Recovery: after partial failure, how does the caller re-verify state?",
   "Trace evidence: does every gateway trace carry the original actor, adapter version, policy bundle, redacted input class, caller-visible surface, downstream credential lane, and quota owner?",
   "Auditability: can actions be traced back to a principal, tool, scope, and typed denial path?",
@@ -94,6 +96,13 @@ const PERSONAL_GATEWAY_DRILL = [
   "Keep local owner identity separate from downstream provider authority. The gateway host may be personal, but the action still spends a real account somewhere.",
   "Test denied neighbors across providers: wrong workspace, blocked tenant, expired secret, over-budget account, and a tool that should not be visible for this caller.",
   "Require trace evidence to name gateway instance, brokered provider, credential lane, normalized tenant, quota owner, policy rule, and denial reason before calling the setup production-ready.",
+];
+
+const SCRAPING_CATALOG_DRILL = [
+  "Split search, fetch, crawl, browser, screenshot, and extraction tools into separate caller-visible lanes with their own target, depth, output, and retention rules.",
+  "Require explicit target-domain and egress allowlists before any crawler or browser tool can leave the server boundary.",
+  "Attribute provider quota, cache use, extraction cost, and blocked-target denials to the caller and workflow that caused them.",
+  "Preserve provenance for extracted outputs so a downstream agent can distinguish allowed source data from scraped material that should not be reused.",
 ];
 
 const FAILURE_CLASSES = [
@@ -350,7 +359,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              4. Tenant isolation must be explicit
+              4. Scraping-heavy MCP servers need governed web-access lanes
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Web-scraping catalogs are a useful stress test for remote MCP readiness because they combine broad network reach, metered provider spend, target-specific rules, and extracted data that may flow into later agent decisions. Forty tools can be valuable, but only if each lane keeps its own boundary.
+              </p>
+              <p>
+                Treat scraping as governed production authority. A crawler that can touch any domain, spend any shared quota, and return any extracted payload is not just a convenience tool; it is a remote egress and data-use surface that needs the same principal, scope, governor, and recovery evidence as write-capable tools.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300 mb-3">Scraping catalog drill</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {SCRAPING_CATALOG_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              5. Tenant isolation must be explicit
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -364,7 +395,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              5. You need governors on writes, spend, and token burn
+              6. You need governors on writes, spend, and token burn
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -384,7 +415,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              6. Failure has to be containable, not just observable
+              7. Failure has to be containable, not just observable
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -412,7 +443,7 @@ const ARTICLE_JSON_LD = {
               </ul>
             </div>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              7. Auditability matters because blame eventually matters
+              8. Auditability matters because blame eventually matters
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -432,7 +463,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              8. Gateway traces have to preserve authority context
+              9. Gateway traces have to preserve authority context
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -446,7 +477,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              9. Transport adapters and middleware stacks are not trust upgrades by themselves
+              10. Transport adapters and middleware stacks are not trust upgrades by themselves
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -463,7 +494,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              10. Package managers make install convenience part of the authority surface
+              11. Package managers make install convenience part of the authority surface
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -477,7 +508,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              11. Personal gateways still broker production authority
+              12. Personal gateways still broker production authority
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -499,7 +530,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              12. Remote command execution is production authority, not a convenience add-on
+              13. Remote command execution is production authority, not a convenience add-on
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -521,7 +552,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              13. What still counts as a demo, not infrastructure
+              14. What still counts as a demo, not infrastructure
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>
