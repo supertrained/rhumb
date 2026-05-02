@@ -2397,6 +2397,63 @@ async def test_v2_policy_governed_key_headers_are_normalized_before_identity_rea
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize(
+    "json_body",
+    [
+        None,
+        [],
+        "policy",
+        {"provider_preference": "sendgrid"},
+        {"provider_deny": ["sendgrid", 7]},
+        {"allow_only": {"provider": "sendgrid"}},
+        {"max_cost_usd": -0.01},
+        {"unsupported": True},
+    ],
+)
+async def test_v2_policy_put_rejects_malformed_payloads_before_auth_or_store_reads(
+    app,
+    _mock_policy_store,
+    json_body,
+):
+    with patch("routes.resolve_v2._resolve_policy_agent", new=AsyncMock()) as mock_agent:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.put(
+                "/v2/policy",
+                json=json_body,
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid v2 policy payload."
+    mock_agent.assert_not_awaited()
+    _mock_policy_store.put_policy.assert_not_awaited()
+    _mock_policy_store.get_policy.assert_not_awaited()
+
+
+@pytest.mark.anyio
+async def test_v2_policy_put_rejects_missing_payload_before_auth_or_store_reads(
+    app,
+    _mock_policy_store,
+):
+    with patch("routes.resolve_v2._resolve_policy_agent", new=AsyncMock()) as mock_agent:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.put(
+                "/v2/policy",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid v2 policy payload."
+    mock_agent.assert_not_awaited()
+    _mock_policy_store.put_policy.assert_not_awaited()
+    _mock_policy_store.get_policy.assert_not_awaited()
+
+
+@pytest.mark.anyio
 async def test_v2_policy_put_and_get_round_trip(app, _mock_policy_store):
     stored_policy = SimpleNamespace(
         org_id="org_v2_test",

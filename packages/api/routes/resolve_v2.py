@@ -231,6 +231,25 @@ def _validated_v2_execute_payload(payload: Any) -> V2CapabilityExecuteRequest:
         ) from exc
 
 
+def _validated_v2_stored_policy_payload(payload: Any) -> V2StoredPolicy:
+    """Validate the v2 policy write body before governed-key or store reads."""
+    if not isinstance(payload, dict):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid v2 policy payload.",
+            detail="Provide a JSON object with supported policy fields: pin, provider_preference, provider_deny, allow_only, max_cost_usd.",
+        )
+
+    try:
+        return V2StoredPolicy.model_validate(payload)
+    except ValidationError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid v2 policy payload.",
+            detail="Provide a JSON object with supported policy fields: pin, provider_preference, provider_deny, allow_only, max_cost_usd.",
+        ) from exc
+
+
 def _compat_headers() -> dict[str, str]:
     return {
         "X-Rhumb-Version": _COMPAT_VERSION,
@@ -966,9 +985,10 @@ async def get_policy_v2(raw_request: Request) -> dict[str, Any]:
 
 @router.put("/policy")
 async def put_policy_v2(
-    payload: V2StoredPolicy,
     raw_request: Request,
+    payload: Any = Body(default=None),
 ) -> dict[str, Any]:
+    payload = _validated_v2_stored_policy_payload(payload)
     agent = await _resolve_policy_agent(raw_request)
     stored_policy = await get_resolve_policy_store().put_policy(
         agent.organization_id,
