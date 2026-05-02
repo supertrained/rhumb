@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Body, HTTPException
 
 from routes.probes import get_probe_service
 from services.error_envelope import RhumbError
@@ -53,6 +54,82 @@ def _validated_trigger_source(trigger_source: str | None) -> str:
     )
 
 
+def _validated_tester_fleet_text_field(value: Any, *, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' field.",
+            detail=f"Provide {field_name} as a string.",
+        )
+
+    normalized = value.strip()
+    if normalized:
+        return normalized
+
+    if field_name == "profile":
+        return _validated_profile(value)
+    if field_name == "trigger_source":
+        return _validated_trigger_source(value)
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' field.",
+        detail=f"Provide a non-empty {field_name} value.",
+    )
+
+
+def _validated_tester_fleet_bool_field(value: Any, *, field_name: str, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' field.",
+        detail=f"Provide {field_name} as a boolean value.",
+    )
+
+
+def _validated_tester_fleet_payload(payload: Any) -> BatteryRunRequestSchema:
+    if not isinstance(payload, dict):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid tester-fleet payload.",
+            detail="Provide a JSON object payload.",
+        )
+
+    service_slug = _validated_tester_fleet_text_field(
+        payload.get("service_slug"),
+        field_name="service_slug",
+    )
+    profile = _validated_tester_fleet_text_field(
+        payload.get("profile", "default"),
+        field_name="profile",
+    )
+    trigger_source = _validated_tester_fleet_text_field(
+        payload.get("trigger_source", "tester_fleet_cli"),
+        field_name="trigger_source",
+    )
+
+    return BatteryRunRequestSchema(
+        service_slug=service_slug,
+        profile=profile,
+        persist_probes=_validated_tester_fleet_bool_field(
+            payload.get("persist_probes"),
+            field_name="persist_probes",
+            default=True,
+        ),
+        trigger_source=trigger_source,
+    )
+
+
 def _batteries_dir() -> Path:
     return Path(__file__).resolve().parent.parent / "batteries"
 
@@ -86,8 +163,9 @@ def _resolve_battery_file(service_slug: str, profile: str) -> Path | None:
 
 
 @router.post("/tester-fleet/run", response_model=BatteryRunResponseSchema)
-async def run_tester_fleet_battery(payload: BatteryRunRequestSchema) -> BatteryRunResponseSchema:
+async def run_tester_fleet_battery(payload: Any = Body(default=None)) -> BatteryRunResponseSchema:
     """Run a seeded tester-fleet battery for one service and persist evidence."""
+    payload = _validated_tester_fleet_payload(payload)
     normalized_service_slug = _normalize_service_slug(payload.service_slug)
     if normalized_service_slug is None:
         raise RhumbError(

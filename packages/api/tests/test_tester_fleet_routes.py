@@ -99,6 +99,66 @@ def test_run_tester_fleet_battery_rejects_blank_service_slug_before_battery_look
     assert payload["error"]["detail"] == "Provide a non-empty service_slug value."
 
 
+def test_run_tester_fleet_battery_rejects_non_object_payload_before_battery_lookup(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-object request bodies should not open seeded-battery lookup."""
+    from routes import tester_fleet as tester_fleet_routes
+
+    def fail_lookup(service_slug, profile):  # pragma: no cover - should not run
+        raise AssertionError("battery lookup should not be opened")
+
+    monkeypatch.setattr(tester_fleet_routes, "_resolve_battery_file", fail_lookup)
+
+    response = client.post("/v1/tester-fleet/run", json=["stripe"])
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid tester-fleet payload."
+    assert payload["error"]["detail"] == "Provide a JSON object payload."
+
+
+@pytest.mark.parametrize(
+    ("field_name", "field_value", "expected_detail"),
+    [
+        ("service_slug", ["stripe"], "Provide service_slug as a string."),
+        ("profile", {"name": "default"}, "Provide profile as a string."),
+        ("trigger_source", 123, "Provide trigger_source as a string."),
+        ("persist_probes", "sometimes", "Provide persist_probes as a boolean value."),
+    ],
+)
+def test_run_tester_fleet_battery_rejects_malformed_fields_before_battery_lookup(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+    field_name: str,
+    field_value,
+    expected_detail: str,
+) -> None:
+    """Malformed tester-fleet fields should reject before lookup/run/persistence."""
+    from routes import tester_fleet as tester_fleet_routes
+
+    def fail_lookup(service_slug, profile):  # pragma: no cover - should not run
+        raise AssertionError("battery lookup should not be opened")
+
+    monkeypatch.setattr(tester_fleet_routes, "_resolve_battery_file", fail_lookup)
+    body = {
+        "service_slug": "stripe",
+        "profile": "default",
+        "trigger_source": "tester-fleet-route-test",
+    }
+    body[field_name] = field_value
+
+    response = client.post("/v1/tester-fleet/run", json=body)
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == f"Invalid '{field_name}' field."
+    assert payload["error"]["detail"] == expected_detail
+
+
 def test_run_tester_fleet_battery_rejects_blank_profile_before_battery_lookup(
     client,
     monkeypatch: pytest.MonkeyPatch,
