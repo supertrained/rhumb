@@ -149,6 +149,66 @@ def test_email_auth_rejects_non_object_bodies_before_auth_state(endpoint: str) -
     mock_bootstrap.assert_not_awaited()
 
 
+def test_request_code_rejects_non_text_email_before_user_or_otp_state() -> None:
+    client = TestClient(_shared_app)
+    with (
+        patch("routes.auth.get_user_store") as mock_user_store,
+        patch("routes.auth.get_email_otp_service") as mock_otp_service,
+    ):
+        response = client.post(
+            "/v1/auth/email/request-code",
+            json={"email": ["agent@example.com"]},
+        )
+
+    client.close()
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid email auth request body."
+    assert payload["error"]["detail"] == "Provide 'email' as a text email address."
+    mock_user_store.assert_not_called()
+    mock_otp_service.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("payload_patch", "expected_detail"),
+    [
+        ({"code": 123456}, "Provide 'code' as text."),
+        ({"device_label": {"label": "agent"}}, "Provide 'device_label' as text."),
+    ],
+)
+def test_verify_code_rejects_non_text_fields_before_otp_or_user_state(
+    payload_patch: dict[str, object], expected_detail: str
+) -> None:
+    client = TestClient(_shared_app)
+    payload: dict[str, object] = {
+        "email": "agent@example.com",
+        "code": "123456",
+        "device_label": "Agent laptop",
+    }
+    payload.update(payload_patch)
+    with (
+        patch("routes.auth.get_user_store") as mock_user_store,
+        patch("routes.auth.get_email_otp_service") as mock_otp_service,
+        patch("routes.auth.get_agent_identity_store") as mock_identity_store,
+        patch("routes.auth.ensure_org_billing_bootstrap", new_callable=AsyncMock) as mock_bootstrap,
+    ):
+        response = client.post("/v1/auth/email/verify-code", json=payload)
+
+    client.close()
+
+    assert response.status_code == 400
+    payload_json = response.json()
+    assert payload_json["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload_json["error"]["message"] == "Invalid email auth request body."
+    assert payload_json["error"]["detail"] == expected_detail
+    mock_user_store.assert_not_called()
+    mock_otp_service.assert_not_called()
+    mock_identity_store.assert_not_called()
+    mock_bootstrap.assert_not_awaited()
+
+
 def test_oauth_login_accepts_mixed_case_provider() -> None:
     from routes import auth as auth_routes
 

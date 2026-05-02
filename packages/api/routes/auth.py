@@ -217,6 +217,59 @@ async def _email_json_object_body(request: Request) -> dict[str, Any]:
     )
 
 
+def _validated_email_auth_email(payload: dict[str, Any]) -> str:
+    """Validate and normalize email OTP email input before user/OTP state opens."""
+    value = payload.get("email")
+    if not isinstance(value, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid email auth request body.",
+            detail="Provide 'email' as a text email address.",
+        )
+
+    try:
+        return EmailOTPService.normalize_email(value)
+    except ValueError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid email auth request body.",
+            detail=str(exc),
+        ) from exc
+
+
+def _validated_email_auth_code(payload: dict[str, Any]) -> str:
+    """Validate and normalize email OTP code input before OTP state opens."""
+    value = payload.get("code")
+    if not isinstance(value, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid email auth request body.",
+            detail="Provide 'code' as text.",
+        )
+    code = value.strip()
+    if not code:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid email auth request body.",
+            detail="Email and code are required.",
+        )
+    return code
+
+
+def _validated_optional_email_auth_text(payload: dict[str, Any], field: str) -> str:
+    """Validate optional email auth text fields before downstream state opens."""
+    value = payload.get(field, "")
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid email auth request body.",
+            detail=f"Provide '{field}' as text.",
+        )
+    return value.strip()
+
+
 def _session_claims_for_user(user: Any) -> Dict[str, Any]:
     """Build standard session JWT claims from a hydrated user object."""
     return {
@@ -477,11 +530,7 @@ async def email_request_code(request: Request) -> JSONResponse:
     API does not leak account existence or throttling state.
     """
     payload = await _email_json_object_body(request)
-
-    try:
-        email = EmailOTPService.normalize_email(str(payload.get("email", "")))
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    email = _validated_email_auth_email(payload)
 
     client_ip = _extract_request_ip(request)
     client_subnet = EmailOTPService.derive_subnet(client_ip)
@@ -527,15 +576,9 @@ async def email_request_code(request: Request) -> JSONResponse:
 async def email_verify_code(request: Request) -> JSONResponse:
     """Verify an email OTP code and issue a standard Rhumb session."""
     payload = await _email_json_object_body(request)
-
-    try:
-        email = EmailOTPService.normalize_email(str(payload.get("email", "")))
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-    code = str(payload.get("code", "")).strip()
-    device_label = str(payload.get("device_label", "")).strip()
-    if not code:
-        raise HTTPException(status_code=400, detail="Email and code are required")
+    email = _validated_email_auth_email(payload)
+    code = _validated_email_auth_code(payload)
+    device_label = _validated_optional_email_auth_text(payload, "device_label")
 
     client_ip = _extract_request_ip(request)
     client_subnet = EmailOTPService.derive_subnet(client_ip)
