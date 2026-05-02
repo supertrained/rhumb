@@ -47,6 +47,13 @@ const BETTER_METRICS = [
   "how often the workflow stays inside the surface before a bridge is needed",
 ];
 
+const REMOTE_APPROVAL_GATES = [
+  "Treat approval as a capability boundary, not an afterthought: approver, channel, expiry window, and revocation path should be explicit before authority expands.",
+  "Show the operator the concrete target, side-effect class, credential lane, cost ceiling, and denied-neighbor risk before they tap approve from another device.",
+  "Keep denial, timeout, interrupt, and safe-resume outcomes visible in the onboarding proof so remote control cannot collapse into one optimistic green button.",
+  "Preserve approval source and scope in the receipt so a later run can prove whether the human was actually in the loop or merely notified after routing had already happened.",
+];
+
 const SCHEMA_BRIDGE_GATES = [
   "Expose only the output classes the first workflow needs. A bootstrap read should not return a whole environment, tenant map, or filesystem tree just because the caller asked broadly.",
   "Describe parameters as authority boundaries: path prefix, environment key class, repository, tenant, target system, write intent, and egress destination should be legible before the agent plans.",
@@ -254,7 +261,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              5. Honest bridges beat fake simplicity
+              5. Remote approvals are part of the onboarding boundary
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                The moment an operator can approve or steer an agent from another device, onboarding is no longer just a setup flow. It is the first control plane the user has to trust. A mobile approval button only helps when it carries the same capability, credential, cost, and blast-radius context the execution lane will use.
+              </p>
+              <p>
+                Capability-first onboarding should therefore make human control paths explicit before the first side-effecting bridge appears. Approval, denial, timeout, interrupt, and safe resume are product semantics, not notification polish.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Remote-approval gates</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {REMOTE_APPROVAL_GATES.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              6. Honest bridges beat fake simplicity
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -271,7 +300,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              6. Measure time to value, not connector breadth
+              7. Measure time to value, not connector breadth
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>
