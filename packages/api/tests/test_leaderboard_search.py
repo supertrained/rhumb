@@ -819,6 +819,22 @@ def test_search_http_rejects_missing_query_with_canonical_envelope():
     cached_fetch.assert_not_awaited()
 
 
+def test_search_http_rejects_oversized_query_before_reads():
+    """Oversized search queries should fail before service/score reads."""
+    from app import create_app
+
+    with patch("routes.search._cached_fetch", new_callable=AsyncMock) as cached_fetch:
+        client = TestClient(create_app())
+        response = client.get("/v1/search", params={"q": "a" * 201})
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid 'q' filter."
+    assert payload["error"]["detail"] == "Use a search query no longer than 200 characters."
+    cached_fetch.assert_not_awaited()
+
+
 @pytest.mark.asyncio
 async def test_search_limit(mock_catalog_supabase):
     """Test search limit parameter works."""

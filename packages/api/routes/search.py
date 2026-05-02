@@ -18,6 +18,7 @@ from services.service_slugs import (
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
+_MAX_SEARCH_QUERY_CHARS = 200
 
 
 async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS):
@@ -158,14 +159,21 @@ def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[s
 
 def _validated_search_query(query: str | None) -> str:
     normalized = str(query or "").strip()
-    if normalized:
-        return normalized
+    if not normalized:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'q' filter.",
+            detail="Provide a non-empty search query.",
+        )
 
-    raise RhumbError(
-        "INVALID_PARAMETERS",
-        message="Invalid 'q' filter.",
-        detail="Provide a non-empty search query.",
-    )
+    if len(normalized) > _MAX_SEARCH_QUERY_CHARS:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'q' filter.",
+            detail=f"Use a search query no longer than {_MAX_SEARCH_QUERY_CHARS} characters.",
+        )
+
+    return normalized
 
 
 def _validated_search_limit(limit: Any) -> int:
