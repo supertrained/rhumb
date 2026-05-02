@@ -1106,6 +1106,42 @@ class TestExecuteOnProvider:
         assert "auto, byok, rhumb_managed, agent_vault" in error["detail"]
         assert mock_detail.await_count == 0
 
+    @pytest.mark.parametrize(
+        "body",
+        [
+            None,
+            [],
+            {"parameters": {}},
+            {"capability": _TEST_CAPABILITY, "parameters": []},
+            {"capability": _TEST_CAPABILITY, "parameters": {}, "unexpected": True},
+            {"capability": _TEST_CAPABILITY, "parameters": {}, "policy": {"timeout_ms": "fast"}},
+        ],
+    )
+    def test_execute_rejects_invalid_payload_before_provider_reads(self, body, client):
+        with patch("routes.providers_v2._resolve_provider_detail", new_callable=AsyncMock) as mock_detail:
+            resp = client.post(f"/v2/providers/{_TEST_PROVIDER_SLUG}/execute", json=body)
+
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid Layer 1 execute payload."
+        assert "JSON object" in error["detail"]
+        assert mock_detail.await_count == 0
+
+    def test_execute_rejects_malformed_json_before_provider_reads(self, client):
+        with patch("routes.providers_v2._resolve_provider_detail", new_callable=AsyncMock) as mock_detail:
+            resp = client.post(
+                f"/v2/providers/{_TEST_PROVIDER_SLUG}/execute",
+                content=b"{not-json",
+                headers={"Content-Type": "application/json"},
+            )
+
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == "Invalid Layer 1 execute payload."
+        assert mock_detail.await_count == 0
+
     @patch("routes.providers_v2._resolve_agent_for_budget", new_callable=AsyncMock, return_value=None)
     @patch("routes.providers_v2.get_receipt_service")
     @patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch)

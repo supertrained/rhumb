@@ -27,7 +27,7 @@ from urllib.parse import quote
 import httpx
 from fastapi import APIRouter, Header, Query, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from routes import capability_execute as v1_execute
 from routes._supabase import supabase_fetch
@@ -173,6 +173,25 @@ class L1ExecuteRequest(BaseModel):
         default="rest",
         description="Calling surface label for analytics.",
     )
+
+
+def _validated_l1_execute_payload(payload: Any) -> L1ExecuteRequest:
+    """Validate Layer 1 execute payloads before provider/catalog reads."""
+    if not isinstance(payload, dict):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid Layer 1 execute payload.",
+            detail="Provide a JSON object with capability, parameters, credential_mode, policy, idempotency_key, and interface fields.",
+        )
+
+    try:
+        return L1ExecuteRequest.model_validate(payload)
+    except ValidationError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid Layer 1 execute payload.",
+            detail="Provide a JSON object with capability, parameters, credential_mode, policy, idempotency_key, and interface fields.",
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -1147,7 +1166,6 @@ async def get_provider(provider_id: str) -> dict[str, Any]:
 @router.post("/providers/{provider_id}/execute")
 async def execute_on_provider(
     provider_id: str,
-    payload: L1ExecuteRequest,
     raw_request: Request,
     x_rhumb_idempotency_key: str | None = Header(None, alias="X-Rhumb-Idempotency-Key"),
 ) -> JSONResponse:
@@ -1157,6 +1175,11 @@ async def execute_on_provider(
     credentials, billing, observability, receipts.
     """
     t_start = time.monotonic()
+    try:
+        raw_payload = await raw_request.json()
+    except Exception:
+        raw_payload = None
+    payload = _validated_l1_execute_payload(raw_payload)
     payload.credential_mode = _validated_l1_execute_credential_mode(payload.credential_mode)
     payload_idempotency_key = _normalized_idempotency_key(payload.idempotency_key)
     header_idempotency_key = _normalized_idempotency_key(x_rhumb_idempotency_key)
