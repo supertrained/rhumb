@@ -74,6 +74,8 @@ const CHECKLIST = [
   "If a package manager writes config across several clients, can each client still keep its own authority, rollback, and trace evidence?",
   "If the server advertises a permission manifest or governance layer, does that declared boundary match the tools this caller can actually see and invoke?",
   "Which high-risk claims still need reality checks against live endpoints, schemas, repos, or pricing before promotion?",
+  "Do tool outputs stay narrow enough that read access does not become broad environment, secret, or topology exposure?",
+  "Do parameter descriptions tell the agent what safe values mean, or are path, env, repo, tenant, and write-target fields semantically blank?",
   "What happens on timeout, retry, partial success, or auth expiry?",
   "After the action, can an operator tell who invoked what and what actually happened?",
 ];
@@ -90,6 +92,13 @@ const REGISTRY_TRUTH_DRILL = [
   "Keep editorial curation, structural evaluation, and live runtime checks as separate layers so one badge does not stand in for the other two.",
   "If a registry entry was the reason the server made the shortlist, re-test the risky claims that justified the listing before promotion into a real lane.",
   "Promotion should depend on caller-safe visibility and current behavior, not on whether the launch-week write-up sounded organized and credible.",
+];
+
+const SCHEMA_LEGIBILITY_DRILL = [
+  "Treat broad environment or filesystem inspection as authority exposure even when the tool cannot write. The safe output shape should be enumerated, redacted, and scoped to the workflow.",
+  "Require descriptions for path, environment, repo, tenant, target, and write-related parameters. Empty or generic schema fields are a production-readiness failure for automated callers.",
+  "Pair the allowed read with a denied neighbor: full process.env versus allowlisted keys, parent directory versus allowed prefix, neighboring repo versus named project.",
+  "Promotion should preserve the schema version, output class, redaction rule, and denial reason in trace evidence so later recovery can tell safe inspection from accidental disclosure.",
 ];
 
 const RELATED_READING = [
@@ -150,7 +159,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How to Evaluate MCP Servers: Workflow Fit, Trust Class, and Runtime Reality",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-24T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The right MCP server question is not popularity or tool count. Evaluate workflow fit, trust class, capability shape, auth viability, and runtime behavior before letting a server into an agent loop.",
@@ -319,6 +328,20 @@ const ARTICLE_JSON_LD = {
               <p>
                 In practice, the cleanest selection shortcut is the same production split from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: ask what scope is reachable, which principal is acting, and what evidence survives after the call.
               </p>
+              <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+                <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Schema legibility drill</div>
+                <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+                  Missing descriptions and broad outputs are trust-boundary failures.
+                </h3>
+                <p class="text-slate-300 leading-relaxed mb-4">
+                  The official-server examples make the point concrete: a tool that can dump a whole environment, or a filesystem schema whose key fields lack useful descriptions, may be protocol-compatible while still being unsafe for agent promotion. The model needs bounded values and semantic hints before it plans, not just a validator after it guesses.
+                </p>
+                <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                  {SCHEMA_LEGIBILITY_DRILL.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </section>
 

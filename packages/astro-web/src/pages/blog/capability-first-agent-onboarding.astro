@@ -47,6 +47,13 @@ const BETTER_METRICS = [
   "how often the workflow stays inside the surface before a bridge is needed",
 ];
 
+const SCHEMA_BRIDGE_GATES = [
+  "Expose only the output classes the first workflow needs. A bootstrap read should not return a whole environment, tenant map, or filesystem tree just because the caller asked broadly.",
+  "Describe parameters as authority boundaries: path prefix, environment key class, repository, tenant, target system, write intent, and egress destination should be legible before the agent plans.",
+  "Make broad inspection a separate bridge request. If the workflow needs full config, secrets context, or shell access, that is no longer the first superpower; it is a higher-authority lane.",
+  "Preserve redaction, schema version, allowed value, and denied neighbor evidence in the receipt so onboarding proof does not collapse into a happy-path demo.",
+];
+
 const RELATED_READING = [
   {
     href: "/blog/what-is-managed-api-execution-for-ai-agents",
@@ -90,7 +97,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Capability-First Agent Onboarding: Managed Superpowers First",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-04-14T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Connector catalogs describe implementation inventory. Agents and operators adopt clear capabilities first. The better onboarding model is managed superpowers first, then secure bridges only when needed.",
@@ -225,7 +232,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              4. Honest bridges beat fake simplicity
+              4. Schema legibility is part of the first-run boundary
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Capability-first does not mean hiding all implementation truth until later. It means showing the smallest useful truth the agent can safely act on. If the first run exposes a full environment dump, semantically blank path fields, or a giant opaque output blob, the product has smuggled connector risk back into the onboarding moment.
+              </p>
+              <p>
+                The first superpower should therefore carry schema and output boundaries as visibly as it carries the CTA. The operator should be able to tell what data class the agent may inspect, which values are denied neighbors, and when the workflow has crossed into a higher-authority bridge.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">First-run schema gates</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {SCHEMA_BRIDGE_GATES.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              5. Honest bridges beat fake simplicity
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -242,7 +271,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              5. Measure time to value, not connector breadth
+              6. Measure time to value, not connector breadth
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>

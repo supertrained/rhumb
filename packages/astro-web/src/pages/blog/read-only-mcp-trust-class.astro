@@ -7,7 +7,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Read-Only MCP Removes a Failure Class, But Only if the Whole Tool Boundary Is Actually Read-Only",
   datePublished: "2026-04-12T00:00:00Z",
-  dateModified: "2026-04-12T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description: "Read-only MCP is useful because it removes a whole mutation failure class, but only when the rest of the tool boundary does not leave write-capable side doors open.",
   url: "https://rhumb.dev/blog/read-only-mcp-trust-class",
@@ -84,6 +84,19 @@ const ARTICLE_HTML = "<p class=\"text-slate-400 leading-relaxed mb-4\">A lot of 
 
       <div class="max-w-3xl">
         <div class="max-w-none" set:html={ARTICLE_HTML} />
+
+        <div class="mt-12 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Schema and output legibility</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            A read-only tool can still leak the wrong world if its output is too broad.
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            The fresh official-server signal is a useful stress test: a helper that returns the full environment may look inspect-only, but broad environment disclosure turns read authority into secret and topology exposure. The boundary should specify which keys, prefixes, paths, or metadata classes are safe to return before the model ever sees the blob.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            The same applies to underspecified schemas. If filesystem or environment parameters have weak descriptions, the model cannot tell safe inspection from authority probing. Read-only trust needs narrow output shape plus machine-legible parameter descriptions, not just an absence of write verbs.
+          </p>
+        </div>
 
         <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
