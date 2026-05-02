@@ -47,6 +47,7 @@ const TOC = [
   { id: "what-x402-actually-promises", label: "What x402 Actually Promises" },
   { id: "what-happened-when-we-tested-it", label: "What Happened When We Tested It" },
   { id: "the-current-state", label: "The Current State" },
+  { id: "x402-gated-mcp-endpoints", label: "x402-Gated MCP Endpoints" },
   { id: "what-we-learned-about-agent-wallets", label: "What We Learned About Agent Wallets" },
   { id: "the-debugging-methodology", label: "The Debugging Methodology" },
   { id: "what-this-means-for-the-x402-ecosystem", label: "What This Means for the x402 Ecosystem" },
@@ -143,6 +144,25 @@ const FUNDING_PATHS = [
   { path: "Bridge from Ethereum", time: "5 min + gas", kyc: "No", bestFor: "If you already hold Ethereum-mainnet USDC" },
   { path: "Fiat onramp (MoonPay, Transak)", time: "10 min", kyc: "Light KYC", bestFor: "No existing crypto holdings" },
   { path: "Another Base wallet", time: "30 seconds", kyc: "No", bestFor: "Already have USDC on Base" },
+];
+
+const X402_MCP_ENDPOINT_GATES = [
+  {
+    label: "Payment resource",
+    detail: "The 402 challenge should name the exact resource and capability id the agent is trying to buy, not a vague account-level entitlement.",
+  },
+  {
+    label: "Execution authority",
+    detail: "Settlement should unlock only the scoped action class, provider path, tenant, and quota owner that policy already approved.",
+  },
+  {
+    label: "Failure semantics",
+    detail: "Wrong network, expired proof, duplicate proof, underpayment, and paid-but-denied authority should be different machine-readable outcomes.",
+  },
+  {
+    label: "Receipt join",
+    detail: "The final receipt should join paymentRequestId, wallet, amount, settlement status, execution decision, and recovery hint for the next call.",
+  },
 ];
 
 const WALLET_WARNINGS = [
@@ -543,6 +563,28 @@ const WALLET_WARNINGS = [
               ))}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section id="x402-gated-mcp-endpoints" class="scroll-mt-24 mb-14">
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-5">
+          x402-Gated MCP Endpoints Need Payment Proof and Authority Proof
+        </h2>
+        <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
+          <p>
+            A paid MCP endpoint is tempting to describe as self-contained: the agent pays, the tool runs. The production boundary is sharper. x402 proves payment eligibility for a resource; it does not decide whether the caller should reach a specific capability, provider account, tenant, data class, or side-effect path.
+          </p>
+          <p>
+            The safe shape is two gates. First normalize the payment challenge and proof. Then run the same execution-policy checks a governed key or Agent Vault lane would require. If either gate fails, the agent needs a typed outcome it can stop on instead of retrying into a spend loop.
+          </p>
+        </div>
+        <div class="grid gap-4 md:grid-cols-2">
+          {X402_MCP_ENDPOINT_GATES.map((gate) => (
+            <div class="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-5">
+              <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-violet-300">{gate.label}</div>
+              <p class="text-sm leading-6 text-slate-300">{gate.detail}</p>
+            </div>
+          ))}
         </div>
       </section>
 

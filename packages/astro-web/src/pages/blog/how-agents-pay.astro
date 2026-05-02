@@ -190,7 +190,31 @@ const htmlContent = markdownToHtml(content);
 
       <div class="prose-rhumb" set:html={htmlContent} />
 
-      <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
+      <section class="mt-16 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-8 text-center sm:text-left">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">x402 MCP gate</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          A 402 payment challenge is not the whole trust boundary.
+        </h2>
+        <p class="text-slate-300 leading-relaxed max-w-3xl mx-auto sm:mx-0">
+          When an MCP endpoint is x402-gated, the agent still needs two separate proofs before execution: the wallet paid the exact resource, and the capability policy allowed the exact action. Keep paymentRequestId, amount, network, wallet, resource, capability id, quota owner, denial case, and receipt evidence joined so a paid-but-denied call cannot become a retry storm.
+        </p>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-5 text-left">
+            <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-violet-300">Before payment</p>
+            <p class="mt-2 text-sm leading-6 text-slate-300">Name the resource, capability id, network, amount, and expiry window the agent is about to buy.</p>
+          </div>
+          <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-5 text-left">
+            <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-violet-300">Before execution</p>
+            <p class="mt-2 text-sm leading-6 text-slate-300">Re-check action scope, provider path, tenant, quota owner, side-effect class, and denied neighbors after settlement.</p>
+          </div>
+          <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-5 text-left">
+            <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-violet-300">After the call</p>
+            <p class="mt-2 text-sm leading-6 text-slate-300">Join settlement status with execution decision and recovery hints so the next retry can stop safely.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
         <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
           Start with one governed payment lane, not every rail at once
