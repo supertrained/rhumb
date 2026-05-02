@@ -38,7 +38,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Exa vs Tavily vs Serper vs Brave Search for AI Agents",
   datePublished: "2026-03-30T00:00:00Z",
-  dateModified: "2026-04-26T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: {
     "@type": "Person",
     name: "Pedro Nunes",
@@ -182,7 +182,7 @@ const htmlContent = markdownToHtml(content);
             March 30, 2026
           </span>
           <span class="text-slate-700">&middot;</span>
-          <span class="text-xs font-mono text-emerald-400/70">Updated April 26, 2026</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated May 2, 2026</span>
           <span class="text-slate-700">&middot;</span>
           <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
         </div>
@@ -220,6 +220,22 @@ const htmlContent = markdownToHtml(content);
       </section>
 
       <div class="prose-rhumb" set:html={htmlContent} />
+
+      <section class="mt-12 rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6 sm:p-7" data-section="anti-bot-search-route-safety">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300 mb-3">Anti-bot search reality check</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          If bot checks break the free lane, do not promote a generic browser as the fix
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Fresh MCP search chatter is converging on the same failure: free Google-like search wrappers work until anti-bot controls, quota edges, or result-shape drift make them unreliable. That is not just a provider leaderboard problem. It is a route-selection problem: pick the retrieval surface, then prove the governed lane that will actually run tomorrow.
+        </p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4 text-sm text-slate-300 leading-relaxed">Keep Google-style freshness, semantic recall, answer packaging, and independent-index coverage as separate jobs.</div>
+          <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4 text-sm text-slate-300 leading-relaxed">Record quota owner, denied domains, source URLs, and fallback rule before a CAPTCHA, 429, or empty result triggers a loop.</div>
+          <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4 text-sm text-slate-300 leading-relaxed">Treat browser/scraper escalation as higher authority, not a harmless retry strategy.</div>
+          <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4 text-sm text-slate-300 leading-relaxed">Use <a href="/blog/choose-web-search-api-for-ai-agents-route-safely" class="text-amber hover:underline underline-offset-2">the routing guide</a> when the comparison answer needs to become a repeat execution path.</div>
+        </div>
+      </section>
 
       <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>

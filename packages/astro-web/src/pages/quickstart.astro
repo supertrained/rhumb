@@ -44,6 +44,12 @@ const DISCOVERY_TRACKS = [
 ];
 
 
+const WEB_SEARCH_ANTI_BOT_GATES = [
+  "Use resolve to confirm there is a bounded route before copying a search MCP or browser workaround into the loop.",
+  "Use estimate to name the provider lane, credential rail, quota owner, and cost envelope before a CAPTCHA or 429 starts triggering retries.",
+  "Execute only after the workflow has a max-result cap, denied-domain rule, source-evidence requirement, and fallback decision that can be traced.",
+];
+
 const WEB_SEARCH_QUICK_PATH = [
   {
     label: "1. Resolve the capability",
@@ -135,11 +141,16 @@ const agentContext =
             <p class="text-xs font-mono text-emerald-300 uppercase tracking-widest mb-2">Web-search Resolve path</p>
             <h2 class="font-display font-bold text-2xl text-slate-100">Resolve a web-search capability in three calls</h2>
             <p class="text-slate-400 text-sm mt-2 leading-relaxed">
-              If you came here for the `search.query` quickstart, use this bounded path: resolve first, estimate second, execute only after you have a governed key or payment rail. The first two calls are read/preflight checks; the third is the paid or authorized execution step.
+              If you came here for the `search.query` quickstart, use this bounded path: resolve first, estimate second, execute only after you have a governed key or payment rail. The first two calls are read/preflight checks; the third is the paid or authorized execution step. This is also the safer answer when free search MCPs break under anti-bot checks: prove the route boundary instead of handing the agent a broader browser surface.
             </p>
             <p class="text-slate-500 text-xs mt-3 leading-5">
               Still choosing the provider? Read <a href="/blog/choose-web-search-api-for-ai-agents-route-safely" class="text-amber hover:underline underline-offset-2">how to choose a web search API for agents and route the call safely</a> before pinning a vendor SDK in an unattended loop.
             </p>
+          </div>
+          <div class="mb-6 grid gap-3 md:grid-cols-3">
+            {WEB_SEARCH_ANTI_BOT_GATES.map((gate) => (
+              <div class="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4 text-xs leading-5 text-slate-300">{gate}</div>
+            ))}
           </div>
           <div class="grid gap-4 lg:grid-cols-3">
             {WEB_SEARCH_QUICK_PATH.map((step) => (

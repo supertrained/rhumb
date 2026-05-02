@@ -69,6 +69,13 @@ const PREFLIGHT_CHECKS = [
   "What evidence would convince you the answer was routed safely enough to repeat tomorrow?",
 ];
 
+const ANTI_BOT_ROUTE_GATES = [
+  "Treat anti-bot breakage as route evidence, not as permission to give the agent a broader browser or scraper surface.",
+  "Name whether the search job needs Google-like freshness, semantic recall, independent index coverage, or answer packaging before selecting the provider lane.",
+  "Preserve quota owner, blocked-domain policy, result source URLs, retry budget, and fallback rule so a CAPTCHA, 429, or empty result does not become an unbounded research loop.",
+  "If the route cannot explain denial and fallback in the trace, keep it in discovery mode instead of promoting it to a repeat execution path.",
+];
+
 const COMMON_FAILURES = [
   {
     title: "Ranking confidence becomes execution confidence",
@@ -116,7 +123,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How to Choose a Web Search API for Agents, Then Route the Call Safely",
   datePublished: "2026-05-01T00:00:00Z",
-  dateModified: "2026-05-01T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A practical guide to choosing Exa, Tavily, Serper, or Brave Search for AI agents, then routing search.query through resolve, estimate, credentials, budget, and trace evidence.",
@@ -256,6 +263,17 @@ const ARTICLE_JSON_LD = {
                 Scope a proof sprint &rarr;
               </a>
             </div>
+          </section>
+
+          <section class="rounded-[32px] border border-cyan-500/20 bg-cyan-500/5 p-6 sm:p-8">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300">Fresh anti-bot search signal</div>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Broken free search MCPs are a routing problem, not a reason to widen authority</h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              When free Google-search MCPs hit bot checks, the tempting fix is to swap in a browser-like workaround and let the agent keep going. That hides the real operator question: which bounded search lane can explain auth, quota, denial, fallback, and source evidence for this repeat workflow?
+            </p>
+            <ul class="ml-5 list-disc list-outside space-y-3 leading-relaxed text-slate-300">
+              {ANTI_BOT_ROUTE_GATES.map((gate) => (<li>{gate}</li>))}
+            </ul>
           </section>
 
           <section>
