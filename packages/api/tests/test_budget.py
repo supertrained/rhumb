@@ -321,6 +321,51 @@ class TestBudgetRoutes:
             assert data["budget_usd"] == 100.0
             assert data["remaining_usd"] == 100.0
 
+    def test_set_budget_rejects_non_object_payload_before_auth(self):
+        """PUT /v1/agent/budget rejects non-object payloads before auth."""
+        resp = self.client.put(
+            "/v1/agent/budget",
+            headers={"X-Rhumb-Key": "test_key_123"},
+            json=["not", "an", "object"],
+        )
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid budget payload."
+        self._mock_extract_agent_id.assert_not_called()
+
+    def test_set_budget_requires_budget_amount_before_auth(self):
+        """PUT /v1/agent/budget rejects missing amount before auth."""
+        resp = self.client.put(
+            "/v1/agent/budget",
+            headers={"X-Rhumb-Key": "test_key_123"},
+            json={"period": "monthly"},
+        )
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'budget_usd' field."
+        self._mock_extract_agent_id.assert_not_called()
+
+    def test_set_budget_rejects_malformed_fields_before_auth(self):
+        """PUT /v1/agent/budget maps malformed field types to canonical errors before auth."""
+        cases = [
+            ({"budget_usd": "not-a-number", "period": "monthly"}, "budget_usd"),
+            ({"budget_usd": 100.0, "period": "monthly", "alert_threshold_pct": 75.5}, "alert_threshold_pct"),
+            ({"budget_usd": 100.0, "period": "monthly", "hard_limit": "sometimes"}, "hard_limit"),
+        ]
+        for body, field in cases:
+            resp = self.client.put(
+                "/v1/agent/budget",
+                headers={"X-Rhumb-Key": "test_key_123"},
+                json=body,
+            )
+            assert resp.status_code == 400
+            payload = resp.json()
+            assert payload["error"]["code"] == "INVALID_PARAMETERS"
+            assert payload["error"]["message"] == f"Invalid '{field}' field."
+        self._mock_extract_agent_id.assert_not_called()
+
     def test_set_budget_invalid_period(self):
         """PUT /v1/agent/budget rejects invalid period before auth."""
         resp = self.client.put(
@@ -379,6 +424,36 @@ class TestBudgetRoutes:
         assert resp.status_code == 200
         mock_enforcer.set_budget.assert_awaited_once()
         assert mock_enforcer.set_budget.await_args.kwargs["period"] == "weekly"
+
+    def test_set_budget_normalizes_numeric_and_boolean_strings_before_write(self):
+        """PUT /v1/agent/budget normalizes valid scalar strings before writes."""
+        with patch("routes.budget._enforcer") as mock_enforcer:
+            mock_enforcer.set_budget = AsyncMock(return_value=BudgetStatus(
+                allowed=True,
+                remaining_usd=100.0,
+                budget_usd=100.0,
+                spent_usd=0.0,
+                period="weekly",
+                hard_limit=False,
+                alert_threshold_pct=75,
+                alert_fired=False,
+            ))
+            resp = self.client.put(
+                "/v1/agent/budget",
+                headers={"X-Rhumb-Key": "test_key_123"},
+                json={
+                    "budget_usd": "100.00",
+                    "period": "  WEEKLY  ",
+                    "hard_limit": "false",
+                    "alert_threshold_pct": "75",
+                },
+            )
+        assert resp.status_code == 200
+        mock_enforcer.set_budget.assert_awaited_once()
+        assert mock_enforcer.set_budget.await_args.kwargs["budget_usd"] == 100.0
+        assert mock_enforcer.set_budget.await_args.kwargs["period"] == "weekly"
+        assert mock_enforcer.set_budget.await_args.kwargs["hard_limit"] is False
+        assert mock_enforcer.set_budget.await_args.kwargs["alert_threshold_pct"] == 75
 
 
 # ---------------------------------------------------------------------------

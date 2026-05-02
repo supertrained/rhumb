@@ -6,7 +6,10 @@ PUT  /v1/agent/budget  — create/update budget
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Header
+import math
+from typing import Any
+
+from fastapi import APIRouter, Body, Header
 from pydantic import BaseModel, Field
 
 from services.budget_enforcer import BudgetEnforcer
@@ -39,42 +42,119 @@ class SetBudgetRequest(BaseModel):
 _VALID_BUDGET_PERIODS = {"daily", "weekly", "monthly", "total"}
 
 
-def _validated_budget_amount(value: float) -> float:
-    """Reject invalid budget amounts before governed-key auth runs."""
-    normalized = float(value)
-    if normalized > 0:
-        return normalized
+def _invalid_budget_field(field: str, detail: str) -> RhumbError:
+    return RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field}' field.",
+        detail=detail,
+    )
+
+
+def _validated_body_object(body: Any) -> dict[str, Any]:
+    """Reject malformed budget payloads before governed-key auth runs."""
+    if isinstance(body, dict):
+        return body
 
     raise RhumbError(
         "INVALID_PARAMETERS",
-        message="Invalid 'budget_usd' field.",
+        message="Invalid budget payload.",
+        detail="Provide a JSON object payload with a budget_usd value.",
+    )
+
+
+def _validated_budget_amount(value: Any) -> float:
+    """Reject invalid budget amounts before governed-key auth runs."""
+    if isinstance(value, bool) or value is None:
+        raise _invalid_budget_field(
+            "budget_usd",
+            "Provide a budget_usd value greater than 0.",
+        )
+
+    try:
+        normalized = float(value)
+    except (TypeError, ValueError) as exc:
+        raise _invalid_budget_field(
+            "budget_usd",
+            "Provide a budget_usd value greater than 0.",
+        ) from exc
+
+    if math.isfinite(normalized) and normalized > 0:
+        return normalized
+
+    raise _invalid_budget_field(
+        "budget_usd",
         detail="Provide a budget_usd value greater than 0.",
     )
 
 
-def _validated_budget_period(value: str) -> str:
+def _validated_budget_period(value: Any) -> str:
     """Normalize and validate budget periods before governed-key auth runs."""
     normalized = str(value or "").strip().lower()
     if normalized in _VALID_BUDGET_PERIODS:
         return normalized
 
-    raise RhumbError(
-        "INVALID_PARAMETERS",
-        message="Invalid 'period' field.",
+    raise _invalid_budget_field(
+        "period",
         detail="Use one of: daily, weekly, monthly, total.",
     )
 
 
-def _validated_alert_threshold_pct(value: int) -> int:
+def _validated_alert_threshold_pct(value: Any) -> int:
     """Reject invalid alert thresholds before governed-key auth runs."""
-    normalized = int(value)
+    if isinstance(value, bool) or value is None:
+        raise _invalid_budget_field(
+            "alert_threshold_pct",
+            "Provide an integer between 1 and 100.",
+        )
+
+    if isinstance(value, float) and not value.is_integer():
+        raise _invalid_budget_field(
+            "alert_threshold_pct",
+            "Provide an integer between 1 and 100.",
+        )
+
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError) as exc:
+        raise _invalid_budget_field(
+            "alert_threshold_pct",
+            "Provide an integer between 1 and 100.",
+        ) from exc
+
     if 1 <= normalized <= 100:
         return normalized
 
-    raise RhumbError(
-        "INVALID_PARAMETERS",
-        message="Invalid 'alert_threshold_pct' field.",
+    raise _invalid_budget_field(
+        "alert_threshold_pct",
         detail="Provide an integer between 1 and 100.",
+    )
+
+
+def _validated_hard_limit(value: Any) -> bool:
+    """Normalize budget hard_limit before governed-key auth runs."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+
+    raise _invalid_budget_field(
+        "hard_limit",
+        detail="Provide hard_limit as a boolean.",
+    )
+
+
+def _validated_set_budget_request(body: Any) -> SetBudgetRequest:
+    """Normalize route-owned budget input before governed-key auth/state writes."""
+    payload = _validated_body_object(body)
+    return SetBudgetRequest(
+        budget_usd=_validated_budget_amount(payload.get("budget_usd")),
+        period=_validated_budget_period(payload.get("period", "monthly")),
+        hard_limit=_validated_hard_limit(payload.get("hard_limit", True)),
+        alert_threshold_pct=_validated_alert_threshold_pct(payload.get("alert_threshold_pct", 80)),
     )
 
 
@@ -128,21 +208,19 @@ async def get_budget(
 
 @router.put("/budget", response_model=BudgetResponse)
 async def set_budget(
-    body: SetBudgetRequest,
+    body: Any = Body(default=None),
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ):
     """Create or update budget for the authenticated agent."""
-    budget_usd = _validated_budget_amount(body.budget_usd)
-    period = _validated_budget_period(body.period)
-    alert_threshold_pct = _validated_alert_threshold_pct(body.alert_threshold_pct)
+    validated = _validated_set_budget_request(body)
 
     agent_id = await _extract_agent_id(x_rhumb_key)
     status = await _enforcer.set_budget(
         agent_id=agent_id,
-        budget_usd=budget_usd,
-        period=period,
-        hard_limit=body.hard_limit,
-        alert_threshold_pct=alert_threshold_pct,
+        budget_usd=validated.budget_usd,
+        period=validated.period,
+        hard_limit=validated.hard_limit,
+        alert_threshold_pct=validated.alert_threshold_pct,
     )
 
     return BudgetResponse(
