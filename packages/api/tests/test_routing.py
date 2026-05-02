@@ -365,6 +365,33 @@ class TestRoutingRoutes:
         assert error["detail"] == "Provide quality_floor as a number between 0 and 10."
         mock_extract.assert_not_awaited()
 
+    @pytest.mark.parametrize(
+        ("field", "value", "detail"),
+        [
+            ("quality_floor", float("nan"), "Provide quality_floor as a number between 0 and 10."),
+            ("quality_floor", float("inf"), "Provide quality_floor as a number between 0 and 10."),
+            (
+                "max_cost_per_call_usd",
+                float("inf"),
+                "Provide max_cost_per_call_usd as a number greater than or equal to 0.",
+            ),
+        ],
+    )
+    def test_set_strategy_rejects_non_finite_scalars_before_auth(self, field, value, detail):
+        with patch("routes.routing._extract_agent_id", new_callable=AsyncMock) as mock_extract:
+            resp = self.client.put(
+                "/v1/agent/routing-strategy",
+                headers={"X-Rhumb-Key": "test_key"},
+                json={"strategy": "balanced", field: value},
+            )
+
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["code"] == "INVALID_PARAMETERS"
+        assert error["message"] == f"Invalid '{field}'."
+        assert error["detail"] == detail
+        mock_extract.assert_not_awaited()
+
     def test_set_strategy_normalizes_valid_payload_before_engine_write(self):
         with patch("routes.routing._engine") as mock_engine:
             mock_engine.set_strategy = AsyncMock(return_value=RoutingStrategy(

@@ -8,6 +8,7 @@ GET  /v1/agent/spend            — spend breakdown
 from __future__ import annotations
 
 from datetime import datetime
+import math
 from typing import Any, Optional
 
 from fastapi import APIRouter, Body, Header, HTTPException, Query
@@ -103,7 +104,7 @@ def _parse_non_negative_float(value: Any, field_name: str, *, max_value: float |
             + (f" between 0 and {max_value:g}." if max_value is not None else " greater than or equal to 0."),
         ) from exc
 
-    if parsed < 0 or (max_value is not None and parsed > max_value):
+    if not math.isfinite(parsed) or parsed < 0 or (max_value is not None and parsed > max_value):
         raise _routing_strategy_payload_error(
             f"Invalid '{field_name}'.",
             f"Provide {field_name} as a number"
