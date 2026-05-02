@@ -54,6 +54,13 @@ const REMOTE_APPROVAL_GATES = [
   "Preserve approval source and scope in the receipt so a later run can prove whether the human was actually in the loop or merely notified after routing had already happened.",
 ];
 
+const REPO_HARNESS_GATES = [
+  "Make the onboarding harness name the route card, tool contract, fixture set, and denied-neighbor tests the first workflow depends on.",
+  "Keep repo instructions separate from executable authority: a README, prompt file, or agent.md can guide the model, but it should not silently widen credentials, filesystem reach, or provider budget.",
+  "Prove the same starter task from a fresh checkout so hidden local state, cached tokens, and one developer's shell do not become part of the product promise.",
+  "Preserve harness version, fixture hash, policy bundle, and failing test evidence in the first-run receipt so onboarding quality is reproducible, not a lucky demo.",
+];
+
 const SCHEMA_BRIDGE_GATES = [
   "Expose only the output classes the first workflow needs. A bootstrap read should not return a whole environment, tenant map, or filesystem tree just because the caller asked broadly.",
   "Describe parameters as authority boundaries: path prefix, environment key class, repository, tenant, target system, write intent, and egress destination should be legible before the agent plans.",
@@ -104,7 +111,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Capability-First Agent Onboarding: Managed Superpowers First",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-02T00:00:00Z",
+  dateModified: "2026-05-02T13:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Connector catalogs describe implementation inventory. Agents and operators adopt clear capabilities first. The better onboarding model is managed superpowers first, then secure bridges only when needed.",
@@ -283,7 +290,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              6. Honest bridges beat fake simplicity
+              6. The repo harness is part of first-run proof
+            </h2>
+            <div class="space-y-4 text-slate-400 leading-relaxed">
+              <p>
+                Fresh developer discussion around AI coding harnesses makes the onboarding boundary sharper: an agent is only as reliable as the route cards, fixtures, policies, and tests around the repo it wakes up in. If the first managed capability only works inside one developer's local state, the product has not proven repeatable onboarding.
+              </p>
+              <p>
+                Capability-first onboarding should therefore prove the harness alongside the superpower. The agent needs a small, reproducible workbench before it gets broader tools, credentials, or side effects.
+              </p>
+            </div>
+            <div class="rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6 mt-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300 mb-3">Repo harness proof</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {REPO_HARNESS_GATES.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              7. Honest bridges beat fake simplicity
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed">
               <p>
@@ -300,7 +329,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-              7. Measure time to value, not connector breadth
+              8. Measure time to value, not connector breadth
             </h2>
             <div class="space-y-4 text-slate-400 leading-relaxed mb-6">
               <p>

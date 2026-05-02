@@ -75,6 +75,13 @@ const CHAINED_BUG_RECOVERY_DRILL = [
   "Link recovery evidence to observability traces and loop budgets, because the next bug is often hidden in cost, retries, or stale route context.",
 ];
 
+const REPO_HARNESS_RECOVERY_DRILL = [
+  "Checkpoint the harness version, instruction file, fixture pack, and test command before the agent changes code or invokes external tools.",
+  "Run the recovery path from a fresh checkout, not only from the warm repo that still has cached state, local env, or a human-curated shell history.",
+  "Store the failing test, denied-neighbor case, and policy bundle with the work item so the next session can distinguish missing context from missing authority.",
+  "Treat harness drift as state drift: if route cards, schemas, or fixtures changed since the last checkpoint, re-verify before replaying side effects.",
+];
+
 const CHECKPOINT_REASON_DRILL = [
   "Normalize the checkpoint reason before the outbox, audit stream, billing stream, score-audit chain, or execution-receipt head can observe it.",
   "Reject missing, blank, or whitespace-only reasons as typed parameter failures instead of signing a meaningless manual snapshot.",
@@ -154,7 +161,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Agent State Management: How to Build Workflows That Recover Without You",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-30T09:00:00Z",
+  dateModified: "2026-05-02T13:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production agent reliability depends on checkpointing, verification, bounded work units, and explicit recovery paths, not just whether an API usually returns 200.",
@@ -302,6 +309,26 @@ const ARTICLE_JSON_LD = {
               </ul>
               <p class="mt-4 leading-relaxed text-slate-300">
                 The follow-through belongs in <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">observability traces</a> and <a href="/blog/llm-apis-agent-loops" class="text-amber hover:text-amber-200 transition-colors">loop-budget evidence</a>, not just in a prompt changelog.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Repo harness recovery</div>
+              <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+                A fresh checkout is a recovery test, not just developer hygiene
+              </h2>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                Fresh AI-coding-harness discussion is really a state-management warning. If an agent can only continue work because one repo already contains the right prompts, fixtures, cached tokens, and shell context, the workflow has not proven restart safety. The harness itself becomes recoverable state.
+              </p>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {REPO_HARNESS_RECOVERY_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 leading-relaxed text-slate-300">
+                Pair this with <a href="/blog/capability-first-agent-onboarding" class="text-amber hover:text-amber-200 transition-colors">capability-first onboarding</a>: the first useful action should be reproducible from a clean workbench before the lane gets more authority.
               </p>
             </div>
           </section>

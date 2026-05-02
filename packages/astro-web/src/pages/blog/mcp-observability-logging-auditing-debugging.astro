@@ -101,6 +101,13 @@ const CHAINED_BUG_TRACE_CHECKS = [
   "Connect the incident trail to the checkpoint store so a later worker can resume from verified state instead of repeating the whole debugging conversation.",
 ];
 
+const REPO_HARNESS_TRACE_CHECKS = [
+  "Log the repo harness version: instruction source, fixture pack, route card, tool contract, and test command that shaped the agent's plan.",
+  "Separate harness guidance from authority grants so a prompt file cannot quietly become filesystem, credential, browser, or provider-budget permission.",
+  "Attach denied-neighbor and failing-fixture evidence to the trace before the agent retries from a modified prompt or broader tool set.",
+  "Diff fresh-checkout and warm-repo traces before calling a coding-agent workflow production-ready; hidden local context is an observability failure.",
+];
+
 const TOOL_CALL_LOG_SAMPLE = `{
   "event": "tool_call",
   "tool": "create_file",
@@ -184,7 +191,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-02T00:00:00Z",
+  dateModified: "2026-05-02T13:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production MCP observability means principal-aware tool logs, typed errors, mediated-hop attribution, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
@@ -432,7 +439,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              7. Partial failure recovery depends on checkpoints and reversibility classes
+              7. Repo harness traces explain why the agent planned that action
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Fresh AI-coding-harness discussion exposes an observability gap: prompts, repo docs, fixtures, route cards, and local test commands shape the agent's authority just as much as the visible MCP call. If those inputs are absent from the trace, a later operator cannot tell whether the agent made a bad decision or simply woke up inside a different workbench.
+              </p>
+              <p>
+                Treat the harness as call context. It should be versioned, bounded, and compared across fresh-checkout and warm-repo runs before a coding-agent workflow is called production-ready.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Repo harness trace drill</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {REPO_HARNESS_TRACE_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              8. Partial failure recovery depends on checkpoints and reversibility classes
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -455,7 +484,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              8. The production bar is not “we have logs somewhere”
+              9. The production bar is not “we have logs somewhere”
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
