@@ -94,6 +94,13 @@ const TRANSPORT_ADAPTER_TRACE_CHECKS = [
   "Diff direct-path and mediated-path traces on authorized reads, denied writes, and timeout recovery before treating a transport upgrade as production readiness.",
 ];
 
+const CHAINED_BUG_TRACE_CHECKS = [
+  "Give every fix attempt its own trace segment: symptom, hypothesis, changed route, changed prompt or policy, and expected recovery point.",
+  "Record the last verified state before the fix and the first newly exposed failure after the fix, so the chain does not collapse into one vague incident.",
+  "Preserve route context, credential mode, side-effect class, and spend delta for each link in the chain before another retry or fallback runs.",
+  "Connect the incident trail to the checkpoint store so a later worker can resume from verified state instead of repeating the whole debugging conversation.",
+];
+
 const TOOL_CALL_LOG_SAMPLE = `{
   "event": "tool_call",
   "tool": "create_file",
@@ -177,7 +184,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-26T00:00:00Z",
+  dateModified: "2026-05-02T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production MCP observability means principal-aware tool logs, typed errors, mediated-hop attribution, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
@@ -212,6 +219,8 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-500">April 3, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Updated May 2, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">8 min read</span>
         </div>
@@ -401,7 +410,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              6. Partial failure recovery depends on checkpoints and reversibility classes
+              6. Chained bug fixes need an incident trail, not one blended postmortem
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                Fresh agent-debugging stories keep showing the same pattern: fixing one symptom exposes the next failure in the chain. That is useful only if the trace preserves which fix was attempted, what state was known-good before it, and which new weakness the fix revealed.
+              </p>
+              <p>
+                Treat each link as recovery evidence. The operator should be able to replay the chain from checkpoint to checkpoint, not reconstruct it from chat history, screenshots, or a single incident note that says “the bot broke again.”
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300">Chained bug trace drill</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {CHAINED_BUG_TRACE_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              7. Partial failure recovery depends on checkpoints and reversibility classes
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -424,7 +455,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              7. The production bar is not “we have logs somewhere”
+              8. The production bar is not “we have logs somewhere”
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>

@@ -116,6 +116,13 @@ const COST_PER_ACTION_GUARDRAILS = [
   "Feed observed cost deltas back into routing policy instead of waiting for the monthly bill to reveal which loop became unprofitable.",
 ];
 
+const CHAINED_FAILURE_GUARDRAILS = [
+  "Classify each exposed failure separately: prompt defect, route drift, stale state, auth scope, tool schema, provider outage, or side-effect ambiguity.",
+  "Checkpoint the state before every fix attempt so the next failure can be compared against verified truth instead of the latest conversation context.",
+  "Log which provider route and fallback branch changed during the fix; otherwise the next worker cannot tell whether the bug moved or the environment did.",
+  "Stop treating a successful patch as done until the loop has replayed the affected path with observability, budget, and recovery evidence intact.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
@@ -411,6 +418,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           That is why cost belongs beside <a href="/blog/agent-fleet-rate-limit-design" class="text-amber hover:text-amber-200 transition-colors">fleet rate-limit design</a> and <a href="/pricing" class="text-amber hover:text-amber-200 transition-colors">per-call pricing</a>: agents need a budget contract per completed action, not a vague hope that average token spend stays low.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-fuchsia-500/20 bg-fuchsia-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-fuchsia-300 mb-3">Chained failure drill</div>
+        <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+          The next bug is often the first real state-management test
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Fresh agent-debugging stories show a common loop failure: fix the obvious prompt or API bug, and the next run exposes stale state, missing verification, wrong route context, or a retry path that was never instrumented. Treat that sequence as a chain of state transitions, not as one messy debugging session.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {CHAINED_FAILURE_GUARDRAILS.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          The operational continuation lives in <a href="/blog/agent-state-management-recovery-patterns" class="text-amber hover:text-amber-200 transition-colors">state-management recovery patterns</a> and <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">MCP observability</a>: the loop should leave enough evidence for the next worker to resume from truth, not repeat the whole bug chain.
         </p>
       </section>
 
