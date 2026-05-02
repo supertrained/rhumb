@@ -83,6 +83,13 @@ const QUOTA_KEY_PREFLIGHT_GATES = [
   "Stop when the only runnable key would cross a different tenant, data-use class, billing owner, or workflow budget than the original request approved.",
 ];
 
+const DELIVERY_FAILURE_PREFLIGHT_GATES = [
+  "Model provider-accepted, carrier-queued, delivered, failed, undelivered, duplicate, and expired-callback outcomes before any real recipient is contacted.",
+  "Persist idempotency key, provider message id, sender number, recipient class, callback event id, delivery state, and retry decision in the same trace.",
+  "Test late, repeated, forged, and out-of-order callbacks locally so replay cannot double-send or advance the workflow from stale delivery state.",
+  "Require operator-approved fallback before switching channel or provider; SMS to WhatsApp, voice, email, or another sender is an authority change, not a transparent retry.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
@@ -500,6 +507,24 @@ const htmlContent = markdownToHtml(content);
         </ul>
         <p class="text-slate-300 leading-relaxed">
           Use this preflight with <a href="/blog/agent-fleet-rate-limit-design" class="text-amber hover:underline underline-offset-2">fleet rate-limit design</a> and <a href="/blog/api-credentials-agent-fleets" class="text-amber hover:underline underline-offset-2">credential fleet controls</a>: the reliable answer to a 429 is not "try another key". It is a typed proof that another key is still allowed.
+        </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Delivery-failure preflight</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          A sent message is not a delivered side effect until the callback proves it
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Fresh local Twilio testing guidance maps to a broader agent rule: outbound communication needs a failure sandbox before production authority. The workflow should know how it handles invalid numbers, carrier filtering, queued messages, late callbacks, duplicate idempotency keys, and channel fallback before a real human receives anything.
+        </p>
+        <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed mb-4">
+          {DELIVERY_FAILURE_PREFLIGHT_GATES.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+        <p class="text-slate-300 leading-relaxed">
+          Pair this with <a href="/blog/twilio-vs-vonage-vs-plivo" class="text-amber hover:underline underline-offset-2">messaging provider selection</a>: API acceptance, carrier delivery, customer consent, and fallback channel approval are different gates.
         </p>
       </section>
 

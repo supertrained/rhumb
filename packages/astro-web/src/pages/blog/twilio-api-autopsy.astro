@@ -135,6 +135,13 @@ const kindStyle = {
   nuance: { bg: "bg-blue-500/10", border: "border-blue-500/25", text: "text-blue-400", label: "Nuance" },
 };
 
+const DELIVERY_FAILURE_TESTS = [
+  "Simulate accepted-but-undelivered, invalid destination, blocked number, expired callback signature, duplicate idempotency key, and late status callback before production send authority opens.",
+  "Join the create-message response, status callback, provider message id, idempotency key, recipient class, sender number type, and final delivery state in one trace.",
+  "Require typed outcomes for `sent`, `queued`, `delivered`, `failed`, `undelivered`, `duplicate`, and `needs-human-review` so retry code does not improvise.",
+  "Test channel fallback as a consent and authority decision, not a harmless retry: SMS to WhatsApp, voice, or another provider changes user expectation and cost.",
+];
+
 const whatKeepsItFromPerfect = [
   {
     title: "Carrier-level rate limit headers on API responses",
@@ -334,6 +341,26 @@ const whatKeepsItFromPerfect = [
               </div>
             );
           })}
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="rounded-[30px] border border-violet-500/20 bg-violet-500/5 p-8 reveal max-w-4xl">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-violet-300">Delivery failure drill</p>
+          <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Twilio's strength is clearer when delivery failure is tested before production</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            Twilio's API is unusually strong because it gives agents enough structure to model delivery as a state machine. The missing operator step is local rehearsal: before an agent owns outbound messaging, it should prove the callback path, idempotency boundary, failure classes, and channel fallback rules without contacting a real recipient.
+          </p>
+          <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            {DELIVERY_FAILURE_TESTS.map((item) => (
+              <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-5 text-sm leading-6 text-slate-300">{item}</div>
+            ))}
+          </div>
+          <p class="mt-5 text-sm leading-6 text-slate-400">
+            This is why Twilio scores well but still needs a governed lane: <a href="/blog/agent-state-management-recovery-patterns" class="text-amber hover:underline underline-offset-2">state recovery</a> and <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:underline underline-offset-2">observability</a> decide whether a failed delivery becomes a safe retry or a duplicate customer touch.
+          </p>
         </div>
       </div>
     </section>

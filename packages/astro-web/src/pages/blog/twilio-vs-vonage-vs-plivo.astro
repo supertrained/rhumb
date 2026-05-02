@@ -152,6 +152,13 @@ const agentRules = [
   "Always confirm A2P 10DLC registration status before promising US SMS delivery timelines. This is a carrier gate, not a provider gate.",
   "For cost-sensitive operations: Plivo for bulk SMS, Twilio for transactional/critical messages. Mixing providers for different message types is a valid architecture.",
 ];
+
+const deliveryTestRules = [
+  "Test unreachable, undelivered, blocked, queued, and carrier-filtered outcomes locally before the agent is allowed to send through a production number.",
+  "Preserve provider message id, local test fixture, callback event, idempotency key, recipient class, and final delivery state in one trace.",
+  "Treat API-accepted and carrier-delivered as different states. A 201 response is not evidence that the human received the SMS, WhatsApp, or voice notification.",
+  "Block fallback from SMS to WhatsApp, voice, or another provider unless the operator approved the channel, consent boundary, cost ceiling, and retry semantics.",
+];
 ---
 
 <Layout
@@ -348,6 +355,26 @@ const agentRules = [
               </div>
             ))}
           </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="border-b border-slate-800/60">
+      <div class="max-w-6xl mx-auto px-6 py-14">
+        <div class="rounded-[30px] border border-violet-500/20 bg-violet-500/5 p-8 reveal">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-violet-300">Delivery failure sandbox</p>
+          <h2 class="mt-2 font-display font-bold text-2xl sm:text-3xl text-slate-100">Local delivery tests decide whether a messaging rail is safe for agents</h2>
+          <p class="mt-4 max-w-3xl text-slate-300 leading-relaxed">
+            Fresh Twilio testing guidance is a useful reminder: messaging APIs are not done when the create-message request succeeds. Agent routing needs a local failure sandbox that can prove how the workflow reacts to failed, queued, undelivered, blocked, or carrier-filtered messages before production retries can contact a real human twice.
+          </p>
+          <div class="mt-6 grid gap-4 sm:grid-cols-2">
+            {deliveryTestRules.map((rule) => (
+              <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-5 text-sm leading-6 text-slate-300">{rule}</div>
+            ))}
+          </div>
+          <p class="mt-5 text-sm leading-6 text-slate-400">
+            Pair this with the <a href="/blog/twilio-api-autopsy" class="text-amber hover:underline underline-offset-2">Twilio autopsy</a> and the <a href="/blog/api-reliability-checklist" class="text-amber hover:underline underline-offset-2">API reliability checklist</a>: delivery evidence belongs in the execution lane, not in a manual console check after the agent already sent.
+          </p>
         </div>
       </div>
     </section>
