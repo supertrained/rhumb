@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 from functools import lru_cache
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from pydantic import ValidationError
 
 from config import settings
 from db.repository import (
@@ -403,9 +404,36 @@ def _format_probe_freshness(probed_at: datetime | None) -> str | None:
     return f"{weeks} weeks ago"
 
 
+def _validated_score_request_payload(payload: Any) -> ScoreRequestSchema:
+    """Validate admin score payloads before score/probe repositories open."""
+    if not isinstance(payload, dict):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid score payload.",
+            detail=(
+                "Provide a JSON object with service_slug, dimensions, optional "
+                "access/autonomy dimensions, evidence, freshness, probe telemetry, "
+                "and hydration fields."
+            ),
+        )
+
+    try:
+        return ScoreRequestSchema.model_validate(payload)
+    except ValidationError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid score payload.",
+            detail=(
+                "Provide a JSON object with valid dimensions, evidence, freshness, "
+                "probe telemetry, and hydration fields."
+            ),
+        ) from exc
+
+
 @router.post("/score", response_model=ANScoreSchema, dependencies=[Depends(require_admin_key)])
-async def score_service(payload: ScoreRequestSchema) -> ANScoreSchema:
+async def score_service(payload: Any = Body(default=None)) -> ANScoreSchema:
     """Calculate and persist an AN score from dimensional inputs."""
+    payload = _validated_score_request_payload(payload)
     canonical_service_slug = _validated_public_score_service_slug(payload.service_slug)
     scoring_service = get_scoring_service()
 

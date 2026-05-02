@@ -1119,8 +1119,15 @@ def test_score_endpoint_can_hydrate_probe_telemetry_from_latest_probe(
     assert hydrated_confidence > baseline_confidence
 
 
-def test_score_endpoint_validation_errors(client) -> None:
-    """Pydantic should reject unknown dimensions and invalid score bounds."""
+def test_score_endpoint_validation_errors(client, monkeypatch: pytest.MonkeyPatch) -> None:
+    """POST /v1/score should canonically reject malformed payloads before score reads."""
+    from routes import scores as score_routes
+
+    def fail_if_scoring_service_opens():
+        raise AssertionError("scoring service opened before score payload validation")
+
+    monkeypatch.setattr(score_routes, "get_scoring_service", fail_if_scoring_service_opens)
+
     bad_payload: dict[str, Any] = {
         "service_slug": "example",
         "dimensions": {"X1": 9.0, "I1": 11.0},
@@ -1130,4 +1137,29 @@ def test_score_endpoint_validation_errors(client) -> None:
     }
 
     response = client.post("/v1/score", json=bad_payload)
-    assert response.status_code == 422
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid score payload."
+    assert "valid dimensions" in payload["error"]["detail"]
+
+
+def test_score_endpoint_rejects_non_object_payload_before_score_reads(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """POST /v1/score should reject non-object bodies before score/probe repositories."""
+    from routes import scores as score_routes
+
+    def fail_if_scoring_service_opens():
+        raise AssertionError("scoring service opened before score payload validation")
+
+    monkeypatch.setattr(score_routes, "get_scoring_service", fail_if_scoring_service_opens)
+
+    response = client.post("/v1/score", json=["not", "an", "object"])
+
+    assert response.status_code == 400
+    payload = response.json()
+    assert payload["error"]["code"] == "INVALID_PARAMETERS"
+    assert payload["error"]["message"] == "Invalid score payload."
+    assert "JSON object" in payload["error"]["detail"]
