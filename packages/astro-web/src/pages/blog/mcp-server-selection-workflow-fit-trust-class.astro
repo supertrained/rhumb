@@ -57,6 +57,13 @@ const SELECTION_RUBRIC = [
   "Evidence, can the operator reconstruct who invoked what, with what scope, and what happened after?",
 ];
 
+const WHEN_TO_CALL_CHECKS = [
+  "A good server page should explain the job trigger for each tool, not only the provider object or endpoint it wraps.",
+  "Separate tools by trust class even inside one domain: read, quote, verify, mutate, notify, pay, settle, and administer do not belong in one flat pick-list.",
+  "Prefer servers that make no-call, ask-human, and downgrade paths explicit; the absence of a safe tool is often the correct runtime answer.",
+  "If the domain is high-stakes or financial, require route-card evidence before using tool examples as proof of production fit.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
@@ -182,7 +189,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              3. Trust class is the second filter, and often the harder one
+              3. “When the agent calls it” is the missing half of tool documentation
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A domain MCP server that documents each tool and when the agent calls it is moving in the right direction. The important distinction is that “when” should not be only a usage example. It should be a workflow-fit and trust-class statement.
+              </p>
+              <p>
+                If one server exposes discovery, verification, notification, settlement, admin, or market actions, the operator needs to know which repeated job each tool improves and which caller should never see it. Otherwise a tidy domain catalog becomes another flat list with higher stakes.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">When-to-call checks</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {WHEN_TO_CALL_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              4. Trust class is the second filter, and often the harder one
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -199,7 +228,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              4. Easy metrics are weak proxies for the decision you actually care about
+              5. Easy metrics are weak proxies for the decision you actually care about
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -216,7 +245,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              5. There are at least two real MCP leaderboards
+              6. There are at least two real MCP leaderboards
             </h2>
             <div class="grid gap-4 md:grid-cols-2">
               <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">

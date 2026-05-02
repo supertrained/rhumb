@@ -50,6 +50,13 @@ const DECISION_LINEAGE_CHECKS = [
   "Join the final receipt back to the selection trace so post-call evidence explains both what happened and why it was admitted.",
 ];
 
+const ROUTE_CARD_CHECKS = [
+  "Name the job each tool is allowed to perform, the condition that makes it visible, and the condition that should hide it from the model.",
+  "Carry tool id, capability id, workflow intent, trust class, side-effect class, tenant, credential lane, and quota owner in the route card before selection.",
+  "Pair each tool with a no-call branch: when the agent should ask, downgrade, choose a read-only tool, or stop because no safe candidate exists.",
+  "Treat same-server tools as different authority lanes when they touch different assets, accounts, markets, wallets, users, or external side effects.",
+];
+
 const EVALUATION_AREAS = [
   {
     title: "Capability shape",
@@ -270,7 +277,29 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            6. Decision lineage belongs inside the capability contract
+            6. Tool route cards answer when the agent should call each capability
+          </h2>
+          <div class="space-y-4 text-slate-400 leading-relaxed">
+            <p>
+              Fresh MCP tool-catalog posts are valuable when they explain not just what each tool does, but when an agent should call it. That “when” is the control-plane boundary. Without it, a six-tool domain server can still blur read, quote, verify, trade, notify, and settle actions into one friendly package.
+            </p>
+            <p>
+              Governed capabilities should carry route cards: the workflow intent that makes the tool visible, the authority lane it spends from, the side-effect class it can create, and the no-call condition that keeps the model from improvising outside the task.
+            </p>
+          </div>
+          <div class="mt-6 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Tool route-card checks</div>
+            <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+              {ROUTE_CARD_CHECKS.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        <section>
+          <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+            7. Decision lineage belongs inside the capability contract
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -292,7 +321,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            7. The visible capability surface is becoming part of the trust boundary
+            8. The visible capability surface is becoming part of the trust boundary
           </h2>
           <div class="space-y-4 text-slate-400 leading-relaxed">
             <p>
@@ -353,7 +382,7 @@ const ARTICLE_JSON_LD = {
 
         <section>
           <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
-            8. What to evaluate when someone claims a surface is agent-ready
+            9. What to evaluate when someone claims a surface is agent-ready
           </h2>
           <div class="space-y-6 text-slate-400 leading-relaxed">
             <p>

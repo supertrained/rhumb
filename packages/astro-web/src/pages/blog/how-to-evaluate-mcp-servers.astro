@@ -109,6 +109,13 @@ const PARAMETER_SCOPE_DRILL = [
   "A production-ready server should return a typed policy denial with caller, tool, argument, policy rule, and recovery hint instead of retrying, coercing, or hiding the refusal as a generic error.",
 ];
 
+const TOOL_INVOCATION_MAP_DRILL = [
+  "For every advertised tool, write the allowed workflow intent, required principal, trust class, side-effect class, and expected success condition before ranking it useful.",
+  "Mark tools that should never be visible together for the same caller because one is inspect-only and the other can mutate, settle, notify, or spend.",
+  "Score the server lower when tool descriptions explain what the endpoint does but not when an agent should call, avoid, downgrade, or escalate it.",
+  "Require a no-candidate result when the task does not match any route card; falling back to a generic tool is a selection failure, not agent cleverness.",
+];
+
 const RELATED_READING = [
   {
     href: "/blog/mcp-marketplace-directory-workflow-proof?rhumb_source=evaluate-mcp-directory-proof",
@@ -341,6 +348,20 @@ const ARTICLE_JSON_LD = {
               <p>
                 In practice, the cleanest selection shortcut is the same production split from <a href="/blog/mcp-security-model" class="text-amber hover:text-amber-200 transition-colors">MCP has a security model</a>: ask what scope is reachable, which principal is acting, and what evidence survives after the call.
               </p>
+              <div class="rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+                <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Tool invocation map drill</div>
+                <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+                  “What each tool does” is weaker than “when the agent may call it.”
+                </h3>
+                <p class="text-slate-300 leading-relaxed mb-4">
+                  Fresh domain-specific MCP writeups often list tools with examples. That helps discovery, but selection needs a route map. A tool is production-ready only when its invocation condition, caller class, authority lane, and no-call branch are as explicit as its happy-path description.
+                </p>
+                <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                  {TOOL_INVOCATION_MAP_DRILL.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              </div>
               <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
                 <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Schema legibility drill</div>
                 <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
