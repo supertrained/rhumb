@@ -131,6 +131,13 @@ const TOOL_NAMESPACE_DRILL = [
   "Preserve cwd, denied paths, selected namespace, rejected namespace, schema shape, and policy decision in trace evidence before calling the setup production-ready.",
 ];
 
+const LIVE_FAILURE_MODE_TRIAGE = [
+  "Classify the failure before repair starts: auth drift, scope escape, malformed result, rate-limit collapse, partial side effect, or crash/restart ambiguity.",
+  "Attach principal, tenant, tool name, normalized input, credential lane, quota owner, policy result, and last verified state to the incident record.",
+  "Run the allowed call and its denied neighbor through the same recovery path so the fix cannot widen scope while making the demo pass.",
+  "Do not graduate a fix until replay, retry, and rollback behavior are proven under the exact transport and adapter path production agents will use.",
+];
+
 const FAILURE_CLASSES = [
   {
     title: "Auth drift",
@@ -304,6 +311,24 @@ const ARTICLE_JSON_LD = {
           It is <span class="text-slate-100">“Can this server stay bounded when the agent is wrong, over-eager, compromised, or simply stuck in a loop?”</span>
         </p>
       </div>
+
+      <section class="mb-10 rounded-[30px] border border-violet-500/20 bg-violet-500/5 p-6 sm:p-8">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Production failure-mode triage</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3 tracking-tight">
+          A production failure post is only useful if it sharpens the next readiness gate
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          Fresh MCP production writeups are converging on the same painful truth: the bug that bites in production is rarely just “the server went down.” It is usually auth drift, scope leakage, malformed output, rate-limit collapse, partial side effects, or a crash that leaves the operator unsure whether retrying is safe.
+        </p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          {LIVE_FAILURE_MODE_TRIAGE.map((item) => (
+            <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+          ))}
+        </div>
+        <p class="mt-5 text-sm leading-6 text-slate-400">
+          Use this with <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:underline underline-offset-2">observability</a> and <a href="/blog/agent-api-evaluation-failure-modes-not-scores" class="text-amber hover:underline underline-offset-2">failure-mode evaluation</a>: readiness improves when each incident becomes a stricter preflight, not just a scarier anecdote.
+        </p>
+      </section>
 
       <div class="grid gap-10 lg:grid-cols-3">
         <div class="lg:col-span-2 max-w-3xl space-y-12">

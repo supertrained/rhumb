@@ -108,6 +108,13 @@ const REPO_HARNESS_TRACE_CHECKS = [
   "Diff fresh-checkout and warm-repo traces before calling a coding-agent workflow production-ready; hidden local context is an observability failure.",
 ];
 
+const PRODUCTION_INCIDENT_TRACE_CHECKS = [
+  "Name the failure class before debugging: auth drift, scope escape, contract drift, malformed success, rate-limit exhaustion, partial side effect, or process crash.",
+  "Preserve the last known-good checkpoint, first failing call, changed policy or prompt, retry attempt, and newly exposed failure as separate trace segments.",
+  "Join incident evidence to the exact tool namespace, adapter path, credential lane, tenant, quota owner, and denied-neighbor fixture that should have contained it.",
+  "Close the incident only after the replay path emits a typed outcome: fixed, denied, duplicate-safe, rollback-complete, or human-review-required.",
+];
+
 const CHANNEL_DELIVERY_TRACE_CHECKS = [
   "Trace inbound channel event id, conversation id, user principal, adapter version, and dedupe key before the assistant plans a reply.",
   "Log outbound message id, delivery attempt, provider response, retry safety, and human-visible quote/reply target so replay cannot double-send or answer the wrong thread.",
@@ -468,7 +475,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              8. Chat-channel delivery is part of the execution trace
+              8. Production failure-mode posts should become incident trace drills
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The strongest production MCP stories are not the ones that say a server failed. They are the ones that make the next operator ask what evidence would have made the failure smaller, faster to classify, or safer to replay.
+              </p>
+              <p>
+                That means every failure post should turn into an observability fixture: the first failing call, the last verified state, the authority boundary that should have held, and the typed recovery outcome after the fix.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">Production incident trace drill</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {PRODUCTION_INCIDENT_TRACE_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              9. Chat-channel delivery is part of the execution trace
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -490,7 +519,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              9. Partial failure recovery depends on checkpoints and reversibility classes
+              10. Partial failure recovery depends on checkpoints and reversibility classes
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -513,7 +542,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              10. The production bar is not “we have logs somewhere”
+              11. The production bar is not “we have logs somewhere”
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>

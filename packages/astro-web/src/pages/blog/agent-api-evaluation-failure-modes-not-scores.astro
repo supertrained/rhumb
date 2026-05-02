@@ -50,6 +50,13 @@ const SCORE_LIMITS = [
   "They cannot replace a denial case. The unsafe neighbor still has to fail in the exact lane your agent will use.",
 ];
 
+const MCP_FAILURE_POST_TESTS = [
+  "Translate each failure story into one dominant class before changing the score: auth drift, scope escape, rate-limit collapse, contract drift, state replay, or evidence gap.",
+  "Ask which preflight would have caught it: denied neighbor, strict schema, quota-key gate, idempotency replay, callback replay, or credential-lane proof.",
+  "Keep production anecdotes separate from selection metrics. A scary incident may disqualify one workflow lane while leaving another read-only lane acceptable.",
+  "Promote the lesson only when the provider, server, adapter, credential mode, and recovery path are specific enough for another operator to test.",
+];
+
 const EVALUATION_SEQUENCE = [
   {
     step: "1",
@@ -211,6 +218,22 @@ const ARTICLE_JSON_LD = {
               </div>
             ))}
           </div>
+        </section>
+
+        <section class="rounded-[32px] border border-violet-500/20 bg-violet-500/5 p-6 sm:p-8">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">MCP failure-mode post filter</div>
+          <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Use production stories to sharpen tests, not to create folklore scores</h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            Fresh MCP production-failure posts are valuable because they expose concrete breakage. The evaluator mistake is converting every anecdote into a vague penalty. The stronger move is to map the story to the exact failure class and preflight that would have contained it.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            {MCP_FAILURE_POST_TESTS.map((item) => (
+              <div class="rounded-2xl border border-violet-500/20 bg-navy/65 p-4 text-sm leading-6 text-slate-300">{item}</div>
+            ))}
+          </div>
+          <p class="mt-5 text-sm leading-6 text-slate-400">
+            For MCP-specific execution checks, pair this filter with the <a href="/blog/remote-mcp-production-readiness-checklist" class="text-amber hover:underline underline-offset-2">remote MCP production readiness checklist</a> and <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:underline underline-offset-2">MCP observability guide</a>.
+          </p>
         </section>
 
         <section>
