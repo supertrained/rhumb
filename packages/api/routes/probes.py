@@ -99,6 +99,13 @@ def _validated_probe_type_filter(probe_type: str | None) -> str | None:
 
 
 def _validated_probe_text_field(value: str | None, *, field_name: str) -> str:
+    if not isinstance(value, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field_name}' field.",
+            detail=f"Provide {field_name} as a non-empty string.",
+        )
+
     cleaned = str(value or "").strip()
     if cleaned:
         return cleaned
@@ -106,11 +113,18 @@ def _validated_probe_text_field(value: str | None, *, field_name: str) -> str:
     raise RhumbError(
         "INVALID_PARAMETERS",
         message=f"Invalid '{field_name}' field.",
-        detail=f"Provide a non-empty {field_name} value.",
+        detail=f"Provide {field_name} as a non-empty string.",
     )
 
 
 def _validated_probe_run_service_slug(service_slug: str | None) -> str:
+    if not isinstance(service_slug, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'service_slug' field.",
+            detail="Provide service_slug as a non-empty string.",
+        )
+
     canonical_slug = public_service_slug(service_slug)
     if canonical_slug is not None:
         return canonical_slug

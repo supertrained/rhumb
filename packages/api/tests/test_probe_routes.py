@@ -354,8 +354,11 @@ def test_latest_probe_rejects_blank_probe_type_before_repository_read(
     ("payload", "field_name"),
     [
         ({"service_slug": "   ", "probe_type": "health", "trigger_source": "test"}, "service_slug"),
+        ({"service_slug": 123, "probe_type": "health", "trigger_source": "test"}, "service_slug"),
         ({"service_slug": "stripe", "probe_type": "   ", "trigger_source": "test"}, "probe_type"),
+        ({"service_slug": "stripe", "probe_type": 123, "trigger_source": "test"}, "probe_type"),
         ({"service_slug": "stripe", "probe_type": "health", "trigger_source": "   "}, "trigger_source"),
+        ({"service_slug": "stripe", "probe_type": "health", "trigger_source": 123}, "trigger_source"),
     ],
 )
 def test_run_probe_rejects_blank_fields_before_probe_service(
@@ -381,7 +384,7 @@ def test_run_probe_rejects_blank_fields_before_probe_service(
     body = response.json()
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == f"Invalid '{field_name}' field."
-    assert body["error"]["detail"] == f"Provide a non-empty {field_name} value."
+    assert body["error"]["detail"] == f"Provide {field_name} as a non-empty string."
 
 
 def test_run_probe_rejects_non_object_body_before_probe_service(
@@ -466,7 +469,34 @@ def test_scheduler_rejects_blank_service_filters_before_scheduler_open(
     body = response.json()
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'service_slug' field."
-    assert body["error"]["detail"] == "Provide a non-empty service_slug value."
+    assert body["error"]["detail"] == "Provide service_slug as a non-empty string."
+
+
+def test_scheduler_rejects_non_string_service_filters_before_scheduler_open(
+    client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-string scheduled service filters should fail before opening scheduler state."""
+    from routes import probes as probe_routes
+
+    probe_routes.get_probe_service.cache_clear()
+    probe_routes.get_probe_scheduler.cache_clear()
+
+    def fail_scheduler() -> ProbeScheduler:
+        raise AssertionError("scheduler should not be opened")
+
+    monkeypatch.setattr(probe_routes, "get_probe_scheduler", fail_scheduler)
+
+    response = client.post(
+        "/v1/probes/schedule/run",
+        json={"service_slugs": ["stripe", 123], "dry_run": True},
+    )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"]["code"] == "INVALID_PARAMETERS"
+    assert body["error"]["message"] == "Invalid 'service_slug' field."
+    assert body["error"]["detail"] == "Provide service_slug as a non-empty string."
 
 
 def test_scheduler_rejects_non_object_body_before_scheduler_open(
