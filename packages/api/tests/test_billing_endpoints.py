@@ -121,6 +121,41 @@ def _ledger_entry(
 class TestCheckout:
     """Tests for checkout validation before governed-key auth."""
 
+    @pytest.mark.parametrize(
+        ("payload", "detail"),
+        [
+            (["not", "an", "object"], "JSON body must be an object"),
+            ({}, "amount_usd must be a number"),
+            ({"amount_usd": True}, "amount_usd must be a number"),
+            ({"amount_usd": "NaN"}, "amount_usd must be a number"),
+            ({"amount_usd": 25.0, "success_url": ["bad"]}, "success_url must be a string"),
+            ({"amount_usd": 25.0, "cancel_url": {"bad": True}}, "cancel_url must be a string"),
+        ],
+    )
+    def test_malformed_payloads_rejected_before_auth(
+        self,
+        client: TestClient,
+        payload: object,
+        detail: str,
+    ) -> None:
+        require_org_mock = AsyncMock()
+        checkout_mock = AsyncMock()
+
+        with (
+            patch("routes.billing._require_org", require_org_mock),
+            patch("routes.billing.create_checkout_session", checkout_mock),
+        ):
+            resp = client.post(
+                "/v1/billing/checkout",
+                json=payload,
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == detail
+        require_org_mock.assert_not_awaited()
+        checkout_mock.assert_not_awaited()
+
     @pytest.mark.parametrize("amount", [4.99, 5000.01])
     def test_invalid_amount_rejected_before_auth(self, client: TestClient, amount: float) -> None:
         require_org_mock = AsyncMock()
@@ -483,6 +518,43 @@ class TestGetLedger:
 
 class TestAutoReload:
     """Tests for the auto-reload configuration endpoint."""
+
+    @pytest.mark.parametrize(
+        ("payload", "detail"),
+        [
+            (["not", "an", "object"], "JSON body must be an object"),
+            ({}, "enabled must be a boolean"),
+            ({"enabled": "maybe"}, "enabled must be a boolean"),
+            ({"enabled": True, "threshold_usd": True, "amount_usd": 10.0}, "threshold_usd must be a number"),
+            ({"enabled": True, "threshold_usd": 5.0, "amount_usd": "NaN"}, "amount_usd must be a number"),
+        ],
+    )
+    def test_malformed_payloads_rejected_before_auth(
+        self,
+        client: TestClient,
+        payload: object,
+        detail: str,
+    ) -> None:
+        require_org_mock = AsyncMock()
+        fetch_mock = AsyncMock()
+        patch_mock = AsyncMock()
+
+        with (
+            patch("routes.billing._require_org", require_org_mock),
+            patch("routes.billing.supabase_fetch", fetch_mock),
+            patch("routes.billing.supabase_patch", patch_mock),
+        ):
+            resp = client.put(
+                "/v1/billing/auto-reload",
+                json=payload,
+                headers=_auth_headers(),
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == detail
+        require_org_mock.assert_not_awaited()
+        fetch_mock.assert_not_awaited()
+        patch_mock.assert_not_awaited()
 
     def test_enable_auto_reload(self, client: TestClient) -> None:
         returned_row = {

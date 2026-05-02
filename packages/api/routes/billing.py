@@ -8,6 +8,7 @@ Mounted at /v1 prefix in app.py.
 from __future__ import annotations
 
 import logging
+import math
 import os
 from datetime import UTC, datetime
 from typing import Any, Optional
@@ -105,6 +106,44 @@ def _validate_checkout_amount(amount_usd: float) -> None:
         )
 
 
+def _parse_usd_amount(value: Any, *, field_name: str, minimum: float | None = None) -> float:
+    if isinstance(value, bool) or value is None:
+        raise HTTPException(status_code=400, detail=f"{field_name} must be a number")
+
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"{field_name} must be a number") from exc
+
+    if not math.isfinite(parsed):
+        raise HTTPException(status_code=400, detail=f"{field_name} must be a number")
+    if minimum is not None and parsed <= minimum:
+        raise HTTPException(status_code=400, detail=f"{field_name} must be > {minimum:g}")
+    return parsed
+
+
+def _validated_checkout_request(body: Any) -> CheckoutRequest:
+    """Normalize checkout payloads before governed-key auth or Stripe calls."""
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="JSON body must be an object")
+
+    amount_usd = _parse_usd_amount(body.get("amount_usd"), field_name="amount_usd")
+    _validate_checkout_amount(amount_usd)
+
+    success_url = body.get("success_url")
+    if success_url is not None and not isinstance(success_url, str):
+        raise HTTPException(status_code=400, detail="success_url must be a string")
+    cancel_url = body.get("cancel_url")
+    if cancel_url is not None and not isinstance(cancel_url, str):
+        raise HTTPException(status_code=400, detail="cancel_url must be a string")
+
+    return CheckoutRequest(
+        amount_usd=amount_usd,
+        success_url=success_url,
+        cancel_url=cancel_url,
+    )
+
+
 def _validated_wallet_topup_amount_cents(value: Any) -> int:
     """Normalize wallet top-up cents before wallet-session reads."""
     if isinstance(value, bool) or value is None:
@@ -157,6 +196,47 @@ def _validated_wallet_topup_request(body: Any) -> WalletTopupRequest:
     return WalletTopupRequest(
         amount_usd_cents=_validated_wallet_topup_amount_cents(body.get("amount_usd_cents"))
     )
+
+
+def _parse_auto_reload_enabled(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int) and value in {0, 1}:
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+    raise HTTPException(status_code=400, detail="enabled must be a boolean")
+
+
+def _validated_auto_reload_request(body: Any) -> AutoReloadRequest:
+    """Normalize auto-reload payloads before governed-key auth or wallet reads."""
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="JSON body must be an object")
+
+    enabled = _parse_auto_reload_enabled(body.get("enabled"))
+    threshold_usd = None
+    amount_usd = None
+
+    if body.get("threshold_usd") is not None:
+        threshold_usd = _parse_usd_amount(
+            body.get("threshold_usd"),
+            field_name="threshold_usd",
+            minimum=0,
+        )
+    if body.get("amount_usd") is not None:
+        amount_usd = _parse_usd_amount(body.get("amount_usd"), field_name="amount_usd")
+
+    request = AutoReloadRequest(
+        enabled=enabled,
+        threshold_usd=threshold_usd,
+        amount_usd=amount_usd,
+    )
+    _validate_auto_reload_request(request)
+    return request
 
 
 def _validate_auto_reload_request(body: AutoReloadRequest) -> None:
@@ -503,11 +583,11 @@ async def _create_wallet_topup_receipt(
 
 @router.post("/billing/checkout")
 async def checkout(
-    body: CheckoutRequest,
+    body: Any = Body(default=None),
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Create a Stripe Checkout Session to purchase credits."""
-    _validate_checkout_amount(body.amount_usd)
+    body = _validated_checkout_request(body)
     org_id = await _require_org(x_rhumb_key)
 
     amount_cents = int(round(body.amount_usd * 100))
@@ -895,11 +975,11 @@ async def get_ledger(
 
 @router.put("/billing/auto-reload")
 async def update_auto_reload(
-    body: AutoReloadRequest,
+    body: Any = Body(default=None),
     x_rhumb_key: str | None = Header(None, alias="X-Rhumb-Key"),
 ) -> dict:
     """Update the auto-reload configuration for an org's credit wallet."""
-    _validate_auto_reload_request(body)
+    body = _validated_auto_reload_request(body)
     org_id = await _require_org(x_rhumb_key)
 
     if body.enabled:
