@@ -156,6 +156,13 @@ const GATEWAY_QUOTA_CHECKS = [
   "When a provider rate-limits the gateway, preserve which attached account, credential lane, tenant, and agent created the pressure before fallback or retry logic runs.",
   "Deny broad fan-out by default. Adding another provider behind the gateway should create a new budget and trace family, not silently inherit the old one.",
 ];
+
+const PER_ACTION_BUDGET_CHECKS = [
+  "Price the completed action before the loop starts: expected provider calls, validation passes, fallback branches, and maximum retries.",
+  "Track cost by route branch, not only by model or provider. The cheap primary path is irrelevant if the profitable cases always fall into an expensive reasoning or enrichment lane.",
+  "Stop retries when the remaining action budget cannot finish safely; do not let rate-limit recovery quietly become margin loss.",
+  "Feed observed cost-per-action deltas back into routing policy so future agents slow down, downgrade, or ask for approval before repeating the expensive path.",
+];
 ---
 
 <Layout
@@ -178,7 +185,7 @@ const GATEWAY_QUOTA_CHECKS = [
           <span class="text-slate-700">&middot;</span>
           <span class="text-xs font-mono text-slate-500">March 30, 2026</span>
           <span class="text-slate-700">&middot;</span>
-          <span class="text-xs font-mono text-emerald-400/70">Updated April 29, 2026</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated May 2, 2026</span>
           <span class="text-slate-700">&middot;</span>
           <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
         </div>
@@ -192,6 +199,21 @@ const GATEWAY_QUOTA_CHECKS = [
       </header>
 
       <div class="prose-rhumb" set:html={htmlContent} />
+
+      <section class="mt-14 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6 sm:p-8">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Per-action budget governors</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-3">
+          Fleet rate limits are unit economics once agents repeat the same action.
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          A cheap model call can still become an expensive completed action after validation, fallback, enrichment, or retry branches run. Treat the action budget as a runtime governor: every route branch should know the remaining spend ceiling before it decides to try again.
+        </p>
+        <ul class="grid gap-3 sm:grid-cols-2">
+          {PER_ACTION_BUDGET_CHECKS.map((item) => (
+            <li class="rounded-2xl border border-sky-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+      </section>
 
       <section class="mt-14 rounded-[28px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Gateway quota brokerage</div>
