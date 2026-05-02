@@ -44,9 +44,16 @@ def _validated_optional_text_filter(value: Optional[str], field: str) -> Optiona
     return normalized
 
 
-def _validated_required_body_text(value: str, field: str) -> str:
+def _validated_required_body_text(value: Any, field: str) -> str:
     """Trim required body strings and reject blanks before admin writes."""
-    normalized = str(value or "").strip()
+    if not isinstance(value, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field}' field.",
+            detail=f"Provide a non-empty '{field}' value.",
+        )
+
+    normalized = value.strip()
     if normalized:
         return normalized
 
@@ -57,10 +64,16 @@ def _validated_required_body_text(value: str, field: str) -> str:
     )
 
 
-def _normalized_optional_body_text(value: Optional[str]) -> Optional[str]:
+def _normalized_optional_body_text(value: Any, field: str) -> Optional[str]:
     if value is None:
         return None
-    normalized = str(value).strip()
+    if not isinstance(value, str):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message=f"Invalid '{field}' field.",
+            detail=f"Provide '{field}' as a string or omit it.",
+        )
+    normalized = value.strip()
     return normalized or None
 
 
@@ -159,9 +172,9 @@ def _validated_agent_status(status: Optional[str]) -> Optional[str]:
 
 def _public_service_label(service: Any) -> str:
     """Normalize admin-facing service ids onto canonical public slugs."""
-    if service is None:
+    if not isinstance(service, str):
         return ""
-    cleaned = str(service).strip().lower()
+    cleaned = service.strip().lower()
     return public_service_slug(cleaned) or cleaned
 
 
@@ -461,7 +474,7 @@ async def create_agent(body: Any = Body(default=None)) -> CreateAgentResponse:
     organization_id = _validated_required_body_text(
         payload.get("organization_id"), "organization_id"
     )
-    description = _normalized_optional_body_text(payload.get("description"))
+    description = _normalized_optional_body_text(payload.get("description"), "description")
     tags = _normalized_optional_tags(payload.get("tags"))
     rate_limit_qpm = _validated_qpm_field(
         payload.get("rate_limit_qpm", 100),
@@ -564,7 +577,9 @@ async def grant_service_access(
         "rate_limit_override",
         minimum=0,
     )
-    credential_account_id = _normalized_optional_body_text(payload.get("credential_account_id"))
+    credential_account_id = _normalized_optional_body_text(
+        payload.get("credential_account_id"), "credential_account_id"
+    )
     store = _get_identity_store()
 
     # Verify agent exists

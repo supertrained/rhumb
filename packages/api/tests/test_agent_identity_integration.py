@@ -891,6 +891,53 @@ class TestAdminRoutes:
             assert body["error"]["detail"] == f"Provide a non-empty '{field}' value."
             mock_store.register_agent.assert_not_awaited()
 
+    def test_create_agent_route_rejects_non_string_required_fields_before_store_write(
+        self, admin_client: TestClient
+    ) -> None:
+        """Non-string create-agent required fields should not be string-coerced into writes."""
+        for payload, field in (
+            ({"name": 123, "organization_id": "org_admin"}, "name"),
+            ({"name": "route-test-agent", "organization_id": ["org_admin"]}, "organization_id"),
+        ):
+            mock_store = AsyncMock()
+            mock_store.register_agent = AsyncMock(return_value=("agent_test", "rhumb_test"))
+
+            with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+                resp = admin_client.post("/v1/admin/agents", json=payload)
+
+            assert resp.status_code == 400
+            body = resp.json()
+            assert body["error"]["code"] == "INVALID_PARAMETERS"
+            assert body["error"]["message"] == f"Invalid '{field}' field."
+            assert body["error"]["detail"] == f"Provide a non-empty '{field}' value."
+            get_store.assert_not_called()
+            mock_store.register_agent.assert_not_awaited()
+
+    def test_create_agent_route_rejects_non_string_optional_text_before_store_write(
+        self, admin_client: TestClient
+    ) -> None:
+        """Optional create-agent text fields should validate type before store writes."""
+        mock_store = AsyncMock()
+        mock_store.register_agent = AsyncMock(return_value=("agent_test", "rhumb_test"))
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post(
+                "/v1/admin/agents",
+                json={
+                    "name": "route-test-agent",
+                    "organization_id": "org_admin",
+                    "description": {"text": "helper"},
+                },
+            )
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'description' field."
+        assert body["error"]["detail"] == "Provide 'description' as a string or omit it."
+        get_store.assert_not_called()
+        mock_store.register_agent.assert_not_awaited()
+
     def test_create_agent_route_rejects_invalid_body_shape_before_store_write(
         self, admin_client: TestClient
     ) -> None:
@@ -1690,6 +1737,56 @@ class TestAdminRoutes:
         assert payload["error"]["code"] == "INVALID_PARAMETERS"
         assert payload["error"]["message"] == "Invalid 'service' field."
         assert payload["error"]["detail"] == "Provide a non-empty service value."
+        get_store.assert_not_called()
+        mock_store.get_agent.assert_not_awaited()
+        mock_store.get_service_access.assert_not_awaited()
+        mock_store.grant_service_access.assert_not_awaited()
+
+    def test_grant_access_route_rejects_non_string_service_before_store_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Non-string grant service values should fail before identity-store reads."""
+        mock_store = AsyncMock()
+        mock_store.get_agent = AsyncMock(return_value=None)
+        mock_store.get_service_access = AsyncMock(return_value=None)
+        mock_store.grant_service_access = AsyncMock(return_value="access-1")
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post(
+                "/v1/admin/agents/agent-123/grant-access",
+                json={"service": 123},
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'service' field."
+        assert payload["error"]["detail"] == "Provide a non-empty service value."
+        get_store.assert_not_called()
+        mock_store.get_agent.assert_not_awaited()
+        mock_store.get_service_access.assert_not_awaited()
+        mock_store.grant_service_access.assert_not_awaited()
+
+    def test_grant_access_route_rejects_non_string_credential_account_before_store_read(
+        self, admin_client: TestClient
+    ) -> None:
+        """Optional grant credential-account ids should validate type before reads."""
+        mock_store = AsyncMock()
+        mock_store.get_agent = AsyncMock(return_value=None)
+        mock_store.get_service_access = AsyncMock(return_value=None)
+        mock_store.grant_service_access = AsyncMock(return_value="access-1")
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post(
+                "/v1/admin/agents/agent-123/grant-access",
+                json={"service": "stripe", "credential_account_id": ["acct_123"]},
+            )
+
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'credential_account_id' field."
+        assert payload["error"]["detail"] == "Provide 'credential_account_id' as a string or omit it."
         get_store.assert_not_called()
         mock_store.get_agent.assert_not_awaited()
         mock_store.get_service_access.assert_not_awaited()
