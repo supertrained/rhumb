@@ -108,6 +108,13 @@ const REPO_HARNESS_TRACE_CHECKS = [
   "Diff fresh-checkout and warm-repo traces before calling a coding-agent workflow production-ready; hidden local context is an observability failure.",
 ];
 
+const CHANNEL_DELIVERY_TRACE_CHECKS = [
+  "Trace inbound channel event id, conversation id, user principal, adapter version, and dedupe key before the assistant plans a reply.",
+  "Log outbound message id, delivery attempt, provider response, retry safety, and human-visible quote/reply target so replay cannot double-send or answer the wrong thread.",
+  "Keep model route, tool calls, credential lane, and channel delivery result in one session trail instead of splitting chat logs from execution logs.",
+  "Rehearse webhook replay, worker restart, and provider timeout with a typed outcome: already delivered, safe to retry, needs verify, or must stop for human review.",
+];
+
 const TOOL_CALL_LOG_SAMPLE = `{
   "event": "tool_call",
   "tool": "create_file",
@@ -461,7 +468,29 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              8. Partial failure recovery depends on checkpoints and reversibility classes
+              8. Chat-channel delivery is part of the execution trace
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                A persistent assistant running behind a Telegram, LINE, Slack, or similar channel is not done when the model produces text. The operator still needs to prove which inbound event was answered, whether the outbound reply was delivered, and whether a webhook replay or worker restart would send a duplicate response.
+              </p>
+              <p>
+                Treat channel delivery as an observable side effect. The trace should join the conversation cursor, tool calls, credential lane, model route, and reply delivery result so recovery does not depend on screenshots or chat history scraping.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">Channel delivery trace drill</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {CHANNEL_DELIVERY_TRACE_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              9. Partial failure recovery depends on checkpoints and reversibility classes
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>
@@ -484,7 +513,7 @@ const ARTICLE_JSON_LD = {
 
           <section>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
-              9. The production bar is not “we have logs somewhere”
+              10. The production bar is not “we have logs somewhere”
             </h2>
             <div class="space-y-4 leading-relaxed text-slate-400">
               <p>

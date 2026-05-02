@@ -82,6 +82,13 @@ const REPO_HARNESS_RECOVERY_DRILL = [
   "Treat harness drift as state drift: if route cards, schemas, or fixtures changed since the last checkpoint, re-verify before replaying side effects.",
 ];
 
+const LONG_LIVED_ASSISTANT_RECOVERY_DRILL = [
+  "Persist conversation cursor, channel message id, delivery status, tool plan, and last verified side effect before the assistant answers through chat.",
+  "Separate process uptime from workflow continuity. A VM restart, worker redeploy, or Telegram webhook replay should resume from checkpointed truth, not from chat history alone.",
+  "Store which host, model route, credential lane, and channel adapter handled the step so recovery can distinguish infrastructure restart from model, auth, or delivery drift.",
+  "Require a replay drill that kills the assistant after planning but before reply delivery, then proves whether the next worker should send, verify, or stop.",
+];
+
 const CHECKPOINT_REASON_DRILL = [
   "Normalize the checkpoint reason before the outbox, audit stream, billing stream, score-audit chain, or execution-receipt head can observe it.",
   "Reject missing, blank, or whitespace-only reasons as typed parameter failures instead of signing a meaningless manual snapshot.",
@@ -290,6 +297,26 @@ const ARTICLE_JSON_LD = {
                   <li>{item}</li>
                 ))}
               </ul>
+            </div>
+          </section>
+
+          <section>
+            <div class="rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">Long-lived assistant recovery</div>
+              <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+                A persistent chat assistant needs recoverable state beyond the VM staying up
+              </h2>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                Fresh persistent-assistant builds on cloud VMs and chat channels make the state boundary concrete. Keeping a process online is not the same as proving the workflow can resume after a restart, webhook replay, model timeout, or half-delivered Telegram response. The assistant needs durable task state before it speaks, not just a long-lived host.
+              </p>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {LONG_LIVED_ASSISTANT_RECOVERY_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 leading-relaxed text-slate-300">
+                Pair this with <a href="/blog/persistent-agent-memory-trust-boundary" class="text-amber hover:text-amber-200 transition-colors">persistent memory governance</a> and <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">session observability</a>: continuity is safe only when inherited context, delivery state, and side-effect state stay separately inspectable.
+              </p>
             </div>
           </section>
 

@@ -62,6 +62,13 @@ const GOVERNANCE_CHECKLIST = [
   "Do preserved mistakes explain what failed and why the lesson still matters?",
 ];
 
+const CHAT_ASSISTANT_MEMORY_DRILL = [
+  "Keep user preference, open task, delivery cursor, credential lane, and operator warning as different memory roles instead of one chat summary.",
+  "Attach channel and host provenance to remembered state: Telegram thread, webhook event, VM or worker id, model route, and last verification time.",
+  "Expire or re-verify memory that came from transient channel context before it authorizes a tool call, spend decision, or external reply.",
+  "Let the operator inspect and repair remembered channel state without deleting the whole assistant history or trusting hidden provider memory.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
@@ -273,6 +280,28 @@ const ARTICLE_JSON_LD = {
                 <li>{item}</li>
               ))}
             </ul>
+          </div>
+        </section>
+
+        <section>
+          <div class="rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Long-lived chat assistant memory</div>
+            <h2 class="font-display font-bold text-2xl text-slate-100 mb-4 tracking-tight">
+              Persistent assistants should not turn channel history into hidden authority
+            </h2>
+            <div class="space-y-4 text-slate-300 leading-relaxed">
+              <p>
+                Fresh persistent-assistant examples on cloud hosts and Telegram-like channels are useful because they show what happens when memory, delivery state, credentials, and operator preferences all survive past one conversation. The danger is storing everything as a convenient summary and letting that summary steer future tool calls without role, source, or expiry.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2">
+                {CHAT_ASSISTANT_MEMORY_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p>
+                This is where <a href="/blog/agent-state-management-recovery-patterns" class="text-amber hover:text-amber-200 transition-colors">state recovery</a> and memory governance meet: the assistant can remember, but it should still prove which remembered facts are safe to use before the next side effect.
+              </p>
+            </div>
           </div>
         </section>
 
