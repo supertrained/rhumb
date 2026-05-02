@@ -263,6 +263,64 @@ class TestIntegrationProxyRequest:
         # The bypass agent has no grant for "nonexistent", so 403 is correct.
         assert response.status_code == 403
 
+    @pytest.mark.parametrize("payload", [None, [], "stripe"])
+    def test_proxy_request_rejects_non_object_payload_before_auth(
+        self, client, payload: Any,
+    ) -> None:
+        """Proxy payload shape errors should be route-owned and pre-auth."""
+        with patch("routes.proxy._get_identity_store") as mock_identity_store:
+            response = client.post("/proxy/", json=payload)
+
+        assert response.status_code == 400
+        body = response.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid proxy request payload."
+        assert (
+            body["error"]["detail"]
+            == "Provide a JSON object with service, method, and path fields."
+        )
+        mock_identity_store.assert_not_called()
+
+    def test_proxy_request_rejects_missing_required_fields_before_auth(self, client) -> None:
+        """Missing core proxy fields should not fall through to framework 422s."""
+        with patch("routes.proxy._get_identity_store") as mock_identity_store:
+            response = client.post(
+                "/proxy/",
+                json={"method": "GET", "path": "/v1/customers"},
+            )
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'service' field."
+        assert payload["error"]["detail"] == "Provide a non-empty string for 'service'."
+        mock_identity_store.assert_not_called()
+
+    @pytest.mark.parametrize("field", ["body", "params", "headers"])
+    def test_proxy_request_rejects_malformed_mapping_fields_before_auth(
+        self, client, field: str,
+    ) -> None:
+        """Optional proxy mapping fields should validate before governed-key reads."""
+        request_body = {
+            "service": "stripe",
+            "method": "GET",
+            "path": "/v1/customers",
+            field: ["not", "an", "object"],
+        }
+
+        with patch("routes.proxy._get_identity_store") as mock_identity_store:
+            response = client.post("/proxy/", json=request_body)
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == f"Invalid '{field}' field."
+        assert (
+            payload["error"]["detail"]
+            == f"Provide an object for '{field}' or omit the field."
+        )
+        mock_identity_store.assert_not_called()
+
     def test_proxy_request_rejects_blank_service_before_auth(self, client) -> None:
         """Blank service bodies should not open governed-key auth or routing reads."""
         with patch("routes.proxy._get_identity_store") as mock_identity_store:

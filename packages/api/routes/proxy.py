@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from typing import Any, Optional
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from services.proxy_breaker import (
@@ -588,6 +588,76 @@ def _validated_proxy_request_path(path: str) -> str:
     )
 
 
+def _validated_proxy_mapping_field(
+    payload: dict[str, Any],
+    field: str,
+) -> dict[str, Any] | None:
+    value = payload.get(field)
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        return value
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field}' field.",
+        detail=f"Provide an object for '{field}' or omit the field.",
+    )
+
+
+def _required_proxy_string_field(payload: dict[str, Any], field: str) -> str:
+    value = payload.get(field)
+    if isinstance(value, str):
+        return value
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field}' field.",
+        detail=f"Provide a non-empty string for '{field}'.",
+    )
+
+
+def _validated_proxy_request_payload(payload: Any) -> ProxyRequest:
+    """Validate proxy request payload shape before governed-key auth opens."""
+    if not isinstance(payload, dict):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid proxy request payload.",
+            detail="Provide a JSON object with service, method, and path fields.",
+        )
+
+    service = _validated_proxy_request_service(
+        _required_proxy_string_field(payload, "service")
+    )
+    method = _validated_proxy_request_method(
+        _required_proxy_string_field(payload, "method")
+    )
+    path = _validated_proxy_request_path(
+        _required_proxy_string_field(payload, "path")
+    )
+    body = _validated_proxy_mapping_field(payload, "body")
+    params = _validated_proxy_mapping_field(payload, "params")
+    headers = _validated_proxy_mapping_field(payload, "headers")
+
+    raw_agent_id = payload.get("agent_id", "default")
+    if not isinstance(raw_agent_id, str) or not raw_agent_id.strip():
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid 'agent_id' field.",
+            detail="Provide a non-empty string for 'agent_id' or omit the field.",
+        )
+
+    return ProxyRequest(
+        service=service,
+        method=method,
+        path=path,
+        body=body,
+        params=params,
+        headers=headers,
+        agent_id=raw_agent_id.strip(),
+    )
+
+
 def _validated_schema_snapshot_limit(limit: Any) -> int:
     """Validate the admin schema-snapshot history limit before detector reads."""
     if isinstance(limit, bool):
@@ -753,8 +823,8 @@ def _new_proxy_timings() -> dict[str, float]:
 
 @router.post("/", response_model=ProxyResponse)
 async def proxy_request(
-    request: ProxyRequest,
     background_tasks: BackgroundTasks,
+    body: Any = Body(default=None),
     x_rhumb_key: Optional[str] = Header(None, alias="X-Rhumb-Key"),
 ) -> ProxyResponse:
     """Proxy a request to a provider API.
@@ -780,14 +850,14 @@ async def proxy_request(
     breaker = None
     tracker = None
     proxy_service: str | None = None
-    public_request_service = _public_proxy_service_name(request.service) or str(request.service).strip()
+    public_request_service = "unknown"
+    request: ProxyRequest | None = None
     upstream_start: Optional[float] = None
     response_body: Any = None
 
     try:
-        _validated_proxy_request_service(request.service)
-        request.method = _validated_proxy_request_method(request.method)
-        request.path = _validated_proxy_request_path(request.path)
+        request = _validated_proxy_request_payload(body)
+        public_request_service = _public_proxy_service_name(request.service) or str(request.service).strip()
 
         normalized_rhumb_key = str(x_rhumb_key or "").strip()
         if not normalized_rhumb_key:
@@ -1080,11 +1150,14 @@ async def proxy_request(
         ) from e
     finally:
         timings["total_route_ms"] = (time.perf_counter() - request_start) * 1000
+        log_service = request.service if request is not None else public_request_service
+        log_method = request.method if request is not None else "unknown"
+        log_path = request.path if request is not None else "unknown"
         logger.info(
             "proxy full-path timings service=%s method=%s path=%s agent_id=%s status_code=%d fail_open=%s auth_ms=%.1f acl_ms=%.1f rate_limit_ms=%.1f credential_inject_ms=%.1f pool_acquire_ms=%.1f upstream_ms=%.1f response_parse_ms=%.1f schema_detect_ms=%.1f finalizer_enqueue_ms=%.1f finalizer_mode=%s queue_depth=%d total_route_ms=%.1f",
-            request.service,
-            request.method,
-            request.path,
+            log_service,
+            log_method,
+            log_path,
             agent_id,
             status_code,
             fail_open,
