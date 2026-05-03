@@ -157,6 +157,13 @@ const OPERATOR_CONTROL_PREFLIGHT = [
   "Carry approval source, actor, timestamp, scope, and interrupt path into the receipt so a later operator can prove who controlled the lane and how to stop it.",
 ];
 
+const MCP_DISCOVERY_PREFLIGHT = [
+  "Start from the route card, not the directory row. Tool id, workflow intent, trust class, credential lane, quota owner, and no-call condition should be visible before the model sees a candidate.",
+  "Separate verified discovery from execution authority. Freshness, professional verification, jurisdiction, or maintainer metadata can improve recall, but recommendation, contact, booking, payment, and write actions stay separate lanes.",
+  "Filter the candidate set before planning. The trace should preserve raw candidates, rejected alternatives, selected route, and typed no-candidate or policy-denial outcomes instead of hiding broad fallback.",
+  "Run the denied-neighbor drill against an adjacent tenant, expired credential, wrong jurisdiction, wrong tool, or out-of-scope side effect before repeating the happy path.",
+];
+
 const PROOF_SPRINT_SCOPE = [
   "one capability or workflow you would actually put behind an agent",
   "the failure you care about: scope escape, quota burn, stale provider contract, credential exposure, replay, or bad recovery",
@@ -414,6 +421,26 @@ const REQUEST_FIRST_BRIEF = [
         </ul>
         <p class="mt-6 text-sm leading-6 text-slate-400">
           For E-006, a remote-approval workflow-fit request is stronger only when the caller can name the approver, approval channel, timeout, denial case, and interrupt proof that would make unattended execution safe to resume.
+        </p>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pb-12">
+      <div class="rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">MCP discovery proof preflight</div>
+          <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">A directory hit is not enough to start managed execution.</h2>
+          <p class="mt-4 text-slate-300 leading-relaxed">
+            The newest MCP marketplace and verified-vertical signals are useful only if discovery proof survives into the managed lane. Before a listed server becomes an executable route, the first paid path should prove the candidate set was narrowed by workflow, authority, credential rail, budget owner, and denied-neighbor evidence.
+          </p>
+        </div>
+        <ul class="mt-6 grid gap-4 md:grid-cols-2">
+          {MCP_DISCOVERY_PREFLIGHT.map((item) => (
+            <li class="rounded-3xl border border-violet-500/20 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</li>
+          ))}
+        </ul>
+        <p class="mt-6 text-sm leading-6 text-slate-400">
+          For E-006, an MCP discovery workflow-fit request is stronger only when the caller can name the route card, raw candidate pool, rejected candidate, credential lane, denied neighboring action, and receipt proof. If that boundary is not clear yet, inspect <a data-rhumb-propagate href="/blog/mcp-marketplace-directory-workflow-proof?rhumb_experiment=e006&rhumb_source=start-managed-execution-mcp-marketplace-proof" class="text-amber hover:text-amber-200 transition-colors">MCP marketplace proof</a>, <a data-rhumb-propagate href="/blog/runtime-mcp-discovery-trust-filters?rhumb_experiment=e006&rhumb_source=start-managed-execution-runtime-discovery-filters" class="text-amber hover:text-amber-200 transition-colors">runtime discovery filters</a>, and <a data-rhumb-propagate href="/blog/mcp-server-selection-workflow-fit-trust-class?rhumb_experiment=e006&rhumb_source=start-managed-execution-workflow-fit-selection" class="text-amber hover:text-amber-200 transition-colors">workflow-fit selection</a> before asking Rhumb to execute it.
         </p>
       </div>
     </section>
