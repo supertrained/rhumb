@@ -112,8 +112,8 @@ class PaymentFlowHandler:
 
     async def confirm_payment(
         self,
-        flow_id: str,
-        payment_confirmation_token: str,
+        flow_id: Any,
+        payment_confirmation_token: Any,
     ) -> Dict[str, Any]:
         """Confirm payment after the human completes checkout.
 
@@ -125,10 +125,14 @@ class PaymentFlowHandler:
         Returns:
             ``{"status", "message"}`` or ``{"status", "error"}``.
         """
-        normalized_flow_id = str(flow_id or "").strip()
+        normalized_flow_id = flow_id.strip() if isinstance(flow_id, str) else ""
         if not normalized_flow_id:
             return {"status": "failed", "error": "flow_id required"}
-        normalized_token = str(payment_confirmation_token or "").strip()
+        normalized_token = (
+            payment_confirmation_token.strip()
+            if isinstance(payment_confirmation_token, str)
+            else ""
+        )
         if not normalized_token:
             return {"status": "failed", "error": "payment_confirmation_token required"}
 

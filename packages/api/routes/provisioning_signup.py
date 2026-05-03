@@ -95,10 +95,10 @@ class SignupFlowHandler:
 
     async def verify_signup(
         self,
-        flow_id: str,
+        flow_id: Any,
         *,
-        email_code: Optional[str] = None,
-        verification_token: Optional[str] = None,
+        email_code: Optional[Any] = None,
+        verification_token: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """Complete a signup flow after the human has verified their email.
 
@@ -108,13 +108,15 @@ class SignupFlowHandler:
         Returns:
             ``{"status", "message"}`` or ``{"status", "error"}``.
         """
-        normalized_flow_id = str(flow_id or "").strip()
+        normalized_flow_id = flow_id.strip() if isinstance(flow_id, str) else ""
         if not normalized_flow_id:
             return {"status": "failed", "error": "flow_id required"}
 
         # Require at least one verification artifact before opening flow state.
-        normalized_email_code = str(email_code or "").strip()
-        normalized_verification_token = str(verification_token or "").strip()
+        normalized_email_code = email_code.strip() if isinstance(email_code, str) else ""
+        normalized_verification_token = (
+            verification_token.strip() if isinstance(verification_token, str) else ""
+        )
         if not normalized_email_code and not normalized_verification_token:
             return {"status": "failed", "error": "email_code or verification_token required"}
 

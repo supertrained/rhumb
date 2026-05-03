@@ -319,6 +319,22 @@ class TestSignupFlowHandler:
         }
         store.get_flow.assert_not_called()
 
+    def test_signup_verify_rejects_non_string_inputs_before_flow_read(
+        self, signup_handler: SignupFlowHandler, store: ProvisioningFlowStore
+    ) -> None:
+        """Signup verification should not stringify malformed IDs or artifacts before reads."""
+        store.get_flow = AsyncMock()  # type: ignore[method-assign]
+
+        bad_flow = asyncio.run(signup_handler.verify_signup(123, email_code="ABC123"))
+        bad_artifact = asyncio.run(signup_handler.verify_signup("flow-123", email_code=["ABC123"]))
+
+        assert bad_flow == {"status": "failed", "error": "flow_id required"}
+        assert bad_artifact == {
+            "status": "failed",
+            "error": "email_code or verification_token required",
+        }
+        store.get_flow.assert_not_called()
+
 
 # =====================================================================
 # 3. OAuthFlowHandler
@@ -533,6 +549,22 @@ class TestPaymentFlowHandler:
         result = asyncio.run(payment_handler.confirm_payment("flow-123", "   "))
 
         assert result == {
+            "status": "failed",
+            "error": "payment_confirmation_token required",
+        }
+        store.get_flow.assert_not_called()
+
+    def test_confirm_payment_rejects_non_string_inputs_before_flow_read(
+        self, payment_handler: PaymentFlowHandler, store: ProvisioningFlowStore
+    ) -> None:
+        """Payment confirmation should not stringify malformed IDs or tokens before reads."""
+        store.get_flow = AsyncMock()  # type: ignore[method-assign]
+
+        bad_flow = asyncio.run(payment_handler.confirm_payment(123, "cs_test_payment_123"))
+        bad_token = asyncio.run(payment_handler.confirm_payment("flow-123", {"token": "cs_test"}))
+
+        assert bad_flow == {"status": "failed", "error": "flow_id required"}
+        assert bad_token == {
             "status": "failed",
             "error": "payment_confirmation_token required",
         }
