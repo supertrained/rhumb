@@ -101,6 +101,13 @@ const LOOP_BUDGET_STEPS = [
   "Review observed cost per completed action before moving a workflow from one-off x402/payment tests into repeat governed-key traffic.",
 ];
 
+const MCP_DISCOVERY_PRICING_STEPS = [
+  "Directory, marketplace, and verified vertical discovery are free while they stay candidate search, scoring, route-card inspection, or fit evaluation.",
+  "The paid boundary starts only when Rhumb routes a selected capability through a third-party API on a governed, wallet, x402, BYOK, or Agent Vault rail.",
+  "Estimate after the MCP candidate is narrowed, not before. The route card should already name the capability id, provider constraint, credential lane, quota owner, and denied neighboring action.",
+  "If the directory hit cannot produce a safe route card yet, keep it in proof mode instead of treating a listing as permission to execute.",
+];
+
 const BUYER_PATHS = [
   {
     title: "I just want the normal production setup",
@@ -277,6 +284,30 @@ const agentContext =
             First workflow guide: <a href="/blog/price-first-repeat-agent-workflow-before-loop?rhumb_experiment=e006&rhumb_source=pricing-mental-model-workflow-guide" class="text-amber hover:underline underline-offset-2">price one repeat workflow</a>
             <span class="mx-2 text-slate-700">/</span>
             Per-call explainer: <a href="/resolve/per-call-pricing" class="text-amber hover:underline underline-offset-2">/resolve/per-call-pricing</a>
+          </p>
+        </div>
+      </section>
+
+      <section class="mt-10" data-section="mcp-discovery-pricing-proof" aria-label="MCP discovery pricing proof">
+        <div class="bg-surface border border-violet-500/20 rounded-2xl p-6 sm:p-8">
+          <div class="max-w-3xl mb-6">
+            <p class="text-xs font-mono font-semibold text-violet-300 uppercase tracking-widest mb-3">MCP discovery pricing proof</p>
+            <h2 class="font-display text-2xl font-bold text-slate-100">A listed MCP server is not a paid execution yet.</h2>
+            <p class="mt-3 text-slate-400 leading-7">
+              The pricing question starts after discovery narrows to a callable route. Keep directory rows, marketplace claims, and verified vertical candidates in free proof mode until the route card says what Rhumb would actually execute, who pays, and what must fail closed.
+            </p>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            {MCP_DISCOVERY_PRICING_STEPS.map((step) => (
+              <div class="rounded-xl border border-violet-500/20 bg-navy p-5 text-sm leading-6 text-slate-300">{step}</div>
+            ))}
+          </div>
+          <p class="mt-5 text-sm text-slate-500">
+            Discovery proof: <a href="/blog/mcp-marketplace-directory-workflow-proof?rhumb_experiment=e006&rhumb_source=pricing-mcp-discovery-proof" class="text-amber hover:underline underline-offset-2">MCP marketplace workflow proof</a>
+            <span class="mx-2 text-slate-700">/</span>
+            Runtime filters: <a href="/blog/runtime-mcp-discovery-trust-filters?rhumb_experiment=e006&rhumb_source=pricing-mcp-discovery-proof" class="text-amber hover:underline underline-offset-2">runtime discovery trust filters</a>
+            <span class="mx-2 text-slate-700">/</span>
+            Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=pricing-mcp-discovery-proof" class="text-amber hover:underline underline-offset-2">start managed execution</a>
           </p>
         </div>
       </section>
