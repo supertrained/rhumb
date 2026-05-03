@@ -73,7 +73,7 @@ def _normalized_db_credential_mode(value: Any, default: str = "byok") -> str:
     """Normalize DB credential modes before route branching/auditing."""
     if value is None:
         return default
-    normalized = value.strip().lower() if isinstance(value, str) else str(value)
+    normalized = value.strip().lower() if isinstance(value, str) else ""
     if normalized == "byo":
         return "byok"
     return normalized
