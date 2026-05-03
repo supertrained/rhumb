@@ -339,3 +339,52 @@ async def test_workflow_run_list_rejects_non_byok_credential_mode(
         error_code="actions_credential_mode_invalid",
         credential_mode="agent_vault",
     )
+
+
+@pytest.mark.asyncio
+async def test_workflow_run_list_rejects_non_string_credential_mode_before_actions_reads(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Malformed credential_mode should not be stringified before Actions reads."""
+    monkeypatch.setenv(
+        "RHUMB_ACTIONS_GH_MAIN",
+        json.dumps(
+            {
+                "provider": "github",
+                "auth_mode": "bearer_token",
+                "bearer_token": "secret",
+                "allowed_repositories": ["openclaw/openclaw"],
+            }
+        ),
+    )
+
+    with (
+        patch.object(actions_execute_route, "resolve_actions_bundle") as mock_resolve,
+        patch.object(actions_execute_route, "list_workflow_runs", new=AsyncMock()) as mock_list,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/capabilities/workflow_run.list/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": ["byok"],
+                    "actions_ref": "gh_main",
+                    "repository": "openclaw/openclaw",
+                },
+            )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "actions_credential_mode_invalid"
+    mock_resolve.assert_not_called()
+    mock_list.assert_not_called()
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="actions_credential_mode_invalid",
+        credential_mode="",
+    )

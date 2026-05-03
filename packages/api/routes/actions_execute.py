@@ -46,7 +46,7 @@ def _client_ip(raw_request: Request) -> str | None:
 
 
 def _normalized_actions_credential_mode(value: Any) -> str:
-    return str(value or "").strip().lower()
+    return value.strip().lower() if isinstance(value, str) else ""
 
 
 async def handle_actions_execute(
