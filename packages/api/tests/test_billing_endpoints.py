@@ -759,6 +759,8 @@ class TestLegacyWalletTopupRequest:
             (["not", "an", "object"], "JSON body must be an object"),
             ({}, "amount_usd_cents must be between 25 and 500000"),
             ({"amount_usd_cents": True}, "amount_usd_cents must be between 25 and 500000"),
+            ({"amount_usd_cents": 25.0}, "amount_usd_cents must be between 25 and 500000"),
+            ({"amount_usd_cents": [25]}, "amount_usd_cents must be between 25 and 500000"),
             ({"amount_usd_cents": "24"}, "amount_usd_cents must be between 25 and 500000"),
             ({"amount_usd_cents": "500001"}, "amount_usd_cents must be between 25 and 500000"),
             ({"amount_usd_cents": "25.5"}, "amount_usd_cents must be between 25 and 500000"),
@@ -843,7 +845,9 @@ class TestLegacyWalletTopupVerify:
         ("payload", "detail"),
         [
             (["not", "an", "object"], "JSON body must be an object"),
+            ({"payment_request_id": 123, "x_payment": "encoded-proof"}, "payment_request_id is required"),
             ({"payment_request_id": "   ", "x_payment": "encoded-proof"}, "payment_request_id is required"),
+            ({"payment_request_id": "pr_test", "x_payment": {"payload": "encoded-proof"}}, "x_payment is required"),
             ({"payment_request_id": "pr_test", "x_payment": "   "}, "x_payment is required"),
         ],
     )

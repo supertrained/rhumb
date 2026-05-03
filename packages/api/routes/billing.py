@@ -155,27 +155,22 @@ def _validated_wallet_topup_amount_cents(value: Any) -> int:
             ),
         )
 
-    if isinstance(value, float):
-        if not value.is_integer():
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"amount_usd_cents must be between {MIN_WALLET_TOPUP_USD_CENTS} "
-                    f"and {MAX_WALLET_TOPUP_USD_CENTS}"
-                ),
-            )
-        normalized = int(value)
-    else:
-        try:
-            normalized = int(str(value).strip())
-        except (TypeError, ValueError) as exc:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"amount_usd_cents must be between {MIN_WALLET_TOPUP_USD_CENTS} "
-                    f"and {MAX_WALLET_TOPUP_USD_CENTS}"
-                ),
-            ) from exc
+    normalized: int | None = None
+    if isinstance(value, int) and not isinstance(value, bool):
+        normalized = value
+    elif isinstance(value, str):
+        text = value.strip()
+        if text.isdecimal():
+            normalized = int(text)
+
+    if normalized is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"amount_usd_cents must be between {MIN_WALLET_TOPUP_USD_CENTS} "
+                f"and {MAX_WALLET_TOPUP_USD_CENTS}"
+            ),
+        )
 
     if MIN_WALLET_TOPUP_USD_CENTS <= normalized <= MAX_WALLET_TOPUP_USD_CENTS:
         return normalized
@@ -260,8 +255,10 @@ def _validated_wallet_topup_verify_request(
     if not isinstance(body, dict):
         raise HTTPException(status_code=400, detail="JSON body must be an object")
 
-    payment_request_id = str(body.get("payment_request_id") or "").strip()
-    x_payment = str(body.get("x_payment") or "").strip()
+    raw_payment_request_id = body.get("payment_request_id")
+    raw_x_payment = body.get("x_payment")
+    payment_request_id = raw_payment_request_id.strip() if isinstance(raw_payment_request_id, str) else ""
+    x_payment = raw_x_payment.strip() if isinstance(raw_x_payment, str) else ""
 
     if not payment_request_id:
         raise HTTPException(status_code=400, detail="payment_request_id is required")
