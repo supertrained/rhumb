@@ -118,12 +118,18 @@ const DISCOVERY_LADDER = [
   "Rankable, only then should semantic search, rules, or LLM ranking choose among the remainder.",
 ];
 
+const PRICING_BOUNDARY_CHECKS = [
+  "Keep candidate search, scoring, route-card inspection, and fit evaluation free while the runtime is still narrowing the pool.",
+  "Price only the selected callable route: capability id, provider constraint, credential lane, quota owner, estimate, denied neighbor, and receipt fields should already be named.",
+  "If trust filters return no safe candidate, that is a no-call outcome, not a paid fallback to a broader marketplace result.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful",
   datePublished: "2026-04-12T00:00:00Z",
-  dateModified: "2026-05-02T22:54:00Z",
+  dateModified: "2026-05-03T07:42:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Giant MCP indexes only become useful when trust class, auth shape, side-effect profile, caller visibility, and freshness narrow the pool before ranking.",
@@ -370,6 +376,26 @@ const ARTICLE_JSON_LD = {
             </div>
           </section>
 
+          <div class="mt-12 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">Pricing boundary</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Trust filters run before the paid route exists
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Runtime discovery is still proof work until a safe candidate becomes a callable route. Do not estimate, authorize, or bill a broad directory hit before the narrowed route card says what executes, who pays, and what must fail closed.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              {PRICING_BOUNDARY_CHECKS.map((item) => (
+                <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+            <p class="mt-5 text-sm text-slate-500">
+              Pricing path: <a href="/pricing?rhumb_experiment=e006&rhumb_source=runtime-discovery-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
+              <span class="mx-2 text-slate-700">/</span>
+              Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=runtime-discovery-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+            </p>
+          </div>
+
           <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
             <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
@@ -391,7 +417,7 @@ const ARTICLE_JSON_LD = {
           <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
             <p class="mb-5 leading-relaxed text-slate-300">
-              If this article reframes discovery as mediation, start with <a href="/blog/mcp-marketplace-directory-workflow-proof?rhumb_source=runtime-discovery-directory-proof" class="text-amber hover:text-amber-200 transition-colors">the MCP marketplace proof guide</a>, then use these pages to sharpen the operator model around the current manifest-and-governance signal too: the core security model, the auth-versus-authority split, workflow fit versus trust class, governed capability surfaces, and the checklist for real remote readiness.
+              If this article reframes discovery as mediation, start with <a href="/blog/mcp-marketplace-directory-workflow-proof?rhumb_source=runtime-discovery-directory-proof" class="text-amber hover:text-amber-200 transition-colors">the MCP marketplace proof guide</a> and the <a href="/pricing?rhumb_experiment=e006&rhumb_source=runtime-discovery-follow-through-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">pricing boundary</a>, then use these pages to sharpen the operator model around the current manifest-and-governance signal too: the core security model, the auth-versus-authority split, workflow fit versus trust class, governed capability surfaces, and the checklist for real remote readiness.
             </p>
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
