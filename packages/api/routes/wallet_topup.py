@@ -58,10 +58,16 @@ _settlement = X402SettlementService()
 
 def _validated_topup_amount_cents(payload: dict[str, Any]) -> int:
     raw_amount = payload.get("amount_usd_cents", 0)
-    try:
-        amount_cents = int(raw_amount)
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail="amount_usd_cents must be an integer") from exc
+    amount_cents: int | None = None
+    if isinstance(raw_amount, int) and not isinstance(raw_amount, bool):
+        amount_cents = raw_amount
+    elif isinstance(raw_amount, str):
+        normalized_amount = raw_amount.strip()
+        if normalized_amount.isdecimal():
+            amount_cents = int(normalized_amount)
+
+    if amount_cents is None:
+        raise HTTPException(status_code=400, detail="amount_usd_cents must be an integer")
 
     if amount_cents < MIN_TOPUP_USD_CENTS:
         raise HTTPException(
@@ -79,7 +85,8 @@ def _validated_topup_amount_cents(payload: dict[str, Any]) -> int:
 
 
 def _validated_topup_verify_payload(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-    payment_request_id = str(payload.get("payment_request_id", "")).strip()
+    raw_payment_request_id = payload.get("payment_request_id", "")
+    payment_request_id = raw_payment_request_id.strip() if isinstance(raw_payment_request_id, str) else ""
     x_payment = payload.get("x_payment", {})
 
     if not payment_request_id:

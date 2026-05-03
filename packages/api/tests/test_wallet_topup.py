@@ -201,6 +201,21 @@ class TestTopupRequest:
         assert resp.json()["detail"] == "amount_usd_cents must be an integer"
         mock_session.assert_not_awaited()
 
+    @pytest.mark.parametrize("amount", [True, 25.5, "25.5", [25]])
+    def test_rejects_non_integer_amount_shapes_before_wallet_session(self, amount):
+        """Top-up amounts should not be bool/float/list coerced before auth."""
+        client = TestClient(_shared_app)
+
+        with patch("routes.wallet_topup._require_wallet_session", new_callable=AsyncMock) as mock_session:
+            resp = client.post(
+                "/v1/auth/wallet/topup/request",
+                json={"amount_usd_cents": amount},
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "amount_usd_cents must be an integer"
+        mock_session.assert_not_awaited()
+
     @patch("routes.wallet_topup.supabase_insert_returning", new_callable=AsyncMock)
     @patch("routes.wallet_topup._payment_requests")
     def test_exact_minimum_accepted(self, mock_pr_service, mock_insert):
@@ -341,6 +356,20 @@ class TestTopupVerify:
             resp = client.post(
                 "/v1/auth/wallet/topup/verify",
                 json={"payment_request_id": "   ", "x_payment": {"payload": {}}},
+            )
+
+        assert resp.status_code == 400
+        assert resp.json()["detail"] == "payment_request_id is required"
+        mock_session.assert_not_awaited()
+
+    def test_rejects_non_string_payment_request_id_before_wallet_session(self):
+        """Verify payment_request_id should not be stringified before auth."""
+        client = TestClient(_shared_app)
+
+        with patch("routes.wallet_topup._require_wallet_session", new_callable=AsyncMock) as mock_session:
+            resp = client.post(
+                "/v1/auth/wallet/topup/verify",
+                json={"payment_request_id": 123, "x_payment": {"payload": {}}},
             )
 
         assert resp.status_code == 400
