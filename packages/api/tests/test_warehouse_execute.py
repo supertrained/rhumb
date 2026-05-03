@@ -360,6 +360,66 @@ async def test_warehouse_execute_rejects_non_byok_credential_mode(
 
 
 @pytest.mark.asyncio
+async def test_warehouse_execute_rejects_non_string_credential_mode_before_warehouse_reads(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Malformed credential_mode should not be stringified before warehouse reads."""
+    monkeypatch.setenv(
+        "RHUMB_WAREHOUSE_BQ_MAIN",
+        json.dumps(
+            {
+                "provider": "bigquery",
+                "auth_mode": "service_account_json",
+                "service_account_json": {
+                    "type": "service_account",
+                    "project_id": "proj",
+                    "client_email": "rhumb@example.iam.gserviceaccount.com",
+                    "private_key": "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n",
+                },
+                "billing_project_id": "proj",
+                "location": "US",
+                "allowed_dataset_refs": ["proj.analytics"],
+                "allowed_table_refs": ["proj.analytics.events"],
+            }
+        ),
+    )
+
+    with (
+        patch.object(warehouse_execute_route, "resolve_warehouse_bundle") as mock_resolve,
+        patch.object(warehouse_execute_route, "execute_read_query", new=AsyncMock()) as mock_execute,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/capabilities/warehouse.query.read/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": ["byok"],
+                    "warehouse_ref": "bq_main",
+                    "query": "SELECT user_id FROM proj.analytics.events",
+                },
+            )
+
+    assert response.status_code == 400
+    assert response.json()["error"] == "warehouse_credential_mode_invalid"
+    mock_resolve.assert_not_called()
+    mock_execute.assert_not_called()
+
+    _mock_receipt_service.create_receipt.assert_called_once()
+    receipt_input = _mock_receipt_service.create_receipt.call_args[0][0]
+    assert receipt_input.status == "failure"
+    assert receipt_input.error_code == "warehouse_credential_mode_invalid"
+    assert receipt_input.credential_mode == ""
+
+    table_name, payload = _mock_supabase_writes.await_args.args
+    assert table_name == "capability_executions"
+    assert payload["upstream_status"] == 400
+    assert payload["success"] is False
+
+
+@pytest.mark.asyncio
 async def test_warehouse_execute_maps_request_validation_to_contract_code(
     app,
     monkeypatch,

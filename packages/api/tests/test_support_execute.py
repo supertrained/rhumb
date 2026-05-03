@@ -340,3 +340,53 @@ async def test_ticket_search_rejects_non_byok_credential_mode(
         error_code="support_credential_mode_invalid",
         credential_mode="agent_vault",
     )
+
+
+@pytest.mark.asyncio
+async def test_ticket_search_rejects_non_string_credential_mode_before_support_reads(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Malformed credential_mode should not be stringified before support reads."""
+    monkeypatch.setenv(
+        "RHUMB_SUPPORT_SUP_HELP",
+        json.dumps(
+            {
+                "provider": "zendesk",
+                "subdomain": "acme",
+                "auth_mode": "bearer_token",
+                "bearer_token": "secret",
+                "allowed_group_ids": [123],
+            }
+        ),
+    )
+
+    with (
+        patch.object(support_execute_route, "resolve_zendesk_support_bundle") as mock_resolve,
+        patch.object(support_execute_route, "search_tickets", new=AsyncMock()) as mock_search,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/capabilities/ticket.search/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": {"mode": "byok"},
+                    "support_ref": "sup_help",
+                    "query": "login",
+                },
+            )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "support_credential_mode_invalid"
+    mock_resolve.assert_not_called()
+    mock_search.assert_not_called()
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="support_credential_mode_invalid",
+        credential_mode="",
+    )
