@@ -333,3 +333,51 @@ async def test_deployment_list_rejects_non_byok_credential_mode(
         error_code="deployment_credential_mode_invalid",
         credential_mode="agent_vault",
     )
+
+
+@pytest.mark.asyncio
+async def test_deployment_list_rejects_non_string_credential_mode_before_deployment_reads(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Malformed credential_mode should not be stringified before deployment reads."""
+    monkeypatch.setenv(
+        "RHUMB_DEPLOYMENT_DEP_MAIN",
+        json.dumps(
+            {
+                "provider": "vercel",
+                "auth_mode": "bearer_token",
+                "bearer_token": "secret",
+                "allowed_project_ids": ["prj_123"],
+            }
+        ),
+    )
+
+    with (
+        patch.object(deployment_execute_route, "resolve_deployment_bundle") as mock_resolve,
+        patch.object(deployment_execute_route, "list_deployments", new=AsyncMock()) as mock_list,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/capabilities/deployment.list/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": ["byok"],
+                    "deployment_ref": "dep_main",
+                },
+            )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "deployment_credential_mode_invalid"
+    mock_resolve.assert_not_called()
+    mock_list.assert_not_called()
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="deployment_credential_mode_invalid",
+        credential_mode="",
+    )
