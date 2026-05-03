@@ -1157,6 +1157,26 @@ def test_me_agents_create_rejects_invalid_period_before_session_reads() -> None:
     require_session.assert_not_awaited()
 
 
+def test_me_agents_create_rejects_non_string_period_before_session_reads() -> None:
+    client = TestClient(_shared_app, raise_server_exceptions=False)
+
+    with patch("routes.auth._require_session", new_callable=AsyncMock) as require_session:
+        response = client.post(
+            "/v1/auth/me/agents",
+            json={
+                "name": "Friend Agent",
+                "budget_usd": 10.0,
+                "period": ["monthly"],
+                "hard_limit": True,
+                "rate_limit_qpm": 20,
+            },
+        )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "period must be one of: daily, weekly, monthly, total"
+    require_session.assert_not_awaited()
+
+
 def test_me_agents_create_rejects_non_object_body_before_session_reads() -> None:
     client = TestClient(_shared_app, raise_server_exceptions=False)
 

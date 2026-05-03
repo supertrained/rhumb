@@ -787,8 +787,14 @@ async def rotate_key(rhumb_session: Optional[str] = Cookie(default=None)) -> JSO
     return JSONResponse({"api_key": new_key, "message": "Save this key — it won't be shown again."})
 
 
-def _normalize_budget_period(period: str) -> str:
-    normalized = str(period or "").strip().lower()
+def _normalize_budget_period(period: Any) -> str:
+    if not isinstance(period, str):
+        raise HTTPException(
+            status_code=400,
+            detail="period must be one of: daily, weekly, monthly, total",
+        )
+
+    normalized = period.strip().lower()
     if normalized in {"daily", "weekly", "monthly", "total"}:
         return normalized
     raise HTTPException(
@@ -950,7 +956,7 @@ def _validate_dashboard_agent_key_request(
     if hard_limit is None:
         raise HTTPException(status_code=400, detail="hard_limit must be true or false")
 
-    period = _normalize_budget_period(str(payload.get("period", "monthly")))
+    period = _normalize_budget_period(payload.get("period", "monthly"))
     raw_description = payload.get("description")
     if raw_description is not None and not isinstance(raw_description, str):
         raise HTTPException(status_code=400, detail="description must be text")
