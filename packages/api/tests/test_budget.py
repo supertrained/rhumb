@@ -377,6 +377,20 @@ class TestBudgetRoutes:
         assert resp.json()["error"]["code"] == "INVALID_PARAMETERS"
         self._mock_extract_agent_id.assert_not_called()
 
+    @pytest.mark.parametrize("period", [123, ["monthly"], {"period": "monthly"}])
+    def test_set_budget_rejects_non_string_period_before_auth(self, period):
+        """PUT /v1/agent/budget should not stringify malformed periods before auth."""
+        resp = self.client.put(
+            "/v1/agent/budget",
+            headers={"X-Rhumb-Key": "test_key_123"},
+            json={"budget_usd": 100.0, "period": period},
+        )
+        assert resp.status_code == 400
+        payload = resp.json()
+        assert payload["error"]["code"] == "INVALID_PARAMETERS"
+        assert payload["error"]["message"] == "Invalid 'period' field."
+        self._mock_extract_agent_id.assert_not_called()
+
     def test_set_budget_requires_positive_amount(self):
         """PUT /v1/agent/budget rejects zero/negative budget before auth."""
         resp = self.client.put(

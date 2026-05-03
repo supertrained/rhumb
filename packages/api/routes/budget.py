@@ -89,7 +89,7 @@ def _validated_budget_amount(value: Any) -> float:
 
 def _validated_budget_period(value: Any) -> str:
     """Normalize and validate budget periods before governed-key auth runs."""
-    normalized = str(value or "").strip().lower()
+    normalized = value.strip().lower() if isinstance(value, str) else ""
     if normalized in _VALID_BUDGET_PERIODS:
         return normalized
 
