@@ -123,9 +123,9 @@ class ToSFlowHandler:
 
     async def accept_tos(
         self,
-        flow_id: str,
+        flow_id: Any,
         *,
-        tos_hash: Optional[str] = None,
+        tos_hash: Optional[Any] = None,
     ) -> Dict[str, Any]:
         """Accept the Terms of Service.
 
@@ -138,7 +138,7 @@ class ToSFlowHandler:
         Returns:
             ``{"status", "message"}`` or ``{"status", "error"}``.
         """
-        normalized_flow_id = str(flow_id or "").strip()
+        normalized_flow_id = flow_id.strip() if isinstance(flow_id, str) else ""
         if not normalized_flow_id:
             return {"status": "failed", "error": "flow_id required"}
 
@@ -155,6 +155,8 @@ class ToSFlowHandler:
 
         # Verify hash if provided
         if tos_hash is not None:
+            if not isinstance(tos_hash, str):
+                return {"status": "failed", "error": "tos_hash must be a string"}
             stored_hash = flow.payload.get("tos_hash")
             if stored_hash and tos_hash != stored_hash:
                 return {

@@ -455,6 +455,31 @@ class TestOAuthFlowHandler:
         assert result == {"status": "failed", "error": expected_error}
         store.get_flow.assert_not_called()
 
+    @pytest.mark.parametrize(
+        ("flow_id", "code", "state", "expected_error"),
+        [
+            (123, "code", "state", "flow_id required"),
+            ("flow-123", ["code"], "state", "code required"),
+            ("flow-123", "code", {"state": "token"}, "state required"),
+        ],
+    )
+    def test_handle_callback_rejects_non_string_fields_before_flow_read(
+        self,
+        oauth_handler: OAuthFlowHandler,
+        store: ProvisioningFlowStore,
+        flow_id: object,
+        code: object,
+        state: object,
+        expected_error: str,
+    ) -> None:
+        """OAuth callback fields should not be stringified before provisioning-flow reads."""
+        store.get_flow = AsyncMock()  # type: ignore[method-assign]
+
+        result = asyncio.run(oauth_handler.handle_callback(flow_id, code, state))
+
+        assert result == {"status": "failed", "error": expected_error}
+        store.get_flow.assert_not_called()
+
     @pytest.mark.asyncio
     async def test_handle_callback_expired_flow(
         self,
@@ -622,6 +647,28 @@ class TestToSFlowHandler:
 
         assert result == {"status": "failed", "error": "flow_id required"}
         store.get_flow.assert_not_called()
+
+    def test_accept_tos_rejects_non_string_flow_id_before_flow_read(
+        self, tos_handler: ToSFlowHandler, store: ProvisioningFlowStore
+    ) -> None:
+        """ToS acceptance flow IDs should not be stringified before reads."""
+        store.get_flow = AsyncMock()  # type: ignore[method-assign]
+
+        result = asyncio.run(tos_handler.accept_tos(123))
+
+        assert result == {"status": "failed", "error": "flow_id required"}
+        store.get_flow.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_accept_tos_rejects_non_string_hash_before_write(
+        self, tos_handler: ToSFlowHandler
+    ) -> None:
+        """Malformed ToS hashes should reject before completion writes."""
+        start = await tos_handler.start_tos("a", "stripe")
+
+        result = await tos_handler.accept_tos(start["flow_id"], tos_hash={"hash": "wrong"})
+
+        assert result == {"status": "failed", "error": "tos_hash must be a string"}
 
     @pytest.mark.asyncio
     async def test_start_tos_unsupported_service(

@@ -115,9 +115,9 @@ class OAuthFlowHandler:
 
     async def handle_callback(
         self,
-        flow_id: str,
-        code: str,
-        state: str,
+        flow_id: Any,
+        code: Any,
+        state: Any,
     ) -> Dict[str, Any]:
         """Handle the OAuth provider callback after the human grants consent.
 
@@ -129,13 +129,13 @@ class OAuthFlowHandler:
         Returns:
             ``{"status", "message"}`` or ``{"status", "error"}``.
         """
-        normalized_flow_id = str(flow_id or "").strip()
+        normalized_flow_id = flow_id.strip() if isinstance(flow_id, str) else ""
         if not normalized_flow_id:
             return {"status": "failed", "error": "flow_id required"}
-        normalized_code = str(code or "").strip()
+        normalized_code = code.strip() if isinstance(code, str) else ""
         if not normalized_code:
             return {"status": "failed", "error": "code required"}
-        normalized_state = str(state or "").strip()
+        normalized_state = state.strip() if isinstance(state, str) else ""
         if not normalized_state:
             return {"status": "failed", "error": "state required"}
 
