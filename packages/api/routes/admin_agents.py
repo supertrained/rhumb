@@ -86,7 +86,15 @@ def _normalized_optional_tags(tags: Any) -> Optional[List[str]]:
             message="Invalid 'tags' field.",
             detail="Provide 'tags' as a list of strings or omit the field.",
         )
-    normalized_tags = [str(tag).strip() for tag in tags]
+    for tag in tags:
+        if not isinstance(tag, str):
+            raise RhumbError(
+                "INVALID_PARAMETERS",
+                message="Invalid 'tags' field.",
+                detail="Provide 'tags' as a list of strings or omit the field.",
+            )
+
+    normalized_tags = [tag.strip() for tag in tags]
     return [tag for tag in normalized_tags if tag]
 
 

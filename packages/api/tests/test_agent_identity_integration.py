@@ -938,6 +938,32 @@ class TestAdminRoutes:
         get_store.assert_not_called()
         mock_store.register_agent.assert_not_awaited()
 
+    @pytest.mark.parametrize("tags", [["launch", 123], ["launch", {"name": "audit"}]])
+    def test_create_agent_route_rejects_non_string_tags_before_store_write(
+        self, admin_client: TestClient, tags: list[Any]
+    ) -> None:
+        """Create-agent tags should not stringify non-string entries before writes."""
+        mock_store = AsyncMock()
+        mock_store.register_agent = AsyncMock(return_value=("agent_test", "rhumb_test"))
+
+        with patch("routes.admin_agents._get_identity_store", return_value=mock_store) as get_store:
+            resp = admin_client.post(
+                "/v1/admin/agents",
+                json={
+                    "name": "route-test-agent",
+                    "organization_id": "org_admin",
+                    "tags": tags,
+                },
+            )
+
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["error"]["code"] == "INVALID_PARAMETERS"
+        assert body["error"]["message"] == "Invalid 'tags' field."
+        assert body["error"]["detail"] == "Provide 'tags' as a list of strings or omit the field."
+        get_store.assert_not_called()
+        mock_store.register_agent.assert_not_awaited()
+
     def test_create_agent_route_rejects_invalid_body_shape_before_store_write(
         self, admin_client: TestClient
     ) -> None:
