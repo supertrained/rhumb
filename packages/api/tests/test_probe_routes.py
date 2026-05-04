@@ -416,6 +416,7 @@ def test_run_probe_rejects_non_object_body_before_probe_service(
         ({"service_slug": "stripe", "payload": ["not", "object"]}, "payload", "Provide payload as a JSON object or omit the field."),
         ({"service_slug": "stripe", "target_url": 123}, "target_url", "Provide target_url as a string or omit the field."),
         ({"service_slug": "stripe", "sample_count": 0}, "sample_count", "Provide an integer between 1 and 20."),
+        ({"service_slug": "stripe", "sample_count": 3.0}, "sample_count", "Provide an integer between 1 and 20."),
         ({"service_slug": "stripe", "sample_count": 20.5}, "sample_count", "Provide an integer between 1 and 20."),
     ],
 )
@@ -527,7 +528,9 @@ def test_scheduler_rejects_non_object_body_before_scheduler_open(
     [
         ({"service_slugs": "stripe"}, "service_slugs", "Provide service_slugs as a list of service slugs or omit the field."),
         ({"sample_count": True}, "sample_count", "Provide an integer between 1 and 20."),
+        ({"sample_count": 3.0}, "sample_count", "Provide an integer between 1 and 20."),
         ({"base_interval_minutes": 0}, "base_interval_minutes", "Provide an integer between 1 and 1440."),
+        ({"base_interval_minutes": 30.0}, "base_interval_minutes", "Provide an integer between 1 and 1440."),
         ({"dry_run": "sometimes"}, "dry_run", "Provide dry_run as a boolean value."),
     ],
 )

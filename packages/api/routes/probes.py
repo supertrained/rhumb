@@ -169,20 +169,16 @@ def _validated_probe_int_field(
             message=f"Invalid '{field_name}' field.",
             detail=f"Provide an integer between {minimum} and {maximum}.",
         )
-    if isinstance(value, float) and not value.is_integer():
+    if isinstance(value, int):
+        normalized = value
+    elif isinstance(value, str) and value.strip().isdecimal():
+        normalized = int(value.strip())
+    else:
         raise RhumbError(
             "INVALID_PARAMETERS",
             message=f"Invalid '{field_name}' field.",
             detail=f"Provide an integer between {minimum} and {maximum}.",
         )
-    try:
-        normalized = int(str(value).strip())
-    except (TypeError, ValueError) as exc:
-        raise RhumbError(
-            "INVALID_PARAMETERS",
-            message=f"Invalid '{field_name}' field.",
-            detail=f"Provide an integer between {minimum} and {maximum}.",
-        ) from exc
     if minimum <= normalized <= maximum:
         return normalized
     raise RhumbError(
