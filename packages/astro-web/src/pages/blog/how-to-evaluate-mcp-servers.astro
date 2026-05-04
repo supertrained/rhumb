@@ -123,6 +123,12 @@ const VERIFIED_VERTICAL_DRILL = [
   "Promote the server only when it can return no-candidate, ask-human, downgrade-to-research, or typed policy-denial outcomes instead of turning every verified match into an action path.",
 ];
 
+const PRICING_BOUNDARY_DRILL = [
+  "Keep evaluation free while it is still candidate proof: search, scoring, registry inspection, route-card review, and fit checks are not paid execution.",
+  "Estimate only after the shortlist becomes one callable route with capability id, provider constraint, credential lane, quota owner, denied neighbor, and receipt fields named.",
+  "Treat no safe candidate as a typed no-call result, not as permission to widen into a billable fallback from the same marketplace list.",
+];
+
 const RELATED_READING = [
   {
     href: "/blog/mcp-marketplace-directory-workflow-proof?rhumb_source=evaluate-mcp-directory-proof",
@@ -179,6 +185,11 @@ const RELATED_READING = [
     title: "Governed Capabilities Are Becoming the Real Control Plane",
     description: "Why safer agent surfaces preserve authority context, policy boundaries, and failure semantics instead of exposing raw tool sprawl.",
   },
+  {
+    href: "/pricing?rhumb_experiment=e006&rhumb_source=evaluate-mcp-related-pricing-boundary",
+    title: "MCP Discovery Pricing Boundary",
+    description: "Where free candidate proof ends and governed, wallet, x402, BYOK, or Agent Vault execution begins.",
+  },
 ];
 
 const ARTICLE_JSON_LD = {
@@ -186,7 +197,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How to Evaluate MCP Servers: Workflow Fit, Trust Class, and Runtime Reality",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-02T00:00:00Z",
+  dateModified: "2026-05-03T20:05:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The right MCP server question is not popularity or tool count. Evaluate workflow fit, trust class, capability shape, auth viability, and runtime behavior before letting a server into an agent loop.",
@@ -492,6 +503,26 @@ const ARTICLE_JSON_LD = {
               </p>
             </div>
           </section>
+
+          <div class="mt-12 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Pricing boundary</div>
+            <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+              Evaluation is free proof until one callable route survives
+            </h2>
+            <p class="text-slate-300 leading-relaxed mb-5">
+              A promising MCP server is still just a candidate until workflow fit, trust class, auth viability, denied-neighbor behavior, and route-card evidence collapse into a selected route. Do not price or execute the directory hit itself; price the route that survives evaluation.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              {PRICING_BOUNDARY_DRILL.map((item) => (
+                <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+            <p class="mt-5 text-sm text-slate-500">
+              Pricing proof: <a href="/pricing?rhumb_experiment=e006&rhumb_source=evaluate-mcp-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
+              <span class="mx-2 text-slate-700">/</span>
+              Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=evaluate-mcp-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+            </p>
+          </div>
 
           <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
             <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
