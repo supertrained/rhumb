@@ -57,6 +57,12 @@ const ROUTE_CARD_CHECKS = [
   "Treat same-server tools as different authority lanes when they touch different assets, accounts, markets, wallets, users, or external side effects.",
 ];
 
+const PRICING_BOUNDARY_CHECKS = [
+  "Governed discovery is free proof until a route card becomes a selected callable capability.",
+  "The price belongs to the accepted execution lane: capability id, provider path, credential mode, quota owner, estimate, and receipt fields should be explicit before a call runs.",
+  "No safe governed candidate should produce a typed no-call or approval request, not a billable fallback to a wider raw API surface.",
+];
+
 const EVALUATION_AREAS = [
   {
     title: "Capability shape",
@@ -102,7 +108,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Governed Capabilities Are Becoming the Real Control Plane for Agent Integrations",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-02T00:00:00Z",
+  dateModified: "2026-05-04T19:45:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The safer agent interface is not raw endpoint sprawl and not merely fewer tools. It is a governed capability surface that preserves authority, policy, and failure semantics.",
@@ -440,6 +446,26 @@ const ARTICLE_JSON_LD = {
           </div>
         </section>
 
+        <div class="mt-12 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Pricing boundary</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            A governed capability is priced only after the boundary survives
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            Discovery, filtering, and route-card inspection are still proof work. The paid surface begins only when the governed candidate becomes an accepted execution lane with an estimate, credential mode, quota owner, denied-neighbor behavior, and receipt proof attached.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            {PRICING_BOUNDARY_CHECKS.map((item) => (
+              <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+            ))}
+          </div>
+          <p class="mt-5 text-sm text-slate-500">
+            Pricing proof: <a href="/pricing?rhumb_experiment=e006&rhumb_source=governed-capabilities-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
+            <span class="mx-2 text-slate-700">/</span>
+            Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=governed-capabilities-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+          </p>
+        </div>
+
         <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
           <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
@@ -535,6 +561,11 @@ const ARTICLE_JSON_LD = {
             <li>
               <a href="/blog/runtime-mcp-discovery-trust-filters" class="text-amber hover:text-amber/80 underline underline-offset-4">
                 Runtime MCP Discovery Needs Trust Filters
+              </a>
+            </li>
+            <li>
+              <a href="/pricing?rhumb_experiment=e006&rhumb_source=governed-capabilities-related-pricing-boundary" class="text-amber hover:text-amber/80 underline underline-offset-4">
+                MCP Discovery Pricing Boundary
               </a>
             </li>
             <li>
