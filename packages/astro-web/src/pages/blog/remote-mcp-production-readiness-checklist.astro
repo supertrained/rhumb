@@ -223,6 +223,11 @@ const RELATED_READING = [
     title: "Capability-First Agent Onboarding: Managed Superpowers First",
     description: "Why the cleanest first production lane is one bounded managed surface, then secure bridges only when the workflow earns them.",
   },
+  {
+    href: "/pricing?rhumb_experiment=e006&rhumb_source=remote-readiness-pricing-boundary-related",
+    title: "Pricing starts after readiness proof",
+    description: "How Rhumb separates free MCP readiness inspection from a paid execution lane with estimate, credential mode, quota owner, and receipt proof attached.",
+  },
 ];
 
 const ARTICLE_JSON_LD = {
@@ -230,7 +235,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-02T00:00:00Z",
+  dateModified: "2026-05-04T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, transport and middleware boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -311,6 +316,27 @@ const ARTICLE_JSON_LD = {
           It is <span class="text-slate-100">“Can this server stay bounded when the agent is wrong, over-eager, compromised, or simply stuck in a loop?”</span>
         </p>
       </div>
+
+      <section class="mb-10 rounded-[30px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Readiness before pricing</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3 tracking-tight">
+          Remote readiness proof is still not a paid execution lane
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          Keep the checklist in free proof mode until one server, one capability, and one caller-specific route survive the boundary. Principal mapping, scope review, denied-neighbor fixtures, route-card inspection, and failure rehearsal are evaluation work; they should not be billed like a live third-party API call.
+        </p>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          The paid surface begins only after Rhumb can name the accepted execution lane: the capability id, credential mode, quota owner, side-effect class, estimate, denied-neighbor behavior, and receipt evidence that will attach after the call. If the remote MCP surface cannot pass that readiness proof, the honest outcome is no safe candidate and no paid execution.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a href="/pricing?rhumb_experiment=e006&rhumb_source=remote-readiness-pricing-boundary" class="inline-flex items-center justify-center rounded-xl bg-amber px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-amber/90 transition-colors duration-200">
+            See the pricing boundary →
+          </a>
+          <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=remote-readiness-managed-preflight" class="inline-flex items-center justify-center rounded-xl border border-amber/30 px-5 py-3 text-sm font-display font-semibold text-amber hover:border-amber/60 hover:text-amber-200 transition-colors duration-200">
+            Start with managed preflight →
+          </a>
+        </div>
+      </section>
 
       <section class="mb-10 rounded-[30px] border border-violet-500/20 bg-violet-500/5 p-6 sm:p-8">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Production failure-mode triage</div>
