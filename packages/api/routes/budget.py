@@ -107,19 +107,15 @@ def _validated_alert_threshold_pct(value: Any) -> int:
             "Provide an integer between 1 and 100.",
         )
 
-    if isinstance(value, float) and not value.is_integer():
+    if isinstance(value, int):
+        normalized = value
+    elif isinstance(value, str) and value.strip().isdecimal():
+        normalized = int(value.strip())
+    else:
         raise _invalid_budget_field(
             "alert_threshold_pct",
             "Provide an integer between 1 and 100.",
         )
-
-    try:
-        normalized = int(value)
-    except (TypeError, ValueError) as exc:
-        raise _invalid_budget_field(
-            "alert_threshold_pct",
-            "Provide an integer between 1 and 100.",
-        ) from exc
 
     if 1 <= normalized <= 100:
         return normalized

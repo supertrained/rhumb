@@ -351,6 +351,7 @@ class TestBudgetRoutes:
         """PUT /v1/agent/budget maps malformed field types to canonical errors before auth."""
         cases = [
             ({"budget_usd": "not-a-number", "period": "monthly"}, "budget_usd"),
+            ({"budget_usd": 100.0, "period": "monthly", "alert_threshold_pct": 75.0}, "alert_threshold_pct"),
             ({"budget_usd": 100.0, "period": "monthly", "alert_threshold_pct": 75.5}, "alert_threshold_pct"),
             ({"budget_usd": 100.0, "period": "monthly", "hard_limit": "sometimes"}, "hard_limit"),
         ]
