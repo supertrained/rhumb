@@ -1275,7 +1275,9 @@ def _canonicalize_credential_modes(
     normalized_modes: list[str] = []
     seen: set[str] = set()
     for mode in raw_modes:
-        normalized = _canonicalize_credential_mode(str(mode))
+        if not isinstance(mode, str):
+            continue
+        normalized = _canonicalize_credential_mode(mode)
         if normalized and normalized not in seen:
             normalized_modes.append(normalized)
             seen.add(normalized)
