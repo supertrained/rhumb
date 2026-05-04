@@ -56,7 +56,7 @@ def _normalize_credential_mode(value: Any, default: str = "byok") -> str:
         return default
     if isinstance(value, str):
         return value.strip().lower()
-    return str(value)
+    return ""
 
 
 async def handle_storage_execute(

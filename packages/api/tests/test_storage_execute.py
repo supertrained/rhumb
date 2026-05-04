@@ -331,3 +331,53 @@ async def test_object_list_rejects_non_byok_credential_mode(
         error_code="storage_credential_mode_invalid",
         credential_mode="agent_vault",
     )
+
+
+@pytest.mark.asyncio
+async def test_object_list_rejects_non_string_credential_mode_before_storage_reads(
+    app,
+    monkeypatch,
+    _mock_receipt_service,
+    _mock_supabase_writes,
+) -> None:
+    """Malformed credential_mode should not be stringified before storage reads."""
+    monkeypatch.setenv(
+        "RHUMB_STORAGE_ST_DOCS",
+        json.dumps(
+            {
+                "provider": "aws-s3",
+                "region": "us-west-1",
+                "aws_access_key_id": "AKIA...",
+                "aws_secret_access_key": "secret",
+                "allowed_buckets": ["docs-bucket"],
+            }
+        ),
+    )
+
+    with (
+        patch.object(storage_execute_route, "resolve_storage_bundle") as mock_resolve,
+        patch.object(storage_execute_route, "list_objects", new=AsyncMock()) as mock_list,
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/capabilities/object.list/execute",
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+                json={
+                    "credential_mode": ["byok"],
+                    "storage_ref": "st_docs",
+                    "bucket": "docs-bucket",
+                },
+            )
+
+    assert response.status_code == 400
+    body = response.json()
+    assert body["error"] == "storage_credential_mode_invalid"
+    mock_resolve.assert_not_called()
+    mock_list.assert_not_called()
+    _assert_failure_audit(
+        _mock_receipt_service,
+        _mock_supabase_writes,
+        status_code=400,
+        error_code="storage_credential_mode_invalid",
+        credential_mode="",
+    )
