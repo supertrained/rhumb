@@ -1,0 +1,327 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+
+const FAST_ANSWER = [
+  "An MCP server is high quality only when it preserves the operator boundary after the model starts using it: narrow discovery, clear authority, typed failures, bounded outputs, and recoverable evidence.",
+  "Do not rank servers by stars, tool count, registry presence, or demo magic alone. Those are recall signals. Production quality is proven by allowed/denied fixtures for the caller's real workflow.",
+  "The minimum quality standard is eight checks: workflow fit, trust class, principal, tool scope, parameter scope, output shape, failure shape, and evidence trail.",
+  `Rhumb's public surface separates ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions from today's narrower ${PUBLIC_TRUTH.callableProvidersLabel} callable execution surface, because quality evidence and execution authority are different layers.`,
+];
+
+const QUALITY_SIGNALS = [
+  {
+    title: "Workflow fit",
+    question: "What repeated job does this server make safer or easier?",
+    proof: "A route card names the workflow, inputs, output class, side-effect class, success condition, and no-call condition.",
+    failure: "The server looks impressive but the agent has to infer whether this is search, extraction, write automation, admin work, or support triage.",
+  },
+  {
+    title: "Trust class",
+    question: "Is this read-mostly, reversible write, high-side-effect, local, remote, or shared?",
+    proof: "The server's tool groups map to trust classes before ranking. Read helpers and write-capable remote integrations do not compete on one flat score.",
+    failure: "A leaderboard treats a local coding helper, a database writer, and a customer-facing support tool as the same kind of risk.",
+  },
+  {
+    title: "Acting principal",
+    question: "Who is the server acting as when the tool runs?",
+    proof: "The evaluation names caller, tenant, backend principal, credential mode, quota owner, and what the caller is allowed to see.",
+    failure: "Auth proves identity at install time, but runtime tools still inherit a broad admin, workspace, or shared account boundary.",
+  },
+  {
+    title: "Tool visibility",
+    question: "Does discovery show only tools this caller can actually use?",
+    proof: "Filtered manifests, scoped listings, and no-candidate outcomes prove unavailable tools stay hidden or denied before invocation.",
+    failure: "The server advertises everything it can do and relies on the model to choose responsibly after seeing mixed-authority tools.",
+  },
+  {
+    title: "Parameter scope",
+    question: "Are path, URL, repo, tenant, amount, and target fields treated as authorization inputs?",
+    proof: "Allowed and denied-neighbor fixtures cover normalized values, policy rules, and typed denials before reads, writes, or external calls run.",
+    failure: "A string schema accepts arbitrary paths, hosts, repos, tenants, environment names, or write targets because the selected tool looked legitimate.",
+  },
+  {
+    title: "Output shape",
+    question: "Can the agent consume the result without leaking secrets, burning tokens, or misreading the contract?",
+    proof: "Responses are bounded, typed, redacted, and artifact-aware; oversized payloads use references instead of dumping unbounded tool output into context.",
+    failure: "Read-only access becomes broad environment, filesystem, topology, or customer-data exposure because the server returns whatever it found.",
+  },
+  {
+    title: "Failure shape",
+    question: "What happens on timeout, partial success, rate limit, auth expiry, or schema drift?",
+    proof: "Failures are typed and machine-readable, with retry/don't-retry, escalation, idempotency, and replacement-route hints preserved.",
+    failure: "Everything collapses into generic exceptions, silent empty arrays, or success-like responses that make agents retry, widen scope, or hallucinate completion.",
+  },
+  {
+    title: "Evidence trail",
+    question: "Can an operator reconstruct who invoked what and what happened?",
+    proof: "Receipts and traces preserve caller, tool, credential rail, quota owner, policy rule, estimate, side effect, denial, retry, and final outcome.",
+    failure: "The demo works, but after a bad run nobody can tell whether the model, server, provider, credential, retry worker, or policy layer caused the result.",
+  },
+];
+
+const BAD_PROXIES = [
+  {
+    title: "Stars and downloads",
+    body: "Popularity is useful for discovery. It is not proof that the server has narrow runtime authority, current auth viability, typed denials, or recoverable traces.",
+  },
+  {
+    title: "Tool count",
+    body: "More tools often means more mixed trust classes. A smaller server with route cards, filtered discovery, and no-call behavior may be safer than a giant catalog.",
+  },
+  {
+    title: "Registry badges",
+    body: "Curated inclusion reduces junk, but it cannot replace caller-specific checks against the current server, credential path, and workflow boundary.",
+  },
+  {
+    title: "Demo latency",
+    body: "Fast happy paths are table stakes. The quality question is what happens under retry, auth drift, stale schemas, tenant confusion, and unsafe neighboring inputs.",
+  },
+];
+
+const PROMOTION_FLOW = [
+  {
+    step: "1",
+    title: "Start with candidate recall",
+    body: "Use directories, registries, scored services, and community mentions to collect options. Stop treating this as evaluation once you have enough candidates for the job.",
+  },
+  {
+    step: "2",
+    title: "Collapse to one route card",
+    body: "Name the workflow, tool, caller, trust class, side-effect class, credential mode, quota owner, and expected receipt before running live work.",
+  },
+  {
+    step: "3",
+    title: "Run allowed and denied fixtures",
+    body: "Test the normal path and the nearest unsafe neighbor: adjacent tenant, parent path, blocked host, broader repo, larger amount, hidden tool, or stale resource.",
+  },
+  {
+    step: "4",
+    title: "Promote, quarantine, or no-call",
+    body: "Promote only when the server gives bounded output, typed failures, and trace evidence. Otherwise quarantine the route or return a no-candidate result.",
+  },
+];
+
+const SCORECARD = [
+  ["Workflow fit", "A named repeated job", "Generic 'connect my tools' utility"],
+  ["Trust class", "Read/write/remote/shared risk separated", "One flat best-server list"],
+  ["Authority", "Caller, tenant, principal, credential, quota owner named", "Install auth treated as runtime authority"],
+  ["Discovery", "Caller-visible tools only", "Every possible tool advertised"],
+  ["Parameters", "Allowed and denied-neighbor fixtures", "Arbitrary strings after tool selection"],
+  ["Output", "Typed, bounded, redacted, artifact-aware", "Unbounded context dump"],
+  ["Failure", "Retryable, terminal, review, and denial states separated", "Generic error or empty success-like response"],
+  ["Evidence", "Receipt links actor, policy, estimate, route, result", "No reconstructable operator trail"],
+];
+
+const STOP_CONDITIONS = [
+  "The server cannot name which caller, tenant, workspace, or provider account is acting.",
+  "Tool discovery exposes actions outside the workflow's intended trust class.",
+  "High-risk parameters are validated for type but not normalized and checked against caller-specific allowlists.",
+  "The denied neighbor succeeds, retries, widens scope, or fails with an ambiguous success-like response.",
+  "Output can reveal secrets, adjacent resources, customer data, topology, or token-heavy blobs unrelated to the workflow.",
+  "Failures do not tell the agent whether to retry, stop, ask for review, rotate credentials, or choose a different route.",
+  "No trace can reconstruct caller, tool, credential rail, quota owner, side-effect class, estimate, denial, retry, or receipt evidence.",
+];
+
+const RELATED = [
+  {
+    href: "/blog/how-to-evaluate-mcp-servers?rhumb_source=mcp-quality-signals-evaluate",
+    title: "How to Evaluate MCP Servers",
+    description: "The broader selection guide for workflow fit, trust class, capability shape, and runtime reality checks.",
+  },
+  {
+    href: "/blog/mcp-server-scoring-methodology?rhumb_source=mcp-quality-signals-methodology",
+    title: "MCP Server Scoring Methodology",
+    description: "How Rhumb separates structural scoring from live trust, authority, and runtime evidence.",
+  },
+  {
+    href: "/blog/remote-mcp-production-readiness-checklist?rhumb_source=mcp-quality-signals-readiness",
+    title: "Remote MCP Production Readiness Checklist",
+    description: "Use principal, scope, tenant, recovery, and evidence checks before remote-hosted MCP enters production.",
+  },
+  {
+    href: "/blog/runtime-mcp-discovery-trust-filters?rhumb_source=mcp-quality-signals-runtime-filters",
+    title: "Runtime MCP Discovery Trust Filters",
+    description: "Why candidate ranking should happen after caller-visible authority and current runtime trust are known.",
+  },
+  {
+    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-quality-signals-proof-sprint",
+    title: "Start a proof sprint",
+    description: "Scope one repeat workflow, prove the route card, then decide whether it is safe enough to execute.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Server Quality Signals for Agents: What to Check Before Production",
+  description:
+    "A practical quality standard for MCP servers: workflow fit, trust class, authority, tool scope, parameter scope, output shape, failure shape, and evidence before production.",
+  datePublished: "2026-05-05T04:20:00-07:00",
+  dateModified: "2026-05-05T04:20:00-07:00",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-server-quality-signals-agents",
+};
+---
+
+<Layout
+  title="MCP Server Quality Signals for Agents: What to Check Before Production | Rhumb"
+  description="A practical quality standard for MCP servers: workflow fit, trust class, authority, tool scope, parameter scope, output shape, failure shape, and evidence."
+  canonical="/blog/mcp-server-quality-signals-agents"
+  ogTitle="MCP Server Quality Signals for Agents"
+  ogDescription="Stars and tool count are recall signals. Production MCP quality needs route cards, authority, denials, bounded output, and receipt evidence."
+  ogUrl="https://rhumb.dev/blog/mcp-server-quality-signals-agents"
+  ogType="article"
+  twitterTitle="MCP Server Quality Signals for Agents"
+  twitterDescription="A practical production quality standard for MCP servers before agents trust them."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="pointer-events-none absolute inset-0 bg-grid opacity-30"></div>
+      <div class="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-emerald-500/10 via-amber/5 to-transparent"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-emerald-300">MCP quality standard</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 5, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">10 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-4 py-2 text-xs font-mono uppercase tracking-[0.22em] text-emerald-300">
+              Answer target: MCP server quality signals
+            </div>
+            <h1 class="max-w-4xl font-display text-4xl font-bold leading-tight tracking-tight text-slate-100 sm:text-5xl">
+              MCP Server Quality Signals for Agents: What to Check Before Production
+            </h1>
+            <p class="mt-6 max-w-3xl text-lg leading-relaxed text-slate-400">
+              The MCP ecosystem has plenty of catalogs, marketplaces, and best-server lists. Agent operators need a different standard: which server stays safe after a model can invoke it repeatedly with real credentials, budget, and side effects attached?
+            </p>
+          </div>
+
+          <aside class="rounded-[32px] border border-slate-800 bg-surface/80 p-6 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fast answer</div>
+            <div class="space-y-3">
+              {FAST_ANSWER.map((point) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-300">{point}</div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-6xl px-6 py-12">
+      <div class="mb-10 rounded-[32px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Boundary in one sentence</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          MCP quality is not whether a server exists, ranks, or demos well; it is whether one caller-safe route can prove authority, constraints, failure behavior, and evidence before an agent loops on it.
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div class="space-y-14">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Eight quality signals that matter in production</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              Use this as the MCP server quality checklist before promotion from discovery inventory to a trusted route. Each signal should have positive proof and a known failure mode.
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+              {QUALITY_SIGNALS.map((signal) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                  <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{signal.title}</h3>
+                  <p class="mb-3 text-sm font-mono leading-6 text-emerald-300">{signal.question}</p>
+                  <p class="mb-3 text-sm leading-6 text-slate-300"><span class="text-slate-500">Proof:</span> {signal.proof}</p>
+                  <p class="text-sm leading-6 text-slate-500"><span class="text-slate-600">Failure mode:</span> {signal.failure}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">The proxy signals that should not decide production trust</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+              {BAD_PROXIES.map((item) => (
+                <div class="rounded-[28px] border border-slate-800 bg-navy/60 p-6">
+                  <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Bad shortcut</div>
+                  <h3 class="mb-3 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                  <p class="text-sm leading-6 text-slate-400">{item.body}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">A practical promotion flow</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              The goal is not to make evaluation slower. The goal is to stop candidates from becoming execution lanes before they have earned that promotion.
+            </p>
+            <div class="space-y-4">
+              {PROMOTION_FLOW.map((item) => (
+                <div class="grid gap-4 rounded-[28px] border border-slate-800 bg-surface/75 p-6 sm:grid-cols-[64px_1fr]">
+                  <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-500/20 bg-emerald-500/10 font-display text-2xl font-bold text-emerald-300">{item.step}</div>
+                  <div>
+                    <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
+                    <p class="text-sm leading-6 text-slate-400">{item.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Quick scorecard for an MCP server review</h2>
+            <div class="overflow-hidden rounded-[28px] border border-slate-800 bg-surface/70">
+              <div class="grid grid-cols-[0.8fr_1fr_1fr] gap-px bg-slate-800 text-xs font-mono uppercase tracking-[0.18em] text-slate-400">
+                <div class="bg-navy/80 p-4">Signal</div>
+                <div class="bg-navy/80 p-4">Quality evidence</div>
+                <div class="bg-navy/80 p-4">Weak substitute</div>
+              </div>
+              {SCORECARD.map(([signal, evidence, substitute]) => (
+                <div class="grid grid-cols-[0.8fr_1fr_1fr] gap-px bg-slate-800 text-sm leading-6">
+                  <div class="bg-navy/60 p-4 font-semibold text-slate-200">{signal}</div>
+                  <div class="bg-surface/80 p-4 text-slate-300">{evidence}</div>
+                  <div class="bg-surface/80 p-4 text-slate-500">{substitute}</div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">When to return no-candidate instead of picking the best-looking server</h2>
+            <div class="rounded-[32px] border border-red-500/20 bg-red-500/5 p-6">
+              <div class="grid gap-3 md:grid-cols-2">
+                {STOP_CONDITIONS.map((condition) => (
+                  <div class="rounded-2xl border border-red-500/15 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{condition}</div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="lg:sticky lg:top-24">
+          <div class="rounded-[32px] border border-slate-800 bg-surface/75 p-6">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Related routes</div>
+            <div class="space-y-3">
+              {RELATED.map((item) => (
+                <a href={item.href} class="block rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-amber/50">
+                  <div class="mb-1 font-display text-base font-semibold tracking-tight text-slate-100">{item.title}</div>
+                  <p class="text-sm leading-6 text-slate-500">{item.description}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+</Layout>
