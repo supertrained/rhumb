@@ -1,0 +1,341 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+import pricing from "../../../../shared/pricing.json";
+
+const managed = pricing.modes.rhumb_managed;
+const x402 = pricing.modes.x402;
+const byok = pricing.modes.byok;
+
+const FAST_ANSWER = [
+  "MCP discovery should be free proof work until one caller-safe route is selected. Search, scoring, route-card inspection, credential-lane review, and denied-neighbor rehearsal are not paid execution.",
+  "Paid execution begins only when Rhumb routes a selected capability through a governed rail with a named caller, credential mode, quota owner, side-effect class, estimate, and receipt path.",
+  "If the workflow cannot name who acts, whose budget burns, which neighboring action must be denied, or what receipt proves the outcome, the route should stop in review or typed denial instead of becoming a billable broad fallback.",
+  `Rhumb's public discovery surface covers ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions; current callable execution is intentionally narrower at ${PUBLIC_TRUTH.callableProvidersLabel}, strongest for ${PUBLIC_TRUTH.beachheadLabel}.`,
+];
+
+const FREE_PROOF = [
+  {
+    step: "Candidate recall",
+    proof: "Search directories, registries, scored services, and capability definitions to assemble possible MCP servers or provider routes.",
+    boundary: "No provider call is made for the customer's workflow yet. Server count, ranking, and inclusion are inventory signals, not execution.",
+  },
+  {
+    step: "Workflow fit",
+    proof: "Collapse the list to one repeat job: search.query, scrape.extract, image.generate, email.send, data enrichment, or the supported equivalent.",
+    boundary: "A broad idea such as 'connect my CRM' stays evaluation until the action, inputs, outputs, and side-effect class are explicit.",
+  },
+  {
+    step: "Authority review",
+    proof: "Inspect caller identity, tool visibility, credential rail, tenant scope, and quota owner before a model can invoke anything.",
+    boundary: "Auth setup, manifest filtering, and route-card inspection remain proof. A connector grant is not a billable call by itself.",
+  },
+  {
+    step: "Denied-neighbor drill",
+    proof: "Pick the closest unsafe tenant, path, domain, amount, row, tool, or provider account and prove it fails closed.",
+    boundary: "Negative-case rehearsal should not spend provider budget or mutate state. It earns the right to estimate one safe lane.",
+  },
+];
+
+const PAID_REQUIREMENTS = [
+  "Capability id or selected workflow path",
+  "Caller / tenant / principal that is allowed to act",
+  "Credential mode: governed key, wallet-prefund, x402, BYOK, Agent Vault, or provider-pinned account",
+  "Quota or budget owner plus cost ceiling",
+  "Provider route or explicit provider constraint",
+  "Side-effect class and idempotency expectation",
+  "Estimate fields before execution",
+  "Receipt fields after execution, denial, retry, or review",
+];
+
+const RAILS = [
+  {
+    name: "Governed Rhumb key",
+    when: "The workflow fits the current callable surface and the operator wants one stable key, bounded budget, denial proof, and receipts.",
+    price: `Upstream cost plus ${managed.margin_percent}% margin on Rhumb-managed execution.`,
+    href: "/auth/login?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-governed-key",
+    cta: "Get governed key",
+    className: "border-emerald-500/20 bg-emerald-500/5",
+    accent: "text-emerald-300",
+  },
+  {
+    name: "Wallet-prefund",
+    when: "The agent should pre-fund repeat execution but keep normal key-based runtime ergonomics.",
+    price: "Wallet balance funds repeat calls; receipts should preserve top-up, drawdown, and budget context.",
+    href: "/payments/agent#wallet-prefund",
+    cta: "Review wallet-prefund",
+    className: "border-sky-500/20 bg-sky-500/5",
+    accent: "text-sky-300",
+  },
+  {
+    name: "x402 per-call",
+    when: "The payment proof is part of the per-request contract and zero-signup payment authorization matters more than repeat-lane ergonomics.",
+    price: `USDC on ${x402.network}; upstream cost plus ${x402.margin_percent}% margin on the x402 rail.`,
+    href: "/payments/agent?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-x402",
+    cta: "Review x402",
+    className: "border-violet-500/20 bg-violet-500/5",
+    accent: "text-violet-300",
+  },
+  {
+    name: "BYOK / Agent Vault",
+    when: "Execution must happen through the customer's provider account, workspace, contract, compliance boundary, or existing quota pool.",
+    price: `${byok.passthrough_note} Provider cost, quotas, and credential hygiene stay with the operator.`,
+    href: "/blog/agent-credential-paths-managed-key-byok-agent-vault-x402?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-credential-paths",
+    cta: "Choose credential path",
+    className: "border-amber/20 bg-amber/5",
+    accent: "text-amber",
+  },
+];
+
+const EXAMPLES = [
+  {
+    workflow: "Search",
+    proof: "Compare Exa, Tavily, Brave, and other candidates for the query class; inspect auth, freshness, and output contract.",
+    paid: "A selected search.query route executes under a chosen credential rail with estimate, budget ceiling, and receipt fields preserved.",
+  },
+  {
+    workflow: "Extraction",
+    proof: "Check domain constraints, browser risk, tool-output shape, blocked-host behavior, and the denied-neighbor URL before routing.",
+    paid: "A bounded scrape.extract or extraction equivalent runs against the approved target set with trace evidence and no broad browser fallback.",
+  },
+  {
+    workflow: "Provider-specific tool use",
+    proof: "Inspect MCP server metadata, manifest filtering, backend authority, and whether the caller sees only the intended tools.",
+    paid: "The selected provider route executes one allowed capability instead of exposing the whole server inventory to the agent loop.",
+  },
+];
+
+const STOP_CONDITIONS = [
+  "The tenant, caller, backend principal, or provider account cannot be named.",
+  "The workflow needs a tool outside the visible allowlist or tries to widen scope after discovery.",
+  "The quota owner is shared but attribution would collapse into a generic admin account.",
+  "The side-effect class is unclear, irreversible, or missing an idempotency/recovery expectation.",
+  "The nearest unsafe neighbor was never tested or failed with an ambiguous success-like response.",
+  "The estimate cannot preserve credential mode, route, side-effect class, or cost-ceiling context.",
+];
+
+const RELATED = [
+  {
+    href: "/pricing?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-pricing",
+    title: "Pricing",
+    description: "The public rail chooser for governed execution, wallet-prefund, x402, BYOK, and Agent Vault.",
+  },
+  {
+    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-proof-sprint",
+    title: "Start managed execution",
+    description: "Scope one repeat workflow before asking Rhumb to run the first paid call.",
+  },
+  {
+    href: "/blog/mcp-marketplace-directory-workflow-proof?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-marketplace-proof",
+    title: "MCP marketplaces are discovery, not production proof",
+    description: "Use directories for recall, then prove workflow fit, authority, budget, denials, and receipt evidence.",
+  },
+  {
+    href: "/blog/runtime-mcp-discovery-trust-filters?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-runtime-filters",
+    title: "Runtime MCP discovery trust filters",
+    description: "Candidate ranking should run after caller-visible authority, not before it.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Discovery Is Free Proof Until One Route Is Safe to Execute",
+  description:
+    "A practical pricing-boundary guide for MCP discovery: what stays free proof work, what must be true before paid execution, and when Rhumb should stop in review instead of billing a broad fallback.",
+  datePublished: "2026-05-05T01:09:00-07:00",
+  dateModified: "2026-05-05T01:09:00-07:00",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-discovery-free-proof-paid-execution-boundary",
+};
+---
+
+<Layout
+  title="MCP Discovery Is Free Proof Until One Route Is Safe to Execute | Rhumb"
+  description="MCP discovery, scoring, route-card inspection, credential review, and denied-neighbor drills stay free until one caller-safe route is ready for paid execution."
+  canonical="/blog/mcp-discovery-free-proof-paid-execution-boundary"
+  ogTitle="MCP Discovery Is Free Proof Until One Route Is Safe to Execute"
+  ogDescription="Where MCP discovery ends, paid agent execution begins, and why unsafe routes should stop in typed review instead of billing a broad fallback."
+  ogUrl="https://rhumb.dev/blog/mcp-discovery-free-proof-paid-execution-boundary"
+  ogType="article"
+  twitterTitle="MCP Discovery Is Free Proof Until One Route Is Safe to Execute"
+  twitterDescription="Search, scoring, route-card inspection, and denied-neighbor drills are proof work. Paid execution starts only after one bounded route survives."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-amber/10 via-emerald-500/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-emerald-300">MCP pricing boundary</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 5, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">9 min read</span>
+        </div>
+
+        <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+          <div>
+            <div class="mb-4 inline-flex rounded-full border border-amber/25 bg-amber/10 px-4 py-2 text-xs font-mono uppercase tracking-[0.22em] text-amber">
+              Answer target: free MCP discovery vs paid execution
+            </div>
+            <h1 class="max-w-4xl font-display text-4xl font-bold leading-tight tracking-tight text-slate-100 sm:text-5xl">
+              MCP Discovery Is Free Proof Until One Route Is Safe to Execute
+            </h1>
+            <p class="mt-6 max-w-3xl text-lg leading-relaxed text-slate-400">
+              MCP directories, marketplaces, and scored service catalogs are useful for finding candidates. They should not become a paid execution path until one workflow survives authority, budget, denial, and receipt checks for the actual caller.
+            </p>
+          </div>
+
+          <aside class="rounded-[32px] border border-slate-800 bg-surface/80 p-6 shadow-[0_24px_80px_rgba(8,15,28,0.45)]">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Fast answer</div>
+            <div class="space-y-3">
+              {FAST_ANSWER.map((point) => (
+                <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-300">{point}</div>
+              ))}
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-6xl px-6 py-12">
+      <div class="mb-10 rounded-[32px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Boundary in one sentence</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          Discovery stays free while Rhumb is proving candidates; paid execution starts only after a selected route can name the capability, actor, credential rail, budget owner, side effect, estimate, and receipt evidence for one bounded workflow.
+        </p>
+      </div>
+
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+        <div class="space-y-14">
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">What stays in free proof?</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              The easy mistake is to treat any MCP server listing as a runnable route. A safer boundary keeps discovery, scoring, and safety rehearsal upstream of paid execution.
+            </p>
+            <div class="grid gap-4 md:grid-cols-2">
+              {FREE_PROOF.map((item) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                  <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">{item.step}</div>
+                  <p class="mb-3 text-sm leading-6 text-slate-300">{item.proof}</p>
+                  <p class="text-sm leading-6 text-slate-500">{item.boundary}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">What has to be true before the paid route exists?</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              A paid route is not merely “the best server.” It is a selected, attributable execution lane. The minimum fields should be boring enough for a human operator, retry worker, and finance trail to reconstruct later.
+            </p>
+            <div class="rounded-[32px] border border-slate-800 bg-navy/60 p-6">
+              <div class="grid gap-3 sm:grid-cols-2">
+                {PAID_REQUIREMENTS.map((item) => (
+                  <div class="rounded-2xl border border-slate-800 bg-surface/70 p-4 text-sm leading-6 text-slate-300">{item}</div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">How the boundary changes by workflow</h2>
+            <div class="space-y-4">
+              {EXAMPLES.map((item) => (
+                <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+                  <h3 class="mb-3 font-display text-xl font-semibold tracking-tight text-slate-100">{item.workflow}</h3>
+                  <div class="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">Free proof</div>
+                      <p class="text-sm leading-6 text-slate-400">{item.proof}</p>
+                    </div>
+                    <div>
+                      <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-emerald-300">Paid execution</div>
+                      <p class="text-sm leading-6 text-slate-300">{item.paid}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Pick the rail after proof, not before it</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+              {RAILS.map((rail) => (
+                <a href={rail.href} class={`block rounded-[28px] border p-6 transition-transform hover:-translate-y-1 ${rail.className}`}>
+                  <div class={`mb-3 text-[11px] font-mono uppercase tracking-[0.24em] ${rail.accent}`}>{rail.name}</div>
+                  <p class="mb-3 text-sm leading-6 text-slate-300">{rail.when}</p>
+                  <p class="mb-4 text-sm leading-6 text-slate-500">{rail.price}</p>
+                  <span class="font-mono text-xs uppercase tracking-[0.22em] text-amber">{rail.cta} &rarr;</span>
+                </a>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">When Rhumb should stop instead of bill</h2>
+            <div class="rounded-[32px] border border-rose-500/20 bg-rose-500/5 p-6 sm:p-8">
+              <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Typed review / no-call outcomes</div>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {STOP_CONDITIONS.map((condition) => (<li>{condition}</li>))}
+              </ul>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">The practical test</h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                If the agent is still asking “which server should I use?” you are in discovery. If the operator can say “this caller may run this capability through this credential rail up to this budget, and this adjacent action must be denied,” you are close to execution.
+              </p>
+              <p>
+                That distinction protects both sides. Builders get useful candidate proof without paying for research. Operators only pay when the call is constrained enough that a retry, denial, receipt, and budget review can be understood later.
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <aside class="space-y-6 lg:sticky lg:top-24">
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Current Rhumb truth</div>
+            <ul class="space-y-3 text-sm leading-6 text-slate-400">
+              <li><span class="text-slate-200">Discovery:</span> {PUBLIC_TRUTH.servicesLabel} scored services</li>
+              <li><span class="text-slate-200">Capabilities:</span> {PUBLIC_TRUTH.capabilitiesLabel} definitions</li>
+              <li><span class="text-slate-200">Callable today:</span> {PUBLIC_TRUTH.callableProvidersLabel}</li>
+              <li><span class="text-slate-200">Beachhead:</span> {PUBLIC_TRUTH.beachheadLabel}</li>
+            </ul>
+          </div>
+
+          <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Best next step</div>
+            <p class="mb-4 text-sm leading-6 text-slate-300">
+              Bring one repeat workflow, one denied neighbor, and one budget ceiling. Do not bring a list of servers and ask the agent to improvise production safety.
+            </p>
+            <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-sidebar" class="inline-flex rounded-full border border-amber/30 px-4 py-2 font-mono text-xs uppercase tracking-[0.22em] text-amber transition-colors hover:bg-amber/10">Scope the first route</a>
+          </div>
+
+          <div class="rounded-[28px] border border-slate-800 bg-surface/75 p-6">
+            <div class="mb-4 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Related</div>
+            <div class="space-y-3">
+              {RELATED.map((item) => (
+                <a href={item.href} class="block rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                  <div class="mb-1 font-display text-sm font-semibold text-slate-100">{item.title}</div>
+                  <p class="text-xs leading-5 text-slate-500">{item.description}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </div>
+    </article>
+  </div>
+</Layout>
