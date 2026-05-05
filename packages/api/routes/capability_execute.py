@@ -1933,21 +1933,25 @@ def _validate_explicit_execute_request_requirements(
 
 def _parse_credential_modes(raw_modes: Any) -> list[str]:
     """Normalize credential_modes from Supabase into a list of strings."""
+    def _append_normalized(parsed_modes: list[str], seen: set[str], mode: str) -> None:
+        normalized = _canonicalize_credential_mode(mode)
+        if normalized and normalized not in seen:
+            parsed_modes.append(normalized)
+            seen.add(normalized)
+
     if isinstance(raw_modes, str):
-        return [
-            normalized
-            for mode in raw_modes.split(",")
-            for normalized in [_canonicalize_credential_mode(mode)]
-            if normalized
-        ]
+        parsed_modes: list[str] = []
+        seen: set[str] = set()
+        for mode in raw_modes.split(","):
+            _append_normalized(parsed_modes, seen, mode)
+        return parsed_modes
     if isinstance(raw_modes, (list, tuple, set)):
         parsed_modes: list[str] = []
+        seen: set[str] = set()
         for mode in raw_modes:
             if not isinstance(mode, str):
                 continue
-            normalized = _canonicalize_credential_mode(mode)
-            if normalized:
-                parsed_modes.append(normalized)
+            _append_normalized(parsed_modes, seen, mode)
         return parsed_modes
     return []
 

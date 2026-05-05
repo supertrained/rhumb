@@ -1619,7 +1619,7 @@ async def test_estimate_managed_error_ignores_malformed_catalog_credential_modes
         {
             "capability_id": "search.query",
             "service_slug": "pdl",
-            "credential_modes": ["byo", {"mode": "agent_vault"}],
+            "credential_modes": ["byo", "byok", {"mode": "agent_vault"}],
             "auth_method": "api_key",
             "endpoint_pattern": "POST /person/enrich",
             "cost_per_call": "0.01",
@@ -1629,7 +1629,7 @@ async def test_estimate_managed_error_ignores_malformed_catalog_credential_modes
         {
             "capability_id": "search.query",
             "service_slug": "brave-search",
-            "credential_modes": ["byo", ["rhumb_managed"], "rhumb_managed"],
+            "credential_modes": ["byo", "byok", ["rhumb_managed"], "rhumb_managed", "rhumb_managed"],
             "auth_method": "api_key",
             "endpoint_pattern": "GET /res/v1/web/search",
             "cost_per_call": "0.003",
