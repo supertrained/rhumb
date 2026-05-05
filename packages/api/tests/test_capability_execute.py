@@ -1606,6 +1606,84 @@ async def test_estimate_explicit_rhumb_managed_alias_backed_unmanaged_provider_s
 
 
 @pytest.mark.anyio
+async def test_estimate_managed_error_ignores_malformed_catalog_credential_modes(app):
+    """Managed estimate errors should not stringify malformed catalog credential-mode entries."""
+
+    capability = {
+        "id": "search.query",
+        "domain": "search",
+        "action": "query",
+        "description": "Web search",
+    }
+    mappings = [
+        {
+            "capability_id": "search.query",
+            "service_slug": "pdl",
+            "credential_modes": ["byo", {"mode": "agent_vault"}],
+            "auth_method": "api_key",
+            "endpoint_pattern": "POST /person/enrich",
+            "cost_per_call": "0.01",
+            "cost_currency": "USD",
+            "free_tier_calls": 0,
+        },
+        {
+            "capability_id": "search.query",
+            "service_slug": "brave-search",
+            "credential_modes": ["byo", ["rhumb_managed"], "rhumb_managed"],
+            "auth_method": "api_key",
+            "endpoint_pattern": "GET /res/v1/web/search",
+            "cost_per_call": "0.003",
+            "cost_currency": "USD",
+            "free_tier_calls": 0,
+        },
+    ]
+
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?") and "id=eq.search.query" in path:
+            return [capability]
+        if path.startswith("capability_services?") and "capability_id=eq.search.query" in path:
+            return mappings
+        if path.startswith("capability_executions?"):
+            return []
+        return []
+
+    async def mock_resolve_managed(
+        capability_id: str,
+        mappings: list[dict],
+        requested_provider: str | None,
+    ):
+        if capability_id == "search.query" and requested_provider is None:
+            return mappings[1]
+        return None
+
+    with (
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=mock_fetch,
+        ),
+        patch(
+            "routes.capability_execute._resolve_managed_provider_mapping",
+            new_callable=AsyncMock,
+            side_effect=mock_resolve_managed,
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v1/capabilities/search.query/execute/estimate",
+                params={"credential_mode": "rhumb_managed", "provider": "pdl"},
+                headers={"X-Rhumb-Key": FAKE_RHUMB_KEY},
+            )
+
+    assert resp.status_code == 503
+    body = resp.json()
+    assert body["requested_provider_credential_modes"] == ["byok"]
+    assert body["available_providers"] == [
+        {"provider": "brave-search-api", "credential_modes": ["byok", "rhumb_managed"]}
+    ]
+
+
+@pytest.mark.anyio
 async def test_execute_explicit_rhumb_managed_rejects_unmanaged_provider_with_alternatives(app):
     """Explicit managed execute should surface the available managed fallback provider."""
 

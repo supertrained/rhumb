@@ -1943,7 +1943,9 @@ def _parse_credential_modes(raw_modes: Any) -> list[str]:
     if isinstance(raw_modes, (list, tuple, set)):
         parsed_modes: list[str] = []
         for mode in raw_modes:
-            normalized = _canonicalize_credential_mode(str(mode))
+            if not isinstance(mode, str):
+                continue
+            normalized = _canonicalize_credential_mode(mode)
             if normalized:
                 parsed_modes.append(normalized)
         return parsed_modes
