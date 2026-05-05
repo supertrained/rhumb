@@ -1197,6 +1197,7 @@ def test_me_agents_create_rejects_non_object_body_before_session_reads() -> None
         ({"budget_usd": 5000.01}, "budget_usd must be greater than 0 and no more than 5000"),
         ({"hard_limit": "sometimes"}, "hard_limit must be true or false"),
         ({"rate_limit_qpm": 0}, "rate_limit_qpm must be between 1 and 1000"),
+        ({"rate_limit_qpm": 20.0}, "rate_limit_qpm must be between 1 and 1000"),
         ({"rate_limit_qpm": "fast"}, "rate_limit_qpm must be between 1 and 1000"),
         ({"rate_limit_qpm": 1001}, "rate_limit_qpm must be between 1 and 1000"),
         ({"name": "A" * 65}, "name must be 64 characters or fewer"),

@@ -897,8 +897,6 @@ def _dashboard_int_default(payload: dict[str, Any], field: str, default: int) ->
         return None
     if isinstance(value, int):
         return value
-    if isinstance(value, float) and math.isfinite(value) and value.is_integer():
-        return int(value)
     if isinstance(value, str):
         normalized = value.strip()
         if normalized and normalized.isdecimal():
