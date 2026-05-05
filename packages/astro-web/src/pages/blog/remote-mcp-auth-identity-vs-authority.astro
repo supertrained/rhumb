@@ -57,12 +57,18 @@ const CHECKLIST = [
   "When a connector is installed into a chat client, can you still prove which workspace, grant, manifest slice, and backend credential lane the assistant inherited?",
 ];
 
+const PRICING_BOUNDARY_CHECKS = [
+  "Remote login, connector grant review, visible-manifest filtering, backend-principal mapping, and typed denial rehearsal are free authority proof, not paid execution.",
+  "The paid route starts only after identity collapses into one authorized lane with caller, workspace or tenant, capability id, credential mode, quota owner, side-effect class, estimate, and receipt fields preserved.",
+  "If auth succeeds but authority is too broad, backend credentials are unclear, or the quota owner cannot be named, keep the request in review or typed denial instead of billing a generic remote call.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Remote MCP Auth Proves Caller Identity, Not Tool Authority",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-28T00:00:00Z",
+  dateModified: "2026-05-05T05:45:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, quota attribution, denial semantics, and evidence.",
@@ -279,6 +285,26 @@ const ARTICLE_JSON_LD = {
             </div>
           </section>
 
+          <div class="mt-12 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">Pricing boundary</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Remote auth proof is free until one authority lane survives
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              A valid token is only admission. Rhumb should not price connector setup, manifest filtering, typed denials, or backend-principal review as execution; it should price the selected remote lane only after identity, authority, credential, quota, and evidence agree.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              {PRICING_BOUNDARY_CHECKS.map((item) => (
+                <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+            <p class="mt-5 text-sm text-slate-500">
+              Pricing proof: <a href="/pricing?rhumb_experiment=e006&rhumb_source=remote-auth-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
+              <span class="mx-2 text-slate-700">/</span>
+              Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=remote-auth-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+            </p>
+          </div>
+
           <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
             <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
@@ -321,9 +347,9 @@ const ARTICLE_JSON_LD = {
           <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
             <p class="mb-5 leading-relaxed text-slate-300">
-              The current remote-MCP failures are not about login screens. They are about over-broad manifests, unsafe parameter surfaces, and weak forensic trails after the handshake. These five pages pressure-test that exact gap.
+              The current remote-MCP failures are not about login screens. They are about over-broad manifests, unsafe parameter surfaces, weak forensic trails, and unclear pricing boundaries after the handshake. These six pages pressure-test that exact gap.
             </p>
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">MCP Has a Security Model</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">The umbrella operator frame for scope, principals, and evidence.</p>
@@ -343,6 +369,10 @@ const ARTICLE_JSON_LD = {
               <a href="/blog/multi-tenant-mcp-server-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">Multi-Tenant MCP Server Design</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">Where identity mapping breaks if tenant separation, quotas, and backend credentials flatten together.</p>
+              </a>
+              <a href="/pricing?rhumb_experiment=e006&rhumb_source=remote-auth-related-pricing-boundary" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">MCP Discovery Pricing Boundary</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Where auth, manifest filtering, backend principal review, and typed denial proof stop and a selected remote execution lane begins.</p>
               </a>
             </div>
           </div>
