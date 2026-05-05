@@ -103,6 +103,12 @@ const PROMOTION_FLOW = [
   },
 ];
 
+const FREE_PROOF_BOUNDARY = [
+  "Candidate recall, scoring, schema inspection, authority review, and denied-neighbor rehearsal are quality proof, not paid execution.",
+  "A paid route begins only when one server-quality candidate becomes a selected lane with capability id, caller, credential mode, quota owner, estimate, and receipt evidence attached.",
+  "If the quality review cannot name the acting principal, failure shape, or evidence trail, return no-candidate or review instead of billing a broad fallback.",
+];
+
 const SCORECARD = [
   ["Workflow fit", "A named repeated job", "Generic 'connect my tools' utility"],
   ["Trust class", "Read/write/remote/shared risk separated", "One flat best-server list"],
@@ -146,6 +152,11 @@ const RELATED = [
     description: "Why candidate ranking should happen after caller-visible authority and current runtime trust are known.",
   },
   {
+    href: "/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=mcp-quality-signals-free-proof-boundary",
+    title: "Free Proof vs Paid Execution",
+    description: "Where MCP quality checks stop being candidate proof and become one priced Rhumb-routed execution lane.",
+  },
+  {
     href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-quality-signals-proof-sprint",
     title: "Start a proof sprint",
     description: "Scope one repeat workflow, prove the route card, then decide whether it is safe enough to execute.",
@@ -159,7 +170,7 @@ const ARTICLE_JSON_LD = {
   description:
     "A practical quality standard for MCP servers: workflow fit, trust class, authority, tool scope, parameter scope, output shape, failure shape, and evidence before production.",
   datePublished: "2026-05-05T04:20:00-07:00",
-  dateModified: "2026-05-05T04:20:00-07:00",
+  dateModified: "2026-05-05T06:45:00-07:00",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   mainEntityOfPage: "https://rhumb.dev/blog/mcp-server-quality-signals-agents",
@@ -276,6 +287,23 @@ const ARTICLE_JSON_LD = {
                 </div>
               ))}
             </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Quality proof is still free proof until one route survives</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              A high-quality MCP server should make promotion safer, not blur discovery into a billable call. Keep the quality standard upstream until the runtime can prove exactly what will execute and who owns the budget.
+            </p>
+            <div class="grid gap-3 md:grid-cols-3">
+              {FREE_PROOF_BOUNDARY.map((item) => (
+                <div class="rounded-[24px] border border-violet-500/20 bg-violet-500/5 p-5 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+            <p class="mt-5 text-sm text-slate-500">
+              Boundary guide: <a href="/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=mcp-quality-signals-inline-free-proof-boundary" class="text-amber transition-colors hover:text-amber-200">free proof vs paid execution</a>
+              <span class="mx-2 text-slate-700">/</span>
+              Pricing page: <a href="/pricing?rhumb_experiment=e006&rhumb_source=mcp-quality-signals-inline-free-proof-boundary" class="text-amber transition-colors hover:text-amber-200">see the managed execution boundary</a>
+            </p>
           </section>
 
           <section>
