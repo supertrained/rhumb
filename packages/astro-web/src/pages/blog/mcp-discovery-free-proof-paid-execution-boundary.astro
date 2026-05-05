@@ -38,6 +38,12 @@ const FREE_PROOF = [
   },
 ];
 
+const QUALITY_GATE = [
+  "A quality score is still upstream evidence until it names one workflow, trust class, acting principal, visible tool set, scoped parameters, output contract, failure shape, and receipt trail.",
+  "Use quality signals to reject or quarantine candidates before estimating spend; do not let a high score bypass the route-card boundary.",
+  "When the quality review cannot prove authority or evidence, keep the result in no-candidate/review instead of converting directory confidence into billable execution.",
+];
+
 const PAID_REQUIREMENTS = [
   "Capability id or selected workflow path",
   "Caller / tenant / principal that is allowed to act",
@@ -136,6 +142,11 @@ const RELATED = [
     title: "Runtime MCP discovery trust filters",
     description: "Candidate ranking should run after caller-visible authority, not before it.",
   },
+  {
+    href: "/blog/mcp-server-quality-signals-agents?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-quality-signals",
+    title: "MCP server quality signals",
+    description: "The eight production checks that keep MCP server quality evidence separate from execution authority.",
+  },
 ];
 
 const ARTICLE_JSON_LD = {
@@ -145,7 +156,7 @@ const ARTICLE_JSON_LD = {
   description:
     "A practical pricing-boundary guide for MCP discovery: what stays free proof work, what must be true before paid execution, and when Rhumb should stop in review instead of billing a broad fallback.",
   datePublished: "2026-05-05T01:09:00-07:00",
-  dateModified: "2026-05-05T01:09:00-07:00",
+  dateModified: "2026-05-05T12:35:00-07:00",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   mainEntityOfPage: "https://rhumb.dev/blog/mcp-discovery-free-proof-paid-execution-boundary",
@@ -230,6 +241,23 @@ const ARTICLE_JSON_LD = {
                 </div>
               ))}
             </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Quality signals do not make the route paid by themselves</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              Quality evidence helps decide which candidate deserves a route card. It should never turn a directory score, marketplace badge, or server-quality review into execution authority by itself.
+            </p>
+            <div class="grid gap-3 md:grid-cols-3">
+              {QUALITY_GATE.map((item) => (
+                <div class="rounded-[24px] border border-emerald-500/20 bg-emerald-500/5 p-5 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+            <p class="mt-5 text-sm text-slate-500">
+              Quality guide: <a href="/blog/mcp-server-quality-signals-agents?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-inline-quality-signals" class="text-amber transition-colors hover:text-amber-200">MCP server quality signals</a>
+              <span class="mx-2 text-slate-700">/</span>
+              Evaluation guide: <a href="/blog/how-to-evaluate-mcp-servers?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-inline-quality-signals" class="text-amber transition-colors hover:text-amber-200">how to evaluate MCP servers</a>
+            </p>
           </section>
 
           <section>
