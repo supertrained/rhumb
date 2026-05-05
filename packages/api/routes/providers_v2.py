@@ -129,7 +129,7 @@ def _normalized_provider_credential_modes(credential_modes: Any) -> Any:
     elif isinstance(credential_modes, list):
         raw_modes = credential_modes
     else:
-        return credential_modes
+        raw_modes = []
 
     normalized_modes: list[str] = []
     seen: set[str] = set()
