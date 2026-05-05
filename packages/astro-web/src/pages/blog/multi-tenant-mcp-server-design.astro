@@ -64,12 +64,18 @@ const GATEWAY_CONTAINMENT_CHECKS = [
   "Can you rehearse manifest drift, credential expiry, and kill-switch recovery without losing tenant attribution?",
 ];
 
+const PRICING_BOUNDARY_CHECKS = [
+  "Tenant discovery, manifest filtering, credential-lane resolution, denied-neighbor tests, and quarantine rehearsal are free containment proof, not paid execution.",
+  "The paid route starts only after one tenant-bound lane survives with tenant id, caller, capability id, credential mode, quota owner, side-effect class, estimate, and receipt fields preserved.",
+  "If the tenant, backend principal, or budget bucket cannot be named, stop in typed denial or review instead of billing a shared-admin fallback.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-04-23T00:00:00Z",
+  dateModified: "2026-05-05T06:05:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Multi-tenant MCP only works when credentials, tool visibility, resource scope, and session state stay tenant-aware under automation pressure.",
@@ -292,6 +298,26 @@ const ARTICLE_JSON_LD = {
             </div>
           </section>
 
+          <div class="mt-12 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">Pricing boundary</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              Tenant containment proof is free until one lane is safe to execute
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Multi-tenant review is about proving what cannot cross the boundary. Rhumb should not price manifest filtering, tenant-scoped credential lookup, quarantine rehearsal, or denied-neighbor tests as execution; it should price only the tenant-bound lane that survives containment proof.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              {PRICING_BOUNDARY_CHECKS.map((item) => (
+                <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+            <p class="mt-5 text-sm text-slate-500">
+              Pricing proof: <a href="/pricing?rhumb_experiment=e006&rhumb_source=multi-tenant-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
+              <span class="mx-2 text-slate-700">/</span>
+              Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=multi-tenant-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+            </p>
+          </div>
+
           <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
             <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
@@ -313,9 +339,9 @@ const ARTICLE_JSON_LD = {
           <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Production follow-through</div>
             <p class="mb-5 leading-relaxed text-slate-300">
-              If this article is the tenant-isolation frame, these five pages are the operator playbook: the core security model, the auth-versus-authority split, how to evaluate MCP surfaces honestly, how to design governed capability boundaries, and how to separate remote-readiness from demo liveness.
+              If this article is the tenant-isolation frame, these six pages are the operator playbook: the core security model, the auth-versus-authority split, how to evaluate MCP surfaces honestly, how to design governed capability boundaries, how to separate remote-readiness from demo liveness, and where containment proof stops before paid execution begins.
             </p>
-            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
               <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">MCP Has a Security Model</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">Use scope, principals, and evidence as the fast test for whether shared runtime design is actually containable.</p>
@@ -335,6 +361,10 @@ const ARTICLE_JSON_LD = {
               <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
                 <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">Auth, scope, tenant isolation, governors, recovery, and auditability belong in one honest checklist.</p>
+              </a>
+              <a href="/pricing?rhumb_experiment=e006&rhumb_source=multi-tenant-related-pricing-boundary" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">MCP Discovery Pricing Boundary</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">Where tenant isolation proof, manifest filtering, and quarantine rehearsal stop and a selected tenant-bound execution lane begins.</p>
               </a>
             </div>
           </div>
