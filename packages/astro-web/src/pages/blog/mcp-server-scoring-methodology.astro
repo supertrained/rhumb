@@ -98,6 +98,12 @@ const SCORE_LIMITS = [
   },
 ];
 
+const SCORING_BOUNDARY_CHECKS = [
+  "Score review, shortlist building, schema inspection, route-card reading, and denied-neighbor rehearsal are candidate proof. They should happen before a priced execution route exists.",
+  "A paid lane starts only after one scored candidate becomes a selected route with capability id, caller or tenant, credential mode, quota owner, side-effect class, estimate fields, and receipt evidence attached.",
+  "If the methodology review cannot name the acting principal, failure shape, or evidence trail, the honest result is review/no-candidate rather than a billable fallback call.",
+];
+
 const FIVE_QUESTIONS = [
   "What repeated job does this server actually improve, beyond looking impressive in a demo?",
   "What happens when the request fails, times out, or retries under pressure?",
@@ -112,6 +118,11 @@ const RELATED_READING = [
     href: "/blog/mcp-server-quality-signals-agents?rhumb_source=mcp-scoring-quality-signals",
     title: "MCP Server Quality Signals for Agents",
     description: "Use workflow fit, trust class, authority, scope, output, failure shape, and evidence before promoting a scored server into production.",
+  },
+  {
+    href: "/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=mcp-scoring-free-proof-boundary",
+    title: "MCP Discovery: Free Proof vs Paid Execution",
+    description: "Where scoring, route-card inspection, credential review, and denied-neighbor rehearsal stop being proof and become one selected paid route.",
   },
   {
     href: "/blog/how-to-evaluate-mcp-servers",
@@ -155,7 +166,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Server Scoring Methodology: How Rhumb Evaluates APIs for Agents",
   datePublished: "2026-04-19T00:00:00Z",
-  dateModified: "2026-05-02T00:00:00Z",
+  dateModified: "2026-05-05T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "How Rhumb scores APIs for autonomous agents: 20 dimensions across execution and access readiness, plus the honesty boundary around trust class and runtime evidence.",
@@ -187,7 +198,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="uppercase tracking-widest text-amber">MCP Methodology</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">Updated May 2, 2026</span>
+          <span class="text-slate-500">Updated May 5, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -295,6 +306,26 @@ const ARTICLE_JSON_LD = {
                   <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section>
+            <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Pricing boundary</div>
+              <h2 class="mb-3 font-display text-2xl font-bold tracking-tight text-slate-100">
+                Scoring proof is free until one route survives.
+              </h2>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                A score can narrow the candidate set, but it is still proof work. Rhumb should not treat a high score, a registry listing, or a clean demo as billable execution until one caller-safe lane is specific enough to estimate and receipt.
+              </p>
+              <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
+                {SCORING_BOUNDARY_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+              <p class="mt-4 text-sm leading-relaxed text-slate-400">
+                Boundary guide: <a href="/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=mcp-scoring-inline-free-proof-boundary" class="text-amber transition-colors hover:text-amber-200">free proof vs paid execution</a>
+              </p>
             </div>
           </section>
 
