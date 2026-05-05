@@ -46,12 +46,18 @@ const TWO_MINUTE_FIX = [
   },
 ];
 
+const PRICING_BOUNDARY_CHECKS = [
+  "Scope checks, principal mapping, denied-neighbor fixtures, and evidence review are security proof, not paid execution.",
+  "The paid route begins after one bounded lane survives with caller, capability id, credential mode, quota owner, estimate, side-effect class, and receipt proof named.",
+  "A policy denial, empty allowlist, endpoint-auth mismatch, or missing audit trail should stop as a typed no-call result instead of becoming a billable retry on a broader surface.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "MCP Has a Security Model: Scope, Principals, and Evidence",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-04-28T00:00:00Z",
+  dateModified: "2026-05-04T23:45:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "MCP security is not a protocol checkbox. It is bounded tool scope, scoped principals, and post-call evidence that operators can audit.",
@@ -193,6 +199,26 @@ const ARTICLE_JSON_LD = {
           </div>
         </div>
 
+        <div class="mt-12 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Pricing boundary</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            The security model proves the lane before Rhumb prices it
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            Scope, principals, and evidence are pre-execution controls. They decide whether a route is safe enough to become a paid call; they are not themselves a reason to charge for a compromised, denied, or unprovable attempt.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            {PRICING_BOUNDARY_CHECKS.map((item) => (
+              <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+            ))}
+          </div>
+          <p class="mt-5 text-sm text-slate-500">
+            Pricing proof: <a href="/pricing?rhumb_experiment=e006&rhumb_source=mcp-security-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
+            <span class="mx-2 text-slate-700">/</span>
+            Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-security-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+          </p>
+        </div>
+
         <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
           <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
@@ -242,9 +268,9 @@ const ARTICLE_JSON_LD = {
         <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Production follow-through</div>
           <p class="text-slate-300 leading-relaxed mb-5">
-            The live official-server audits are not failing on one abstract checkbox. They are failing where authority leaks into tool scope, parameter shape, and missing post-call evidence. These five pages are the operator playbook for that exact cluster.
+            The live official-server audits are not failing on one abstract checkbox. They are failing where authority leaks into tool scope, parameter shape, missing post-call evidence, and unclear paid execution boundaries. These six pages are the operator playbook for that exact cluster.
           </p>
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
               <p class="mt-2 text-sm text-slate-400 leading-relaxed">Auth, scope constraints, tenant isolation, governors, recovery, and auditability in one operator checklist.</p>
@@ -264,6 +290,10 @@ const ARTICLE_JSON_LD = {
             <a href="/blog/multi-tenant-mcp-server-design" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">Multi-Tenant MCP Servers</div>
               <p class="mt-2 text-sm text-slate-400 leading-relaxed">Where principals, credentials, tool visibility, and session state either hold tenant boundaries or collapse them.</p>
+            </a>
+            <a href="/pricing?rhumb_experiment=e006&rhumb_source=mcp-security-related-pricing-boundary" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">MCP Discovery Pricing Boundary</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Where scope checks, principal proof, and denied-neighbor evidence stop and a selected paid execution lane begins.</p>
             </a>
           </div>
         </div>
