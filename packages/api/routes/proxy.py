@@ -436,7 +436,7 @@ def _validated_schema_alert_severity(severity: str | None) -> str | None:
     if severity is None:
         return None
 
-    normalized = severity.strip().lower()
+    normalized = severity.strip().lower().replace("-", "_")
     if not normalized:
         raise RhumbError(
             "INVALID_PARAMETERS",

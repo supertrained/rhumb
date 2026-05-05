@@ -571,6 +571,23 @@ class TestProxySchemaIntegration:
         assert data["count"] >= 1
         assert all(alert["severity"] == "breaking" for alert in data["alerts"])
 
+    def test_admin_schema_alerts_normalize_hyphenated_severity_alias(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        class DummyDispatcher:
+            def query_alerts(self, *, service, severity, limit):
+                assert service is None
+                assert severity == "non_breaking"
+                assert limit == 10
+                return []
+
+        monkeypatch.setattr(proxy_module, "get_schema_alert_dispatcher", lambda: DummyDispatcher())
+
+        response = client.get("/v1/admin/schema-alerts?severity=%20non-breaking%20")
+
+        assert response.status_code == 200
+        assert response.json()["data"]["count"] == 0
+
     def test_admin_schema_alerts_reject_invalid_severity_filter(
         self, client: TestClient, monkeypatch: pytest.MonkeyPatch
     ) -> None:
