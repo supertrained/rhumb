@@ -57,6 +57,12 @@ const RHUMB_RAILS = [
     cta: "Use the evaluation guide",
   },
   {
+    rail: "Boundary proof",
+    when: "You are still deciding whether discovery, scoring, schema review, or denied-neighbor rehearsal is enough proof before the paid route exists.",
+    link: "/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-boundary-proof",
+    cta: "Separate free proof from paid execution",
+  },
+  {
     rail: "Proof sprint",
     when: "You know the repeat workflow and want price, fit, denial case, and trace proof before wiring it into a loop.",
     link: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-proof-sprint",
@@ -78,6 +84,11 @@ const MEASUREMENT = [
 ];
 
 const RELATED_READING = [
+  {
+    href: "/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-related-boundary",
+    title: "MCP Discovery: Free Proof vs Paid Execution",
+    description: "Where candidate recall, scoring, route-card review, denied-neighbor rehearsal, and selected-route execution split apart.",
+  },
   {
     href: "/blog/composio-arcade-nango-alternatives-governed-agent-execution?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-competitive-alternatives",
     title: "Composio, Arcade, Nango Alternatives",
@@ -110,7 +121,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "What Is Managed API Execution for AI Agents?",
   datePublished: "2026-04-30T00:00:00Z",
-  dateModified: "2026-04-30T00:00:00Z",
+  dateModified: "2026-05-05T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Managed API execution lets an AI agent ask for one supported capability while a governed layer handles routing, credentials, budget boundaries, and trace evidence.",
@@ -242,8 +253,11 @@ const ARTICLE_JSON_LD = {
               <p>
                 That separation keeps the evidence honest: discovery breadth does not become a false execution claim, and a managed execution request can stay focused on one workflow that deserves budget.
               </p>
+              <p>
+                The same boundary applies to MCP discovery. Candidate recall, scoring, schema inspection, route-card reading, credential-lane review, and denied-neighbor rehearsal stay free proof until one selected route can name its capability id, caller or tenant, credential mode, quota owner, side-effect class, estimate fields, and receipt evidence. If that split is the decision point, use the <a href="/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-inline-boundary" class="text-amber transition-colors hover:text-amber-200">MCP discovery free-proof boundary</a> before starting the paid lane.
+              </p>
             </div>
-            <div class="mt-6 grid gap-4 md:grid-cols-3">
+            <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {RHUMB_RAILS.map((rail) => (
                 <a href={rail.link} class="rounded-[28px] border border-slate-800 bg-surface/75 p-5 transition-colors hover:border-amber/40">
                   <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">{rail.rail}</div>
