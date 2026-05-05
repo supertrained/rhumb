@@ -122,6 +122,23 @@ def _validated_l1_execute_credential_mode(credential_mode: str | None) -> str:
     )
 
 
+def _normalized_provider_credential_modes(credential_modes: Any) -> Any:
+    """Normalize catalog-backed credential-mode lists before public provider output."""
+    if not isinstance(credential_modes, list):
+        return credential_modes
+
+    normalized_modes: list[str] = []
+    seen: set[str] = set()
+    for mode in credential_modes:
+        if not isinstance(mode, str):
+            continue
+        normalized = v1_execute._canonicalize_credential_mode(mode)
+        if normalized and normalized not in seen:
+            normalized_modes.append(normalized)
+            seen.add(normalized)
+    return normalized_modes or ["byok"]
+
+
 # ---------------------------------------------------------------------------
 # Request / response models
 # ---------------------------------------------------------------------------
@@ -1127,7 +1144,7 @@ async def get_provider(provider_id: str) -> dict[str, Any]:
     capabilities = [
         {
             "capability_id": m.get("capability_id"),
-            "credential_modes": m.get("credential_modes"),
+            "credential_modes": _normalized_provider_credential_modes(m.get("credential_modes")),
             "cost_per_call": m.get("cost_per_call"),
             "cost_currency": m.get("cost_currency"),
             "free_tier_calls": m.get("free_tier_calls"),

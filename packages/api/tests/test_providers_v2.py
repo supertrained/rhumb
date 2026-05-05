@@ -940,6 +940,31 @@ class TestGetProvider:
         assert data["pricing"]["markup_rate"] == 0.08
         assert data["pricing"]["markup_floor_usd"] == 0.0002
 
+    def test_get_provider_ignores_non_string_catalog_credential_modes(self, client):
+        def mock_fetch(query: str):
+            if (
+                query.startswith("capability_services?")
+                and f"service_slug=eq.{_TEST_PROVIDER_SLUG}" in query
+            ):
+                return [
+                    {
+                        **_MOCK_CAPABILITY_MAPPING,
+                        "credential_modes": [
+                            "byo",
+                            {"mode": "agent_vault"},
+                            ["rhumb_managed"],
+                        ],
+                    }
+                ]
+            return _mock_supabase_fetch(query)
+
+        with patch("routes.providers_v2.supabase_fetch", side_effect=mock_fetch):
+            resp = client.get(f"/v2/providers/{_TEST_PROVIDER_SLUG}")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["capabilities"][0]["credential_modes"] == ["byok"]
+
     def test_get_direct_provider_uses_synthetic_capabilities_when_catalog_rows_stale(self, client):
         with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_stale_direct_db_mapping):
             resp = client.get(f"/v2/providers/{_DIRECT_PROVIDER_SLUG}")
