@@ -124,12 +124,16 @@ def _validated_l1_execute_credential_mode(credential_mode: str | None) -> str:
 
 def _normalized_provider_credential_modes(credential_modes: Any) -> Any:
     """Normalize catalog-backed credential-mode lists before public provider output."""
-    if not isinstance(credential_modes, list):
+    if isinstance(credential_modes, str):
+        raw_modes: list[Any] = credential_modes.split(",")
+    elif isinstance(credential_modes, list):
+        raw_modes = credential_modes
+    else:
         return credential_modes
 
     normalized_modes: list[str] = []
     seen: set[str] = set()
-    for mode in credential_modes:
+    for mode in raw_modes:
         if not isinstance(mode, str):
             continue
         normalized = v1_execute._canonicalize_credential_mode(mode)

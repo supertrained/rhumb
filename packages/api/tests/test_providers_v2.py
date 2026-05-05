@@ -937,6 +937,7 @@ class TestGetProvider:
         assert data["_rhumb_v2"]["layer"] == 1
         assert "capabilities" in data
         assert len(data["capabilities"]) >= 1
+        assert data["capabilities"][0]["credential_modes"] == ["byok", "rhumb_managed"]
         assert data["pricing"]["markup_rate"] == 0.08
         assert data["pricing"]["markup_floor_usd"] == 0.0002
 
