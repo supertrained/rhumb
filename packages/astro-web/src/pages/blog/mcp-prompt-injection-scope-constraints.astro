@@ -16,12 +16,18 @@ const SCRAPING_CATALOG_GUARDS = [
   "Return typed denials for blocked domains, cross-tenant jobs, over-budget crawls, and disallowed extraction outputs instead of retryable transport errors.",
 ];
 
+const PRICING_BOUNDARY_CHECKS = [
+  "Prompt-injection probes, out-of-scope fixtures, path normalization, and egress checks are free proof work until one callable lane survives.",
+  "The paid route starts only after the accepted lane names caller, capability id, credential mode, quota owner, side-effect class, estimate, and receipt evidence.",
+  "Traversal attempts, blocked hosts, cross-tenant IDs, empty allowlists, and missing audit context should stop as typed no-call outcomes instead of billable broad retries.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-02T00:00:00Z",
+  dateModified: "2026-05-05T02:20:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Prompt injection hits harder in MCP when tools expose unconstrained parameters and the server leaves the blast radius wide open.",
@@ -56,7 +62,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 2, 2026</span>
+          <span class="text-slate-600">Updated May 4, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">7 min read</span>
         </div>
@@ -262,6 +268,26 @@ const ARTICLE_JSON_LD = {
           The honest question is no longer whether a server looks convenient. It is whether the server preserves narrow authority when the model is wrong.
         </p>
 
+        <div class="mt-12 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300 mb-3">Pricing boundary</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            Scope proof runs before the paid route exists
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            Prompt-injection containment is an acceptance gate, not a billable retry surface. Rhumb should price execution only after the dangerous adjacent values fail closed and one bounded route is safe enough to call.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-3">
+            {PRICING_BOUNDARY_CHECKS.map((item) => (
+              <div class="rounded-2xl border border-violet-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+            ))}
+          </div>
+          <p class="mt-5 text-sm text-slate-500">
+            Pricing proof: <a href="/pricing?rhumb_experiment=e006&rhumb_source=prompt-injection-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
+            <span class="mx-2 text-slate-700">/</span>
+            Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=prompt-injection-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+          </p>
+        </div>
+
         <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
           <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
@@ -283,9 +309,9 @@ const ARTICLE_JSON_LD = {
         <div class="mt-12 rounded-[28px] border border-slate-800 bg-surface/70 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500 mb-3">Production follow-through</div>
           <p class="text-slate-300 leading-relaxed mb-5">
-            If this article is the threat model, these pages turn it into an operator playbook: the security model itself, the auth-versus-authority split, how to evaluate MCP surfaces honestly, how to shape governed capabilities, and what a real remote-readiness checklist looks like.
+            If this article is the threat model, these pages turn it into an operator playbook: the security model itself, the auth-versus-authority split, how to evaluate MCP surfaces honestly, how to shape governed capabilities, what a real remote-readiness checklist looks like, and where proof stops before paid execution begins.
           </p>
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             <a href="/blog/mcp-security-model" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">MCP Has a Security Model</div>
               <p class="mt-2 text-sm text-slate-400 leading-relaxed">The shortest honest frame for production trust is scope, principals, and evidence.</p>
@@ -305,6 +331,10 @@ const ARTICLE_JSON_LD = {
             <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
               <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
               <p class="mt-2 text-sm text-slate-400 leading-relaxed">Auth, scope constraints, tenant isolation, governors, recovery, and auditability belong in one operator checklist.</p>
+            </a>
+            <a href="/pricing?rhumb_experiment=e006&rhumb_source=prompt-injection-related-pricing-boundary" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 hover:border-slate-700 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">MCP discovery pricing boundary</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Candidate proof, denied-neighbor checks, and route-card inspection stay separate from the first paid execution lane.</p>
             </a>
           </div>
         </div>
