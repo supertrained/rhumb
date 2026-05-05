@@ -78,6 +78,12 @@ const OBSERVABILITY_CHECKLIST = [
   "Each tool or lane has a reversibility or permanence class so rollback strategy is not improvised during an incident.",
 ];
 
+const PRICING_BOUNDARY_PROOFS = [
+  "Discovery logs, redacted input shape, denied-neighbor traces, adapter diffs, and receipt previews are free observability proof while no provider-routed execution runs.",
+  "A trace becomes part of paid execution only after one bounded lane names the capability id, credential mode, quota owner, side-effect class, estimate, and receipt fields it will preserve.",
+  "Missing actor context, missing credential mode, ambiguous quota owner, or an unclassified retry leaves the lane in review or typed denial instead of falling through to a broader billable tool surface.",
+];
+
 const GATEWAY_DRILL_CHECKS = [
   "Does each principal actually see a filtered tool surface before execution, not just a denial after it was already discovered?",
   "When a tool is blocked, does the trace emit a typed denial tied to tenant, policy, and requested capability?",
@@ -194,6 +200,11 @@ const RELATED_READING = [
     description: "Receipts strengthen proof after execution, but they are a different layer from runtime debugging and policy before the call.",
   },
   {
+    href: "/pricing?rhumb_experiment=e006&rhumb_source=mcp-observability-pricing-boundary-related",
+    title: "Pricing Boundary",
+    description: "Separate free proof work from the first priced, provider-routed execution lane.",
+  },
+  {
     href: "/blog/multi-tenant-mcp-server-design",
     title: "Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed",
     description: "Observability is weaker in shared runtimes unless tenant identity, budgets, and resource scope stay explicit end to end.",
@@ -205,7 +216,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-02T13:00:00Z",
+  dateModified: "2026-05-05T05:20:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production MCP observability means principal-aware tool logs, typed errors, mediated-hop attribution, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
@@ -241,7 +252,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 2, 2026</span>
+          <span class="text-slate-600">Updated May 5, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">8 min read</span>
         </div>
@@ -287,6 +298,23 @@ const ARTICLE_JSON_LD = {
           The useful debugging question is not <span class="text-slate-100">“did the server respond?”</span>
           It is <span class="text-slate-100">“can the operator reconstruct principal, auth mode, side effects, spend, and retry safety from the trace that remains?”</span>
         </p>
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Pricing boundary</div>
+        <h2 class="mb-3 font-display text-2xl font-bold tracking-tight text-slate-100">Observability proof runs before the paid route exists</h2>
+        <p class="mb-5 leading-relaxed text-slate-300">
+          Logs, traces, denied-neighbor fixtures, adapter diffs, and receipt previews are proof work until one callable lane survives. Rhumb should not price a workflow just because the server can emit spans; the trace has to prove which actor, credential, quota owner, side-effect class, estimate, and receipt will travel with the call.
+        </p>
+        <div class="grid gap-4 md:grid-cols-3">
+          {PRICING_BOUNDARY_PROOFS.map((item) => (
+            <div class="rounded-2xl border border-amber/15 bg-navy/55 p-4 text-sm leading-relaxed text-slate-300">{item}</div>
+          ))}
+        </div>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="/pricing?rhumb_experiment=e006&rhumb_source=mcp-observability-pricing-boundary" class="rounded-full border border-amber/35 bg-amber/10 px-4 py-2 text-sm font-semibold text-amber transition-colors hover:bg-amber/20">Check the pricing boundary</a>
+          <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-observability-managed-preflight" class="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:text-white">Scope one observable lane</a>
+        </div>
       </div>
 
       <div class="grid gap-10 lg:grid-cols-3">
