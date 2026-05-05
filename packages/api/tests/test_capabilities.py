@@ -2163,6 +2163,53 @@ async def test_resolve_capability_ignores_non_string_credential_modes_from_catal
 
 
 @pytest.mark.anyio
+async def test_resolve_capability_normalizes_catalog_credential_mode_strings(app):
+    async def mock_fetch(path: str):
+        if path.startswith("capabilities?"):
+            return [{
+                "id": "email.send",
+                "domain": "email",
+                "action": "send",
+                "description": "Send email",
+            }]
+        if path.startswith("capability_services?"):
+            return [{
+                "service_slug": "resend",
+                "credential_modes": "byo, rhumb_managed",
+                "auth_method": "api_key",
+                "endpoint_pattern": "POST /emails",
+                "cost_per_call": None,
+                "cost_currency": "USD",
+                "free_tier_calls": None,
+                "notes": None,
+            }]
+        if path.startswith("scores?"):
+            return [{
+                "service_slug": "resend",
+                "aggregate_recommendation_score": 7.9,
+                "execution_score": 7.9,
+                "access_readiness_score": 7.0,
+                "tier": "L3",
+                "tier_label": "Ready",
+                "confidence": 0.8,
+            }]
+        if path.startswith("services?"):
+            return [{"slug": "resend", "name": "Resend"}]
+        if path.startswith("bundle_capabilities?"):
+            return []
+        return []
+
+    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v1/capabilities/email.send/resolve")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["providers"][0]["credential_modes"] == ["byok", "rhumb_managed"]
+    assert data["execute_hint"]["credential_modes"] == ["byok", "rhumb_managed"]
+
+
+@pytest.mark.anyio
 async def test_resolve_capability_filtered_mode_does_not_prefer_provider_configured_only_in_other_mode(app):
     async def mock_fetch(path: str):
         if path.startswith("capabilities?"):

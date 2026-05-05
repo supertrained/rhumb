@@ -1271,7 +1271,12 @@ def _canonicalize_credential_modes(
     *,
     default: tuple[str, ...] = ("byok",),
 ) -> list[str]:
-    raw_modes = credential_modes if isinstance(credential_modes, list) and credential_modes else list(default)
+    if isinstance(credential_modes, str):
+        raw_modes: list[object] = credential_modes.split(",")
+    elif isinstance(credential_modes, list) and credential_modes:
+        raw_modes = credential_modes
+    else:
+        raw_modes = list(default)
     normalized_modes: list[str] = []
     seen: set[str] = set()
     for mode in raw_modes:
