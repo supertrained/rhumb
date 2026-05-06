@@ -108,7 +108,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Governed Capabilities Are Becoming the Real Control Plane for Agent Integrations",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-04T19:45:00Z",
+  dateModified: "2026-05-06T11:30:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The safer agent interface is not raw endpoint sprawl and not merely fewer tools. It is a governed capability surface that preserves authority, policy, and failure semantics.",
@@ -300,6 +300,16 @@ const ARTICLE_JSON_LD = {
                 <li>{item}</li>
               ))}
             </ul>
+          </div>
+          <div class="mt-6 rounded-[28px] border border-amber/25 bg-amber/5 p-6">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Autonomous actor identity</div>
+            <h3 class="font-display font-semibold text-lg text-slate-100 mb-2 tracking-tight">Route cards must narrow persistent machine identity before authority attaches</h3>
+            <p class="text-sm text-slate-400 leading-relaxed">
+              Autonomous MCP chains need a stable actor anchor so operators can follow a task across restarts, downstream servers, and subagents. That anchor is not the governed capability by itself. The route card still has to name the workflow intent, tenant, credential lane, quota owner, side-effect class, policy bundle, and typed denial outcome for this operation before the persistent identity can call anything.
+            </p>
+            <p class="text-sm text-slate-400 leading-relaxed mt-3">
+              If a workload identity, service account, or DID-like principal is allowed to select tools without the route card re-scoping authority, the capability layer has become a fleet-wide credential. Keep the identity durable, but make execution authority per-operation and receipt-backed.
+            </p>
           </div>
         </section>
 
