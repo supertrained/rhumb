@@ -153,6 +153,7 @@ const ARTICLE_JSON_LD = {
           <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
             <li>Store the raw value, normalized value, caller, tool, endpoint family, and policy rule in the trace.</li>
             <li>Make the denied neighbor a first-class regression test, not a one-time manual audit.</li>
+            <li>Run schema and tool-description lint in CI, but fail the fixture if the runtime guardrail does not reject before the tool handler.</li>
             <li>Treat a generic 500, silent retry, or partial execution as a failing security fixture.</li>
           </ul>
         </div>

@@ -7,6 +7,7 @@ const FAST_ANSWER = [
   "An MCP server is high quality only when it preserves the operator boundary after the model starts using it: narrow discovery, clear authority, typed failures, bounded outputs, and recoverable evidence.",
   "Do not rank servers by stars, tool count, registry presence, or demo magic alone. Those are recall signals. Production quality is proven by allowed/denied fixtures for the caller's real workflow.",
   "The minimum quality standard is eight checks: workflow fit, trust class, principal, tool scope, parameter scope, output shape, failure shape, and evidence trail.",
+  "Schema lint and prompt-level descriptions are useful quality signals, but production trust starts only when the server enforces the same boundary before execution.",
   `Rhumb's public surface separates ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions from today's narrower ${PUBLIC_TRUTH.callableProvidersLabel} callable execution surface, because quality evidence and execution authority are different layers.`,
 ];
 
@@ -255,6 +256,27 @@ const ARTICLE_JSON_LD = {
                   <p class="text-sm leading-6 text-slate-500"><span class="text-slate-600">Failure mode:</span> {signal.failure}</p>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Schema lint belongs in the quality gate, not the trust finish line</h2>
+            <p class="mb-6 leading-relaxed text-slate-400">
+              Fresh MCP security discussion is converging on two complementary checks: headless schema lint before merge, then runtime guardrails before execution. Keep both, but do not confuse them.
+            </p>
+            <div class="grid gap-4 md:grid-cols-3">
+              <div class="rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+                <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300">CI tripwire</div>
+                <p class="text-sm leading-6 text-slate-300">Lint unconstrained strings, missing descriptions, ambiguous parameter names, and overlapping tool descriptions before a server enters the candidate pool.</p>
+              </div>
+              <div class="rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+                <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Prompt posture</div>
+                <p class="text-sm leading-6 text-slate-300">Description text and refusal language help the model choose safer tools, but they are still instructions to the model, not enforcement against the tool handler.</p>
+              </div>
+              <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+                <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Runtime boundary</div>
+                <p class="text-sm leading-6 text-slate-300">Promotion requires a pre-execution policy decision that normalizes the value, checks the caller's route card, rejects the denied neighbor, and traces the typed refusal.</p>
+              </div>
             </div>
           </section>
 

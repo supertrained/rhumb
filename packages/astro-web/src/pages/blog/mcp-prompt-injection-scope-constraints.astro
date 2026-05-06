@@ -147,6 +147,22 @@ const ARTICLE_JSON_LD = {
           </ul>
         </div>
 
+        <div class="my-8 rounded-[28px] border border-orange-500/20 bg-orange-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-orange-300 mb-3">Guardrail middleware drill</div>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">Schema lint is the tripwire. The pre-execution guard is the boundary.</h3>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            The newer MCP audit thread adds a useful CI pattern: lint server schemas for unconstrained strings, missing descriptions, ambiguous parameter names, and overlapping tool descriptions before the server ships. That catches drift early, but it still does not make the runtime safe.
+          </p>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            Treat schema and description lint as candidate-quality evidence. Then require a guardrail path that runs before the tool handler: normalize the value, bind it to the caller's route card, reject the denied neighbor, and leave a typed refusal the agent cannot retry around as if it were a flaky provider error.
+          </p>
+          <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+            <li>CI lint should fail on open-ended <code class="rounded bg-slate-950/70 px-1.5 py-0.5 text-xs text-orange-200">string</code> parameters that lack enum, pattern, bounded format, or explicit allowlist semantics.</li>
+            <li>Prompt-level refusal language helps the model choose, but server-side policy must still deny the same unsafe value after the model chooses.</li>
+            <li>A passing schema check without a pre-handler policy decision is documentation, not containment.</li>
+          </ul>
+        </div>
+
         <h2 class="font-display font-bold text-2xl text-slate-100 mt-12 mb-4 tracking-tight">2. Remote MCP turns a bad call into an operator problem</h2>
         <p class="text-slate-400 leading-relaxed mb-4">
           Local stdio MCP on your own machine is still risky, but the blast radius is usually easier to reason about. The affected machine, files, and credentials are at least legible to one operator.
