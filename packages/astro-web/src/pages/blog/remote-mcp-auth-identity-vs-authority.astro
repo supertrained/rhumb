@@ -44,6 +44,10 @@ const FAILURE_PATTERNS = [
     title: "Connector install equals trust",
     body: "A one-click connector makes a tool reachable from the assistant, but the grant, manifest, backend lane, and audit trail still need to be proven per workspace.",
   },
+  {
+    title: "Persistent agent identity equals authority",
+    body: "A DID, workload identity, or long-lived machine principal can anchor who the autonomous MCP server is, but per-operation scope, tenant, credential lane, and budget still decide what it may do.",
+  },
 ];
 
 const CHECKLIST = [
@@ -55,6 +59,7 @@ const CHECKLIST = [
   "Do gateway traces preserve policy bundle, adapter version, visible tool surface, credential lane, typed denial, and quota owner for each mediated call?",
   "Does the same model still hold under shared-team or multi-tenant remote use?",
   "When a connector is installed into a chat client, can you still prove which workspace, grant, manifest slice, and backend credential lane the assistant inherited?",
+  "When an autonomous MCP server acts without a human in the loop, does its persistent machine identity stay separate from session credentials and per-operation authority?",
 ];
 
 const PRICING_BOUNDARY_CHECKS = [
@@ -68,7 +73,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Remote MCP Auth Proves Caller Identity, Not Tool Authority",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-05-05T05:45:00Z",
+  dateModified: "2026-05-06T08:25:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, quota attribution, denial semantics, and evidence.",
@@ -133,7 +138,7 @@ const ARTICLE_JSON_LD = {
     </section>
 
     <article class="mx-auto max-w-5xl px-6 pt-10 pb-24">
-      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <div class="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {FAILURE_PATTERNS.map((item) => (
           <div class="rounded-2xl border border-slate-800 bg-surface/70 p-5">
             <h2 class="mb-2 font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h2>
@@ -224,6 +229,23 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 Treat connector installation as a new remote-auth event, not as final trust. The production check is whether the connector can show which workspace or tenant authorized it, which tools became visible after the grant, which backend principal will execute each action, and how a denied or out-of-scope request appears in the trace. If those fields disappear behind the client UI, the connector made access easier while making authority harder to audit.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              3.7 Autonomous agents need identity anchors, but anchors are not execution rights
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The newest MCP credential-management discussion is moving past human device flow and vault storage into autonomous server-to-server chains. A subagent may need a stable machine identity that survives process restarts, session expiry, and a handoff to another MCP server where no human is present to approve the next hop.
+              </p>
+              <p>
+                That identity anchor can be a workload identity, a verifiable agent id, or a DID-like document. It answers who this autonomous actor is. It still does not answer which workflow, tenant, tool, credential lane, quota owner, side-effect class, or budget ceiling the actor is allowed to use on this operation.
+              </p>
+              <p>
+                The safe model keeps long-lived identity separate from short-lived authority. Persistent identity should bind audit and key continuity; scoped tokens, route cards, policy decisions, and typed denials should bind the call. If a remote MCP chain lets a stable agent id substitute for per-call scope, it has rebuilt the same “authenticated means broad access” failure with a better-looking credential.
               </p>
             </div>
           </section>
