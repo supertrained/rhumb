@@ -216,7 +216,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-05T05:20:00Z",
+  dateModified: "2026-05-06T20:35:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production MCP observability means principal-aware tool logs, typed errors, mediated-hop attribution, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
@@ -252,7 +252,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 5, 2026</span>
+          <span class="text-slate-600">Updated May 6, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">8 min read</span>
         </div>
@@ -315,6 +315,17 @@ const ARTICLE_JSON_LD = {
           <a href="/pricing?rhumb_experiment=e006&rhumb_source=mcp-observability-pricing-boundary" class="rounded-full border border-amber/35 bg-amber/10 px-4 py-2 text-sm font-semibold text-amber transition-colors hover:bg-amber/20">Check the pricing boundary</a>
           <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-observability-managed-preflight" class="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500 hover:text-white">Scope one observable lane</a>
         </div>
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-emerald-500/25 bg-emerald-500/5 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Route-hardening fit check</div>
+        <h2 class="mb-3 font-display text-2xl font-bold tracking-tight text-slate-100">A trace is useful only if it proves the safe route and the denied neighbor</h2>
+        <p class="mb-5 leading-relaxed text-slate-300">
+          Observability readers are often closest to the repeat-workflow ask: they know which call loops, which credential or budget lane burns, which unsafe sibling must stay blocked, and which receipt or typed denial would make the route operable.
+        </p>
+        <p class="text-sm leading-relaxed text-slate-400">
+          E-007 prompt: <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=mcp-observability-route-hardening" class="text-amber hover:text-amber-200 transition-colors">turn one trace-heavy MCP route into the hardening request</a> with the unsafe neighbor, credential lane, budget owner, repeat volume, and evidence fields named before paid execution.
+        </p>
       </div>
 
       <div class="grid gap-10 lg:grid-cols-3">

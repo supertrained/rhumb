@@ -88,7 +88,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Tool-Level Permission Scoping in MCP: Why Server Authentication Isn't Enough",
   datePublished: "2026-04-04T00:00:00Z",
-  dateModified: "2026-05-04T23:22:00Z",
+  dateModified: "2026-05-06T20:35:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Server authentication and tool authorization are different layers. Production MCP needs caller-scoped manifests, typed denials, and auditable tool boundaries.",
@@ -124,7 +124,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 4, 2026</span>
+          <span class="text-slate-600">Updated May 6, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">9 min read</span>
         </div>
@@ -392,6 +392,19 @@ const ARTICLE_JSON_LD = {
               Pricing proof: <a href="/pricing?rhumb_experiment=e006&rhumb_source=tool-permission-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
               <span class="mx-2 text-slate-700">/</span>
               Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=tool-permission-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+            </p>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-amber/25 bg-amber/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Route-hardening fit check</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              If one allowed tool is too risky to repeat, name the unsafe neighbor
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              A permission model becomes buyable when the operator can point at one exact MCP tool call, the sibling tool or argument that must fail, the credential lane and budget owner that should survive, and the receipt or typed denial they would trust after the call.
+            </p>
+            <p class="text-sm leading-relaxed text-slate-400">
+              E-007 prompt: <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=tool-permission-route-hardening" class="text-amber hover:text-amber-200 transition-colors">send the allowed tool, unsafe neighbor, credential lane, budget owner, repeat volume, and evidence requirement</a> before widening the authenticated catalog.
             </p>
           </div>
 
