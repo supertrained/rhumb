@@ -75,7 +75,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Multi-Tenant MCP Servers: One Server, Many Agents, Zero Credential Bleed",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-05T06:05:00Z",
+  dateModified: "2026-05-06T23:20:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Multi-tenant MCP only works when credentials, tool visibility, resource scope, and session state stay tenant-aware under automation pressure.",
@@ -315,6 +315,19 @@ const ARTICLE_JSON_LD = {
               Pricing proof: <a href="/pricing?rhumb_experiment=e006&rhumb_source=multi-tenant-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
               <span class="mx-2 text-slate-700">/</span>
               Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=multi-tenant-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+            </p>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-amber/25 bg-amber/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Route-hardening fit check</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              If tenant isolation is the risk, name the tenant-bound route
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              E-007 should capture operators who already know the unsafe neighbor. Send one shared MCP route where tenant id, caller, visible tool, credential lane, quota owner, quarantine behavior, and typed denial must survive before the route repeats.
+            </p>
+            <p class="text-sm leading-relaxed text-slate-400">
+              E-007 prompt: <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=multi-tenant-route-hardening" class="text-amber hover:text-amber-200 transition-colors">turn one tenant-bound MCP call into the hardening request</a> with the unsafe neighbor, credential lane, budget owner, repeat volume, and receipt proof named before paid execution.
             </p>
           </div>
 

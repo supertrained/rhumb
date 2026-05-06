@@ -73,7 +73,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Remote MCP Auth Proves Caller Identity, Not Tool Authority",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-05-06T08:25:00Z",
+  dateModified: "2026-05-06T23:20:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, quota attribution, denial semantics, and evidence.",
@@ -324,6 +324,19 @@ const ARTICLE_JSON_LD = {
               Pricing proof: <a href="/pricing?rhumb_experiment=e006&rhumb_source=remote-auth-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">see the MCP discovery pricing boundary</a>
               <span class="mx-2 text-slate-700">/</span>
               Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=remote-auth-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
+            </p>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-amber/25 bg-amber/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Route-hardening fit check</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              If remote auth is the blocker, name the one route that needs to survive it
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              E-007 is intentionally narrower than a security review. Send the remote MCP route where identity, visible tools, backend credential, quota owner, and typed denial must line up before an agent repeats the call.
+            </p>
+            <p class="text-sm leading-relaxed text-slate-400">
+              E-007 prompt: <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=remote-auth-route-hardening" class="text-amber hover:text-amber-200 transition-colors">turn one remote-auth lane into the hardening request</a> with the caller principal, unsafe neighbor, credential lane, budget owner, repeat volume, and receipt evidence named up front.
             </p>
           </div>
 
