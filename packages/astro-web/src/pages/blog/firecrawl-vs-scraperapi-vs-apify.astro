@@ -8,10 +8,10 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Firecrawl vs ScraperAPI vs Apify for AI Agents",
   datePublished: "2026-03-22T00:00:00Z",
-  dateModified: "2026-04-28T00:00:00Z",
+  dateModified: "2026-05-07T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
   description:
-    "Which web scraping API works best for autonomous agents? Comparing Firecrawl, ScraperAPI, and Apify on execution quality, access readiness, agent-native integration, and failure modes.",
+    "Which web scraping API works best for autonomous agents? Comparing Firecrawl, ScraperAPI, Apify, and the local browser-primitives lane on execution quality, access readiness, agent-native integration, and failure modes.",
   url: "https://rhumb.dev/blog/firecrawl-vs-scraperapi-vs-apify",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
@@ -107,7 +107,7 @@ const services: Service[] = [
 
 <Layout
   title="Firecrawl vs ScraperAPI vs Apify for AI Agents"
-  description="Comparing Firecrawl, ScraperAPI, and Apify for autonomous agent web scraping. AN Scores, failure modes, agent-native integration, and recommendations."
+  description="Comparing Firecrawl, ScraperAPI, Apify, and local browser primitives for autonomous agent web scraping. AN Scores, failure modes, agent-native integration, and recommendations."
   canonical="/blog/firecrawl-vs-scraperapi-vs-apify"
   ogTitle="Firecrawl vs ScraperAPI vs Apify — Which Scraping API for Agents?"
   ogDescription="ScraperAPI scores 7.6 AN, Firecrawl and Apify at 7.2. Here's which one your agent should use."
@@ -131,7 +131,7 @@ const services: Service[] = [
           every scraping API a different tradeoff between simplicity and power.
         </p>
         <p class="mt-2 text-sm text-slate-500">
-          Scores from Rhumb AN Score v0.3 · Last updated March 2026
+          Scores from Rhumb AN Score v0.3 · Last updated May 2026
         </p>
       </header>
 
@@ -150,6 +150,10 @@ const services: Service[] = [
           <li class="flex gap-2">
             <span class="text-amber shrink-0">→</span>
             <span><strong class="text-slate-200">Apify (7.2)</strong> if you need structured data from specific platforms. 2,000+ actors for LinkedIn, Amazon, Google Maps, and more.</span>
+          </li>
+          <li class="flex gap-2">
+            <span class="text-amber shrink-0">→</span>
+            <span><strong class="text-slate-200">Local browser primitives</strong> if the agent orchestration already lives in your code and the job needs reproducible interaction — login, filters, infinite scroll, screenshots, or DOM-level fallback — before it becomes a managed scaling problem.</span>
           </li>
         </ul>
       </div>
@@ -262,11 +266,48 @@ const services: Service[] = [
             </p>
           </div>
           <div class="bg-surface border border-slate-800 rounded-lg p-5">
+            <h3 class="text-sm font-semibold text-slate-200">"I need browser primitives, not a hosted scraping API"</h3>
+            <p class="text-sm text-slate-400 mt-1">
+              Use a <strong class="text-amber">local/self-hosted browser lane</strong> when the workflow needs reproducible interaction inside your own orchestration: authenticated navigation, filter clicks, infinite scroll, screenshots, DOM inspection, or markdown extraction from a real browser session. The tradeoff is not API pricing; it is machine time, profile drift, anti-bot breakage, trace retention, and whether the lane has a typed denied-neighbor test before the agent can generalize from one site to the whole browser.
+            </p>
+          </div>
+          <div class="bg-surface border border-slate-800 rounded-lg p-5">
             <h3 class="text-sm font-semibold text-slate-200">"I'm not sure — I want the safest bet"</h3>
             <p class="text-sm text-slate-400 mt-1">
               Start with <strong class="text-amber">Firecrawl</strong> for general web access and add <strong class="text-amber">Apify</strong> when you hit a platform-specific extraction need. ScraperAPI is the fallback when you need raw HTML at scale.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section class="mt-12" data-section="local-browser-primitives">
+        <div class="rounded-[28px] border border-sky-400/20 bg-sky-400/5 p-6 sm:p-8">
+          <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-sky-300">Local browser lane</p>
+          <h2 class="mt-2 font-display text-2xl font-bold text-slate-100">When none of the hosted APIs fit cleanly, name the browser boundary</h2>
+          <p class="mt-4 max-w-3xl text-sm leading-7 text-slate-300">
+            Browser primitives are a real fourth option for agent extraction, especially when orchestration lives in your own code. But they are not a permission shortcut. A local CLI or browser-act style tool still needs an explicit site scope, auth profile, interaction budget, artifact policy, and replay trace before an agent can browse, click, screenshot, extract, or fall back to DOM inspection.
+          </p>
+          <div class="mt-6 grid gap-3 md:grid-cols-2">
+            <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4">
+              <div class="text-sm font-semibold text-slate-100">Use local browser primitives when</div>
+              <ul class="mt-2 list-disc list-outside ml-5 space-y-1 text-sm leading-6 text-slate-400">
+                <li>The task depends on login state, filters, infinite scroll, or other real interaction.</li>
+                <li>You need reproducible markdown/screenshots/DOM artifacts from the same local session.</li>
+                <li>Scale is not the first constraint; debugging, replay, and exact site behavior are.</li>
+              </ul>
+            </div>
+            <div class="rounded-2xl border border-slate-800 bg-navy/60 p-4">
+              <div class="text-sm font-semibold text-slate-100">Do not widen it until</div>
+              <ul class="mt-2 list-disc list-outside ml-5 space-y-1 text-sm leading-6 text-slate-400">
+                <li>The route card names allowed domains, credential profile, click budget, storage rules, and stop conditions.</li>
+                <li>A denied-neighbor case proves the agent cannot pivot into unrelated sites, accounts, or destructive actions.</li>
+                <li>The receipt preserves URL, interaction steps, browser profile, output class, fallback reason, and replay artifact.</li>
+              </ul>
+            </div>
+          </div>
+          <p class="mt-5 text-sm leading-7 text-slate-400">
+            For the full routing table, use <a href="/blog/choose-web-extraction-api-for-ai-agents-without-unsafe-browser" class="text-amber hover:text-amber-200 transition-colors">the web extraction safety guide</a>. The key question is whether this is a bounded site-specific route or broad browser authority wearing a convenient local wrapper.
+          </p>
         </div>
       </section>
 
