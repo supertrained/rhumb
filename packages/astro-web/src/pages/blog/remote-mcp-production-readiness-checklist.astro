@@ -41,6 +41,7 @@ const DEMO_FLAGS = [
   "gateway traces show span IDs but omit the policy, adapter, scope, credential, and quota context that shaped the call",
   "package managers write shared config into many clients without preserving per-client authority, rollback, and trace context",
   "remote command execution is exposed as a generic shell instead of a bounded runbook with target, timeout, environment, approval, and rollback evidence",
+  "SSH MCP servers accept password or private-key authority without proving host allowlists, user mapping, command allowlists, working-directory fences, PTY/session controls, or rollback receipts",
   "a self-hosted personal gateway hides several downstream credentials, tenants, and quota owners behind one friendly local endpoint",
   "a 40-tool scraping catalog exposes search, crawl, browser, screenshot, and extraction authority without target, egress, quota, and data-use lanes",
   "built-in client tools, sibling MCP servers, or bare tool names can shadow the governed tool namespace",
@@ -59,6 +60,7 @@ const CHECKLIST = [
   "Proxy candidate sets: when many tools are routed through one layer, can operators inspect the raw pool, filtered set, selected capability, denied alternatives, and fallback path?",
   "Install automation: when a package manager writes config across clients, does each client keep distinct authority, credentials, rollback, and trace evidence?",
   "Remote command execution: is the shell surface constrained to named runbooks, allowed targets, safe directories, bounded timeouts, explicit environment access, and typed denials for adjacent hosts or commands?",
+  "SSH routes: can the server prove password and private-key auth still bind to a named principal, allowed host set, command/runbook allowlist, safe directory, timeout, PTY policy, and receipt or rollback evidence?",
   "Gateway brokerage: when one self-hosted MCP gateway fronts several providers, does each tool keep its credential lane, tenant scope, quota owner, revocation path, and denied-neighbor trace?",
   "Scraping catalogs: when one server exposes many web-access tools, are target domains, egress, crawl depth, provider quota, output provenance, and data-use limits enforced per lane?",
   "Tool namespace: can the runtime prove it denied built-ins, ambiguous bare names, and sibling server tools that would bypass the intended MCP lane?",
@@ -240,7 +242,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-04T00:00:00Z",
+  dateModified: "2026-05-07T08:30:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, transport and middleware boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -758,6 +760,7 @@ const ARTICLE_JSON_LD = {
               </div>
               <p class="mt-4 text-sm leading-6 text-slate-400">
                 Route-hardening fit check: if this checklist exposes one route you would pay to make repeat-safe, <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=remote-readiness-route-hardening" class="text-amber hover:text-amber-200 transition-colors">send that route with its unsafe neighbor, credential lane, budget owner, and typed-denial proof</a>.
+                For an SSH MCP server, the route is not "run shell"; it is one named command or runbook, one allowed host/user, one credential lane, one working directory, one timeout, one denied neighboring command, and one rollback or receipt proof.
               </p>
             </div>
 

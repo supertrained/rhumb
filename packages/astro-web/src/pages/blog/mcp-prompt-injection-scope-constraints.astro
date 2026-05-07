@@ -24,6 +24,7 @@ const PRICING_BOUNDARY_CHECKS = [
 
 const REQUEST_FIRST_PROBE = [
   "The exact MCP route or tool call you would put behind an agent if the boundary were boring enough to trust.",
+  "For SSH or remote-command MCP, the named host, user, runbook or command allowlist, working directory, timeout, PTY/session policy, rollback path, and environment-access rule.",
   "The one unsafe neighbor that must fail closed: path, repo, tenant, URL, customer, amount, or write target.",
   "The credential lane and budget owner that should be preserved if the call repeats.",
   "The receipt or typed denial that would make you comfortable paying for the first governed execution.",
@@ -34,7 +35,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-06T09:45:00-07:00",
+  dateModified: "2026-05-07T08:30:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Prompt injection hits harder in MCP when tools expose unconstrained parameters and the server leaves the blast radius wide open.",
@@ -69,7 +70,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 6, 2026</span>
+          <span class="text-slate-600">Updated May 7, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">7 min read</span>
         </div>
@@ -175,7 +176,7 @@ const ARTICLE_JSON_LD = {
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Request-first probe</div>
           <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">Would you pay to make one MCP route safe enough to repeat?</h3>
           <p class="text-slate-300 leading-relaxed mb-4">
-            If the answer is yes, do not send a platform wishlist. Send one route that currently feels too risky to put behind an agent. Rhumb can only learn from this if the ask names the workflow, the denied neighbor, the credential lane, and the proof that would make the first governed execution boring.
+            If the answer is yes, do not send a platform wishlist. Send one route that currently feels too risky to put behind an agent. Rhumb can only learn from this if the ask names the workflow, the denied neighbor, the credential lane, and the proof that would make the first governed execution boring. For SSH MCP, "let the agent run commands" is still too broad; the ask has to be one command lane with host, user, directory, timeout, rollback, and typed denial attached.
           </p>
           <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
             {REQUEST_FIRST_PROBE.map((item) => (
