@@ -158,6 +158,11 @@ const RELATED = [
     description: "Where MCP quality checks stop being candidate proof and become one priced Rhumb-routed execution lane.",
   },
   {
+    href: "/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=mcp-quality-signals-route-hardening",
+    title: "MCP Route Hardening Fit Check",
+    description: "When one quality gap is a route you would pay to make safe enough to repeat, name the unsafe neighbor and proof requirement.",
+  },
+  {
     href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-quality-signals-proof-sprint",
     title: "Start a proof sprint",
     description: "Scope one repeat workflow, prove the route card, then decide whether it is safe enough to execute.",
@@ -171,7 +176,7 @@ const ARTICLE_JSON_LD = {
   description:
     "A practical quality standard for MCP servers: workflow fit, trust class, authority, tool scope, parameter scope, output shape, failure shape, and evidence before production.",
   datePublished: "2026-05-05T04:20:00-07:00",
-  dateModified: "2026-05-05T06:45:00-07:00",
+  dateModified: "2026-05-07T13:20:00-07:00",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   mainEntityOfPage: "https://rhumb.dev/blog/mcp-server-quality-signals-agents",
@@ -353,6 +358,28 @@ const ARTICLE_JSON_LD = {
                 {STOP_CONDITIONS.map((condition) => (
                   <div class="rounded-2xl border border-red-500/15 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{condition}</div>
                 ))}
+              </div>
+            </div>
+          </section>
+
+          <section data-section="route-hardening-fit-check">
+            <div class="rounded-[32px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Route-hardening fit check</div>
+              <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+                If one quality gap would make you pay to repeat the route, make that route the test.
+              </h2>
+              <p class="mb-5 leading-relaxed text-slate-300">
+                A server-quality review can end in three honest outcomes: promote, quarantine, or no-candidate. The buying-intent version is narrower: name one MCP route you would pay to harden before an agent loops on it, plus the nearest unsafe neighbor, credential or budget lane, repeat volume, and receipt or typed-denial proof you would trust.
+              </p>
+              <div class="grid gap-4 md:grid-cols-2">
+                <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=mcp-quality-signals-route-hardening" class="rounded-2xl border border-slate-800 bg-navy/60 p-5 transition-colors hover:border-emerald-400/40">
+                  <div class="mb-2 text-sm font-semibold text-slate-100">Use the E-007 route-hardening probe</div>
+                  <p class="text-sm leading-6 text-slate-400">Send one tool call that needs bounded authority, a denied neighbor, and replayable proof before repeat execution.</p>
+                </a>
+                <a href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=mcp-quality-signals-managed-start" data-rhumb-propagate class="rounded-2xl border border-slate-800 bg-navy/60 p-5 transition-colors hover:border-emerald-400/40">
+                  <div class="mb-2 text-sm font-semibold text-slate-100">Scope a managed lane directly</div>
+                  <p class="text-sm leading-6 text-slate-400">If the route already has caller, tool, credential lane, side-effect class, budget owner, and evidence shape, start the fit check.</p>
+                </a>
               </div>
             </div>
           </section>

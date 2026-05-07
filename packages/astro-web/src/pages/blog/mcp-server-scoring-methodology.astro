@@ -166,7 +166,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Server Scoring Methodology: How Rhumb Evaluates APIs for Agents",
   datePublished: "2026-04-19T00:00:00Z",
-  dateModified: "2026-05-05T00:00:00Z",
+  dateModified: "2026-05-07T20:20:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "How Rhumb scores APIs for autonomous agents: 20 dimensions across execution and access readiness, plus the honesty boundary around trust class and runtime evidence.",
@@ -432,6 +432,10 @@ const ARTICLE_JSON_LD = {
                 <div class="text-sm font-semibold text-slate-100">Remote MCP Production Readiness Checklist</div>
                 <p class="mt-2 text-sm leading-relaxed text-slate-400">Use one operator review to test whether auth, scope, tenant isolation, recovery, and auditability actually hold.</p>
               </a>
+              <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=mcp-scoring-methodology-route-hardening" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
+                <div class="text-sm font-semibold text-slate-100">Route-hardening fit check</div>
+                <p class="mt-2 text-sm leading-relaxed text-slate-400">When a high score still leaves one dangerous repeat route, name the unsafe neighbor and proof needed before execution.</p>
+              </a>
             </div>
           </div>
         </aside>
@@ -454,6 +458,28 @@ const ARTICLE_JSON_LD = {
             <a href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=mcp-scoring-methodology-direct" data-rhumb-propagate class="rounded-2xl border border-slate-800 bg-navy/60 p-5 transition-colors hover:border-emerald-400/30">
               <div class="text-sm font-semibold text-slate-100">Inspect the managed execution path</div>
               <p class="mt-2 text-sm text-slate-400">See the current launchable scope, the fit boundary, and where Rhumb-managed capability surfaces are the honest default today.</p>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-10" data-section="route-hardening-fit-check">
+        <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Route-hardening fit check</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+            A high score can narrow the field, but one unsafe neighboring action still decides whether the route is repeatable.
+          </h2>
+          <p class="mb-5 leading-relaxed text-slate-300">
+            If a shortlisted server looks structurally strong but the actual workflow still hinges on a dangerous tool, broad credential, tenant boundary, or replay risk, do not treat the score as execution authority. Turn it into one E-007 request: the route to harden, the unsafe neighbor to deny, the credential or budget lane, the repeat volume, and the receipt or typed-denial proof needed before an agent loops on it.
+          </p>
+          <div class="grid gap-3 md:grid-cols-2">
+            <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=mcp-scoring-methodology-route-hardening" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-emerald-400/40">
+              <div class="text-sm font-semibold text-slate-100">Use the route-hardening probe</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Ask Rhumb to harden one MCP call instead of asking for a generic server recommendation.</p>
+            </a>
+            <a href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=mcp-scoring-methodology-managed-start" data-rhumb-propagate class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-emerald-400/40">
+              <div class="text-sm font-semibold text-slate-100">Start managed fit inspection</div>
+              <p class="mt-2 text-sm leading-relaxed text-slate-400">Use this when caller, capability, credential lane, side-effect class, and evidence requirements are already known.</p>
             </a>
           </div>
         </div>
