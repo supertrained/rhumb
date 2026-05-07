@@ -6,7 +6,8 @@ import { PUBLIC_TRUTH } from "../../lib/public-truth";
 const FAST_ANSWER = [
   "Choose a web extraction API for agents by naming the extraction boundary first: page-to-markdown, raw HTML at scale, browser automation, platform actor, screenshot, or structured schema output.",
   "Do not hand an agent a generic browser or 40-tool scraper catalog as the default route. Turn the extraction job into a bounded lane with allowed domains, output class, credential rail, crawl budget, denial case, and trace evidence.",
-  "Firecrawl is the clean default for page-to-markdown and AI-ready extraction, ScraperAPI is the raw HTML / proxy reliability pick, and Apify is strongest when a platform-specific actor or browser workflow is the actual job.",
+  "Local browser primitives are a valid fourth lane when orchestration already lives in your own code, but they need the same route card as hosted scraping: site scope, auth profile, interaction budget, artifacts, and denied-neighbor proof.",
+  "Firecrawl is the clean default for page-to-markdown and AI-ready extraction, ScraperAPI is the raw HTML / proxy reliability pick, Apify is strongest when a platform-specific actor is the actual job, and local browser primitives fit reproducible one-off interaction workflows before they become scale problems.",
   `Rhumb's current public scope is ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions for discovery, with ${PUBLIC_TRUTH.callableProvidersLabel} callable providers strongest for ${PUBLIC_TRUTH.beachheadLabel}. Treat scored extraction providers as candidates until the governed route is verified for your workflow.`,
 ];
 
@@ -31,9 +32,15 @@ const EXTRACTION_JOBS = [
   },
   {
     job: "Browser-state verification",
-    provider: "Browser / actor lane",
+    provider: "Hosted browser / actor lane",
     useWhen: "The agent must verify UI state, screenshots, logged-in pages, or JavaScript-rendered content after an API or workflow step.",
     boundary: "Session identity, cookies, screenshot retention, navigation allowlist, and explicit human/privacy review when sensitive data is visible.",
+  },
+  {
+    job: "Local browser primitives",
+    provider: "CLI / self-hosted browser lane",
+    useWhen: "The agent orchestration already lives in your code and the hard part is reproducible interaction: auth, filters, infinite scroll, screenshots, or a markdown extraction step that must replay locally.",
+    boundary: "Isolated browser profile, site-specific route, click/scroll/time budget, cookie scope, trace artifacts, replay fixture, and a no-navigation denial for adjacent domains.",
   },
 ];
 
@@ -64,6 +71,7 @@ const PREFLIGHT_CHECKS = [
   "What exact content should the agent extract: article body, table rows, product fields, contact records, screenshots, or post-action UI evidence?",
   "Which URL/domain patterns are allowed, and which adjacent targets must fail closed before navigation?",
   "Is JavaScript execution required, or would browser automation only increase authority and privacy risk?",
+  "If local browser primitives are used, is the agent getting one site-specific route or a general browse/click/extract surface?",
   "What output cap prevents one large page, crawl, actor run, screenshot set, or dataset from flooding the model or blowing the budget?",
   "Which credential rail owns proxy cost, captcha spend, provider quota, and downstream enrichment calls?",
   "What trace evidence would let an operator debug the run tomorrow: normalized URL, provider route, actor id, parser version, output class, denial rule, and recovery checkpoint?",
@@ -85,6 +93,10 @@ const FAILURE_MODES = [
   {
     title: "Retry loops look like scraping scale",
     body: "Crawl failures, empty pages, CAPTCHAs, and parser drift can produce runaway retries. A safe lane caps attempts, output size, crawl depth, and fallback branches before the loop starts.",
+  },
+  {
+    title: "Local reproducibility hides operational scaling",
+    body: "A local browser can remove hosted pricing units and make every step replayable, but the cost moves into machine time, profile drift, anti-bot failure, and trace retention. Treat that lane as production authority before it graduates from one workflow to many.",
   },
 ];
 
@@ -116,7 +128,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How to Choose a Web Extraction API for Agents Without Turning MCP Into an Unsafe Browser",
   datePublished: "2026-05-01T00:00:00Z",
-  dateModified: "2026-05-01T00:00:00Z",
+  dateModified: "2026-05-07T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A practical guide to choosing Firecrawl, ScraperAPI, Apify, or browser automation for AI-agent extraction workflows while preserving domain constraints, credentials, budget, denials, and trace evidence.",
