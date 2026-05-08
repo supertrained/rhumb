@@ -116,7 +116,7 @@ def _validated_event_type(event_type: str | None) -> AuditEventType | None:
     if event_type is None:
         return None
 
-    normalized = event_type.strip().lower()
+    normalized = event_type.strip().lower().replace("-", "_")
     if not normalized:
         valid_types = ", ".join(t.value for t in AuditEventType)
         raise RhumbError(

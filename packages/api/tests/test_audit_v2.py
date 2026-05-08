@@ -256,6 +256,28 @@ def test_list_audit_events_normalizes_event_type_and_severity_filters_before_rea
     assert trail.query.call_args.kwargs["severity"] is AuditSeverity.WARNING
 
 
+def test_list_audit_events_normalizes_hyphenated_event_type_alias_before_reads():
+    from app import create_app
+    from services.audit_trail import AuditEventType
+
+    trail = MagicMock()
+    trail.query.return_value = []
+    trail.count.return_value = 0
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).get(
+            "/v2/audit/events?event_type=recipe.step-failed",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    trail.query.assert_called_once()
+    assert trail.query.call_args.kwargs["event_type"] is AuditEventType.RECIPE_STEP_FAILED
+
+
 def test_list_audit_events_rejects_inverted_time_window_before_reads():
     from app import create_app
 
@@ -530,6 +552,33 @@ def test_export_audit_normalizes_event_type_and_severity_filters():
     trail.export.assert_called_once()
     assert trail.export.call_args.kwargs["event_type"] is AuditEventType.EXECUTION_STARTED
     assert trail.export.call_args.kwargs["severity"] is AuditSeverity.WARNING
+
+
+def test_export_audit_normalizes_hyphenated_event_type_alias_before_reads():
+    from app import create_app
+    from services.audit_trail import AuditEventType
+
+    trail = MagicMock()
+    trail.export.return_value = MagicMock(
+        format="json",
+        event_count=0,
+        chain_verified=True,
+        exported_at=MagicMock(isoformat=lambda: "2026-04-25T19:20:00+00:00"),
+        data="[]",
+    )
+
+    with (
+        patch("routes.audit_v2._require_org_or_401", new=AsyncMock(return_value="org_test")),
+        patch("routes.audit_v2.get_audit_trail", return_value=trail),
+    ):
+        resp = TestClient(create_app()).post(
+            "/v2/audit/export?event_type=kill-switch.activated",
+            headers={"X-Rhumb-Key": "rk_test"},
+        )
+
+    assert resp.status_code == 200
+    trail.export.assert_called_once()
+    assert trail.export.call_args.kwargs["event_type"] is AuditEventType.KILL_SWITCH_ACTIVATED
 
 
 def test_export_audit_rejects_inverted_time_window_before_reads():
