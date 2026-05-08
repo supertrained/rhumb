@@ -95,7 +95,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Before Your Agent Calls an API at 3am: A Reliability Checklist",
   datePublished: "2026-03-28T00:00:00Z",
-  dateModified: "2026-05-02T00:00:00Z",
+  dateModified: "2026-05-08T00:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -136,6 +136,12 @@ const RELATED_READING = [
     label: "Production Readiness",
     title: "A Production Readiness Checklist for Remote MCP Servers",
     description: "The operator view once the surface is shared and the runtime is live.",
+  },
+  {
+    href: "/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=api-reliability-route-hardening-related",
+    label: "Route Hardening",
+    title: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
+    description: "The E-007 probe for turning one risky repeat MCP route into a bounded hardening request.",
   },
   {
     href: "/blog/hubspot-api-autopsy",
@@ -302,7 +308,7 @@ const htmlContent = markdownToHtml(content);
             <span class="text-slate-700">&middot;</span>
             <span class="text-xs font-mono text-slate-500">March 28, 2026</span>
             <span class="text-slate-700">&middot;</span>
-            <span class="text-xs font-mono text-emerald-400/70">Updated April 30, 2026</span>
+            <span class="text-xs font-mono text-emerald-400/70">Updated May 8, 2026</span>
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.97] tracking-tight text-slate-100 max-w-5xl text-balance">
@@ -547,6 +553,33 @@ const htmlContent = markdownToHtml(content);
         <p class="text-slate-300 leading-relaxed">
           The practical test is simple: kill the worker after the provider commits but before your agent receives the response, then replay the job. A production-ready route should return the original result or a typed duplicate outcome, not create a second charge, email, ticket, or database row.
         </p>
+      </section>
+
+      <section class="mt-10 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Route-hardening checkpoint</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          When reliability proof names one repeat route, turn it into a hardening brief
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-4">
+          The checklist is still research until it identifies a specific route that will run again: one tool call, one unsafe neighbor that must fail, one credential lane, one budget owner, one repeat volume, and one receipt or typed-denial proof. That is the point where reliability review becomes the E-007 route-hardening request instead of another generic audit.
+        </p>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <a
+            href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=api-reliability-route-hardening"
+            class="rounded-2xl border border-slate-800 bg-navy/60 p-5 transition-colors hover:border-rose-400/40"
+          >
+            <div class="mb-2 text-sm font-semibold text-slate-100">Use the E-007 hardening probe</div>
+            <p class="text-sm leading-relaxed text-slate-400">Name the route, unsafe neighbor, credential lane, budget owner, repeat volume, and evidence requirement before broad execution.</p>
+          </a>
+          <a
+            data-rhumb-propagate
+            href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=api-reliability-managed-start"
+            class="rounded-2xl border border-slate-800 bg-navy/60 p-5 transition-colors hover:border-emerald-400/40"
+          >
+            <div class="mb-2 text-sm font-semibold text-slate-100">Open the managed fit check</div>
+            <p class="text-sm leading-relaxed text-slate-400">If the route is already painful enough to repeat, start with the bounded managed-execution preflight instead of wiring a broad connector.</p>
+          </a>
+        </div>
       </section>
 
       <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
