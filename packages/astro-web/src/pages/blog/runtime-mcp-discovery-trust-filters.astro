@@ -124,12 +124,18 @@ const PRICING_BOUNDARY_CHECKS = [
   "If trust filters return no safe candidate, that is a no-call outcome, not a paid fallback to a broader marketplace result.",
 ];
 
+const ROUTE_HARDENING_CHECKS = [
+  "The selected server/tool is not just relevant; it will run again inside a loop or workflow.",
+  "The nearest unsafe neighbor is named: adjacent tenant, path, domain, account, amount, or side-effect class.",
+  "Credential lane, caller principal, quota or budget owner, repeat volume, and receipt or typed-denial proof are visible before promotion.",
+];
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful",
   datePublished: "2026-04-12T00:00:00Z",
-  dateModified: "2026-05-03T07:42:00Z",
+  dateModified: "2026-05-08T14:20:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Giant MCP indexes only become useful when trust class, auth shape, side-effect profile, caller visibility, and freshness narrow the pool before ranking.",
@@ -396,6 +402,29 @@ const ARTICLE_JSON_LD = {
               <span class="mx-2 text-slate-700">/</span>
               Execution preflight: <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=runtime-discovery-pricing-boundary" class="text-amber hover:text-amber-200 transition-colors">scope managed execution</a>
             </p>
+          </div>
+
+          <div class="mt-12 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6" data-section="runtime-discovery-route-hardening">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">E-007 route-hardening fork</div>
+            <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
+              A filtered discovery result becomes buying intent only when one route needs hardening
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              Runtime discovery should stay free proof while it narrows a giant index. The moment it identifies one MCP route that a team wants to repeat with real credentials, budget, and side effects, the question changes from “which server looks best?” to “would we pay to make this route safe enough to run unattended?”
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              {ROUTE_HARDENING_CHECKS.map((item) => (
+                <div class="rounded-2xl border border-rose-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+            <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+              <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=runtime-discovery-route-hardening" class="inline-flex items-center justify-center rounded-xl bg-rose-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-rose-300">
+                Use the E-007 route-hardening probe →
+              </a>
+              <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=runtime-discovery-managed-start" class="inline-flex items-center justify-center rounded-xl border border-rose-500/30 px-5 py-3 text-sm font-display font-semibold text-rose-100 transition-colors duration-200 hover:border-rose-400/60 hover:text-white">
+                Start with one repeat-safe route →
+              </a>
+            </div>
           </div>
 
           <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
