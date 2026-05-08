@@ -36,6 +36,13 @@ const PROXY_BOUNDARY_CHECKS = [
   "Do quota owner, downstream credential lane, and blast-radius class survive the proxy hop as operator-visible evidence?",
 ];
 
+const CONTROL_PLANE_LAYER_CHECKS = [
+  "Gateway: proves filtered discovery, policy decision, typed denial, and credential lane for this caller.",
+  "Registry: proves candidate freshness, trust class, install/auth viability, and why unsafe alternatives were excluded.",
+  "Runtime: proves the selected route preserved actor, tenant, quota owner, budget, retry policy, and recovery state.",
+  "Provider: proves the downstream side effect, receipt, or typed no-op matched the route card instead of a broad fallback.",
+];
+
 const APPROVAL_CONTROL_CHECKS = [
   "Does the approval prompt show capability id, principal, target, side-effect class, cost ceiling, and credential lane before the operator decides?",
   "Can policy require approval only for the risky branch while allowing safe read or inspect branches to continue without ceremony?",
@@ -81,6 +88,7 @@ const EVALUATION_AREAS = [
       "Can proxy layers prove bounded candidate sets instead of only claiming token savings?",
       "Can remote command or shell-capable actions be narrowed to one runbook, target set, and approval path?",
       "Can an SSH-backed capability separate host, user, command, working directory, environment, PTY/session mode, credential lane, and rollback proof before any shell opens?",
+      "Can gateway, registry, runtime, and provider layers each name the same route decision instead of hiding authority between them?",
       "Is read-only versus write-capable use legible before invocation?",
     ],
   },
@@ -109,7 +117,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Governed Capabilities Are Becoming the Real Control Plane for Agent Integrations",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-07T08:30:00Z",
+  dateModified: "2026-05-08T11:40:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The safer agent interface is not raw endpoint sprawl and not merely fewer tools. It is a governed capability surface that preserves authority, policy, and failure semantics.",
@@ -144,7 +152,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 7, 2026</span>
+          <span class="text-slate-600">Updated May 8, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">8 min read</span>
         </div>
@@ -365,6 +373,17 @@ const ARTICLE_JSON_LD = {
                 If the middleware only exports spans, headers, or pretty routing names, it is packaging. If it can prove the boundary held when the model tried to leave the lane, it is part of the control plane. That is the same evidence shape covered in <a href="/blog/mcp-observability-logging-auditing-debugging" class="text-amber hover:text-amber-200 transition-colors">MCP observability and trace design</a>.
               </p>
             </div>
+            <div class="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-5">
+              <h3 class="font-display font-semibold text-lg text-slate-100 mb-2 tracking-tight">A gateway is one checkpoint, not the whole control plane</h3>
+              <p class="text-sm text-slate-400 leading-relaxed mb-3">
+                Fresh MCP gateway discussion is useful because it names the missing architecture: gateways, registries, policy stores, runtimes, and providers all touch the control plane. The operator test is whether each layer can explain the same route decision instead of handing authority off as a black box.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-sm text-slate-300 leading-relaxed">
+                {CONTROL_PLANE_LAYER_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
             <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-5">
               <h3 class="font-display font-semibold text-lg text-slate-100 mb-2 tracking-tight">Remote command execution needs a runbook-shaped lane</h3>
               <p class="text-sm text-slate-400 leading-relaxed">
@@ -489,6 +508,7 @@ const ARTICLE_JSON_LD = {
           <p class="text-sm text-slate-400 leading-relaxed mb-5">
             E-007 prompt: if one governed capability already has a dangerous neighboring action, <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=governed-capability-route-hardening" class="text-amber hover:text-amber-200 transition-colors">turn that route card into the hardening request</a> with workflow intent, unsafe neighbor, credential lane, budget owner, repeat volume, and receipt proof named before execution.
             The fresh SSH-MCP shape is the same rule in sharper form: do not expose a generic shell; name one runbook, host/user, directory, credential lane, command timeout, denied neighbor, and rollback receipt before repeating it.
+            The fresh gateway/control-plane shape adds one more requirement: show which layer owns filtered discovery, policy decision, runtime quota, and downstream receipt instead of letting a gateway label hide the route card.
           </p>
           <div class="flex flex-col sm:flex-row gap-3">
             <a href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=governed-capabilities-onboarding" class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">

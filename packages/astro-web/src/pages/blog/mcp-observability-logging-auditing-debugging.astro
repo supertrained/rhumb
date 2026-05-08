@@ -93,6 +93,13 @@ const GATEWAY_DRILL_CHECKS = [
   "Can you rehearse credential expiry, rate-limit exhaustion, and kill-switch recovery without losing who caused what?",
 ];
 
+const CONTROL_PLANE_TRACE_CHECKS = [
+  "Gateway trace names the filtered surface, policy bundle, denial rule, and downstream credential lane.",
+  "Registry trace names candidate freshness, trust class, install/auth viability, and excluded unsafe alternatives.",
+  "Runtime trace names selected route card, quota owner, retry budget, recovery checkpoint, and kill-switch path.",
+  "Provider receipt names the actual downstream action, no-op, or typed refusal so the route closes with evidence.",
+];
+
 const TRANSPORT_ADAPTER_TRACE_CHECKS = [
   "Capture the protocol shape before and after the adapter so a gRPC bridge, JSON shim, or middleware spine cannot silently rewrite the caller-visible contract.",
   "Map upstream failures into stable typed errors instead of leaking transport-specific exceptions that the orchestrator cannot classify.",
@@ -216,7 +223,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-06T20:35:00Z",
+  dateModified: "2026-05-08T11:40:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production MCP observability means principal-aware tool logs, typed errors, mediated-hop attribution, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
@@ -252,7 +259,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 6, 2026</span>
+          <span class="text-slate-600">Updated May 8, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">8 min read</span>
         </div>
@@ -324,7 +331,7 @@ const ARTICLE_JSON_LD = {
           Observability readers are often closest to the repeat-workflow ask: they know which call loops, which credential or budget lane burns, which unsafe sibling must stay blocked, and which receipt or typed denial would make the route operable.
         </p>
         <p class="text-sm leading-relaxed text-slate-400">
-          E-007 prompt: <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=mcp-observability-route-hardening" class="text-amber hover:text-amber-200 transition-colors">turn one trace-heavy MCP route into the hardening request</a> with the unsafe neighbor, credential lane, budget owner, repeat volume, and evidence fields named before paid execution.
+          E-007 prompt: <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=mcp-observability-route-hardening" class="text-amber hover:text-amber-200 transition-colors">turn one trace-heavy MCP route into the hardening request</a> with the unsafe neighbor, credential lane, budget owner, repeat volume, and evidence fields named before paid execution. For gateway-mediated routes, include the registry, runtime, and provider receipt fields needed to join the whole control-plane trace.
         </p>
       </div>
 
@@ -446,6 +453,17 @@ const ARTICLE_JSON_LD = {
               <p>
                 Fresh gateway-tracing examples make the implementation detail feel concrete: exporting tool spans is only the first move. A useful gateway trace also has to carry the policy bundle, adapter version, redacted input class, caller-visible tool surface, and downstream credential lane that shaped the call. Otherwise the trace says the gateway handled a request while hiding the exact authority boundary operators need to audit.
               </p>
+              <p>
+                The gateway trace still has to join a broader control-plane trace. A registry may decide which servers are fresh enough to consider, the runtime may decide which route card is safe, and the provider receipt may prove what actually happened. If those records cannot be stitched together, every layer can claim control while the incident trail loses the route.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300">Control-plane trace join</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {CONTROL_PLANE_TRACE_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
             </div>
             <div class="mt-6 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
               <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Gateway drill questions</div>

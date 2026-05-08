@@ -43,6 +43,7 @@ const DEMO_FLAGS = [
   "remote command execution is exposed as a generic shell instead of a bounded runbook with target, timeout, environment, approval, and rollback evidence",
   "SSH MCP servers accept password or private-key authority without proving host allowlists, user mapping, command allowlists, working-directory fences, PTY/session controls, or rollback receipts",
   "a self-hosted personal gateway hides several downstream credentials, tenants, and quota owners behind one friendly local endpoint",
+  "a gateway is described as the whole control plane even though registry freshness, runtime policy, quota ownership, and provider receipts are invisible",
   "a 40-tool scraping catalog exposes search, crawl, browser, screenshot, and extraction authority without target, egress, quota, and data-use lanes",
   "built-in client tools, sibling MCP servers, or bare tool names can shadow the governed tool namespace",
   "audit trails do not map actions back to principals and scopes",
@@ -62,6 +63,7 @@ const CHECKLIST = [
   "Remote command execution: is the shell surface constrained to named runbooks, allowed targets, safe directories, bounded timeouts, explicit environment access, and typed denials for adjacent hosts or commands?",
   "SSH routes: can the server prove password and private-key auth still bind to a named principal, allowed host set, command/runbook allowlist, safe directory, timeout, PTY policy, and receipt or rollback evidence?",
   "Gateway brokerage: when one self-hosted MCP gateway fronts several providers, does each tool keep its credential lane, tenant scope, quota owner, revocation path, and denied-neighbor trace?",
+  "Control-plane split: can the gateway, registry, runtime, and provider receipt each prove the same route decision instead of hiding authority handoff between layers?",
   "Scraping catalogs: when one server exposes many web-access tools, are target domains, egress, crawl depth, provider quota, output provenance, and data-use limits enforced per lane?",
   "Tool namespace: can the runtime prove it denied built-ins, ambiguous bare names, and sibling server tools that would bypass the intended MCP lane?",
   "Decision lineage: can the operator reconstruct why a risky action was selected, which policy gates ran, and where quarantine or human review would have fired?",
@@ -117,6 +119,13 @@ const PERSONAL_GATEWAY_DRILL = [
   "Keep local owner identity separate from downstream provider authority. The gateway host may be personal, but the action still spends a real account somewhere.",
   "Test denied neighbors across providers: wrong workspace, blocked tenant, expired secret, over-budget account, and a tool that should not be visible for this caller.",
   "Require trace evidence to name gateway instance, brokered provider, credential lane, normalized tenant, quota owner, policy rule, and denial reason before calling the setup production-ready.",
+];
+
+const CONTROL_PLANE_SPLIT_DRILL = [
+  "Gateway: show the caller-visible tool surface, policy rule, typed denial, and brokered credential lane.",
+  "Registry: show freshness, trust class, install/auth viability, and why excluded servers stayed out of the candidate set.",
+  "Runtime: show selected route card, quota owner, retry budget, recovery state, and kill-switch behavior for the one lane.",
+  "Provider receipt: show the actual downstream action, no-op, or typed refusal that closes the loop after execution.",
 ];
 
 const SCRAPING_CATALOG_DRILL = [
@@ -242,7 +251,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-07T08:30:00Z",
+  dateModified: "2026-05-08T11:40:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, transport and middleware boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -578,6 +587,17 @@ const ARTICLE_JSON_LD = {
               <p>
                 The useful drill is simple: replay the same authorized read, denied write, and quota-limited call through the direct path and the gateway path. If the gateway trace cannot name the policy bundle, adapter version, visible surface, denial type, credential lane, and quota owner for each call, the gateway has hidden the exact evidence operators need when the agent acts unattended.
               </p>
+              <p>
+                A gateway is also not the whole control plane. It is one checkpoint inside a path that may include a registry, policy store, runtime, brokered credentials, and the provider receipt. Production readiness means those layers agree on one route card instead of each layer claiming trust while the next one widens authority.
+              </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300 mb-3">Control-plane split drill</div>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {CONTROL_PLANE_SPLIT_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
             </div>
           </section>
 
@@ -759,7 +779,7 @@ const ARTICLE_JSON_LD = {
                 </a>
               </div>
               <p class="mt-4 text-sm leading-6 text-slate-400">
-                Route-hardening fit check: if this checklist exposes one route you would pay to make repeat-safe, <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=remote-readiness-route-hardening" class="text-amber hover:text-amber-200 transition-colors">send that route with its unsafe neighbor, credential lane, budget owner, and typed-denial proof</a>.
+                Route-hardening fit check: if this checklist exposes one route you would pay to make repeat-safe, <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=remote-readiness-route-hardening" class="text-amber hover:text-amber-200 transition-colors">send that route with its unsafe neighbor, credential lane, budget owner, and typed-denial proof</a>. If the route runs through a gateway, include which layer owns filtered discovery, runtime quota, credential brokerage, and the provider receipt.
                 For an SSH MCP server, the route is not "run shell"; it is one named command or runbook, one allowed host/user, one credential lane, one working directory, one timeout, one denied neighboring command, and one rollback or receipt proof.
               </p>
             </div>
