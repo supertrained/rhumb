@@ -7,7 +7,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Remote MCP Uptime Is Not Production Readiness",
   datePublished: "2026-04-13T00:00:00Z",
-  dateModified: "2026-04-13T00:00:00Z",
+  dateModified: "2026-05-09T00:00:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A remote MCP server that responds can still be unsafe for unattended agent use. The useful health model is reachable, auth-viable, operator-safe, and shared-runtime ready.",
@@ -285,6 +285,26 @@ const EVALUATION_AXES = [
             </p>
           </div>
         </section>
+
+        <div class="mt-12 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Route-hardening checkpoint</div>
+          <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+            A live remote MCP server is only worth hardening when one repeat route is named
+          </h2>
+          <p class="text-slate-300 leading-relaxed mb-5">
+            Do not turn every green endpoint into a managed lane. Promote the remote server only when the team can name the one MCP route or tool call that must run repeatedly, the unsafe neighboring action that must stay denied, the credential or budget owner, the retry or volume ceiling, and the receipt or typed denial that proves the boundary held.
+          </p>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=remote-liveness-route-hardening" class="rounded-2xl border border-amber/20 bg-navy/70 p-4 hover:border-amber/50 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Run the E-007 route-hardening fit check</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Convert the liveness ladder into one bounded route, denied neighbor, credential lane, budget owner, and receipt/typed-denial proof.</p>
+            </a>
+            <a href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=remote-liveness-managed-preflight" class="rounded-2xl border border-amber/20 bg-navy/70 p-4 hover:border-amber/50 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Open the managed preflight</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Use the managed path only after the remote route is specific enough to preserve authority, quota, and post-call evidence.</p>
+            </a>
+          </div>
+        </div>
 
         <div class="mt-12 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
