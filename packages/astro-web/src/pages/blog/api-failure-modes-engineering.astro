@@ -9,7 +9,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How APIs Fail When Agents Use Them: A Failure Engineering Guide",
   datePublished: "2026-03-31T00:00:00Z",
-  dateModified: "2026-04-20T00:00:00Z",
+  dateModified: "2026-05-09T00:00:00Z",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -155,7 +155,7 @@ const htmlContent = markdownToHtml(content);
             March 31, 2026
           </span>
           <span class="text-slate-700">&middot;</span>
-          <span class="text-xs font-mono text-emerald-400/70">Updated April 20, 2026</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated May 9, 2026</span>
           <span class="text-slate-700">&middot;</span>
           <span class="text-xs font-mono text-slate-600">Rhumb</span>
         </div>
@@ -206,6 +206,32 @@ const htmlContent = markdownToHtml(content);
             class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200"
           >
             Compare APIs by score &rarr;
+          </a>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-[28px] border border-amber/20 bg-amber/5 p-6">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Route-hardening checkpoint</div>
+        <h2 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+          A failure map becomes buying intent only after it names one repeat route
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          Do not convert every reliability concern into a managed lane. Promote the failure review into E-007 only when a team can name the exact MCP route or tool call that keeps failing, the unsafe neighboring action that must stay denied, the credential or budget owner, the repeat volume or retry ceiling, and the receipt or typed denial that proves the boundary held.
+        </p>
+        <div class="grid gap-3 sm:grid-cols-2">
+          <a
+            href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=failure-modes-route-hardening"
+            class="rounded-2xl border border-amber/20 bg-navy/70 p-4 hover:border-amber/50 transition-colors"
+          >
+            <div class="text-sm font-semibold text-slate-100">Run the E-007 route-hardening fit check</div>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">Turn the failure category into one bounded route, denied neighbor, credential lane, budget owner, and receipt/typed-denial proof.</p>
+          </a>
+          <a
+            href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=failure-modes-managed-preflight"
+            class="rounded-2xl border border-amber/20 bg-navy/70 p-4 hover:border-amber/50 transition-colors"
+          >
+            <div class="text-sm font-semibold text-slate-100">Open the managed preflight</div>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">Use the paid path only after the failure is specific enough to preserve authority, quota, and post-call evidence.</p>
           </a>
         </div>
       </section>
