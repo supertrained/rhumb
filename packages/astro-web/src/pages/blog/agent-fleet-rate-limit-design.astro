@@ -280,6 +280,30 @@ const MEDIA_DATA_QUOTA_CHECKS = [
         </p>
       </section>
 
+      <section class="mt-14 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6 sm:p-8">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Route-hardening checkpoint</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 tracking-tight mb-3">
+          A rate-limit review becomes E-007 when one repeat route keeps burning the shared budget
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          Rate limits are not only reliability failures; they are authority and margin failures when one agent can retry through a shared credential, provider quota, or fallback lane without proving who owns the spend. Move from general fleet design into route hardening only when the review has narrowed to one repeat MCP route with a named quota owner and a bounded retry ceiling.
+        </p>
+        <ul class="grid gap-3 sm:grid-cols-2">
+          <li class="rounded-2xl border border-rose-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">Repeat route: the exact tool call or workflow lane that hits 429s, token burn, or fallback retries often enough to justify hardening.</li>
+          <li class="rounded-2xl border border-rose-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">Unsafe neighbor: the adjacent tenant, credential, provider account, or write lane that must not share the same retry budget.</li>
+          <li class="rounded-2xl border border-rose-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">Budget owner: the human, org, or service account that absorbs quota exhaustion, provider overage, or fallback spend.</li>
+          <li class="rounded-2xl border border-rose-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">Proof object: the receipt, trace, or typed denial showing the route stopped before crossing its retry, token, or quota ceiling.</li>
+        </ul>
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+          <a href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=fleet-rate-limit-route-hardening" class="inline-flex items-center justify-center rounded-xl bg-rose-300 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-rose-200">
+            Send the rate-limited route &rarr;
+          </a>
+          <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=fleet-rate-limit-route-hardening" class="inline-flex items-center justify-center rounded-xl border border-rose-500/30 px-5 py-3 text-sm font-display font-semibold text-rose-200 transition-colors duration-200 hover:border-rose-400/60 hover:text-rose-100">
+            Compare against the hardening probe &rarr;
+          </a>
+        </div>
+      </section>
+
       <section class="mt-16 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
         <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
