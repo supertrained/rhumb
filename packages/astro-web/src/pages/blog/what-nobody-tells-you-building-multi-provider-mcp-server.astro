@@ -682,6 +682,45 @@ const RELATED_READING = [
       </section>
 
       <section class="mb-14">
+        <div class="rounded-[28px] border border-amber/25 bg-amber/10 p-8 sm:p-10">
+          <div class="max-w-3xl">
+            <p class="text-xs font-mono text-amber uppercase tracking-[0.2em] mb-3">MCP route-hardening checkpoint</p>
+            <h2 class="font-display font-bold text-2xl sm:text-3xl text-slate-100 tracking-tight mb-4">
+              Multi-provider servers become risky at the first repeat route
+            </h2>
+            <p class="text-slate-300 leading-relaxed">
+              A multi-provider MCP server is not production-ready because it can choose between many APIs.
+              It becomes production-ready when one selected tool call can run again without leaking into
+              the wrong provider, credential lane, quota bucket, or side-effect class. Before you promote
+              the server, name the repeat route, the unsafe neighboring tool or provider path it must not
+              reach, the credential or budget owner, the expected repeat volume, and the receipt or typed
+              denial that proves the boundary held.
+            </p>
+            <p class="mt-4 text-sm text-slate-400 leading-relaxed">
+              If you can name those five facts, Rhumb can evaluate whether the route belongs in a bounded
+              execution lane. If you cannot, stay in discovery and scoring mode; broad provider coverage is
+              still inventory, not authority.
+            </p>
+          </div>
+
+          <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+            <a
+              href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=multi-provider-guide-route-hardening"
+              class="inline-flex items-center justify-center rounded-xl bg-amber px-6 py-3 text-sm font-display font-semibold text-navy hover:bg-amber/90 transition-colors duration-200"
+            >
+              Run the route-hardening fit check →
+            </a>
+            <a
+              href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=multi-provider-guide-managed-preflight"
+              class="inline-flex items-center justify-center rounded-xl border border-amber/35 px-6 py-3 text-sm font-display font-semibold text-amber hover:border-amber/60 hover:text-amber/90 transition-colors duration-200"
+            >
+              Start with one repeat-safe route →
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="mb-14">
         <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 sm:p-10">
           <div class="max-w-3xl">
             <p class="text-xs font-mono text-emerald-300 uppercase tracking-[0.2em] mb-3">Next honest step</p>
