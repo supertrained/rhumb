@@ -833,6 +833,24 @@ const POSTS: Post[] = [
   },
 
   {
+    slug: "mcp-route-hardening-checklist",
+    title: "MCP Route Hardening Checklist: Make One Tool Call Safe Enough to Repeat",
+    description: "A production checklist for hardening one MCP route before repeated agent execution: route card, unsafe neighbor, authority lane, budget ceiling, and receipt evidence.",
+    date: "May 10, 2026",
+    dateISO: "2026-05-10T08:30:00Z",
+    readTime: "10 min",
+    contentType: "Guide",
+    category: "MCP Security",
+    difficulty: "Intermediate",
+    timeEstimate: "~13 min",
+    related: [
+      { slug: "mcp-prompt-injection-scope-constraints", title: "MCP Prompt Injection and Scope Constraints" },
+      { slug: "remote-mcp-production-readiness-checklist", title: "Remote MCP Production Readiness Checklist" },
+      { slug: "governed-capability-surfaces-agent-integrations", title: "Governed Capability Surfaces" },
+    ],
+  },
+
+  {
     slug: "mcp-discovery-free-proof-paid-execution-boundary",
     title: "MCP Discovery Is Free Proof Until One Route Is Safe to Execute",
     description: "Where MCP discovery, scoring, route-card inspection, credential review, and denied-neighbor drills stay free — and what must be true before paid agent execution begins.",
@@ -1458,9 +1476,13 @@ const BLOG_JSON_LD = {
             The live MCP conversation is still about blast radius, security model, auth shape, tenant isolation, recovery, route cards, verified discovery, shared-budget control, loop discipline, and runtime evidence
           </h2>
           <p class="mb-5 max-w-3xl leading-relaxed text-slate-300">
-            The freshest production signal keeps clustering around scope constraints, principals, evidence, credential model, reliability or crash handling, tenant isolation, remote-hosted MCP operations, rate-limit pressure, route-card proof, verified vertical discovery, and token-burn discipline inside live loops. If you are here because MCP has to survive real operators instead of a demo, start with the seventeen pages below.
+            The freshest production signal keeps clustering around scope constraints, principals, evidence, credential model, reliability or crash handling, tenant isolation, remote-hosted MCP operations, rate-limit pressure, route-card proof, verified vertical discovery, and token-burn discipline inside live loops. If you are here because MCP has to survive real operators instead of a demo, start with the eighteen pages below.
           </p>
           <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <a href="/blog/mcp-route-hardening-checklist" class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 transition-colors hover:border-emerald-400/50">
+              <div class="text-sm font-semibold text-emerald-100">MCP Route Hardening Checklist</div>
+              <p class="mt-2 text-sm leading-relaxed text-emerald-50/80">Make one MCP tool call repeat-safe with a route card, denied neighbor, authority lane, budget ceiling, and proof.</p>
+            </a>
             <a href="/blog/mcp-server-quality-signals-agents" class="rounded-2xl border border-slate-800 bg-navy/60 p-4 transition-colors hover:border-slate-700">
               <div class="text-sm font-semibold text-slate-100">MCP Server Quality Signals for Agents</div>
               <p class="mt-2 text-sm leading-relaxed text-slate-400">A production quality standard for workflow fit, trust class, authority, scope, failure shape, and evidence.</p>

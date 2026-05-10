@@ -1,0 +1,223 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const ROUTE_CARD_FIELDS = [
+  "Route name: one MCP tool call or capability, not a whole server, catalog, or agent role.",
+  "Allowed input: normalized path, URL, tenant, repo, customer, account, amount, or command lane that may execute.",
+  "Denied neighbor: the closest dangerous value that must fail closed with a typed policy denial.",
+  "Authority lane: caller, tenant, credential mode, backend principal, budget owner, and approval state.",
+  "Repeat envelope: expected volume, retry ceiling, timeout, idempotency key, and recovery path.",
+  "Evidence: receipt fields, trace identifiers, policy bundle, estimate, denial code, and post-call resource proof.",
+];
+
+const HARDENING_STEPS = [
+  {
+    label: "1",
+    title: "Narrow discovery to one route",
+    body: "Do not harden `filesystem`, `browser`, `github`, or `search` as a category. Pick the one tool call that must repeat: read this repo path, fetch this approved domain, create this ticket type, run this SSH runbook, or query this account-scoped object.",
+  },
+  {
+    label: "2",
+    title: "Bind the caller before the handler runs",
+    body: "The route card should be resolved before execution: org, agent, user, tenant, environment, credential rail, quota owner, and side-effect class. If any of those fields are missing, the right output is a typed no-call, not a best-effort provider attempt.",
+  },
+  {
+    label: "3",
+    title: "Test the unsafe neighbor",
+    body: "Every route needs one adjacent-danger fixture: the path just outside the allowlist, the sibling tenant, the internal host, the broader command, the write target near the allowed read, or the provider account the agent should not touch.",
+  },
+  {
+    label: "4",
+    title: "Preserve budget and retry context",
+    body: "Route hardening fails if the agent can burn shared quota while looking safe. Attach retry ceiling, timeout, expected volume, idempotency or replay key, and the budget owner to the same route decision that authorized the call.",
+  },
+  {
+    label: "5",
+    title: "Return proof, not vibes",
+    body: "A successful route should produce a receipt with route id, actor, credential lane, estimate, provider resource, policy bundle, trace id, and side-effect class. A denied route should preserve the same context plus the exact policy that refused it.",
+  },
+];
+
+const FAILURE_MODES = [
+  "The schema says `path: string`, but the server never normalizes the path before comparing it to the allowlist.",
+  "Auth proves who connected, but tool visibility and backend credentials stay broader than the caller's route.",
+  "A gateway enforces policy at discovery time, then the runtime handler uses a different provider credential or quota bucket.",
+  "The denied neighbor returns a generic error, so the agent retries around a policy boundary as if the provider flaked.",
+  "Receipts prove the call happened, but not whether the caller, credential rail, estimate, and side-effect class were the ones approved.",
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Route Hardening Checklist: Make One Tool Call Safe Enough to Repeat",
+  datePublished: "2026-05-10T08:30:00Z",
+  dateModified: "2026-05-10T08:30:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A production checklist for hardening one MCP route before repeated agent execution: route card, unsafe neighbor, authority lane, budget ceiling, and receipt evidence.",
+  url: "https://rhumb.dev/blog/mcp-route-hardening-checklist",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-route-hardening-checklist",
+};
+---
+
+<Layout
+  title="MCP Route Hardening Checklist: Make One Tool Call Safe Enough to Repeat | Rhumb"
+  description="A production checklist for hardening one MCP route before repeated agent execution: route card, unsafe neighbor, authority lane, budget ceiling, and receipt evidence."
+  canonical="/blog/mcp-route-hardening-checklist"
+  ogTitle="MCP Route Hardening Checklist | Rhumb"
+  ogDescription="How to turn one MCP tool call into a repeat-safe route with bounded authority, budget, denial, and receipt proof."
+  ogUrl="https://rhumb.dev/blog/mcp-route-hardening-checklist"
+  ogType="article"
+  twitterTitle="MCP Route Hardening Checklist"
+  twitterDescription="Make one MCP tool call safe enough to repeat: route card, unsafe neighbor, credential lane, budget owner, and proof."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="relative mx-auto max-w-4xl px-6 py-14">
+        <div class="mb-5 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-emerald-300">MCP Security</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 10, 2026</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">Rhumb</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-600">10 min read</span>
+        </div>
+        <h1 class="mb-6 max-w-3xl font-display text-3xl font-bold leading-tight tracking-tight text-slate-100 sm:text-4xl">
+          MCP Route Hardening Checklist: Make One Tool Call Safe Enough to Repeat
+        </h1>
+        <p class="max-w-3xl text-lg leading-relaxed text-slate-400">
+          Production MCP safety is not a server-level yes/no. It is the discipline of taking one tool call, naming the nearest unsafe neighbor, binding authority and budget, and proving the boundary held before the call repeats.
+        </p>
+      </div>
+    </section>
+
+    <article class="mx-auto max-w-4xl px-6 pb-24 pt-10">
+      <div class="mb-10 grid gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+          <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-emerald-300">Unit of work</div>
+          <p class="text-sm leading-relaxed text-slate-300">Harden one route. A server, marketplace listing, gateway, or agent role is too broad to prove.</p>
+        </div>
+        <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
+          <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-rose-300">Denied neighbor</div>
+          <p class="text-sm leading-relaxed text-slate-300">Every allowed route needs the closest dangerous call that must fail closed with typed evidence.</p>
+        </div>
+        <div class="rounded-2xl border border-amber/20 bg-amber/5 p-4">
+          <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">Repeat proof</div>
+          <p class="text-sm leading-relaxed text-slate-300">The route is not production-ready until authority, budget, retry, and receipt context survive repetition.</p>
+        </div>
+      </div>
+
+      <div class="mb-10 rounded-[28px] border border-slate-800 bg-surface/80 p-6">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">The mistake</div>
+        <p class="text-lg leading-relaxed text-slate-300">
+          Most MCP hardening work starts too high: <span class="text-slate-100">is this server safe?</span> The operator question is narrower and more useful: <span class="text-slate-100">which exact route can repeat, under which authority, against which denied neighbor, with which proof?</span>
+        </p>
+      </div>
+
+      <div class="max-w-3xl">
+        <p class="mb-4 leading-relaxed text-slate-400">
+          The current MCP production conversation keeps clustering around the same problems: unconstrained string parameters, remote-hosted authority ambiguity, shared credentials, tenant bleed, quota burn, generic denials, and receipts that arrive too late to prove the route should have executed.
+        </p>
+        <p class="mb-4 leading-relaxed text-slate-400">
+          Those are not independent issues. They are symptoms of one missing artifact: a route card that turns a tool call from a demo into a bounded production lane.
+        </p>
+        <p class="mb-4 leading-relaxed text-slate-400">
+          A route card is not documentation. It is the pre-execution decision record: who is calling, what may execute, what must refuse, which credential and budget are in play, how often it may repeat, and what evidence comes back.
+        </p>
+
+        <h2 class="mb-4 mt-12 font-display text-2xl font-bold tracking-tight text-slate-100">The route card fields</h2>
+        <div class="mb-10 rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <ul class="list-outside list-disc space-y-2 pl-5 leading-relaxed text-slate-300">
+            {ROUTE_CARD_FIELDS.map((item) => <li>{item}</li>)}
+          </ul>
+        </div>
+
+        <h2 class="mb-4 mt-12 font-display text-2xl font-bold tracking-tight text-slate-100">The five-step MCP route hardening checklist</h2>
+        <div class="mb-10 space-y-4">
+          {HARDENING_STEPS.map((step) => (
+            <div class="rounded-[24px] border border-slate-800 bg-surface/70 p-5">
+              <div class="mb-3 flex items-center gap-3">
+                <div class="flex h-8 w-8 items-center justify-center rounded-full border border-emerald-400/40 bg-emerald-500/10 font-mono text-sm font-bold text-emerald-200">{step.label}</div>
+                <h3 class="font-display text-xl font-semibold tracking-tight text-slate-100">{step.title}</h3>
+              </div>
+              <p class="leading-relaxed text-slate-400">{step.body}</p>
+            </div>
+          ))}
+        </div>
+
+        <h2 class="mb-4 mt-12 font-display text-2xl font-bold tracking-tight text-slate-100">What fails when you harden the server instead of the route</h2>
+        <p class="mb-4 leading-relaxed text-slate-400">
+          Server-level safety language sounds strong and usually fails at the exact moment an agent needs to repeat a call. The proof has to survive the tool handler, gateway, credential broker, provider call, and receipt path as one coherent decision.
+        </p>
+        <div class="mb-10 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+          <ul class="list-outside list-disc space-y-2 pl-5 leading-relaxed text-slate-300">
+            {FAILURE_MODES.map((item) => <li>{item}</li>)}
+          </ul>
+        </div>
+
+        <h2 class="mb-4 mt-12 font-display text-2xl font-bold tracking-tight text-slate-100">Examples of route-sized hardening</h2>
+        <div class="mb-10 grid gap-4 md:grid-cols-2">
+          <div class="rounded-2xl border border-slate-800 bg-navy/60 p-5">
+            <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">Filesystem</div>
+            <p class="text-sm leading-relaxed text-slate-300">Allowed: read markdown under one repo docs directory. Denied neighbor: normalized path outside that directory. Proof: caller, repo, normalized path, policy id, and typed traversal refusal.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-navy/60 p-5">
+            <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">Browser / fetch</div>
+            <p class="text-sm leading-relaxed text-slate-300">Allowed: extract public docs from approved domains. Denied neighbor: internal host, cross-domain login page, or disallowed data class. Proof: domain policy, egress decision, byte cap, and extraction receipt.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-navy/60 p-5">
+            <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">SSH / command</div>
+            <p class="text-sm leading-relaxed text-slate-300">Allowed: one runbook command on one host/user with timeout and rollback. Denied neighbor: arbitrary shell, different host, PTY escalation, or environment read. Proof: command lane, working directory, exit code, and rollback evidence.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-navy/60 p-5">
+            <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">CRM / ticket write</div>
+            <p class="text-sm leading-relaxed text-slate-300">Allowed: create a support note on a named account. Denied neighbor: sibling tenant, owner reassignment, bulk export, or deletion. Proof: tenant binding, provider resource id, idempotency key, and side-effect receipt.</p>
+          </div>
+        </div>
+
+        <div id="send-one-route" class="my-10 rounded-[28px] border border-emerald-500/25 bg-emerald-500/5 p-6">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Request-first probe</div>
+          <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">Send the one MCP route you would pay to make boring</h2>
+          <p class="mb-4 leading-relaxed text-slate-300">
+            If you have a route that is close to useful but too risky to let an agent repeat, send the route card. The useful request names the route, unsafe neighbor, credential or budget owner, repeat volume, and receipt or typed denial you would trust.
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <a href="mailto:team@getsupertrained.com?subject=Rhumb%20MCP%20route%20hardening%20fit%20check&body=MCP%20route%20or%20tool%20call%3A%0AUnsafe%20neighbor%20that%20must%20fail%3A%0ACredential%20lane%20and%20budget%20owner%3A%0ARepeat%20volume%20or%20agent%20loop%3A%0AReceipt%20or%20typed%20denial%20I%20would%20trust%3A%0ASource%3A%20e007-mcp-route-hardening" class="inline-flex rounded-xl bg-emerald-400 px-4 py-3 font-display text-sm font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
+              Send one route to harden
+            </a>
+            <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=mcp-route-hardening-checklist" class="inline-flex rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 transition-colors duration-200 hover:border-emerald-400/50 hover:text-slate-100">
+              Scope the managed lane
+            </a>
+          </div>
+        </div>
+
+        <h2 class="mb-4 mt-12 font-display text-2xl font-bold tracking-tight text-slate-100">Related production checks</h2>
+        <div class="grid gap-4 md:grid-cols-2">
+          <a href="/blog/mcp-prompt-injection-scope-constraints" class="rounded-2xl border border-slate-800 bg-surface/70 p-5 transition-colors hover:border-emerald-400/40">
+            <div class="font-display text-lg font-semibold text-slate-100">Prompt injection and scope constraints</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Why unconstrained parameters turn model instructions into real blast radius.</p>
+          </a>
+          <a href="/blog/remote-mcp-production-readiness-checklist" class="rounded-2xl border border-slate-800 bg-surface/70 p-5 transition-colors hover:border-emerald-400/40">
+            <div class="font-display text-lg font-semibold text-slate-100">Remote MCP production readiness</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">How liveness differs from safe remote execution under real operator constraints.</p>
+          </a>
+          <a href="/blog/governed-capability-surfaces-agent-integrations" class="rounded-2xl border border-slate-800 bg-surface/70 p-5 transition-colors hover:border-emerald-400/40">
+            <div class="font-display text-lg font-semibold text-slate-100">Governed capability surfaces</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Why route cards are the control plane between discovery and execution.</p>
+          </a>
+          <a href="/blog/signed-mcp-receipts-evidence-not-authority" class="rounded-2xl border border-slate-800 bg-surface/70 p-5 transition-colors hover:border-emerald-400/40">
+            <div class="font-display text-lg font-semibold text-slate-100">Signed receipts are evidence, not authority</div>
+            <p class="mt-2 text-sm leading-relaxed text-slate-400">Why post-call receipts help only after pre-call authority is already bounded.</p>
+          </a>
+        </div>
+      </div>
+    </article>
+  </div>
+</Layout>
