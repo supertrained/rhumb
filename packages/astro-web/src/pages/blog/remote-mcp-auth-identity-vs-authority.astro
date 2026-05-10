@@ -29,6 +29,10 @@ const FAILURE_PATTERNS = [
     body: "A valid token unlocks the full manifest even when the caller only needed one narrow read or workflow lane.",
   },
   {
+    title: "Auth launch equals readiness",
+    body: "An identity-provider integration reaches GA, but teams treat login success as proof that manifests, backend authority, quotas, and denials are production-safe.",
+  },
+  {
     title: "Backend principal flattening",
     body: "The caller authenticates cleanly, but every tool still runs under one powerful shared service account behind the remote boundary.",
   },
@@ -52,6 +56,7 @@ const FAILURE_PATTERNS = [
 
 const CHECKLIST = [
   "Does authentication narrow the visible tool manifest, or only open the front door?",
+  "If an MCP auth provider, connector, or gateway says the integration is GA, what runtime evidence proves authority narrowed after login?",
   "Can one authenticated workflow discover tools it should never be allowed to plan with?",
   "Which backend credential, downstream principal, and quota owner actually perform or absorb the action after auth succeeds?",
   "Can the runtime emit typed denials when requested authority exceeds policy?",
@@ -73,7 +78,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Remote MCP Auth Proves Caller Identity, Not Tool Authority",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-05-06T23:20:00Z",
+  dateModified: "2026-05-10T20:20:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP auth proves who connected. Production safety depends on how identity maps to tool visibility, backend authority, quota attribution, denial semantics, and evidence.",
@@ -167,6 +172,23 @@ const ARTICLE_JSON_LD = {
               </p>
               <p>
                 Teams often stop at OAuth support, bearer validation, or signed requests and then talk as if the authority model is solved. It is not. A clean login can still open a capability surface that is too wide for the caller, the workflow, or the tenant that requested it.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              1.5 GA auth support still has to prove runtime authority
+            </h2>
+            <div class="space-y-4 leading-relaxed text-slate-400">
+              <p>
+                The next wave of MCP auth announcements will make this failure mode easier to miss. When an identity provider, connector platform, or gateway says MCP authentication is generally available, that is an integration milestone. It is not proof that a production agent now has the right authority boundary.
+              </p>
+              <p>
+                A useful GA claim should still leave operators with testable fields: which client or agent authenticated, which tenant or workspace granted access, which tools were visible after policy filtering, which backend credential executed the call, who owned quota, and what typed denial appeared for the nearest unsafe neighbor.
+              </p>
+              <p>
+                Without those fields, the launch only proves the front door opens. The hard part remains the same: auth has to narrow discovery, preserve backend authority separation, and leave evidence after the remote hop. Otherwise every new “MCP auth is solved” surface becomes another broad connector with a better login screen.
               </p>
             </div>
           </section>
