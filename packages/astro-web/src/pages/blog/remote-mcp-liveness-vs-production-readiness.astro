@@ -7,7 +7,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Remote MCP Uptime Is Not Production Readiness",
   datePublished: "2026-04-13T00:00:00Z",
-  dateModified: "2026-05-09T00:00:00Z",
+  dateModified: "2026-05-10T04:16:00-07:00",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A remote MCP server that responds can still be unsafe for unattended agent use. The useful health model is reachable, auth-viable, operator-safe, and shared-runtime ready.",
@@ -294,10 +294,14 @@ const EVALUATION_AXES = [
           <p class="text-slate-300 leading-relaxed mb-5">
             Do not turn every green endpoint into a managed lane. Promote the remote server only when the team can name the one MCP route or tool call that must run repeatedly, the unsafe neighboring action that must stay denied, the credential or budget owner, the retry or volume ceiling, and the receipt or typed denial that proves the boundary held.
           </p>
-          <div class="grid gap-3 sm:grid-cols-2">
+          <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=remote-liveness-route-hardening" class="rounded-2xl border border-amber/20 bg-navy/70 p-4 hover:border-amber/50 transition-colors">
               <div class="text-sm font-semibold text-slate-100">Run the E-007 route-hardening fit check</div>
               <p class="mt-2 text-sm text-slate-400 leading-relaxed">Convert the liveness ladder into one bounded route, denied neighbor, credential lane, budget owner, and receipt/typed-denial proof.</p>
+            </a>
+            <a href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e007&rhumb_source=remote-liveness-checklist" class="rounded-2xl border border-amber/20 bg-navy/70 p-4 hover:border-amber/50 transition-colors">
+              <div class="text-sm font-semibold text-slate-100">Use the route-hardening checklist</div>
+              <p class="mt-2 text-sm text-slate-400 leading-relaxed">Fill the route card, unsafe-neighbor fixture, authority binding, retry envelope, and receipt proof before preflight.</p>
             </a>
             <a href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=remote-liveness-managed-preflight" class="rounded-2xl border border-amber/20 bg-navy/70 p-4 hover:border-amber/50 transition-colors">
               <div class="text-sm font-semibold text-slate-100">Open the managed preflight</div>

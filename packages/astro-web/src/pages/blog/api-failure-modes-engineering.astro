@@ -9,7 +9,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How APIs Fail When Agents Use Them: A Failure Engineering Guide",
   datePublished: "2026-03-31T00:00:00Z",
-  dateModified: "2026-05-09T00:00:00Z",
+  dateModified: "2026-05-10T04:16:00-07:00",
   author: {
     "@type": "Organization",
     name: "Rhumb",
@@ -218,13 +218,20 @@ const htmlContent = markdownToHtml(content);
         <p class="text-slate-300 leading-relaxed mb-5">
           Do not convert every reliability concern into a managed lane. Promote the failure review into E-007 only when a team can name the exact MCP route or tool call that keeps failing, the unsafe neighboring action that must stay denied, the credential or budget owner, the repeat volume or retry ceiling, and the receipt or typed denial that proves the boundary held.
         </p>
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <a
             href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=failure-modes-route-hardening"
             class="rounded-2xl border border-amber/20 bg-navy/70 p-4 hover:border-amber/50 transition-colors"
           >
             <div class="text-sm font-semibold text-slate-100">Run the E-007 route-hardening fit check</div>
             <p class="mt-2 text-sm text-slate-400 leading-relaxed">Turn the failure category into one bounded route, denied neighbor, credential lane, budget owner, and receipt/typed-denial proof.</p>
+          </a>
+          <a
+            href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e007&rhumb_source=failure-modes-checklist"
+            class="rounded-2xl border border-amber/20 bg-navy/70 p-4 hover:border-amber/50 transition-colors"
+          >
+            <div class="text-sm font-semibold text-slate-100">Use the route-hardening checklist</div>
+            <p class="mt-2 text-sm text-slate-400 leading-relaxed">Translate the incident map into route-card fields, unsafe-neighbor fixtures, retry ceilings, and receipt proof.</p>
           </a>
           <a
             href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=failure-modes-managed-preflight"
