@@ -6,14 +6,11 @@ import { PUBLIC_TRUTH } from '../lib/public-truth';
 export const GET: APIRoute = async () => {
   const apiBase = import.meta.env.PUBLIC_API_BASE_URL ?? "https://api.rhumb.dev/v1";
 
-  const [services, categories, capRes] = await Promise.all([
+  const [services, categories] = await Promise.all([
     getServices(),
     getCategories(),
-    fetch(`${apiBase}/capabilities?limit=1&offset=0`, { headers: { "X-Rhumb-Client": "web" } })
-      .then((r) => r.ok ? r.json() : null)
-      .catch(() => null),
   ]);
-  const totalCapabilities = capRes?.data?.total ?? PUBLIC_TRUTH.capabilities;
+  const totalCapabilities = PUBLIC_TRUTH.capabilities;
   const routeList = PRIMARY_ACTIVATION_PATHS
     .map((route) => `- ${route.title}: https://rhumb.dev${route.href} — ${route.summary}`)
     .join("\n");
