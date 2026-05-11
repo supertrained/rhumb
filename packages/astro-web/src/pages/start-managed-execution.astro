@@ -12,6 +12,24 @@ const pageJsonLd = {
     "The shortest honest path into Rhumb managed execution: governed API key first, pricing before execution, and quickstart for free reads.",
 };
 
+const ROUTE_CARD_REQUEST_TEMPLATE = [
+  "MCP route / tool call:",
+  "Why this route needs to repeat:",
+  "Allowed lane:",
+  "Unsafe neighbor that must fail closed:",
+  "Caller / tenant / workspace:",
+  "Credential lane / backend principal:",
+  "Budget or quota owner:",
+  "Expected repeat volume / retry ceiling:",
+  "Receipt or typed denial I would trust:",
+  "Current blocker:",
+  "Source: e007-start-managed-execution-route-hardening",
+].join("\n");
+
+const ROUTE_CARD_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURIComponent(
+  "Rhumb MCP route hardening fit check"
+)}&body=${encodeURIComponent(ROUTE_CARD_REQUEST_TEMPLATE)}`;
+
 const STEPS = [
   {
     title: "1. Start with governed API key",
@@ -231,7 +249,7 @@ const REQUEST_FIRST_BRIEF = [
           <a data-rhumb-propagate href="/blog/composio-arcade-nango-alternatives-governed-agent-execution?rhumb_experiment=e006&rhumb_source=start-managed-execution-competitive-alternatives" class="px-5 py-3 rounded-xl border border-violet-500/40 text-sm text-violet-200 hover:border-violet-300/70 hover:text-slate-100 transition-colors duration-200">
             Compare alternatives
           </a>
-          <a href="mailto:team@getsupertrained.com?subject=Rhumb%20MCP%20route%20hardening%20fit%20check&body=MCP%20route%20or%20tool%20call%3A%0AUnsafe%20neighbor%20that%20must%20fail%3A%0ACredential%20lane%20and%20budget%20owner%3A%0ARepeat%20volume%20or%20agent%20loop%3A%0AReceipt%20or%20typed%20denial%20I%20would%20trust%3A%0ASource%3A%20e007-start-managed-execution-route-hardening" class="px-5 py-3 rounded-xl border border-emerald-400/50 text-sm text-emerald-200 hover:border-emerald-300/80 hover:text-emerald-100 transition-colors duration-200">
+          <a href={ROUTE_CARD_MAILTO} class="px-5 py-3 rounded-xl border border-emerald-400/50 text-sm text-emerald-200 hover:border-emerald-300/80 hover:text-emerald-100 transition-colors duration-200">
             Send route-hardening brief
           </a>
         </div>
@@ -469,8 +487,15 @@ const REQUEST_FIRST_BRIEF = [
             <li class="rounded-3xl border border-emerald-500/20 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</li>
           ))}
         </ul>
+        <div class="mt-6 rounded-3xl border border-emerald-500/20 bg-navy/80 p-5">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Copy-paste route card</div>
+          <p class="text-sm leading-6 text-slate-400 mb-4">
+            If you are already on this page, do not send a broad managed-execution brief. Send the smallest repeat route that would become valuable if Rhumb made it boring and safe.
+          </p>
+          <pre class="overflow-x-auto whitespace-pre-wrap rounded-2xl border border-slate-800 bg-black/30 p-4 text-xs leading-6 text-slate-300">{ROUTE_CARD_REQUEST_TEMPLATE}</pre>
+        </div>
         <div class="mt-6 flex flex-wrap gap-3">
-          <a href="mailto:team@getsupertrained.com?subject=Rhumb%20MCP%20route%20hardening%20fit%20check&body=MCP%20route%20or%20tool%20call%3A%0AUnsafe%20neighbor%20that%20must%20fail%3A%0ACredential%20lane%20and%20budget%20owner%3A%0ARepeat%20volume%20or%20agent%20loop%3A%0AReceipt%20or%20typed%20denial%20I%20would%20trust%3A%0ASource%3A%20e007-start-managed-execution-route-hardening" class="inline-flex rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">
+          <a href={ROUTE_CARD_MAILTO} class="inline-flex rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">
             Send one route to harden
           </a>
           <a data-rhumb-propagate href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=start-managed-execution-route-hardening" class="inline-flex rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-slate-100 transition-colors duration-200">
