@@ -125,11 +125,11 @@
     }
   },
   "coverage": {
-    "services": 999,
-    "capabilities": 435,
+    "services": 1038,
+    "capabilities": 415,
     "domains": 50,
     "categories": 92,
-    "providers_with_execution": 18,
+    "providers_with_execution": 16,
     "credential_modes": [
       "byok",
       "rhumb_managed",
