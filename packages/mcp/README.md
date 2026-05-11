@@ -14,7 +14,7 @@ Three execution layers: raw provider access (Layer 1), intelligent routing (Laye
 **No governed API key needed for discovery.** Install and start immediately:
 
 ```bash
-npx rhumb-mcp@latest
+npx -y --package rhumb-mcp@latest rhumb-mcp
 ```
 
 Or add to Claude Desktop / Cursor / any MCP client:
@@ -24,7 +24,7 @@ Or add to Claude Desktop / Cursor / any MCP client:
   "mcpServers": {
     "rhumb": {
       "command": "npx",
-      "args": ["-y", "rhumb-mcp@latest"]
+      "args": ["-y", "--package", "rhumb-mcp@latest", "rhumb-mcp"]
     }
   }
 }
@@ -41,7 +41,7 @@ Rhumb is strongest today for **research, extraction, generation, and narrow enri
 
 Treat it as capability infrastructure first, not as a general business-agent automation layer yet. Layer 2 is the real production surface today; Layer 3 is still beta with an intentionally sparse public catalog.
 
-Discovery breadth is wider than current execution breadth: Rhumb scores **999 services** and exposes **435 capability definitions**, but current governed execution is concentrated in **18 callable providers**.
+Discovery breadth is wider than current execution breadth: Rhumb scores **1,038 services** and exposes **415 capability definitions**, but current governed execution is concentrated in **16 callable providers**.
 
 ## Resolve mental model
 
@@ -81,7 +81,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 - New v2 endpoints available alongside v1
 - `execute_capability` now returns `_rhumb_v2` metadata with attribution and receipts
 - New tools for recipe-catalog inspection, receipts, and telemetry
-- Update: `npx rhumb-mcp@2` (or `npx rhumb-mcp@latest`)
+- Update: `npx -y --package rhumb-mcp@latest rhumb-mcp`
 
 <!-- GENERATED:MCP_README_TOOL_SURFACE_START -->
 ## Discovery tools (no auth, 6 tools)
@@ -102,7 +102,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
   "mcpServers": {
     "rhumb": {
       "command": "npx",
-      "args": ["-y", "rhumb-mcp@latest"],
+      "args": ["-y", "--package", "rhumb-mcp@latest", "rhumb-mcp"],
       "env": {
         "RHUMB_API_KEY": "rk_your_key_here"
       }
@@ -151,7 +151,7 @@ Get a governed API key at https://rhumb.dev/auth/login (GitHub, Google, or email
 
 **Operations (auth):** `routing`, `usage_telemetry`
 
-> Discovery spans 999 scored services, but current governed execution spans 18 callable providers.
+> Discovery spans 1,038 scored services, but current governed execution spans 16 callable providers.
 
 > Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation as future scope, not the current launch promise.
 <!-- GENERATED:MCP_README_TOOL_SURFACE_END -->

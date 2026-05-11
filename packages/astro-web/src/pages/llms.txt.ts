@@ -70,7 +70,7 @@ Current launchable scope: ${PUBLIC_TRUTH.callableProvidersLabel} callable provid
 
 ## For Agents
 Install the MCP server for programmatic access:
-  npx rhumb-mcp@latest
+  npx -y --package rhumb-mcp@latest rhumb-mcp
 
 MCP tools available:
   find_services({ query: "payment processing" }) — discover services by need
@@ -209,7 +209,7 @@ the specific friction of a tool before integrating.
 ## Links
 - Website: https://rhumb.dev
 - GitHub: https://github.com/supertrained/rhumb
-- MCP Server: npx rhumb-mcp@latest
+- MCP Server: npx -y --package rhumb-mcp@latest rhumb-mcp
 - Public agent capabilities: ${PUBLIC_TRUTH.publicAgentCapabilitiesUrl}
 `;
 

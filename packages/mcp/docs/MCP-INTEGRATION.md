@@ -15,7 +15,7 @@ Technical guide for integrating with, extending, and deploying the Rhumb MCP ser
 │  src/server.ts — createServer(apiClient?)             │
 │                                                      │
 │  ┌────────────┐ ┌───────────┐ ┌─────────────────┐   │
-│  │ find_tools │ │ get_score │ │get_alternatives │   │
+│  │find_services│ │ get_score │ │get_alternatives │   │
 │  └─────┬──────┘ └─────┬─────┘ └───────┬─────────┘   │
 │  ┌─────▼──────────────▼───────────────▼─────────┐   │
 │  │           get_failure_modes                   │   │
@@ -43,7 +43,7 @@ Technical guide for integrating with, extending, and deploying the Rhumb MCP ser
 
 ## Tool Contracts
 
-### `find_tools`
+### `find_services`
 
 Semantic search for agent tools, ranked by AN Score.
 

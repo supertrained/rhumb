@@ -65,7 +65,7 @@ const WEB_SEARCH_QUICK_PATH = [
     label: "3. Execute with a governed key",
     detail: "Authorized execution. This is the side-effecting step, so keep it behind `X-Rhumb-Key` or an equivalent payment rail.",
     command: `curl -X POST "${API}/capabilities/search.query/execute" \
-  -H "X-Rhumb-Key: rhumb_live_..." \
+  -H "X-Rhumb-Key: rhumb_..." \
   -H "Content-Type: application/json" \
   -d '{"body": {"query": "best CRM for seed-stage B2B SaaS", "max_results": 5}}'`,
   },
@@ -320,7 +320,7 @@ curl "${API}/capabilities/search.query/execute/estimate"
 
 # 3) Execute through Layer 2 with your governed API key
 curl -X POST "${API}/capabilities/search.query/execute" \
-  -H "X-Rhumb-Key: rhumb_live_..." \
+  -H "X-Rhumb-Key: rhumb_..." \
   -H "Content-Type: application/json" \
   -d '{"body": {"query": "best CRM for seed-stage B2B SaaS", "max_results": 5}}'`}</code></pre>
           </div>
@@ -345,7 +345,7 @@ curl "${API}/capabilities/email.send/execute/estimate"
 
 # 4) Execute through Layer 2 with X-Rhumb-Key
 curl -X POST "${API}/capabilities/email.send/execute" \
-  -H "X-Rhumb-Key: rhumb_live_..." \
+  -H "X-Rhumb-Key: rhumb_..." \
   -H "Content-Type: application/json" \
   -d '{"body": {"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}}'`}</code></pre>
           <p class="text-sm text-slate-400 mt-4 leading-6">
@@ -379,7 +379,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \
         <div class="bg-surface border border-slate-800 rounded-lg p-5 mb-4">
           <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Execute via governed API key</p>
           <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`curl -X POST "${API}/capabilities/email.send/execute" \\
-  -H "X-Rhumb-Key: rhumb_live_..." \\
+  -H "X-Rhumb-Key: rhumb_..." \\
   -H "Content-Type: application/json" \\
   -d '{"body": {"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}}'`}</code></pre>
         </div>
@@ -405,7 +405,7 @@ curl -X POST "${API}/billing/x402/topup/request" \
 
 # Step 3: Execute repeat calls with X-Rhumb-Key (no per-call X-Payment)
 curl -X POST "${API}/capabilities/email.send/execute" \
-  -H "X-Rhumb-Key: rhumb_live_..." \
+  -H "X-Rhumb-Key: rhumb_..." \
   -H "Content-Type: application/json" \
   -d '{"body": {"to": "user@example.com", "subject": "Hello"}}'`}</code></pre>
         </div>
@@ -452,7 +452,7 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
 
         <div class="bg-surface border border-slate-800 rounded-lg p-5 mb-6">
           <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">Install</p>
-          <pre class="text-sm font-mono text-slate-300"><code>npx rhumb-mcp@latest</code></pre>
+          <pre class="text-sm font-mono text-slate-300"><code>npx -y --package rhumb-mcp@latest rhumb-mcp</code></pre>
         </div>
 
         <div class="bg-surface border border-slate-800 rounded-lg p-5 mb-6">
@@ -461,9 +461,9 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
   "mcpServers": {
     "rhumb": {
       "command": "npx",
-      "args": ["rhumb-mcp@latest"],
+      "args": ["-y", "--package", "rhumb-mcp@latest", "rhumb-mcp"],
       "env": {
-        "RHUMB_API_KEY": "rhumb_live_..."
+        "RHUMB_API_KEY": "rhumb_..."
       }
     }
   }

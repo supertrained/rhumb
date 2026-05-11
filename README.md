@@ -17,7 +17,7 @@
 ### MCP (recommended)
 
 ```bash
-npx rhumb-mcp@latest
+npx -y --package rhumb-mcp@latest rhumb-mcp
 ```
 
 Zero config. Discovery tools work immediately — no signup, no governed API key.
@@ -25,7 +25,7 @@ Zero config. Discovery tools work immediately — no signup, no governed API key
 For execution, pass your governed API key:
 
 ```bash
-RHUMB_API_KEY=your_key npx rhumb-mcp@latest
+RHUMB_API_KEY=your_key npx -y --package rhumb-mcp@latest rhumb-mcp
 ```
 
 [Get a governed API key →](https://rhumb.dev/auth/login)
@@ -66,7 +66,7 @@ Treat broader multi-system business automation as future scope, not the current 
 <!-- GENERATED:README_PRODUCT_SURFACE_START -->
 ### Rhumb Index — Discover & Evaluate
 
-**999 scored services** across 50+ domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
+**1,038 scored services** across 50+ domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
 
 - `find_services` — Search indexed Services by what you need them to do
 - `get_score` — Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness
@@ -79,7 +79,7 @@ Treat broader multi-system business automation as future scope, not the current 
 
 ### Rhumb Resolve — Execute
 
-**435 capability definitions** across **18 callable providers today**. Resolve chooses the best-fit supported provider for the call using AN Score, availability / circuit state, estimated cost, latency proxy, credential mode, and explicit policy constraints.
+**415 capability definitions** across **16 callable providers today**. Resolve chooses the best-fit supported provider for the call using AN Score, availability / circuit state, estimated cost, latency proxy, credential mode, and explicit policy constraints.
 
 - `execute_capability` — Call a Capability through Rhumb Resolve
 - `resolve_capability` — Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, and machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, plus typo recovery when the capability ID is wrong
@@ -161,7 +161,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 - `routing` — Get or set how Rhumb auto-selects providers when you don't specify one in execute_capability
 - `usage_telemetry` — Get your execution analytics — calls, latency, errors, costs, and provider health for your Rhumb usage
 
-> Discovery spans 999 scored services, but current governed execution spans 18 callable providers.
+> Discovery spans 1,038 scored services, but current governed execution spans 16 callable providers.
 
 > Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists.
 

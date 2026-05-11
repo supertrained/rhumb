@@ -463,7 +463,7 @@ const API_URL = import.meta.env.PUBLIC_API_URL ?? "https://api.rhumb.dev";
 
     function buildMcpSnippet(apiKey) {
       const key = normalizeApiKeyForSnippet(apiKey);
-      return `RHUMB_API_KEY="${key}" npx rhumb-mcp@latest`;
+      return `RHUMB_API_KEY="${key}" npx -y --package rhumb-mcp@latest rhumb-mcp`;
     }
 
     function setStepCircle(circleEl, completed) {

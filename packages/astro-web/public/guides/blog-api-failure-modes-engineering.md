@@ -10,7 +10,7 @@ When a human developer hits a 401 Unauthorized, they stop. They read the error. 
 
 When an agent hits the same 401, it keeps going — or freezes entirely — depending on whether you built containment logic. If you didn't, the failure propagates. Other agents in the fleet are calling the same API with the same stale token. Jobs are silently skipped. Audit logs show "success" on requests that never executed.
 
-This is the failure engineering problem. And it's why — after scoring 999 services across 20 dimensions — we've come to believe that **how an API fails matters more than how it performs**.
+This is the failure engineering problem. And it's why — after scoring 1,038 services across 20 dimensions — we've come to believe that **how an API fails matters more than how it performs**.
 
 This is Part 5 of the agent infrastructure series:
 - Part 1: [LLM APIs for AI Agents: Anthropic vs OpenAI vs Google AI](/blog/anthropic-vs-openai-vs-google-ai)
@@ -42,7 +42,7 @@ Auth0's failure is silent: tokens work until they don't, at 60 days, across ever
 
 This is what we mean by failure engineering: understanding not just *if* an API fails, but *how* it fails, *when* you'll know, and *what state you're left in*.
 
-We've mapped six failure categories that cover >95% of the agent-API failures we've seen across 999 scored services.
+We've mapped six failure categories that cover >95% of the agent-API failures we've seen across 1,038 scored services.
 
 ---
 
@@ -335,7 +335,7 @@ Everything connects. This is why the execution dimension carries 70% of AN Score
 
 ---
 
-**Rhumb AN Score** scores 999 services across 20 dimensions. [Find the right APIs for your agent stack →](https://rhumb.dev/leaderboard)
+**Rhumb AN Score** scores 1,038 services across 20 dimensions. [Find the right APIs for your agent stack →](https://rhumb.dev/leaderboard)
 
 ---
 

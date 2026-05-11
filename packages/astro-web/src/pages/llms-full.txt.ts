@@ -62,7 +62,7 @@ and sandbox availability.
 
 ## Programmatic Access
 \`\`\`
-npx rhumb-mcp@latest
+npx -y --package rhumb-mcp@latest rhumb-mcp
 \`\`\`
 Core MCP tools include find_services, get_score, get_alternatives, get_failure_modes, discover_capabilities, resolve_capability, estimate_capability, execute_capability, budget, spend, check_balance, and get_payment_url. The public MCP reference covers all ${PUBLIC_TRUTH.mcpToolsLabel} tools.
 
@@ -112,7 +112,7 @@ Each service has an evidence tier indicating the depth of evaluation:
 ## Links
 - Website: https://rhumb.dev
 - GitHub: https://github.com/supertrained/rhumb
-- MCP: npx rhumb-mcp@latest
+- MCP: npx -y --package rhumb-mcp@latest rhumb-mcp
 - Public agent capabilities: ${PUBLIC_TRUTH.publicAgentCapabilitiesUrl}
 - Twitter: https://x.com/pedrorhumb
 `;
