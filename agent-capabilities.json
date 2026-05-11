@@ -4,7 +4,7 @@
   "description": "Agent gateway for research, extraction, generation, and narrow enrichment: Rhumb Index scores and compares services; Rhumb Resolve routes supported capability calls through governed execution rails with receipts.",
   "homepage": "https://rhumb.dev",
   "api_base": "https://api.rhumb.dev/v1",
-  "mcp_install": "npx rhumb-mcp@latest",
+  "mcp_install": "npx -y --package rhumb-mcp@latest rhumb-mcp",
   "npm_package": "rhumb-mcp",
   "auth": {
     "discovery": "none",
@@ -16,7 +16,7 @@
   },
   "capabilities": {
     "discovery": {
-      "description": "Search, score, and evaluate 999 services across 50+ domains",
+      "description": "Search, score, and evaluate 1,038 services across 50+ domains",
       "auth_required": false,
       "tools": [
         {

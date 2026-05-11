@@ -1,12 +1,12 @@
 export const PUBLIC_TRUTH = {
-  services: 999,
-  servicesLabel: "999",
-  capabilities: 435,
-  capabilitiesLabel: "435",
+  services: 1038,
+  servicesLabel: "1,038",
+  capabilities: 415,
+  capabilitiesLabel: "415",
   categories: 92,
   categoriesLabel: "92",
-  callableProviders: 18,
-  callableProvidersLabel: "18",
+  callableProviders: 16,
+  callableProvidersLabel: "16",
   mcpTools: 21,
   mcpToolsLabel: "21",
   domainsLabel: "50+",
@@ -33,7 +33,7 @@ export const PUBLIC_TRUTH = {
   privateDisputeMailto: "mailto:providers@supertrained.ai?subject=Score%20Dispute",
   disputeResponseSlaBusinessDays: 5,
   catalogRealitySummary:
-    "Discovery breadth: 999 scored services and 435 capability definitions. Current runtime-callable surface: 18 callable providers, strongest today for research, extraction, generation, and narrow enrichment.",
+    "Discovery breadth: 1,038 scored services and 415 capability definitions. Current runtime-callable surface: 16 callable providers, strongest today for research, extraction, generation, and narrow enrichment.",
   callableRealitySummary:
     "Not every service or capability in the index is executable through Rhumb today. Discovery breadth is wider than current callable coverage.",
   routingPrinciple: "Route by supported capability, runtime factors, and explicit constraints — not leaderboard purity.",

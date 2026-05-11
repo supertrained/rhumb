@@ -11,22 +11,22 @@ Rhumb is an agent gateway: Rhumb Index scores and compares services; Rhumb Resol
 ## Primary surfaces
 - Website: https://rhumb.dev
 - API: https://api.rhumb.dev/v1
-- MCP: npx rhumb-mcp@latest
+- MCP: npx -y --package rhumb-mcp@latest rhumb-mcp
 - npm: https://www.npmjs.com/package/rhumb-mcp
 
 ## Current coverage
-- 999 scored services across 50+ domains
-- 435 capability definitions
+- 1,038 scored services across 50+ domains
+- 415 capability definitions
 - 92 categories
-- 18 callable providers
+- 16 callable providers
 - 21 MCP tools
 - 3 execution rails: governed API key, wallet-prefund, x402 / USDC
 - 2 operator-controlled credential modes where supported: BYOK, Agent Vault
 
 ## Honest current state
 - Discovery breadth is wider than execution breadth
-- The index covers 999 scored services and 435 capability definitions
-- Current governed execution surface is 18 callable providers
+- The index covers 1,038 scored services and 415 capability definitions
+- Current governed execution surface is 16 callable providers
 - Best current fit remains research, extraction, generation, and narrow enrichment
 
 ## Discovery (no auth)

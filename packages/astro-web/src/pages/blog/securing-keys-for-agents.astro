@@ -90,7 +90,7 @@ export STRIPE_API_KEY=sk_live_...
       "command": "npx",
       "args": ["rhumb-mcp@latest"],
       "env": {
-        "RHUMB_API_KEY": "rhumb_live_..."
+        "RHUMB_API_KEY": "rhumb_..."
       }
     }
   }
@@ -108,7 +108,7 @@ Rhumb holds the service credential and delivers the capability. You never touch 
 \`\`\`bash
 # You call Rhumb. Rhumb calls the service.
 curl -X POST https://api.rhumb.dev/v1/capabilities/email.send/execute \\
-  -H "X-Rhumb-Key: rhumb_live_..." \\
+  -H "X-Rhumb-Key: rhumb_..." \\
   -d '{"to": "user@example.com", "subject": "Hello"}'
 \`\`\`
 
@@ -172,7 +172,7 @@ Not all storage is equal. Here's the ranking from most to least secure:
 
 \`\`\`bash
 # Store
-security add-generic-password -a "rhumb" -s "RHUMB_API_KEY" -w "rhumb_live_..."
+security add-generic-password -a "rhumb" -s "RHUMB_API_KEY" -w "rhumb_..."
 
 # Retrieve at runtime
 RHUMB_API_KEY=$(security find-generic-password -a "rhumb" -s "RHUMB_API_KEY" -w)
@@ -182,7 +182,7 @@ RHUMB_API_KEY=$(security find-generic-password -a "rhumb" -s "RHUMB_API_KEY" -w)
 
 \`\`\`dockerfile
 # Don't bake keys into images. Pass at runtime.
-docker run -e RHUMB_API_KEY=rhumb_live_... my-agent
+docker run -e RHUMB_API_KEY=rhumb_... my-agent
 \`\`\`
 
 ## What we protect against (and what we don't)

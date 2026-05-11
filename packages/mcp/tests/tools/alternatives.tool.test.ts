@@ -127,6 +127,32 @@ function createErrorClient(): RhumbApiClient {
 // ---------------------------------------------------------------------------
 
 describe("get_alternatives handler", () => {
+  it("prefers indexed service-detail alternatives when REST already has them", async () => {
+    const client = {
+      ...createMockClient(),
+      getServiceAlternatives: vi.fn().mockResolvedValue([
+        {
+          name: "Postmark",
+          slug: "postmark",
+          aggregateScore: 89,
+          reason: "Alternative from Rhumb service-detail index, ranked by AN Score"
+        },
+        {
+          name: "Resend",
+          slug: "resend",
+          aggregateScore: 88,
+          reason: "Alternative from Rhumb service-detail index, ranked by AN Score"
+        }
+      ])
+    };
+
+    const result = await handleGetAlternatives({ slug: "sendgrid" }, client);
+
+    expect(client.getServiceAlternatives).toHaveBeenCalledWith("sendgrid");
+    expect(client.getServiceScore).not.toHaveBeenCalled();
+    expect(result.alternatives.map((a) => a.slug)).toEqual(["postmark", "resend"]);
+  });
+
   it("returns alternatives ranked by aggregateScore descending", async () => {
     const client = createMockClient();
     const result = await handleGetAlternatives({ slug: "sendgrid" }, client);

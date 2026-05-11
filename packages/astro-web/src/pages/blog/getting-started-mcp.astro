@@ -148,7 +148,7 @@ const frameworks: Framework[] = [
   "mcpServers": {
     "rhumb": {
       "command": "npx",
-      "args": ["rhumb-mcp@latest"]
+      "args": ["-y", "--package", "rhumb-mcp@latest", "rhumb-mcp"]
     }
   }
 }`,
@@ -160,7 +160,7 @@ const frameworks: Framework[] = [
   "mcpServers": {
     "rhumb": {
       "command": "npx",
-      "args": ["rhumb-mcp@latest"]
+      "args": ["-y", "--package", "rhumb-mcp@latest", "rhumb-mcp"]
     }
   }
 }`,
@@ -168,7 +168,7 @@ const frameworks: Framework[] = [
   },
   {
     name: "Direct stdio (any framework)",
-    config: `npx rhumb-mcp@latest`,
+    config: `npx -y --package rhumb-mcp@latest rhumb-mcp`,
     note: "The server speaks MCP over stdio. Pipe it into any MCP-compatible client: LangChain MCP Adapters, CrewAI, AutoGen, or custom implementations.",
   },
 ];
@@ -228,7 +228,7 @@ const frameworks: Framework[] = [
             <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/8 p-5">
               <div class="text-xs font-mono text-slate-500 uppercase tracking-wider mb-3">Install</div>
               <code class="block text-xl sm:text-2xl font-mono text-emerald-400 font-semibold">
-                npx rhumb-mcp@latest
+                npx -y --package rhumb-mcp@latest rhumb-mcp
               </code>
               <p class="mt-3 text-sm text-slate-400">
                 No governed API key required for discovery and scoring. Add to any MCP-compatible client.

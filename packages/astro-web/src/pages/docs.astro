@@ -241,7 +241,7 @@ Other recovery cases reuse the same recovery_hint shape with a different reason.
     path: "/v1/capabilities/{capability_id}/execute",
     desc: "Execute through Rhumb with the live execution rail returned by resolve: governed API key, wallet-prefund, or x402 per-call where supported. Some providers also support provider-controlled paths through BYOK or Agent Vault.",
     curl: `curl -X POST "${BASE_URL}/capabilities/email.send/execute" \\
-  -H "X-Rhumb-Key: rhumb_live_..." \\
+  -H "X-Rhumb-Key: rhumb_..." \\
   -H "Content-Type: application/json" \\
   -d '{"body": {"to": "user@example.com", "subject": "Hello", "body": "Hi from Rhumb"}}'`,
     response: `{
@@ -623,7 +623,7 @@ POST /v1/capabilities/{capability_id}/execute   # with X-Rhumb-Key`}</code></pre
 
         <div class="bg-surface border border-slate-800 rounded-xl p-5 mb-6">
           <span class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Install & run</span>
-          <pre class="mt-3 text-sm font-mono text-slate-300 overflow-x-auto"><code>{`RHUMB_API_BASE_URL="${BASE_URL}" npx rhumb-mcp@latest`}</code></pre>
+          <pre class="mt-3 text-sm font-mono text-slate-300 overflow-x-auto"><code>{`RHUMB_API_BASE_URL="${BASE_URL}" npx -y --package rhumb-mcp@latest rhumb-mcp`}</code></pre>
         </div>
 
         <h3 class="font-display font-semibold text-lg text-slate-200 mb-4">Available tools</h3>

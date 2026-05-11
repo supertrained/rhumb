@@ -21,6 +21,11 @@ export async function handleGetAlternatives(
   client: RhumbApiClient
 ): Promise<GetAlternativesOutput> {
   try {
+    const indexedAlternatives = await client.getServiceAlternatives?.(input.slug);
+    if (indexedAlternatives && indexedAlternatives.length > 0) {
+      return { alternatives: indexedAlternatives };
+    }
+
     const score = await client.getServiceScore(input.slug);
     if (!score) return { alternatives: [] };
 

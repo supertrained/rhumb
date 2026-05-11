@@ -365,9 +365,17 @@ export interface AgentCredentialReadinessResult {
   totalCapabilities: number;
 }
 
+export interface ServiceAlternativeItem {
+  name: string;
+  slug: string;
+  aggregateScore: number | null;
+  reason: string;
+}
+
 export interface RhumbApiClient {
   searchServices(query: string): Promise<ServiceSearchItem[]>;
   getServiceScore(slug: string): Promise<ServiceScoreItem | null>;
+  getServiceAlternatives?(slug: string): Promise<ServiceAlternativeItem[]>;
   discoverCapabilities(opts: { domain?: string; search?: string; limit?: number }): Promise<{ items: CapabilitySearchItem[]; total: number }>;
   resolveCapability(capabilityId: string, opts?: {
     credentialMode?: string;
@@ -680,6 +688,30 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         failureModes,
         tags: [...tagSet]
       };
+    },
+
+    async getServiceAlternatives(slug: string): Promise<ServiceAlternativeItem[]> {
+      const url = `${base}/services/${encodeURIComponent(slug)}`;
+      const res = await fetch(url, { headers: defaultHeaders });
+
+      if (!res.ok) {
+        if (res.status === 404) return [];
+        throw new Error(`API returned ${res.status}`);
+      }
+
+      const payload: unknown = await res.json();
+      const data = isRecord(payload) && isRecord(payload.data) ? payload.data : null;
+      if (!data || !Array.isArray(data.alternatives)) return [];
+
+      return data.alternatives
+        .filter((item: unknown): item is Record<string, unknown> => isRecord(item))
+        .map((item) => ({
+          name: asString(item.name) ?? asString(item.slug) ?? "unknown",
+          slug: asString(item.slug) ?? "unknown",
+          aggregateScore: asNumber(item.an_score) ?? asNumber(item.score),
+          reason: "Alternative from Rhumb service-detail index, ranked by AN Score"
+        }))
+        .filter((item) => item.slug !== "unknown" && item.slug !== slug);
     },
 
     async discoverCapabilities(opts: { domain?: string; search?: string; limit?: number }): Promise<{ items: CapabilitySearchItem[]; total: number }> {

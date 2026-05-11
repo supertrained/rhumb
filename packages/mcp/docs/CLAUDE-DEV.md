@@ -90,7 +90,7 @@ Once configured, you can invoke Rhumb tools directly from Claude:
 
 > "Find the best email delivery APIs for my agent"
 
-Claude will call `find_tools` with your query and return AN Score–ranked results:
+Claude will call `find_services` with your query and return AN Score–ranked results:
 
 ```
 Tools found:

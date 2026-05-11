@@ -16,7 +16,7 @@ Use x402 only when zero-signup per-call payment is the point. For repeat traffic
 ## Install
 
 ```bash
-npx rhumb-mcp@latest
+npx -y --package rhumb-mcp@latest rhumb-mcp
 ```
 
 Zero config. Discovery tools work immediately.
