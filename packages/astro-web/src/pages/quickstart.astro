@@ -470,12 +470,24 @@ curl -X POST "${API}/capabilities/email.send/execute" \\
 }`}</code></pre>
         </div>
 
+        <div class="bg-surface border border-slate-800 rounded-lg p-5 mb-6">
+          <p class="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2">MCP first-run smoke test</p>
+          <p class="text-sm text-slate-400 leading-6 mb-4">
+            After the server appears in your client, run one service-discovery read and one Resolve preflight. That proves the install path, the scored-service surface, and the current capability route without assuming execution is ready.
+          </p>
+          <pre class="text-sm font-mono text-slate-300 overflow-x-auto"><code>{`find_services({"query":"web search"})
+resolve_capability({"capability":"search.query","credential_mode":"rhumb_managed"})
+estimate_capability({"capability":"search.query","credential_mode":"rhumb_managed"})`}</code></pre>
+        </div>
+
         <p class="text-slate-400 text-sm">
-          {PUBLIC_TRUTH.mcpToolsLabel} tools available: <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">find_services</code>, 
+          {PUBLIC_TRUTH.mcpToolsLabel} tools available. Use <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">find_services</code>, 
           <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">get_score</code>, 
-          <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">get_alternatives</code>, 
-          <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">get_failure_modes</code>, 
-          <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">execute_capability</code>, and more.
+          <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">get_alternatives</code>, and
+          <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">get_failure_modes</code> for free discovery/evaluation; use
+          <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">resolve_capability</code>,
+          <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">estimate_capability</code>, and
+          <code class="bg-elevated px-1 py-0.5 rounded text-amber text-xs">execute_capability</code> only after the agent has a specific capability route.
           <a href="/blog/getting-started-mcp" class="text-amber hover:underline ml-1">Full MCP guide →</a>
         </p>
       </section>
