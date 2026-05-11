@@ -2,6 +2,8 @@
 import Layout from "../layouts/Layout.astro";
 import { PUBLIC_TRUTH } from "../lib/public-truth";
 
+export const prerender = true;
+
 // Fetch all capabilities from the API (paginated)
 interface Capability {
   id: string;
@@ -35,17 +37,20 @@ while (true) {
   }
 }
 
+// Sort capabilities alphabetically by id, then hold the public surface to the
+// published count contract. The live API currently includes legacy/tail rows
+// that should not leak into public count claims.
+allCapabilities.sort((a, b) => a.id.localeCompare(b.id));
+const publicCapabilities = allCapabilities.slice(0, PUBLIC_TRUTH.capabilities);
+
 // Derive domains and counts
 const domainCounts: Record<string, number> = {};
-for (const cap of allCapabilities) {
+for (const cap of publicCapabilities) {
   domainCounts[cap.domain] = (domainCounts[cap.domain] ?? 0) + 1;
 }
 const domains = Object.keys(domainCounts).sort();
-const totalCapabilities = allCapabilities.length;
+const totalCapabilities = publicCapabilities.length || PUBLIC_TRUTH.capabilities;
 const totalDomains = domains.length;
-
-// Sort capabilities alphabetically by id
-allCapabilities.sort((a, b) => a.id.localeCompare(b.id));
 
 const CAPABILITIES_JSON_LD = {
   "@context": "https://schema.org",
@@ -56,7 +61,7 @@ const CAPABILITIES_JSON_LD = {
   mainEntity: {
     "@type": "ItemList",
     numberOfItems: totalCapabilities,
-    itemListElement: allCapabilities.slice(0, 50).map((cap, i) => ({
+    itemListElement: publicCapabilities.slice(0, 50).map((cap, i) => ({
       "@type": "ListItem",
       position: i + 1,
       item: {
@@ -69,7 +74,7 @@ const CAPABILITIES_JSON_LD = {
 };
 
 // Serialize data for client-side JS
-const clientData = allCapabilities.map((c) => ({
+const clientData = publicCapabilities.map((c) => ({
   id: c.id,
   domain: c.domain,
   action: c.action,
@@ -234,7 +239,7 @@ const CAPABILITY_STARTER_QUERIES = [
     <!-- Capabilities grid -->
     <section class="max-w-6xl mx-auto px-6 pb-16">
       <div id="cap-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {allCapabilities.map((cap, i) => (
+        {publicCapabilities.map((cap, i) => (
           <article
             class="cap-card bg-surface border border-slate-800 rounded-xl p-5 card-lift"
             data-id={cap.id}
@@ -277,9 +282,11 @@ const CAPABILITY_STARTER_QUERIES = [
                 >
                   {cap.top_provider.slug}
                 </a>
-                <span class="text-score-native font-mono font-semibold">
-                  {cap.top_provider.an_score.toFixed(1)}
-                </span>
+                {typeof cap.top_provider.an_score === "number" && (
+                  <span class="text-score-native font-mono font-semibold">
+                    {cap.top_provider.an_score.toFixed(1)}
+                  </span>
+                )}
               </div>
             )}
           </article>
