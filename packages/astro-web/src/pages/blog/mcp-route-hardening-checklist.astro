@@ -11,6 +11,24 @@ const ROUTE_CARD_FIELDS = [
   "Evidence: receipt fields, trace identifiers, policy bundle, estimate, denial code, and post-call resource proof.",
 ];
 
+const ROUTE_CARD_TEMPLATE = [
+  "Route name / MCP tool call:",
+  "Why it must repeat:",
+  "Allowed input lane:",
+  "Denied neighbor that must fail closed:",
+  "Caller / tenant / workspace:",
+  "Credential lane / backend principal:",
+  "Budget or quota owner:",
+  "Expected repeat volume / retry ceiling:",
+  "Receipt fields or typed denial I would trust:",
+  "Current blocker: auth, permission scope, tenant bleed, quota burn, retry safety, receipt proof, or other:",
+  "Source: e007-mcp-route-hardening",
+];
+
+const ROUTE_CARD_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURIComponent(
+  "Rhumb MCP route hardening fit check"
+)}&body=${encodeURIComponent(ROUTE_CARD_TEMPLATE.join("\n"))}`;
+
 const HARDENING_STEPS = [
   {
     label: "1",
@@ -52,7 +70,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Route Hardening Checklist: Make One Tool Call Safe Enough to Repeat",
   datePublished: "2026-05-10T08:30:00Z",
-  dateModified: "2026-05-11T02:25:00Z",
+  dateModified: "2026-05-11T08:25:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A production checklist for hardening one MCP route before repeated agent execution: route card, unsafe neighbor, authority lane, budget ceiling, and receipt evidence.",
@@ -142,6 +160,15 @@ const ARTICLE_JSON_LD = {
           </ul>
         </div>
 
+        <h2 class="mb-4 mt-12 font-display text-2xl font-bold tracking-tight text-slate-100">Copy-paste route card</h2>
+        <p class="mb-4 leading-relaxed text-slate-400">
+          If the route is real, do not send a paragraph about the server. Send the card. Empty fields are useful too: they tell you exactly why the route is not ready for repeated agent execution.
+        </p>
+        <div class="mb-10 overflow-hidden rounded-[28px] border border-amber/20 bg-navy/80">
+          <div class="border-b border-slate-800 px-5 py-3 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">Route hardening request template</div>
+          <pre class="overflow-x-auto p-5 text-sm leading-relaxed text-slate-300"><code>{ROUTE_CARD_TEMPLATE.join("\n")}</code></pre>
+        </div>
+
         <h2 class="mb-4 mt-12 font-display text-2xl font-bold tracking-tight text-slate-100">The five-step MCP route hardening checklist</h2>
         <div class="mb-10 space-y-4">
           {HARDENING_STEPS.map((step) => (
@@ -196,7 +223,7 @@ const ARTICLE_JSON_LD = {
             If you have a route that is close to useful but too risky to let an agent repeat, send the route card. The useful request names the route, unsafe neighbor, credential or budget owner, repeat volume, and receipt or typed denial you would trust.
           </p>
           <div class="flex flex-wrap gap-3">
-            <a href="mailto:team@getsupertrained.com?subject=Rhumb%20MCP%20route%20hardening%20fit%20check&body=MCP%20route%20or%20tool%20call%3A%0AUnsafe%20neighbor%20that%20must%20fail%3A%0ACredential%20lane%20and%20budget%20owner%3A%0ARepeat%20volume%20or%20agent%20loop%3A%0AReceipt%20or%20typed%20denial%20I%20would%20trust%3A%0ASource%3A%20e007-mcp-route-hardening" class="inline-flex rounded-xl bg-emerald-400 px-4 py-3 font-display text-sm font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
+            <a href={ROUTE_CARD_MAILTO} class="inline-flex rounded-xl bg-emerald-400 px-4 py-3 font-display text-sm font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
               Send one route to harden
             </a>
             <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=mcp-route-hardening-checklist" class="inline-flex rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 transition-colors duration-200 hover:border-emerald-400/50 hover:text-slate-100">
