@@ -52,7 +52,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Route Hardening Checklist: Make One Tool Call Safe Enough to Repeat",
   datePublished: "2026-05-10T08:30:00Z",
-  dateModified: "2026-05-10T08:30:00Z",
+  dateModified: "2026-05-11T02:25:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A production checklist for hardening one MCP route before repeated agent execution: route card, unsafe neighbor, authority lane, budget ceiling, and receipt evidence.",
@@ -126,6 +126,9 @@ const ARTICLE_JSON_LD = {
           The current MCP production conversation keeps clustering around the same problems: unconstrained string parameters, remote-hosted authority ambiguity, shared credentials, tenant bleed, quota burn, generic denials, and receipts that arrive too late to prove the route should have executed.
         </p>
         <p class="mb-4 leading-relaxed text-slate-400">
+          Remote MCP auth launches make the same checklist more important, not less. OAuth, connector install, or gateway admission proves the front door works; the route card proves which authenticated client, tenant, visible tool slice, backend credential, quota owner, denied neighbor, and receipt standard survived after login.
+        </p>
+        <p class="mb-4 leading-relaxed text-slate-400">
           Those are not independent issues. They are symptoms of one missing artifact: a route card that turns a tool call from a demo into a bounded production lane.
         </p>
         <p class="mb-4 leading-relaxed text-slate-400">
@@ -179,6 +182,10 @@ const ARTICLE_JSON_LD = {
           <div class="rounded-2xl border border-slate-800 bg-navy/60 p-5">
             <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">CRM / ticket write</div>
             <p class="text-sm leading-relaxed text-slate-300">Allowed: create a support note on a named account. Denied neighbor: sibling tenant, owner reassignment, bulk export, or deletion. Proof: tenant binding, provider resource id, idempotency key, and side-effect receipt.</p>
+          </div>
+          <div class="rounded-2xl border border-slate-800 bg-navy/60 p-5 md:col-span-2">
+            <div class="mb-2 text-[11px] font-mono uppercase tracking-[0.22em] text-slate-500">Remote auth / connector</div>
+            <p class="text-sm leading-relaxed text-slate-300">Allowed: one authenticated client runs one tenant-scoped tool after manifest filtering. Denied neighbor: the same token trying a sibling tenant, hidden tool, broader backend credential, or unowned quota bucket. Proof: client id, tenant/workspace, visible tool slice, credential lane, budget owner, typed denial, and receipt trace.</p>
           </div>
         </div>
 
