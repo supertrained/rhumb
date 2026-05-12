@@ -5,12 +5,12 @@ import Layout from "../../layouts/Layout.astro";
 const LIVE_AUDIT_CLUSTER = [
   "Unconstrained string parameters mean the prompt is still doing policy work the server should have enforced.",
   "Filesystem tools need path normalization plus explicit allowlisted prefixes, not just a `path` field that looks typed.",
-  "Browser and fetch-style tools need domain and egress guards so indirect prompt injection cannot quietly become SSRF or sandbox escape.",
+  "Browser and fetch-style tools need domain and egress guards so indirect prompt injection cannot quietly become SSRF, cloud metadata access, or sandbox escape.",
   "The useful denial is a typed refusal with preserved context, not a vague runtime error that hides whether scope control actually fired.",
 ];
 
 const SCRAPING_CATALOG_GUARDS = [
-  "Bind each scraping tool to explicit target-domain, egress, robots/compliance, and data-use policy before it reaches a live URL.",
+  "Bind each fetch or scraping tool to explicit target-domain, DNS/IP egress, robots/compliance, and data-use policy before it reaches a live URL.",
   "Keep extract, crawl, browser, screenshot, and search tools in separate permission lanes instead of one generic web-access authority.",
   "Attribute quota and provider spend per target lane so a broad scraping catalog cannot hide which caller burned the shared budget.",
   "Return typed denials for blocked domains, cross-tenant jobs, over-budget crawls, and disallowed extraction outputs instead of retryable transport errors.",
@@ -19,13 +19,13 @@ const SCRAPING_CATALOG_GUARDS = [
 const PRICING_BOUNDARY_CHECKS = [
   "Prompt-injection probes, out-of-scope fixtures, path normalization, and egress checks are free proof work until one callable lane survives.",
   "The paid route starts only after the accepted lane names caller, capability id, credential mode, quota owner, side-effect class, estimate, and receipt evidence.",
-  "Traversal attempts, blocked hosts, cross-tenant IDs, empty allowlists, and missing audit context should stop as typed no-call outcomes instead of billable broad retries.",
+  "Traversal attempts, blocked hosts, cloud-metadata URLs, cross-tenant IDs, empty allowlists, and missing audit context should stop as typed no-call outcomes instead of billable broad retries.",
 ];
 
 const REQUEST_FIRST_PROBE = [
   "The exact MCP route or tool call you would put behind an agent if the boundary were boring enough to trust.",
   "For SSH or remote-command MCP, the named host, user, runbook or command allowlist, working directory, timeout, PTY/session policy, rollback path, and environment-access rule.",
-  "The one unsafe neighbor that must fail closed: path, repo, tenant, URL, customer, amount, or write target.",
+  "The one unsafe neighbor that must fail closed: path, repo, tenant, URL, cloud-metadata address, customer, amount, or write target.",
   "The credential lane and budget owner that should be preserved if the call repeats.",
   "The receipt or typed denial that would make you comfortable paying for the first governed execution.",
 ];
@@ -35,7 +35,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-10T04:16:00-07:00",
+  dateModified: "2026-05-12T01:16:00-07:00",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Prompt injection hits harder in MCP when tools expose unconstrained parameters and the server leaves the blast radius wide open.",
@@ -70,7 +70,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 7, 2026</span>
+          <span class="text-slate-600">Updated May 12, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">7 min read</span>
         </div>
@@ -152,6 +152,19 @@ const ARTICLE_JSON_LD = {
             <li>Fail closed when the normalized value falls outside that scope, even if it matches the tool schema.</li>
             <li>Return a typed policy denial that preserves the caller, tool, raw value, normalized value, and rule that blocked execution.</li>
             <li>Trace the refusal as an expected safety outcome, not as a generic runtime error the agent may retry around.</li>
+          </ul>
+        </div>
+
+        <div class="my-8 rounded-[28px] border border-red-500/20 bg-red-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-red-300 mb-3">Fetch SSRF denied-neighbor test</div>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">A URL tool has to deny cloud metadata before the model can fetch.</h3>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            The fresh MCP fetch finding makes the scope problem concrete: an agent-controlled <code class="rounded bg-slate-950/70 px-1.5 py-0.5 text-xs text-red-200">url</code> parameter can become credential exfiltration when the server resolves link-local cloud metadata, loopback, RFC 1918, or in-cluster service addresses. Host-level IMDS settings help, but the MCP package still needs a default-deny network boundary before it calls the HTTP client.
+          </p>
+          <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+            <li>Allow only the schemes and domains the workflow needs; do not treat arbitrary <code class="rounded bg-slate-950/70 px-1.5 py-0.5 text-xs text-red-200">http(s)</code> URLs as safe just because the schema accepts strings.</li>
+            <li>Resolve DNS before fetch and reject link-local metadata, loopback, RFC 1918, current-network, IPv6 ULA, and in-cluster service ranges unless the route card explicitly opts into an internal lane.</li>
+            <li>Record raw URL, normalized host, resolved IP class, policy rule, credential lane, and typed denial so the agent cannot retry the same prompt through a broader web tool.</li>
           </ul>
         </div>
 

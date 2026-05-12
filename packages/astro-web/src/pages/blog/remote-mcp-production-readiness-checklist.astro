@@ -45,6 +45,7 @@ const DEMO_FLAGS = [
   "a self-hosted personal gateway hides several downstream credentials, tenants, and quota owners behind one friendly local endpoint",
   "a gateway is described as the whole control plane even though registry freshness, runtime policy, quota ownership, and provider receipts are invisible",
   "a 40-tool scraping catalog exposes search, crawl, browser, screenshot, and extraction authority without target, egress, quota, and data-use lanes",
+  "a fetch tool accepts arbitrary URLs without denying cloud metadata, loopback, RFC 1918, IPv6 ULA, or in-cluster service addresses before the HTTP request",
   "built-in client tools, sibling MCP servers, or bare tool names can shadow the governed tool namespace",
   "audit trails do not map actions back to principals and scopes",
 ];
@@ -64,7 +65,8 @@ const CHECKLIST = [
   "SSH routes: can the server prove password and private-key auth still bind to a named principal, allowed host set, command/runbook allowlist, safe directory, timeout, PTY policy, and receipt or rollback evidence?",
   "Gateway brokerage: when one self-hosted MCP gateway fronts several providers, does each tool keep its credential lane, tenant scope, quota owner, revocation path, and denied-neighbor trace?",
   "Control-plane split: can the gateway, registry, runtime, and provider receipt each prove the same route decision instead of hiding authority handoff between layers?",
-  "Scraping catalogs: when one server exposes many web-access tools, are target domains, egress, crawl depth, provider quota, output provenance, and data-use limits enforced per lane?",
+  "Scraping catalogs: when one server exposes many web-access tools, are target domains, DNS/IP egress, crawl depth, provider quota, output provenance, and data-use limits enforced per lane?",
+  "Fetch SSRF: can URL tools deny link-local metadata, loopback, private network, IPv6 ULA, and in-cluster service targets before the request leaves the MCP server?",
   "Tool namespace: can the runtime prove it denied built-ins, ambiguous bare names, and sibling server tools that would bypass the intended MCP lane?",
   "Decision lineage: can the operator reconstruct why a risky action was selected, which policy gates ran, and where quarantine or human review would have fired?",
   "Recovery: after partial failure, how does the caller re-verify state?",
@@ -95,7 +97,7 @@ const PROTOCOL_CONTRACT_DRILL = [
 
 const PROMPT_INJECTION_DRILL = [
   "Can filesystem and repo tools prove path normalization plus explicit allowlisted prefixes before any write runs?",
-  "Can browser, fetch, or crawl tools restrict domains and egress so indirect prompt injection does not quietly become SSRF?",
+  "Can browser, fetch, or crawl tools restrict domains and egress so indirect prompt injection does not quietly become SSRF, cloud-metadata access, or internal-service discovery?",
   "If a boundary blocks the action, does the caller get a typed denial instead of a vague runtime error?",
   "Can one blocked or compromised lane be quarantined without widening blast radius to other tenants or shared budgets?",
 ];
@@ -130,9 +132,16 @@ const CONTROL_PLANE_SPLIT_DRILL = [
 
 const SCRAPING_CATALOG_DRILL = [
   "Split search, fetch, crawl, browser, screenshot, and extraction tools into separate caller-visible lanes with their own target, depth, output, and retention rules.",
-  "Require explicit target-domain and egress allowlists before any crawler or browser tool can leave the server boundary.",
+  "Require explicit target-domain and DNS/IP egress allowlists before any crawler, fetch, or browser tool can leave the server boundary.",
   "Attribute provider quota, cache use, extraction cost, and blocked-target denials to the caller and workflow that caused them.",
   "Preserve provenance for extracted outputs so a downstream agent can distinguish allowed source data from scraped material that should not be reused.",
+];
+
+const FETCH_SSRF_DRILL = [
+  "Run the allowed external URL and denied cloud-metadata URL through the same fetch tool, client endpoint, gateway, and retry path.",
+  "Resolve the hostname before request execution and reject link-local metadata, loopback, RFC 1918 private ranges, current-network, IPv6 ULA, and in-cluster service addresses by default.",
+  "Require explicit route-card opt-in for internal service access, with caller, tenant, credential lane, quota owner, target CIDR or host, and review owner named before the exception exists.",
+  "Trace raw URL, normalized host, resolved IP class, policy rule, blocked credential lane, and typed denial so SSRF is visible as a successful control, not a flaky fetch error.",
 ];
 
 const TOOL_NAMESPACE_DRILL = [
@@ -251,7 +260,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "A Production Readiness Checklist for Remote MCP Servers",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-08T11:40:00Z",
+  dateModified: "2026-05-12T08:16:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Remote MCP is not mainly a convenience problem. The production checklist is principal model, scope boundaries, transport and middleware boundaries, tenant isolation, governors, recovery, and auditability.",
@@ -417,7 +426,7 @@ const ARTICLE_JSON_LD = {
                 When people describe prompt injection or indirect instruction risk in remote MCP, the root problem is often not mystical model behavior. It is that the tool surface is too permissive. Broad, underspecified string inputs can turn the wrong plan into filesystem writes, repo changes, browser navigation, or hidden egress with very little friction.
               </p>
               <p>
-                The live issue cluster keeps making that concrete: unconstrained string parameters across official servers, filesystem path traversal, and browser-style tools that can turn indirect instructions into SSRF or sandbox bypass when navigation and egress stay too open. Those are not separate bugs. They are one containment failure showing up in different costumes.
+                The live issue cluster keeps making that concrete: unconstrained string parameters across official servers, filesystem path traversal, and browser-style tools that can turn indirect instructions into SSRF or sandbox bypass when navigation and egress stay too open. The newest fetch-server SSRF report is the same class of failure with cloud metadata in the blast radius: if a hosted MCP server resolves arbitrary URLs without DNS/IP policy, the agent's web fetch can become infrastructure credential access. Those are not separate bugs. They are one containment failure showing up in different costumes.
               </p>
               <p>
                 A stronger tool surface uses typed parameters, narrow enums, path or repo scoping where writes are possible, and clear read versus write separation. The goal is not to remove all risk. It is to make abuse harder by design and authority easier to reason about before execution. In practice, that is a <a href="/blog/tool-level-permission-scoping-mcp" class="text-amber hover:text-amber-200 transition-colors">tool-level permission scoping</a> problem as much as a schema-design problem.
@@ -433,6 +442,17 @@ const ARTICLE_JSON_LD = {
               <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Prompt-injection containment drill</div>
               <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
                 {PROMPT_INJECTION_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-red-500/20 bg-red-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-red-300 mb-3">Fetch SSRF readiness fixture</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                URL-fetching MCP servers need a negative case that is not theoretical: prove the same agent that may fetch an allowed public URL cannot fetch cloud metadata, loopback, private-network, or in-cluster service targets from the host running the server. If that denial is left to prompt instructions, the hosted agent is one indirect instruction away from treating infrastructure credentials as page content.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {FETCH_SSRF_DRILL.map((item) => (
                   <li>{item}</li>
                 ))}
               </ul>

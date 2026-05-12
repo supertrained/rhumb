@@ -7,7 +7,7 @@ const SECURITY_LAYERS = [
     label: "Scope",
     accent: "text-rose-300",
     className: "border-rose-500/20 bg-rose-500/5",
-    description: "Tool parameters must be bounded at execution time (prefix allowlists, typed inputs, write fences).",
+    description: "Tool parameters must be bounded at execution time (prefix allowlists, typed inputs, URL host/IP policy, write fences).",
   },
   {
     label: "Principals",
@@ -31,7 +31,7 @@ const TWO_MINUTE_FIX = [
   },
   {
     title: "Make empty allowlists fail closed",
-    body: "Bound file paths, repo targets, URL hosts, and write destinations with explicit allowlisted prefixes. Empty policy should mean deny-all, not allow-all.",
+    body: "Bound file paths, repo targets, URL hosts/IP ranges, and write destinations with explicit allowlisted prefixes. Empty policy should mean deny-all, not allow-all.",
     link: { href: "/blog/mcp-prompt-injection-scope-constraints", label: "Scope Constraints and Blast Radius" },
   },
   {
@@ -57,7 +57,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Has a Security Model: Scope, Principals, and Evidence",
   datePublished: "2026-04-20T00:00:00Z",
-  dateModified: "2026-05-05T23:15:00Z",
+  dateModified: "2026-05-12T08:16:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "MCP security is not a protocol checkbox. It is bounded tool scope, scoped principals, and post-call evidence that operators can audit.",
@@ -136,7 +136,7 @@ const ARTICLE_JSON_LD = {
         </p>
         <ul class="list-disc list-outside ml-5 mb-4 space-y-1 text-slate-400">
           <li class="leading-relaxed">Constrain filesystem tools to explicit prefixes and resolve paths safely.</li>
-          <li class="leading-relaxed">Constrain network tools to explicit host allowlists, not open URLs.</li>
+          <li class="leading-relaxed">Constrain network tools to explicit host and resolved-IP allowlists, not open URLs.</li>
           <li class="leading-relaxed">Constrain write tools to explicit targets and require typed, schema-validated inputs.</li>
           <li class="leading-relaxed">Make empty allowlists fail closed. A blank policy should not silently mean every network, path, or caller is allowed.</li>
         </ul>
@@ -148,13 +148,26 @@ const ARTICLE_JSON_LD = {
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Negative-case fixture</div>
           <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">A security model should ship both the allowed call and the denied neighbor.</h3>
           <p class="text-slate-300 leading-relaxed mb-4">
-            The fastest way to catch unconstrained parameter drift is to keep a paired test for every high-risk tool: one value that should pass and one adjacent value that must fail. A filesystem read should prove an allowed prefix and reject `../`. A browser or scraping tool should prove an approved host and reject an internal address. A repo tool should prove the intended owner/repo and reject a sibling target outside policy.
+            The fastest way to catch unconstrained parameter drift is to keep a paired test for every high-risk tool: one value that should pass and one adjacent value that must fail. A filesystem read should prove an allowed prefix and reject `../`. A fetch, browser, or scraping tool should prove an approved host and reject cloud metadata, loopback, private-network, and in-cluster service addresses. A repo tool should prove the intended owner/repo and reject a sibling target outside policy.
           </p>
           <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
             <li>Store the raw value, normalized value, caller, tool, endpoint family, and policy rule in the trace.</li>
             <li>Make the denied neighbor a first-class regression test, not a one-time manual audit.</li>
             <li>Run schema and tool-description lint in CI, but fail the fixture if the runtime guardrail does not reject before the tool handler.</li>
             <li>Treat a generic 500, silent retry, or partial execution as a failing security fixture.</li>
+          </ul>
+        </div>
+
+        <div class="my-8 rounded-[28px] border border-red-500/20 bg-red-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-red-300 mb-3">URL fetch authority</div>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">Open fetch is a credential boundary, not just a network helper.</h3>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            A hosted MCP fetch tool that accepts arbitrary URLs can reach more than the public web. Depending on where it runs, link-local metadata, loopback, private subnets, and in-cluster services may expose credentials or internal control surfaces. The safe default is not “the agent probably will not ask for that URL.” The safe default is DNS/IP policy that denies those targets before the HTTP request starts.
+          </p>
+          <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+            <li>Resolve hostnames before fetch and classify the target IP, including redirects and retries.</li>
+            <li>Deny cloud metadata, loopback, RFC 1918, current-network, IPv6 ULA, and service-network targets unless an explicit internal route card exists.</li>
+            <li>Log the blocked credential lane and policy rule so the denial is evidence, not an invisible network failure.</li>
           </ul>
         </div>
 
