@@ -77,6 +77,7 @@ const CHECKLIST = [
   "Do tool outputs stay narrow enough that read access does not become broad environment, secret, or topology exposure?",
   "Do parameter descriptions tell the agent what safe values mean, or are path, env, repo, tenant, and write-target fields semantically blank?",
   "Are path, URL, repository, tenant, environment, and write-target arguments normalized, allowlisted, and denied with a typed policy refusal when they cross scope?",
+  "If a tool fetches, browses, crawls, or proxies URLs, can it prove DNS/IP/redirect policy and deny cloud metadata, loopback, private networks, and internal service names before egress?",
   "What happens on timeout, retry, partial success, or auth expiry?",
   "After the action, can an operator tell who invoked what and what actually happened?",
 ];
@@ -107,6 +108,13 @@ const PARAMETER_SCOPE_DRILL = [
   "Normalize the value first, then compare it against the caller's allowed prefixes, domains, resources, and write lanes before any side effect or external read runs.",
   "Test the denied neighbor: parent directory, adjacent repo, neighboring tenant, disallowed host, broader environment class, or unsafe write target.",
   "A production-ready server should return a typed policy denial with caller, tool, argument, policy rule, and recovery hint instead of retrying, coercing, or hiding the refusal as a generic error.",
+];
+
+const FETCH_EGRESS_DRILL = [
+  "Classify fetch, browser, crawl, and URL-proxy tools as network-egress authority before ranking them as useful content tools.",
+  "Bind the route to normalized target, DNS answers, resolved IP class, redirect chain, scheme, method, credential mode, quota owner, response-size cap, and retry ceiling before the model sees fetched content.",
+  "Test denied neighbors explicitly: cloud metadata, loopback, private ranges, IPv6 local ranges, Kubernetes service names, internal control-plane domains, and redirect chains into any of those destinations.",
+  "Promotion requires typed denial evidence for the unsafe neighbor and trace evidence for the allowed public fetch; hostname-string filtering without DNS/IP proof is not enough.",
 ];
 
 const TOOL_INVOCATION_MAP_DRILL = [
@@ -202,7 +210,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How to Evaluate MCP Servers: Workflow Fit, Trust Class, and Runtime Reality",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-03T20:05:00Z",
+  dateModified: "2026-05-12T20:16:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The right MCP server question is not popularity or tool count. Evaluate workflow fit, trust class, capability shape, auth viability, and runtime behavior before letting a server into an agent loop.",
@@ -423,6 +431,20 @@ const ARTICLE_JSON_LD = {
                 </p>
                 <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
                   {PARAMETER_SCOPE_DRILL.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div class="rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
+                <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300 mb-3">Fetch egress drill</div>
+                <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+                  URL tools are content tools only after egress is denied safely.
+                </h3>
+                <p class="text-slate-300 leading-relaxed mb-4">
+                  The latest fetch-server SSRF issue sharpens the evaluation rule: a URL-shaped argument is not just input text. It can become cloud-metadata access, internal service discovery, credential exposure, or unbounded content ingestion unless the server proves the network destination before the request leaves.
+                </p>
+                <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                  {FETCH_EGRESS_DRILL.map((item) => (
                     <li>{item}</li>
                   ))}
                 </ul>
