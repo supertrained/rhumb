@@ -6,7 +6,7 @@ import { PUBLIC_TRUTH } from "../../lib/public-truth";
 const FAST_ANSWER = [
   "An MCP server is high quality only when it preserves the operator boundary after the model starts using it: narrow discovery, clear authority, typed failures, bounded outputs, and recoverable evidence.",
   "Do not rank servers by stars, tool count, registry presence, or demo magic alone. Those are recall signals. Production quality is proven by allowed/denied fixtures for the caller's real workflow.",
-  "The minimum quality standard is nine checks: workflow fit, trust class, principal, tool scope, parameter scope, network egress, output shape, failure shape, and evidence trail.",
+  "The minimum quality standard is ten checks: workflow fit, trust class, principal, tool scope, parameter scope, filesystem/resource boundary, network egress, output shape, failure shape, and evidence trail.",
   "Schema lint and prompt-level descriptions are useful quality signals, but production trust starts only when the server enforces the same boundary before execution.",
   `Rhumb's public surface separates ${PUBLIC_TRUTH.servicesLabel} scored services and ${PUBLIC_TRUTH.capabilitiesLabel} capability definitions from today's narrower ${PUBLIC_TRUTH.callableProvidersLabel} callable execution surface, because quality evidence and execution authority are different layers.`,
 ];
@@ -41,6 +41,12 @@ const QUALITY_SIGNALS = [
     question: "Are path, URL, repo, tenant, amount, and target fields treated as authorization inputs?",
     proof: "Allowed and denied-neighbor fixtures cover normalized values, policy rules, and typed denials before reads, writes, or external calls run.",
     failure: "A string schema accepts arbitrary paths, hosts, repos, tenants, environment names, or write targets because the selected tool looked legitimate.",
+  },
+  {
+    title: "Filesystem and resource boundary",
+    question: "If the server can read or write files, repos, workspaces, or local resources, what is the smallest reachable scope?",
+    proof: "Filesystem and resource routes record cwd, requested path, canonical path, allowed prefix or repo root, symlink decision, denied sibling, output redaction rule, and typed denials for parent traversal, hidden config, sibling workspaces, host mounts, and write targets outside policy.",
+    failure: "A scanner badge or schema description says the server is reviewed, but the runtime still lets a model turn a legitimate read or write tool into broad host, repo, secret, or customer-data access.",
   },
   {
     title: "Network egress",
@@ -101,7 +107,7 @@ const PROMOTION_FLOW = [
   {
     step: "3",
     title: "Run allowed and denied fixtures",
-    body: "Test the normal path and the nearest unsafe neighbor: adjacent tenant, parent path, blocked host, metadata IP, broader repo, larger amount, hidden tool, or stale resource.",
+    body: "Test the normal path and the nearest unsafe neighbor: adjacent tenant, parent path, symlink escape, host mount, blocked host, metadata IP, broader repo, larger amount, hidden tool, or stale resource.",
   },
   {
     step: "4",
@@ -122,6 +128,7 @@ const SCORECARD = [
   ["Authority", "Caller, tenant, principal, credential, quota owner named", "Install auth treated as runtime authority"],
   ["Discovery", "Caller-visible tools only", "Every possible tool advertised"],
   ["Parameters", "Allowed and denied-neighbor fixtures", "Arbitrary strings after tool selection"],
+  ["Filesystem", "Canonical path, allowed prefix, symlink policy, and denied sibling proof", "Scanner badge or path string after tool selection"],
   ["Network egress", "DNS/IP/redirect policy and metadata-neighbor denials", "Arbitrary URL fetch after tool selection"],
   ["Output", "Typed, bounded, redacted, artifact-aware", "Unbounded context dump"],
   ["Failure", "Retryable, terminal, review, and denial states separated", "Generic error or empty success-like response"],
@@ -132,6 +139,7 @@ const STOP_CONDITIONS = [
   "The server cannot name which caller, tenant, workspace, or provider account is acting.",
   "Tool discovery exposes actions outside the workflow's intended trust class.",
   "High-risk parameters are validated for type but not normalized and checked against caller-specific allowlists.",
+  "Filesystem, repo, or local-resource tools cannot prove canonical path, allowed root, symlink policy, denied sibling, redaction rule, and typed parent-traversal denial with traceable evidence.",
   "Fetch, browser, crawl, or proxy tools cannot deny cloud metadata, loopback, private ranges, IPv6 local ranges, Kubernetes service names, or internal control-plane domains with traceable evidence.",
   "The denied neighbor succeeds, retries, widens scope, or fails with an ambiguous success-like response.",
   "Output can reveal secrets, adjacent resources, customer data, topology, or token-heavy blobs unrelated to the workflow.",
@@ -182,9 +190,9 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Server Quality Signals for Agents: What to Check Before Production",
   description:
-    "A practical quality standard for MCP servers: workflow fit, trust class, authority, tool scope, parameter scope, output shape, failure shape, and evidence before production.",
+    "A practical quality standard for MCP servers: workflow fit, trust class, authority, tool scope, parameter scope, filesystem boundaries, network egress, output shape, failure shape, and evidence before production.",
   datePublished: "2026-05-05T04:20:00-07:00",
-  dateModified: "2026-05-12T13:16:00-07:00",
+  dateModified: "2026-05-12T16:16:00-07:00",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   mainEntityOfPage: "https://rhumb.dev/blog/mcp-server-quality-signals-agents",
@@ -193,7 +201,7 @@ const ARTICLE_JSON_LD = {
 
 <Layout
   title="MCP Server Quality Signals for Agents: What to Check Before Production | Rhumb"
-  description="A practical quality standard for MCP servers: workflow fit, trust class, authority, tool scope, parameter scope, output shape, failure shape, and evidence."
+  description="A practical quality standard for MCP servers: workflow fit, trust class, authority, tool scope, parameter scope, filesystem boundaries, network egress, output shape, failure shape, and evidence."
   canonical="/blog/mcp-server-quality-signals-agents"
   ogTitle="MCP Server Quality Signals for Agents"
   ogDescription="Stars and tool count are recall signals. Production MCP quality needs route cards, authority, denials, bounded output, and receipt evidence."
@@ -256,7 +264,7 @@ const ARTICLE_JSON_LD = {
       <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
         <div class="space-y-14">
           <section>
-            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Eight quality signals that matter in production</h2>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">Ten quality signals that matter in production</h2>
             <p class="mb-6 leading-relaxed text-slate-400">
               Use this as the MCP server quality checklist before promotion from discovery inventory to a trusted route. Each signal should have positive proof, a denied-neighbor fixture, and a known failure mode.
             </p>

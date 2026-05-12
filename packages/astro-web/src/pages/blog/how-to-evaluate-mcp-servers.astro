@@ -77,6 +77,7 @@ const CHECKLIST = [
   "Do tool outputs stay narrow enough that read access does not become broad environment, secret, or topology exposure?",
   "Do parameter descriptions tell the agent what safe values mean, or are path, env, repo, tenant, and write-target fields semantically blank?",
   "Are path, URL, repository, tenant, environment, and write-target arguments normalized, allowlisted, and denied with a typed policy refusal when they cross scope?",
+  "For filesystem and repo tools, can the server prove cwd, canonical path, allowed prefix, symlink handling, denied sibling path, and redacted output before any read or write is promoted?",
   "If a tool fetches, browses, crawls, or proxies URLs, can it prove DNS/IP/redirect policy and deny cloud metadata, loopback, private networks, and internal service names before egress?",
   "What happens on timeout, retry, partial success, or auth expiry?",
   "After the action, can an operator tell who invoked what and what actually happened?",
@@ -108,6 +109,13 @@ const PARAMETER_SCOPE_DRILL = [
   "Normalize the value first, then compare it against the caller's allowed prefixes, domains, resources, and write lanes before any side effect or external read runs.",
   "Test the denied neighbor: parent directory, adjacent repo, neighboring tenant, disallowed host, broader environment class, or unsafe write target.",
   "A production-ready server should return a typed policy denial with caller, tool, argument, policy rule, and recovery hint instead of retrying, coercing, or hiding the refusal as a generic error.",
+];
+
+const FILESYSTEM_PATH_DRILL = [
+  "Classify filesystem, repo, local-resource, and workspace tools as authority over host state before ranking them as convenient context tools.",
+  "Bind the route to cwd, requested path, canonical path, allowed prefix or repo root, symlink policy, operation class, output redaction rule, and write target before the model sees file contents or commit-ready changes.",
+  "Test denied neighbors explicitly: parent traversal, symlink escape, sibling workspace, hidden config directory, customer-data directory, host mount, broader repo, and write path outside the declared lane.",
+  "Promotion requires typed denial evidence for the unsafe neighbor and trace evidence for the allowed read or write; scanner grades and schema descriptions are triage, not runtime containment proof.",
 ];
 
 const FETCH_EGRESS_DRILL = [
@@ -210,7 +218,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "How to Evaluate MCP Servers: Workflow Fit, Trust Class, and Runtime Reality",
   datePublished: "2026-04-14T00:00:00Z",
-  dateModified: "2026-05-12T20:16:00Z",
+  dateModified: "2026-05-12T23:16:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "The right MCP server question is not popularity or tool count. Evaluate workflow fit, trust class, capability shape, auth viability, and runtime behavior before letting a server into an agent loop.",
@@ -431,6 +439,20 @@ const ARTICLE_JSON_LD = {
                 </p>
                 <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
                   {PARAMETER_SCOPE_DRILL.map((item) => (
+                    <li>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div class="rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+                <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300 mb-3">Filesystem path drill</div>
+                <h3 class="font-display font-semibold text-2xl text-slate-100 tracking-tight mb-3">
+                  File tools are context tools only after host access is bounded.
+                </h3>
+                <p class="text-slate-300 leading-relaxed mb-4">
+                  The new scanner-backed filesystem findings are useful triage, but the evaluation question is narrower: can the runtime prove that an allowed file operation and its nearest unsafe path behave differently under the same caller, endpoint, and recovery path?
+                </p>
+                <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                  {FILESYSTEM_PATH_DRILL.map((item) => (
                     <li>{item}</li>
                   ))}
                 </ul>
