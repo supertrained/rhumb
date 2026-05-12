@@ -62,6 +62,10 @@ const TRUST_FILTERS = [
     body: "Inspect, write, execute, or egress. These need to be visible before the model starts reasoning, not after the call is already selected.",
   },
   {
+    title: "Network egress class",
+    body: "Fetch, browser, and crawl tools need resolved-IP, redirect, and destination-class policy before they enter the candidate set. A URL argument can point at public content or cloud metadata with the same semantic label.",
+  },
+  {
     title: "Caller-visible scope",
     body: "Generated manifests and gateway policy layers only count when the runtime actually hides what this principal should not see now. Discovery truth is caller-visible scope, not global inventory plus a promise.",
   },
@@ -71,6 +75,12 @@ const TRUST_FILTERS = [
   },
 ];
 
+
+const EGRESS_DISCOVERY_CHECKS = [
+  "Classify fetch, browser, and crawl candidates as network-egress tools before semantic ranking starts, not as generic read tools.",
+  "Resolve DNS and redirects under policy before promotion: public web targets can rank; cloud metadata, loopback, private ranges, IPv6 ULA, Kubernetes service names, and internal control-plane domains stay hidden or typed-denied.",
+  "Keep allowed-public-fetch and denied-metadata-neighbor fixtures beside the listing so runtime discovery can prove the candidate set did not leak infrastructure routes into the model context.",
+];
 
 const CURATED_REGISTRY_AUDIT = [
   {
@@ -135,7 +145,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful",
   datePublished: "2026-04-12T00:00:00Z",
-  dateModified: "2026-05-08T14:20:00Z",
+  dateModified: "2026-05-12T17:25:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Giant MCP indexes only become useful when trust class, auth shape, side-effect profile, caller visibility, and freshness narrow the pool before ranking.",
@@ -167,7 +177,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="uppercase tracking-widest text-amber">Runtime Discovery</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">Updated April 26, 2026</span>
+          <span class="text-slate-500">Updated May 12, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -316,6 +326,21 @@ const ARTICLE_JSON_LD = {
                   <h3 class="mb-2 font-display text-xl font-semibold tracking-tight text-slate-100">{item.title}</h3>
                   <p class="text-sm leading-relaxed text-slate-400">{item.body}</p>
                 </div>
+              ))}
+            </div>
+          </section>
+
+          <section class="rounded-[28px] border border-red-500/20 bg-red-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-red-300">Fetch discovery boundary</div>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              URL-fetch tools need egress filters before they become candidates
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              The fresh MCP fetch SSRF finding is a runtime-discovery problem, not only an HTTP-client bug. If a marketplace entry or generated manifest exposes a generic fetch tool, the candidate pool has to know whether that tool can reach cloud metadata, loopback, private networks, or in-cluster services before the model ever sees it as an option.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              {EGRESS_DISCOVERY_CHECKS.map((item) => (
+                <div class="rounded-2xl border border-red-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
               ))}
             </div>
           </section>
