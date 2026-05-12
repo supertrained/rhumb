@@ -53,8 +53,16 @@ const FAILURE_MODES = [
 const SCRAPING_PERMISSION_CHECKS = [
   "Does the manifest separate search, fetch, crawl, browser, screenshot, and extract tools by caller intent instead of exposing one large web surface?",
   "Can policy constrain target domains, egress networks, crawl depth, output classes, and data-use rules before the first request leaves the server?",
+  "Does URL fetch resolve DNS and redirects before policy evaluation, denying loopback, link-local metadata, private ranges, IPv6 ULA, and in-cluster service names?",
   "Are quotas attributed by caller, target lane, and upstream scraping provider rather than hidden behind one shared scraping key?",
-  "Do blocked domains, disallowed extraction outputs, and over-budget crawls return typed policy denials with traceable evidence?",
+  "Do blocked domains, disallowed extraction outputs, over-budget crawls, and denied metadata-neighbor fetches return typed policy denials with traceable evidence?",
+];
+
+const FETCH_SSRF_PERMISSION_CHECKS = [
+  "Treat a fetch URL as authority, not content. Policy should bind target host, resolved IP class, redirect chain, scheme, method, max response size, credential mode, and retry ceiling before the request leaves the server.",
+  "Deny cloud metadata, loopback, RFC1918/private ranges, IPv6 local addresses, Kubernetes service names, and internal control-plane domains even when a public-looking hostname redirects there.",
+  "Run the same caller through an allowed public URL and a denied metadata-neighbor URL, then require typed denial evidence before the route becomes repeat-safe.",
+  "Keep browser or crawl fallback out of the same lane unless it inherits the same DNS/IP egress policy, data-use boundary, quota owner, and receipt fields as the narrow fetch tool.",
 ];
 
 const TOOL_NAMESPACE_CHECKS = [
@@ -279,11 +287,22 @@ const ARTICLE_JSON_LD = {
               <p>
                 Treat web access as several permission lanes. A support summarizer may need one approved-domain fetch. A research agent may need bounded search. A compliance workflow may need extraction with provenance and retention limits. Those are different authorities even when the provider SDK sits behind one MCP server.
               </p>
+              <p>
+                Fetch-style tools need an extra network boundary. A URL argument can cross from public content into cloud metadata, loopback, private networks, or in-cluster services after DNS resolution or redirects. If permission checks stop at hostname strings, the tool is still a credential-exposure surface.
+              </p>
             </div>
             <div class="mt-6 rounded-[28px] border border-cyan-500/20 bg-cyan-500/5 p-6">
               <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300">Scraping permission checks</div>
               <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
                 {SCRAPING_PERMISSION_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Fetch SSRF permission checks</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {FETCH_SSRF_PERMISSION_CHECKS.map((item) => (
                   <li>{item}</li>
                 ))}
               </ul>

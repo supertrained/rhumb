@@ -107,6 +107,13 @@ const TRANSPORT_ADAPTER_TRACE_CHECKS = [
   "Diff direct-path and mediated-path traces on authorized reads, denied writes, and timeout recovery before treating a transport upgrade as production readiness.",
 ];
 
+const FETCH_EGRESS_TRACE_CHECKS = [
+  "Trace the originally requested URL, normalized target, DNS answers, resolved IP class, redirect chain, policy bundle, and deny rule before any response body reaches the agent.",
+  "Record explicit typed denials for loopback, link-local metadata, private networks, IPv6 local ranges, in-cluster service names, and blocked redirect targets.",
+  "Attach credential mode, backend principal, tenant, quota owner, response-size cap, retry ceiling, and data-use class to the fetch lane so an allowed call does not look like anonymous web browsing.",
+  "Replay one allowed public fetch and one denied metadata-neighbor fetch after every proxy, DNS, container, or cloud-hosting change before calling the route production-ready.",
+];
+
 const CHAINED_BUG_TRACE_CHECKS = [
   "Give every fix attempt its own trace segment: symptom, hypothesis, changed route, changed prompt or policy, and expected recovery point.",
   "Record the last verified state before the fix and the first newly exposed failure after the fix, so the chain does not collapse into one vague incident.",
@@ -480,6 +487,17 @@ const ARTICLE_JSON_LD = {
               </p>
               <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
                 {TRANSPORT_ADAPTER_TRACE_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Fetch egress trace drill</div>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                URL-fetch incidents should not disappear into generic network logs. The useful trace proves which address class was allowed or denied after DNS and redirects, which credential or tenant could have been exposed, and whether the route stopped before cloud metadata or internal services were reachable.
+              </p>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {FETCH_EGRESS_TRACE_CHECKS.map((item) => (
                   <li>{item}</li>
                 ))}
               </ul>
