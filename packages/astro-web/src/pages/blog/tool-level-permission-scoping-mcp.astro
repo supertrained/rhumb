@@ -65,6 +65,13 @@ const FETCH_SSRF_PERMISSION_CHECKS = [
   "Keep browser or crawl fallback out of the same lane unless it inherits the same DNS/IP egress policy, data-use boundary, quota owner, and receipt fields as the narrow fetch tool.",
 ];
 
+const FILESYSTEM_PATH_PERMISSION_CHECKS = [
+  "Treat every file path as host-state authority. Policy should bind cwd, requested path, canonical path, allowed root, operation class, and redaction rule before read, write, or search tools run.",
+  "Resolve symlinks and parent traversal before policy evaluation; a path that leaves the workspace, repo root, tenant mount, or approved artifact directory should return a typed denial, not a partial listing.",
+  "Rehearse one allowed fixture plus denied sibling workspace, hidden config, parent directory, host mount, and write-outside-root cases under the same principal before promotion.",
+  "Keep built-in Read, Write, Glob, Grep, and shell fallbacks out of the lane unless they emit the same canonical-path proof, denied-neighbor evidence, and receipt fields as the MCP filesystem tool.",
+];
+
 const TOOL_NAMESPACE_CHECKS = [
   "Treat the active tool list as default-deny: enumerate the MCP tools allowed for the workflow and explicitly remove broad built-ins such as Read, Write, Bash, Glob, and Grep when they bypass the governed lane.",
   "Reference tools by fully qualified server namespace, not bare names. Two read_file tools with different schemas are different authorities, even if the label is identical.",
@@ -82,6 +89,7 @@ const SCOPING_CHECKLIST = [
   "Does each caller receive a tool manifest filtered to only the tools it should know about?",
   "Are tool calls checked against role or scope at execution time, not just at connection time?",
   "Are high-risk arguments constrained by policy, or can the model supply arbitrary paths, URLs, repo names, tenants, or write targets?",
+  "For filesystem or repo tools, does policy canonicalize paths, bind allowed roots, resolve symlinks, and deny sibling or parent traversal before the tool sees host state?",
   "Do all endpoints in the MCP family enforce the same authentication and authorization policy, including message, callback, and streaming endpoints?",
   "Are built-in tools, bare tool names, and sibling MCP server tools explicitly denied when they would bypass the governed namespace?",
   "Do empty allowlists fail closed, or does the default accidentally mean allow-all?",
@@ -96,7 +104,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Tool-Level Permission Scoping in MCP: Why Server Authentication Isn't Enough",
   datePublished: "2026-04-04T00:00:00Z",
-  dateModified: "2026-05-06T20:35:00Z",
+  dateModified: "2026-05-13T05:30:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Server authentication and tool authorization are different layers. Production MCP needs caller-scoped manifests, typed denials, and auditable tool boundaries.",
@@ -132,9 +140,9 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 6, 2026</span>
+          <span class="text-slate-600">Updated May 12, 2026</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">9 min read</span>
+          <span class="text-slate-600">10 min read</span>
         </div>
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
@@ -271,8 +279,19 @@ const ARTICLE_JSON_LD = {
                 Treat dangerous arguments as part of tool authorization. The policy layer should bind allowed prefixes, domains, resource IDs, tenant scope, and write destinations before invocation, then reject out-of-lane values with a typed policy denial. That keeps prompt injection from turning a legitimate tool into a generic execution primitive.
               </p>
               <p>
+                Filesystem and repo tools are the cleanest example. A harmless-looking read path can resolve through symlinks, parent traversal, sibling workspaces, hidden config, host mounts, or write targets before the operator realizes the model touched host state instead of a bounded artifact lane.
+              </p>
+              <p>
                 The operator test is simple: can the same principal call the same tool with a safe argument and a dangerous argument, and can the trace prove why one passed and the other failed? If not, the permission model is still too coarse.
               </p>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">Filesystem path permission checks</div>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {FILESYSTEM_PATH_PERMISSION_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
             </div>
           </section>
 

@@ -76,6 +76,7 @@ const OBSERVABILITY_CHECKLIST = [
   "Transport adapter traces record the pre-adapter request shape, post-adapter result shape, typed error mapping, and quota owner before the bridge is trusted as production-ready.",
   "Checkpoints let the caller resume from a known-good state instead of replaying the whole workflow blind.",
   "Each tool or lane has a reversibility or permanence class so rollback strategy is not improvised during an incident.",
+  "Filesystem traces capture canonical path, allowed root, denied neighbor, redaction rule, and operation class before file contents or patches reach the agent.",
 ];
 
 const PRICING_BOUNDARY_PROOFS = [
@@ -112,6 +113,13 @@ const FETCH_EGRESS_TRACE_CHECKS = [
   "Record explicit typed denials for loopback, link-local metadata, private networks, IPv6 local ranges, in-cluster service names, and blocked redirect targets.",
   "Attach credential mode, backend principal, tenant, quota owner, response-size cap, retry ceiling, and data-use class to the fetch lane so an allowed call does not look like anonymous web browsing.",
   "Replay one allowed public fetch and one denied metadata-neighbor fetch after every proxy, DNS, container, or cloud-hosting change before calling the route production-ready.",
+];
+
+const FILESYSTEM_PATH_TRACE_CHECKS = [
+  "Trace requested path, cwd, canonical path, allowed root, symlink resolution, operation class, policy bundle, and redaction rule before file contents or directory listings reach the agent.",
+  "Record typed denials for parent traversal, sibling workspaces, hidden config, host mounts, credential files, and writes outside policy so path failures do not look like generic tool errors.",
+  "Attach principal, tenant or workspace, repo or artifact id, namespace, credential lane, side-effect class, retry safety, and receipt id to every read, write, search, and patch operation.",
+  "Replay one allowed fixture plus denied sibling, parent, symlink, and write-outside-root cases after every container, mount, checkout, or workdir change before calling the route production-ready.",
 ];
 
 const CHAINED_BUG_TRACE_CHECKS = [
@@ -151,7 +159,10 @@ const TOOL_CALL_LOG_SAMPLE = `{
   "timestamp": "2026-04-03T14:32:01Z",
   "auth_mode": "managed",
   "input_summary": {
-    "path": "/workspace/output.txt",
+    "requested_path": "./output.txt",
+    "canonical_path": "/workspace/output.txt",
+    "allowed_root": "/workspace",
+    "operation_class": "write",
     "content_length": 4096
   },
   "outcome": "success",
@@ -230,7 +241,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Observability: Logging, Auditing, and Debugging Agent-Server Interactions in Production",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-08T11:40:00Z",
+  dateModified: "2026-05-13T05:30:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Production MCP observability means principal-aware tool logs, typed errors, mediated-hop attribution, session trails, spend attribution, and checkpoints that make partial failure recoverable.",
@@ -266,9 +277,9 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 8, 2026</span>
+          <span class="text-slate-600">Updated May 12, 2026</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">8 min read</span>
+          <span class="text-slate-600">9 min read</span>
         </div>
 
         <div class="grid gap-8 lg:grid-cols-3 lg:items-start">
@@ -498,6 +509,17 @@ const ARTICLE_JSON_LD = {
               </p>
               <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
                 {FETCH_EGRESS_TRACE_CHECKS.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-violet-500/20 bg-violet-500/5 p-6">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">Filesystem path trace drill</div>
+              <p class="mb-4 leading-relaxed text-slate-300">
+                File-tool incidents should not disappear into generic filesystem logs. The useful trace proves which canonical path was allowed or denied, which root bounded the operation, and whether host state stayed outside the model's reach.
+              </p>
+              <ul class="ml-5 list-disc space-y-2 leading-relaxed text-slate-300">
+                {FILESYSTEM_PATH_TRACE_CHECKS.map((item) => (
                   <li>{item}</li>
                 ))}
               </ul>
