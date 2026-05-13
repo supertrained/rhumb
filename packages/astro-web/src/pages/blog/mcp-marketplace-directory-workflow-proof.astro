@@ -32,6 +32,11 @@ const DIRECTORY_SIGNALS = [
     risk: "A generic fetch listing does not prove DNS, redirect, private-network, cloud-metadata, or credential-lane containment for the host that actually runs it.",
   },
   {
+    label: "Filesystem or repo server",
+    useful: "File and repository tools look high-value because they can give agents immediate context inside a project or workspace.",
+    risk: "A generic filesystem listing does not prove canonical path normalization, allowed roots, symlink handling, sibling-project denial, secret redaction, or write containment for the host that actually runs it.",
+  },
+  {
     label: "Quality score",
     useful: "A score can make the shortlist more legible and expose static weaknesses faster than manual inspection.",
     risk: "Static scoring must stay separate from live execution proof. Scores are the map; failure modes are the production test.",
@@ -46,6 +51,7 @@ const PROOF_FILTERS = [
   "Budget owner: whose quota, contract, wallet, or shared provider limit burns when the agent retries?",
   "Denied neighbor: what adjacent tenant, path, domain, row, amount, network range, or action must fail closed?",
   "Egress policy: can fetch, browser, or crawl tools deny cloud metadata, loopback, private ranges, IPv6 ULA, and in-cluster service names before the request leaves the server?",
+  "Path policy: can filesystem, repo, workspace, or local-resource tools prove canonical path, allowed root, symlink decision, operation class, redaction rule, and denied sibling/parent/host-mount behavior before a file becomes model context?",
   "Freshness: did handshake, auth, schema, and endpoint behavior pass recently enough for an unattended loop?",
   "Receipt: can an operator reconstruct success, denial, retry, cost, provider drift, and recovery after the call?",
 ];
@@ -54,6 +60,12 @@ const FETCH_MARKETPLACE_DRILL = [
   "Do not promote a listed fetch server because it can retrieve a public URL once. Promote it only after the same caller succeeds on an allowed public URL and gets a typed denial for a metadata-neighbor URL.",
   "Record raw URL, normalized host, DNS answers, resolved IP class, redirect chain, credential mode, tenant, quota owner, response-size cap, and retry ceiling as part of the directory proof packet.",
   "If the listing cannot explain whether the hosted server can reach 169.254.169.254, loopback, RFC1918 ranges, IPv6 local addresses, or Kubernetes service names, keep it in review instead of the agent-visible candidate set.",
+];
+
+const FILESYSTEM_MARKETPLACE_DRILL = [
+  "Do not promote a listed filesystem or repo server because it can read one happy-path file. Promote it only after the same caller succeeds on an allowed path and gets typed denials for parent traversal, sibling workspace, hidden config, host mount, and out-of-policy write fixtures.",
+  "Record requested path, canonical path, allowed root or repo prefix, symlink decision, operation class, credential mode, tenant, quota or budget owner, output class, and redaction rule as part of the directory proof packet.",
+  "If the listing cannot explain whether the hosted server can see .env files, SSH keys, adjacent checkouts, parent directories, or mounted host volumes, keep it in review instead of the agent-visible candidate set.",
 ];
 
 const SELECTION_FLOW = [
@@ -146,7 +158,7 @@ const ARTICLE_JSON_LD = {
   headline: "MCP Marketplaces Are Discovery, Not Production Proof",
   description: "A practical guide for using MCP directories and marketplaces without confusing server count, curated listings, or one-click installs with workflow-level execution proof.",
   datePublished: "2026-05-01T22:13:00-07:00",
-  dateModified: "2026-05-12T10:25:00-07:00",
+  dateModified: "2026-05-13T04:25:00-07:00",
   author: { "@type": "Organization", name: "Rhumb" },
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   mainEntityOfPage: "https://rhumb.dev/blog/mcp-marketplace-directory-workflow-proof",
@@ -175,7 +187,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="uppercase tracking-widest text-amber">MCP directories</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">Updated May 12, 2026</span>
+          <span class="text-slate-500">Updated May 13, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -271,6 +283,19 @@ const ARTICLE_JSON_LD = {
             <div class="grid gap-4">
               {FETCH_MARKETPLACE_DRILL.map((item) => (
                 <div class="rounded-2xl border border-red-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+          </section>
+
+          <section class="rounded-[32px] border border-sky-500/20 bg-sky-500/5 p-6 sm:p-8">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Filesystem-server marketplace drill</div>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">A filesystem listing is not ready until the neighboring path fails closed.</h2>
+            <p class="mb-6 leading-relaxed text-slate-300">
+              The fresh MCP filesystem security scans change the marketplace checklist: file, repo, and workspace tools are not harmless local read helpers by default. A hosted or local agent can turn “read this file” into adjacent-project, secret, parent-directory, or host-mount exposure unless the listing carries path-boundary evidence, not just a scan grade or install command.
+            </p>
+            <div class="grid gap-4">
+              {FILESYSTEM_MARKETPLACE_DRILL.map((item) => (
+                <div class="rounded-2xl border border-sky-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
               ))}
             </div>
           </section>

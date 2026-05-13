@@ -66,6 +66,10 @@ const TRUST_FILTERS = [
     body: "Fetch, browser, and crawl tools need resolved-IP, redirect, and destination-class policy before they enter the candidate set. A URL argument can point at public content or cloud metadata with the same semantic label.",
   },
   {
+    title: "Host-state boundary",
+    body: "Filesystem, repo, and workspace tools need canonical path, allowed-root, symlink, operation-class, redaction, and denied-neighbor evidence before they rank. A relevant file tool can still expose the wrong project, secret, or host mount.",
+  },
+  {
     title: "Caller-visible scope",
     body: "Generated manifests and gateway policy layers only count when the runtime actually hides what this principal should not see now. Discovery truth is caller-visible scope, not global inventory plus a promise.",
   },
@@ -80,6 +84,12 @@ const EGRESS_DISCOVERY_CHECKS = [
   "Classify fetch, browser, and crawl candidates as network-egress tools before semantic ranking starts, not as generic read tools.",
   "Resolve DNS and redirects under policy before promotion: public web targets can rank; cloud metadata, loopback, private ranges, IPv6 ULA, Kubernetes service names, and internal control-plane domains stay hidden or typed-denied.",
   "Keep allowed-public-fetch and denied-metadata-neighbor fixtures beside the listing so runtime discovery can prove the candidate set did not leak infrastructure routes into the model context.",
+];
+
+const FILESYSTEM_DISCOVERY_CHECKS = [
+  "Classify filesystem, repo, workspace, and local-resource candidates as host-state authority before semantic ranking starts, not as generic read helpers.",
+  "Normalize the requested path to a canonical path under the caller's allowed root or repo prefix before promotion; parent traversal, sibling workspaces, hidden config, host mounts, and out-of-policy writes stay hidden or typed-denied.",
+  "Keep allowed-read/write and denied-neighbor fixtures beside the listing so runtime discovery can prove the candidate set did not leak neighboring projects or secrets into model context.",
 ];
 
 const CURATED_REGISTRY_AUDIT = [
@@ -145,7 +155,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Runtime MCP Discovery Needs Trust Filters Before Giant Indexes Become Useful",
   datePublished: "2026-04-12T00:00:00Z",
-  dateModified: "2026-05-12T17:25:00Z",
+  dateModified: "2026-05-13T11:25:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Giant MCP indexes only become useful when trust class, auth shape, side-effect profile, caller visibility, and freshness narrow the pool before ranking.",
@@ -177,7 +187,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="uppercase tracking-widest text-amber">Runtime Discovery</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-500">Updated May 12, 2026</span>
+          <span class="text-slate-500">Updated May 13, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
@@ -341,6 +351,21 @@ const ARTICLE_JSON_LD = {
             <div class="grid gap-3 sm:grid-cols-3">
               {EGRESS_DISCOVERY_CHECKS.map((item) => (
                 <div class="rounded-2xl border border-red-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
+              ))}
+            </div>
+          </section>
+
+          <section class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Filesystem discovery boundary</div>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">
+              Filesystem tools need path-boundary proof before they become candidates
+            </h2>
+            <p class="mb-5 leading-relaxed text-slate-300">
+              The fresh MCP filesystem scans are runtime-discovery pressure, not a badge-confidence shortcut. If a marketplace entry or generated manifest exposes repo, file, workspace, or local-resource tools, the candidate pool has to know which roots this caller may touch and which neighboring paths must fail closed before the model sees file contents as usable context.
+            </p>
+            <div class="grid gap-3 sm:grid-cols-3">
+              {FILESYSTEM_DISCOVERY_CHECKS.map((item) => (
+                <div class="rounded-2xl border border-sky-500/20 bg-navy/60 p-4 text-sm leading-6 text-slate-300">{item}</div>
               ))}
             </div>
           </section>
