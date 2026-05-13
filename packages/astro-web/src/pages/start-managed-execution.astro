@@ -30,6 +30,24 @@ const ROUTE_CARD_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURICo
   "Rhumb MCP route hardening fit check"
 )}&body=${encodeURIComponent(ROUTE_CARD_REQUEST_TEMPLATE)}`;
 
+const QUOTE_ROUTE_CARD_TEMPLATE = [
+  "MCP route / tool call I want hardened:",
+  "Why this route is worth paying for if it can repeat safely:",
+  "Allowed lane:",
+  "Unsafe neighbor that must fail closed:",
+  "Caller / tenant / workspace:",
+  "Credential lane / backend principal:",
+  "Budget or quota owner:",
+  "Expected repeat volume / retry ceiling:",
+  "Receipt or typed denial I would trust:",
+  "Current blocker:",
+  "Source: e008-route-hardening-quote-start",
+].join("\n");
+
+const QUOTE_ROUTE_CARD_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURIComponent(
+  "Quote one MCP route hardening lane"
+)}&body=${encodeURIComponent(QUOTE_ROUTE_CARD_TEMPLATE)}`;
+
 const STEPS = [
   {
     title: "1. Start with governed API key",
@@ -251,6 +269,30 @@ const REQUEST_FIRST_BRIEF = [
           </a>
           <a href={ROUTE_CARD_MAILTO} class="px-5 py-3 rounded-xl border border-emerald-400/50 text-sm text-emerald-200 hover:border-emerald-300/80 hover:text-emerald-100 transition-colors duration-200">
             Send route-hardening brief
+          </a>
+          <a href={QUOTE_ROUTE_CARD_MAILTO} class="px-5 py-3 rounded-xl bg-emerald-400 text-navy font-display font-semibold text-sm hover:bg-emerald-300 transition-colors duration-200">
+            Ask Rhumb to quote one route
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-6 pt-12">
+      <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8" data-section="e008-route-hardening-quote">
+        <p class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Experiment E-008</p>
+        <h2 class="max-w-3xl font-display text-2xl font-bold tracking-tight text-slate-100">The paid-intent version is a quote request, not a demo request.</h2>
+        <p class="mt-4 max-w-3xl leading-relaxed text-slate-300">
+          If one MCP route is painful enough to pay for, describe the route card and ask for the lane to be quoted: allowed action, unsafe neighbor, credential owner, budget owner, repeat volume, and proof required. If those fields are still fuzzy, stay in free discovery and hardening checklist mode.
+        </p>
+        <div class="mt-5 flex flex-wrap gap-3">
+          <a href={QUOTE_ROUTE_CARD_MAILTO} class="rounded-xl bg-emerald-400 px-5 py-3 font-display text-sm font-semibold text-navy transition-colors hover:bg-emerald-300">
+            Send quote request
+          </a>
+          <a data-rhumb-propagate href="/pricing?rhumb_experiment=e008&rhumb_source=start-managed-execution-route-quote" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-200 transition-colors hover:border-emerald-400/60 hover:text-slate-100">
+            Review execution pricing boundary
+          </a>
+          <a data-rhumb-propagate href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e008&rhumb_source=start-managed-execution-route-quote" class="rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-200 transition-colors hover:border-amber/50 hover:text-slate-100">
+            Fill the route card first
           </a>
         </div>
       </div>
