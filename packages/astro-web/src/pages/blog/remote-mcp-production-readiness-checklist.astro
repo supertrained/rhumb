@@ -46,6 +46,7 @@ const DEMO_FLAGS = [
   "a gateway is described as the whole control plane even though registry freshness, runtime policy, quota ownership, and provider receipts are invisible",
   "a 40-tool scraping catalog exposes search, crawl, browser, screenshot, and extraction authority without target, egress, quota, and data-use lanes",
   "a fetch tool accepts arbitrary URLs without denying cloud metadata, loopback, RFC 1918, IPv6 ULA, or in-cluster service addresses before the HTTP request",
+  "a filesystem or repo tool accepts a plausible path without proving the canonical path stays under the allowed root after symlinks, cwd changes, and parent traversal are resolved",
   "built-in client tools, sibling MCP servers, or bare tool names can shadow the governed tool namespace",
   "audit trails do not map actions back to principals and scopes",
 ];
@@ -67,6 +68,7 @@ const CHECKLIST = [
   "Control-plane split: can the gateway, registry, runtime, and provider receipt each prove the same route decision instead of hiding authority handoff between layers?",
   "Scraping catalogs: when one server exposes many web-access tools, are target domains, DNS/IP egress, crawl depth, provider quota, output provenance, and data-use limits enforced per lane?",
   "Fetch SSRF: can URL tools deny link-local metadata, loopback, private network, IPv6 ULA, and in-cluster service targets before the request leaves the MCP server?",
+  "Filesystem path authority: can file and repo tools prove cwd, requested path, canonical path, allowed root, symlink decision, operation class, redaction rule, and denied sibling or parent traversal before the handler reads or writes?",
   "Tool namespace: can the runtime prove it denied built-ins, ambiguous bare names, and sibling server tools that would bypass the intended MCP lane?",
   "Decision lineage: can the operator reconstruct why a risky action was selected, which policy gates ran, and where quarantine or human review would have fired?",
   "Recovery: after partial failure, how does the caller re-verify state?",
@@ -142,6 +144,13 @@ const FETCH_SSRF_DRILL = [
   "Resolve the hostname before request execution and reject link-local metadata, loopback, RFC 1918 private ranges, current-network, IPv6 ULA, and in-cluster service addresses by default.",
   "Require explicit route-card opt-in for internal service access, with caller, tenant, credential lane, quota owner, target CIDR or host, and review owner named before the exception exists.",
   "Trace raw URL, normalized host, resolved IP class, policy rule, blocked credential lane, and typed denial so SSRF is visible as a successful control, not a flaky fetch error.",
+];
+
+const FILESYSTEM_PATH_DRILL = [
+  "Run the allowed file or repo path and the denied sibling, parent traversal, hidden-config, or host-mount path through the same tool, endpoint family, gateway, and retry path.",
+  "Resolve cwd, requested path, canonical path, symlinks, case behavior, and mount boundary before the tool handler reads, writes, stages, or summarizes content.",
+  "Bind the operation class to policy: read, write, append, delete, git diff, or patch apply should each have an allowed root, redaction rule, and denied-neighbor fixture.",
+  "Trace caller, tool, raw path, canonical path, allowed root, symlink decision, operation class, policy rule, redaction decision, and typed denial so path containment is visible as successful readiness evidence.",
 ];
 
 const TOOL_NAMESPACE_DRILL = [
@@ -453,6 +462,17 @@ const ARTICLE_JSON_LD = {
               </p>
               <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
                 {FETCH_SSRF_DRILL.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </div>
+            <div class="mt-6 rounded-[28px] border border-orange-500/20 bg-orange-500/5 p-6">
+              <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-orange-300 mb-3">Filesystem path authority fixture</div>
+              <p class="text-slate-300 leading-relaxed mb-4">
+                File and repo tools are not harmless read helpers once they run inside an agent host. A path argument is host-state authority: before the model can see file contents or produce commit-ready changes, the server has to prove the canonical path stays inside the intended workspace and that neighboring secrets, sibling repos, parent directories, and host mounts fail closed.
+              </p>
+              <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+                {FILESYSTEM_PATH_DRILL.map((item) => (
                   <li>{item}</li>
                 ))}
               </ul>

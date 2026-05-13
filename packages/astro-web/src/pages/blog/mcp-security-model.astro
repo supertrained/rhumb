@@ -158,6 +158,19 @@ const ARTICLE_JSON_LD = {
           </ul>
         </div>
 
+        <div class="my-8 rounded-[28px] border border-orange-500/20 bg-orange-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-orange-300 mb-3">Filesystem path authority</div>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">File tools need canonical-path proof before content becomes model input.</h3>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            A filesystem, repo, or local-resource tool is host-state authority. The policy cannot stop at “this is a read tool” or “the user asked for a file.” It has to resolve the requested path against cwd, symlinks, case behavior, and mounts, then prove the canonical path stays under the allowed root before any read, write, diff, patch, or summary reaches the agent.
+          </p>
+          <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+            <li>Bind every file operation to cwd, requested path, canonical path, allowed root or repo prefix, operation class, and redaction rule.</li>
+            <li>Keep denied fixtures for parent traversal, sibling repositories, hidden config, host mounts, symlink escape, and writes outside policy.</li>
+            <li>Return typed denials with the raw path, canonical path, symlink decision, policy rule, and redaction decision before the handler opens the file.</li>
+          </ul>
+        </div>
+
         <div class="my-8 rounded-[28px] border border-red-500/20 bg-red-500/5 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-red-300 mb-3">URL fetch authority</div>
           <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">Open fetch is a credential boundary, not just a network helper.</h3>

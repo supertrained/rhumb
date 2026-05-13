@@ -155,6 +155,19 @@ const ARTICLE_JSON_LD = {
           </ul>
         </div>
 
+        <div class="my-8 rounded-[28px] border border-orange-500/20 bg-orange-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-orange-300 mb-3">Filesystem path denied-neighbor test</div>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">A path tool has to prove the canonical path before the model reads.</h3>
+          <p class="text-slate-300 leading-relaxed mb-4">
+            The filesystem scan cluster is the same prompt-injection boundary in local-resource form. An agent-controlled <code class="rounded bg-slate-950/70 px-1.5 py-0.5 text-xs text-orange-200">path</code> can look like a harmless workspace file while resolving through <code class="rounded bg-slate-950/70 px-1.5 py-0.5 text-xs text-orange-200">../</code>, symlinks, sibling repositories, hidden config, or host mounts. The boundary has to run before the file is opened, not after the model has already seen its contents.
+          </p>
+          <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
+            <li>Resolve cwd, requested path, canonical path, symlinks, and mount boundary before read, write, diff, patch, or summary execution.</li>
+            <li>Allow only the declared root or repo prefix for the current caller and operation class; a read lane does not imply a write lane.</li>
+            <li>Reject parent traversal, sibling workspaces, hidden config, host mounts, and symlink escapes with typed denials that preserve the raw path, canonical path, allowed root, policy rule, and redaction decision.</li>
+          </ul>
+        </div>
+
         <div class="my-8 rounded-[28px] border border-red-500/20 bg-red-500/5 p-6">
           <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-red-300 mb-3">Fetch SSRF denied-neighbor test</div>
           <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">A URL tool has to deny cloud metadata before the model can fetch.</h3>
