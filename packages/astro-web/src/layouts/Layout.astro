@@ -216,5 +216,79 @@ const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
         document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
       }
     </script>
+
+    <!-- Experiment attribution telemetry (progressive enhancement; safe no-op without GA) -->
+    <script is:inline>
+      (() => {
+        const send = (eventName, params) => {
+          if (typeof window.gtag !== 'function') return;
+          window.gtag('event', eventName, {
+            ...params,
+            page_path: window.location.pathname,
+          });
+        };
+
+        const clean = (value) => {
+          if (!value) return undefined;
+          return String(value).trim().slice(0, 80) || undefined;
+        };
+
+        const readAttribution = (href) => {
+          const current = new URL(window.location.href);
+          const attribution = {
+            experiment: clean(current.searchParams.get('rhumb_experiment')),
+            source: clean(current.searchParams.get('rhumb_source')),
+          };
+
+          if (!href) return attribution;
+
+          if (href.startsWith('mailto:')) {
+            const mailto = new URL(href);
+            const body = mailto.searchParams.get('body') || '';
+            const subject = mailto.searchParams.get('subject') || '';
+            const sourceMatch = `${subject}\n${body}`.match(/(?:Source:\s*)?(e\d{3}[-\w]*)/i);
+            if (sourceMatch) {
+              attribution.experiment = attribution.experiment || sourceMatch[1].split('-')[0].toLowerCase();
+              attribution.source = attribution.source || sourceMatch[1];
+            }
+            return attribution;
+          }
+
+          try {
+            const url = new URL(href, window.location.origin);
+            attribution.experiment = clean(url.searchParams.get('rhumb_experiment')) || attribution.experiment;
+            attribution.source = clean(url.searchParams.get('rhumb_source')) || attribution.source;
+          } catch (_) {}
+
+          return attribution;
+        };
+
+        const pageAttribution = readAttribution();
+        if (pageAttribution.experiment || pageAttribution.source) {
+          send('rhumb_experiment_visit', pageAttribution);
+        }
+
+        document.addEventListener('click', (event) => {
+          const anchor = event.target && event.target.closest ? event.target.closest('a[href]') : null;
+          if (!anchor) return;
+
+          const href = anchor.getAttribute('href') || '';
+          const attribution = readAttribution(href);
+          if (!attribution.experiment && !attribution.source) return;
+
+          let destination = href;
+          try {
+            const url = href.startsWith('mailto:') ? new URL(href) : new URL(href, window.location.origin);
+            destination = href.startsWith('mailto:') ? 'mailto' : url.pathname;
+          } catch (_) {}
+
+          send('rhumb_experiment_click', {
+            ...attribution,
+            destination: clean(destination),
+            destination_type: href.startsWith('mailto:') ? 'mailto' : 'link',
+          });
+        }, { capture: true });
+      })();
+    </script>
   </body>
 </html>
