@@ -59,14 +59,14 @@ const RHUMB_RAILS = [
   {
     rail: "Boundary proof",
     when: "You are still deciding whether discovery, scoring, schema review, or denied-neighbor rehearsal is enough proof before the paid route exists.",
-    link: "/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-boundary-proof",
+    link: "/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e008&rhumb_source=managed-api-execution-guide-boundary-proof",
     cta: "Separate free proof from paid execution",
   },
   {
-    rail: "Proof sprint",
-    when: "You know the repeat workflow and want price, fit, denial case, and trace proof before wiring it into a loop.",
-    link: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-proof-sprint",
-    cta: "Scope the first paid call",
+    rail: "Quote probe",
+    when: "You know the repeat workflow and want one route hardened around price, fit, denial case, budget owner, and trace proof before wiring it into a loop.",
+    link: "/start-managed-execution?rhumb_experiment=e008&rhumb_source=managed-api-execution-guide-quote-probe",
+    cta: "Scope the route-hardening quote",
   },
   {
     rail: "Resolve docs",
@@ -77,20 +77,37 @@ const RHUMB_RAILS = [
 ];
 
 const MEASUREMENT = [
-  "E-006-tagged visits from this guide into /start-managed-execution",
-  "pricing or governed-key movement after the proof-sprint CTA",
-  "workflow-fit mailto requests that name one repeat capability",
-  "qualitative developer asks about search, extraction, generation, enrichment, or database-read execution",
+  "E-008-tagged visits from this guide into /start-managed-execution or /pricing",
+  "route-hardening quote requests that name one repeat capability or MCP route",
+  "quote mail that includes allowed lane, denied neighbor, credential/budget owner, repeat volume, and receipt proof",
+  "qualitative developer asks about paying to harden search, extraction, generation, enrichment, database-read, or MCP-tool execution",
 ];
+
+const ROUTE_QUOTE_TEMPLATE = [
+  "Route name / MCP tool call:",
+  "Why it is worth paying to harden:",
+  "Allowed input lane:",
+  "Denied neighbor that must fail closed:",
+  "Caller / tenant / workspace:",
+  "Credential lane / backend principal:",
+  "Budget or quota owner:",
+  "Expected repeat volume / retry ceiling:",
+  "Receipt fields or typed denial I would trust:",
+  "Source: e008-route-hardening-quote-managed-api-execution-guide",
+];
+
+const ROUTE_QUOTE_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURIComponent(
+  "Rhumb route-hardening quote request"
+)}&body=${encodeURIComponent(ROUTE_QUOTE_TEMPLATE.join("\n"))}`;
 
 const RELATED_READING = [
   {
-    href: "/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-related-boundary",
+    href: "/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e008&rhumb_source=managed-api-execution-guide-related-boundary",
     title: "MCP Discovery: Free Proof vs Paid Execution",
     description: "Where candidate recall, scoring, route-card review, denied-neighbor rehearsal, and selected-route execution split apart.",
   },
   {
-    href: "/blog/composio-arcade-nango-alternatives-governed-agent-execution?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-competitive-alternatives",
+    href: "/blog/composio-arcade-nango-alternatives-governed-agent-execution?rhumb_experiment=e008&rhumb_source=managed-api-execution-guide-competitive-alternatives",
     title: "Composio, Arcade, Nango Alternatives",
     description: "A layer-by-layer comparison of tool access, MCP runtime, OAuth integration infrastructure, and governed execution proof.",
   },
@@ -100,9 +117,9 @@ const RELATED_READING = [
     description: "The product mental model for services, capabilities, routing, credential modes, and execution layers.",
   },
   {
-    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-related",
+    href: "/start-managed-execution?rhumb_experiment=e008&rhumb_source=managed-api-execution-guide-related",
     title: "Start Managed Execution",
-    description: "Request-first proof sprint path: price one repeat workflow before wiring it into an agent loop.",
+    description: "Route-hardening quote path: price one repeat workflow and name the boundary before wiring it into an agent loop.",
   },
   {
     href: "/blog/capability-first-agent-onboarding",
@@ -121,7 +138,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "What Is Managed API Execution for AI Agents?",
   datePublished: "2026-04-30T00:00:00Z",
-  dateModified: "2026-05-05T00:00:00Z",
+  dateModified: "2026-05-14T05:20:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Managed API execution lets an AI agent ask for one supported capability while a governed layer handles routing, credentials, budget boundaries, and trace evidence.",
@@ -233,7 +250,7 @@ const ARTICLE_JSON_LD = {
                 The first workflow should be narrow enough to price and deny before launch. "Help my agent use APIs" is too broad. "Search the web for one research question, return source-backed findings, and refuse blocked domains" is closer.
               </p>
               <p>
-                Rhumb's current launchable surface is strongest for {PUBLIC_TRUTH.beachheadLabel}. The public index is broader than current execution coverage, so the proof sprint should ask whether one repeat workflow fits the supported surface before assuming every scored service is callable.
+                Rhumb's current launchable surface is strongest for {PUBLIC_TRUTH.beachheadLabel}. The public index is broader than current execution coverage, so the quote probe should ask whether one repeat workflow fits the supported surface before assuming every scored service is callable.
               </p>
             </div>
             <div class="mt-6 rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-6">
@@ -254,7 +271,7 @@ const ARTICLE_JSON_LD = {
                 That separation keeps the evidence honest: discovery breadth does not become a false execution claim, and a managed execution request can stay focused on one workflow that deserves budget.
               </p>
               <p>
-                The same boundary applies to MCP discovery. Candidate recall, scoring, schema inspection, route-card reading, credential-lane review, and denied-neighbor rehearsal stay free proof until one selected route can name its capability id, caller or tenant, credential mode, quota owner, side-effect class, estimate fields, and receipt evidence. If that split is the decision point, use the <a href="/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-inline-boundary" class="text-amber transition-colors hover:text-amber-200">MCP discovery free-proof boundary</a> before starting the paid lane.
+                The same boundary applies to MCP discovery. Candidate recall, scoring, schema inspection, route-card reading, credential-lane review, and denied-neighbor rehearsal stay free proof until one selected route can name its capability id, caller or tenant, credential mode, quota owner, side-effect class, estimate fields, and receipt evidence. If that split is the decision point, use the <a href="/blog/mcp-discovery-free-proof-paid-execution-boundary?rhumb_experiment=e008&rhumb_source=managed-api-execution-guide-inline-boundary" class="text-amber transition-colors hover:text-amber-200">MCP discovery free-proof boundary</a> before starting the paid lane.
               </p>
             </div>
             <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -272,7 +289,7 @@ const ARTICLE_JSON_LD = {
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Measurement hook</div>
             <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">What would prove this page is working?</h2>
             <p class="mb-5 leading-relaxed text-slate-400">
-              This guide supports E-006, the request-first managed-execution checkpoint. It should not be graded by applause. It should be graded by whether high-intent readers move toward one priced, bounded, repeat workflow.
+              This guide now supports E-008, the route-hardening quote probe. It should not be graded by applause. It should be graded by whether high-intent readers move toward one priced route with an allowed lane, denied neighbor, budget owner, and receipt proof.
             </p>
             <ul class="ml-5 list-disc list-outside space-y-2 leading-relaxed text-slate-300">
               {MEASUREMENT.map((item) => (<li>{item}</li>))}
@@ -299,11 +316,16 @@ const ARTICLE_JSON_LD = {
           <div class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-5">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Next honest step</div>
             <p class="mb-4 text-sm leading-6 text-slate-300">
-              If you can name one repeat workflow, ask for a proof sprint before wiring it into an agent loop.
+              If you can name one repeat workflow, ask for a route-hardening quote before wiring it into an agent loop.
             </p>
-            <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=managed-api-execution-guide-sidebar" class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy transition-colors hover:bg-emerald-300">
-              Scope the workflow &rarr;
-            </a>
+            <div class="space-y-3">
+              <a data-rhumb-propagate href={ROUTE_QUOTE_MAILTO} class="inline-flex w-full items-center justify-center rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy transition-colors hover:bg-emerald-300">
+                Request a route quote &rarr;
+              </a>
+              <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e008&rhumb_source=managed-api-execution-guide-sidebar" class="inline-flex w-full items-center justify-center rounded-xl border border-slate-700 px-4 py-3 text-sm font-display font-semibold text-slate-200 transition-colors hover:border-emerald-400/50 hover:text-slate-100">
+                Scope the workflow
+              </a>
+            </div>
           </div>
         </aside>
       </div>

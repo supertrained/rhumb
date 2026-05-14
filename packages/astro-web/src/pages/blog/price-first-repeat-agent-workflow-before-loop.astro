@@ -56,7 +56,7 @@ const PRICE_MODEL = [
     best: "Default for repeat managed execution when the workflow fits Rhumb's current callable surface.",
     price: `Upstream execution cost plus ${managed.margin_percent}% margin under Rhumb-managed billing.`,
     estimate: "Run resolve and execute estimate before the first paid call, then keep the estimate id, capability id, credential mode, and cost ceiling in trace context.",
-    href: "/auth/login?rhumb_experiment=e006&rhumb_source=price-first-guide-governed-key",
+    href: "/auth/login?rhumb_experiment=e008&rhumb_source=price-first-guide-governed-key",
     cta: "Get governed key",
     accent: "text-emerald-300",
     className: "border-emerald-500/20 bg-emerald-500/5",
@@ -86,7 +86,7 @@ const PRICE_MODEL = [
     best: "Workflows that must run through your provider account, contract, workspace, or compliance boundary.",
     price: `${byok.passthrough_note} You still pay the provider directly.`,
     estimate: "Estimate Rhumb-side routing and execution shape, then separately cap the provider account's quota, rate limits, and per-action cost exposure.",
-    href: "/blog/agent-credential-paths-managed-key-byok-agent-vault-x402?rhumb_experiment=e006&rhumb_source=price-first-guide-credential-paths",
+    href: "/blog/agent-credential-paths-managed-key-byok-agent-vault-x402?rhumb_experiment=e008&rhumb_source=price-first-guide-credential-paths",
     cta: "Choose credential path",
     accent: "text-amber",
     className: "border-amber/20 bg-amber/5",
@@ -118,24 +118,42 @@ const ANTI_PATTERNS = [
   "Using x402 for repeat production traffic when the actual need is durable budget ownership and operator-visible controls.",
 ];
 
+const ROUTE_QUOTE_TEMPLATE = [
+  "Route name / MCP tool call:",
+  "Why it is worth paying to harden:",
+  "Allowed input lane:",
+  "Denied neighbor that must fail closed:",
+  "Caller / tenant / workspace:",
+  "Credential lane / backend principal:",
+  "Budget or quota owner:",
+  "Expected repeat volume / retry ceiling:",
+  "Cost ceiling for one completed action:",
+  "Receipt fields or typed denial I would trust:",
+  "Source: e008-route-hardening-quote-price-first-guide",
+];
+
+const ROUTE_QUOTE_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURIComponent(
+  "Rhumb route-hardening quote request"
+)}&body=${encodeURIComponent(ROUTE_QUOTE_TEMPLATE.join("\n"))}`;
+
 const RELATED = [
   {
-    href: "/pricing?rhumb_experiment=e006&rhumb_source=price-first-guide-pricing",
-    title: "Pricing",
-    description: "The public pricing contract and rail chooser for governed execution, wallet-prefund, x402, and BYOK / Agent Vault.",
+    href: "/pricing?rhumb_experiment=e008&rhumb_source=price-first-guide-quote",
+    title: "Route-hardening quote framing",
+    description: "Turn one priced repeat workflow into a route-card quote: allowed lane, denied neighbor, budget owner, and receipt proof.",
   },
   {
-    href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=price-first-guide-managed-execution",
+    href: "/start-managed-execution?rhumb_experiment=e008&rhumb_source=price-first-guide-managed-execution",
     title: "Start managed execution",
-    description: "Scope one narrow repeat workflow before asking Rhumb to run the first paid call.",
+    description: "Scope one narrow repeat workflow before asking Rhumb to harden the paid route.",
   },
   {
-    href: "/blog/what-is-managed-api-execution-for-ai-agents?rhumb_experiment=e006&rhumb_source=price-first-guide-managed-definition",
+    href: "/blog/what-is-managed-api-execution-for-ai-agents?rhumb_experiment=e008&rhumb_source=price-first-guide-managed-definition",
     title: "What is managed API execution?",
     description: "The category definition: capability first, authority before routing, bounded budget, and trace proof.",
   },
   {
-    href: "/blog/agent-credential-paths-managed-key-byok-agent-vault-x402?rhumb_experiment=e006&rhumb_source=price-first-guide-credentials",
+    href: "/blog/agent-credential-paths-managed-key-byok-agent-vault-x402?rhumb_experiment=e008&rhumb_source=price-first-guide-credentials",
     title: "Agent credential paths",
     description: "Choose governed key, BYOK, Agent Vault, x402, or provider pinning by authority and budget boundary.",
   },
@@ -146,7 +164,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Price the First Repeat Agent Workflow Before You Wire It Into a Loop",
   datePublished: "2026-05-01T13:00:00Z",
-  dateModified: "2026-05-01T13:00:00Z",
+  dateModified: "2026-05-14T05:20:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A practical guide to pricing one repeat AI-agent workflow before it becomes an unattended loop, covering estimates, credential rails, cost ceilings, denied neighbors, and receipts.",
@@ -314,18 +332,22 @@ const ARTICLE_JSON_LD = {
             </div>
           </section>
 
-          <section class="rounded-[32px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
-            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">E-006 proof sprint</div>
-            <h2 class="font-display text-2xl font-bold tracking-tight text-slate-100">Ask for proof around one priced workflow</h2>
+          <section id="route-hardening-quote" class="rounded-[32px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">E-008 quote probe</div>
+            <h2 class="font-display text-2xl font-bold tracking-tight text-slate-100">Ask for a quote around one priced route</h2>
             <p class="mt-4 leading-relaxed text-slate-300">
-              The best request is narrow: one capability, one repeat volume, one credential rail, one denied neighbor, and one receipt shape you would trust after a retry. That is enough to test whether the first paid call can be boring.
+              If the workflow is valuable enough to price, reduce it to one hardenable route: one MCP tool call or capability, one allowed lane, one denied neighbor, one credential or budget owner, one repeat envelope, and one receipt shape you would trust after a retry.
             </p>
+            <div class="mt-5 overflow-hidden rounded-[24px] border border-emerald-500/15 bg-navy/80">
+              <div class="border-b border-slate-800 px-5 py-3 text-[11px] font-mono uppercase tracking-[0.22em] text-emerald-300">Quote request fields</div>
+              <pre class="overflow-x-auto p-5 text-sm leading-relaxed text-slate-300"><code>{ROUTE_QUOTE_TEMPLATE.join("\n")}</code></pre>
+            </div>
             <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-              <a data-rhumb-propagate href="/pricing?rhumb_experiment=e006&rhumb_source=price-first-guide-primary" class="inline-flex justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors hover:bg-emerald-300">
-                Review pricing for one workflow
+              <a data-rhumb-propagate href={ROUTE_QUOTE_MAILTO} class="inline-flex justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors hover:bg-emerald-300">
+                Request a route-hardening quote
               </a>
-              <a data-rhumb-propagate href="mailto:team@getsupertrained.com?subject=Rhumb%20managed%20execution%20fit%20check&body=Workflow%3A%0ACapability%20or%20provider%20path%3A%0ARepeat%20volume%3A%0ACost%20ceiling%3A%0ACredential%20rail%3A%0ADenied%20neighbor%3A%0AReceipt%20proof%20I%20would%20trust%3A%0ASource%3A%20price-first-guide" class="inline-flex justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-display font-semibold text-slate-200 transition-colors hover:border-amber/50 hover:text-amber">
-                Ask if my workflow fits
+              <a data-rhumb-propagate href="/pricing?rhumb_experiment=e008&rhumb_source=price-first-guide-quote" class="inline-flex justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-display font-semibold text-slate-200 transition-colors hover:border-emerald-400/50 hover:text-slate-100">
+                See quote framing
               </a>
             </div>
           </section>
@@ -347,7 +369,7 @@ const ARTICLE_JSON_LD = {
           <div class="rounded-[28px] border border-slate-800 bg-navy/75 p-5">
             <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Measurement hook</div>
             <p class="text-sm leading-6 text-slate-400">
-              Watch E-006 movement from <code class="font-mono text-xs text-amber">rhumb_source=price-first-guide-*</code>: pricing visits, governed-key starts, workflow-fit mail, and any qualitative ask that names a repeat volume or cost ceiling.
+              Watch E-008 movement from <code class="font-mono text-xs text-amber">rhumb_source=price-first-guide-*</code>: route-hardening quote mail, pricing/start-managed-execution handoffs, and any qualitative ask that names a route, repeat volume, denied neighbor, cost ceiling, and receipt proof.
             </p>
           </div>
         </aside>
