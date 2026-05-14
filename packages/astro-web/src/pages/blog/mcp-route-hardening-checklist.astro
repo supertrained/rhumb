@@ -22,11 +22,11 @@ const ROUTE_CARD_TEMPLATE = [
   "Expected repeat volume / retry ceiling:",
   "Receipt fields or typed denial I would trust:",
   "Current blocker: auth, permission scope, tenant bleed, quota burn, retry safety, receipt proof, or other:",
-  "Source: e007-mcp-route-hardening",
+  "Source: e008-route-hardening-quote-checklist",
 ];
 
 const ROUTE_CARD_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURIComponent(
-  "Rhumb MCP route hardening fit check"
+  "Rhumb route-hardening quote request"
 )}&body=${encodeURIComponent(ROUTE_CARD_TEMPLATE.join("\n"))}`;
 
 const HARDENING_STEPS = [
@@ -70,7 +70,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Route Hardening Checklist: Make One Tool Call Safe Enough to Repeat",
   datePublished: "2026-05-10T08:30:00Z",
-  dateModified: "2026-05-11T08:25:00Z",
+  dateModified: "2026-05-14T02:35:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A production checklist for hardening one MCP route before repeated agent execution: route card, unsafe neighbor, authority lane, budget ceiling, and receipt evidence.",
@@ -217,16 +217,19 @@ const ARTICLE_JSON_LD = {
         </div>
 
         <div id="send-one-route" class="my-10 rounded-[28px] border border-emerald-500/25 bg-emerald-500/5 p-6">
-          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Request-first probe</div>
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Quote request probe</div>
           <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">Send the one MCP route you would pay to make boring</h2>
           <p class="mb-4 leading-relaxed text-slate-300">
-            If you have a route that is close to useful but too risky to let an agent repeat, send the route card. The useful request names the route, unsafe neighbor, credential or budget owner, repeat volume, and receipt or typed denial you would trust.
+            If you have a route that is close to useful but too risky to let an agent repeat, send the route card as a quote request. The useful request names the route, unsafe neighbor, credential or budget owner, repeat volume, and receipt or typed denial you would trust.
           </p>
           <div class="flex flex-wrap gap-3">
             <a href={ROUTE_CARD_MAILTO} class="inline-flex rounded-xl bg-emerald-400 px-4 py-3 font-display text-sm font-semibold text-navy transition-colors duration-200 hover:bg-emerald-300">
-              Send one route to harden
+              Request a route-hardening quote
             </a>
-            <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=mcp-route-hardening-checklist" class="inline-flex rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 transition-colors duration-200 hover:border-emerald-400/50 hover:text-slate-100">
+            <a data-rhumb-propagate href="/pricing?rhumb_experiment=e008&rhumb_source=mcp-route-hardening-checklist-quote" class="inline-flex rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 transition-colors duration-200 hover:border-emerald-400/50 hover:text-slate-100">
+              See quote framing
+            </a>
+            <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e008&rhumb_source=mcp-route-hardening-checklist" class="inline-flex rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 transition-colors duration-200 hover:border-emerald-400/50 hover:text-slate-100">
               Scope the managed lane
             </a>
           </div>
