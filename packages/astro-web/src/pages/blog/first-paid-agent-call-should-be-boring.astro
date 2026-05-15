@@ -1,0 +1,262 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import pricing from "../../../../shared/pricing.json";
+
+const managed = pricing.modes.rhumb_managed;
+const x402 = pricing.modes.x402;
+const byok = pricing.modes.byok;
+
+const FAST_ANSWER = [
+  "The first paid agent call should be boring: one named route, one budget owner, one credential rail, one denied neighbor, and one receipt you can audit later.",
+  "Start with free discovery and estimates before execution; do not ask a developer to choose wallet, BYOK, vault, and provider-pinning strategy before they know whether the route is worth repeating.",
+  `Use a governed Rhumb key when the workflow fits the managed surface and repeat execution is the goal; the public managed contract is upstream cost plus ${managed.margin_percent}% margin.`,
+  `Use x402 when per-request payment authorization is the product requirement; Rhumb's public x402 rail runs on ${x402.network} with upstream cost plus ${x402.margin_percent}% margin.`,
+  `Use BYOK or Agent Vault when provider ownership, workspace scope, or compliance is the real constraint; Rhumb currently adds ${byok.margin_percent}% markup on that path, while the operator still owns upstream cost and quota.`,
+];
+
+const BORING_CONTRACT = [
+  {
+    label: "Route",
+    test: "The agent is calling one capability or MCP tool route, not a vague automation project.",
+    proof: "Name the capability id or tool call, provider constraint if any, allowed input lane, and side-effect class.",
+  },
+  {
+    label: "Budget owner",
+    test: "A human, workspace, wallet, or provider account is accountable for repeat spend.",
+    proof: "Carry governed key, wallet balance, x402 proof, BYOK account, Agent Vault reference, or provider pin into trace context.",
+  },
+  {
+    label: "Credential rail",
+    test: "Exactly one credential path is intended for this execution attempt.",
+    proof: "Do not let successful payment, login, vault lookup, or provider pinning silently widen the tool surface.",
+  },
+  {
+    label: "Denied neighbor",
+    test: "The adjacent thing the agent must not touch is explicit before the paid call runs.",
+    proof: "Run the forbidden tenant, domain, amount, row, path, tool, provider, or side-effect fixture and require a typed denial.",
+  },
+  {
+    label: "Receipt",
+    test: "The result explains what happened well enough for retry, audit, billing, and recovery.",
+    proof: "Persist route, estimate, credential mode, budget owner, idempotency key, provider outcome, denial reason, and recovery hint.",
+  },
+];
+
+const RAILS = [
+  {
+    name: "Free discovery and estimate",
+    use: "First step for every unfamiliar workflow.",
+    avoid: "Do not treat a good score, directory match, or estimate as permission to execute.",
+    href: "/quickstart?rhumb_experiment=e008&rhumb_source=boring-first-paid-call-quickstart",
+    cta: "Start with the quickstart",
+  },
+  {
+    name: "Governed Rhumb key",
+    use: "Default for repeat managed execution when the route fits Rhumb's current callable surface.",
+    avoid: "Do not use a shared managed path for customer-owned systems that require the operator's provider account.",
+    href: "/start-managed-execution?rhumb_experiment=e008&rhumb_source=boring-first-paid-call-governed-key",
+    cta: "Scope managed execution",
+  },
+  {
+    name: "x402 per-call payment",
+    use: "Best when zero-signup per-request authorization is the point of the experience.",
+    avoid: "Do not make every repeat production call re-solve payment if the real need is durable budget ownership.",
+    href: "/blog/how-agents-pay?rhumb_experiment=e008&rhumb_source=boring-first-paid-call-x402",
+    cta: "Review payment rails",
+  },
+  {
+    name: "BYOK or Agent Vault",
+    use: "Use when the call must act through the buyer's provider account, tenant, contract, or compliance boundary.",
+    avoid: "Do not confuse key custody with route authorization; scope checks and receipts still have to fire.",
+    href: "/blog/agent-credential-paths-managed-key-byok-agent-vault-x402?rhumb_experiment=e008&rhumb_source=boring-first-paid-call-credential-paths",
+    cta: "Choose the credential path",
+  },
+];
+
+const BAD_DEFAULTS = [
+  "Wallet theater: making payment novelty the first decision when the developer just needs a safe repeat route.",
+  "BYOK-first sprawl: asking for provider keys before the workflow, denied neighbor, or budget owner is clear.",
+  "One giant connector: shipping broad access before one paid call proves authority, cost, and receipt boundaries.",
+  "Score-only promotion: treating discovery rank as permission to execute without an estimate and denial fixture.",
+  "Silent retries: letting provider errors, duplicate writes, and paid-but-denied outcomes collapse into the same opaque failure.",
+];
+
+const ROUTE_QUOTE_TEMPLATE = [
+  "Route name / MCP tool call:",
+  "Why it is worth paying to harden:",
+  "Allowed input lane:",
+  "Denied neighbor that must fail closed:",
+  "Caller / tenant / workspace:",
+  "Credential lane / backend principal:",
+  "Budget or quota owner:",
+  "Expected repeat volume / retry ceiling:",
+  "Cost ceiling for one completed action:",
+  "Receipt fields or typed denial I would trust:",
+  "Source: e008-route-hardening-quote-boring-first-paid-call",
+];
+
+const ROUTE_QUOTE_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURIComponent(
+  "Rhumb route-hardening quote request"
+)}&body=${encodeURIComponent(ROUTE_QUOTE_TEMPLATE.join("\n"))}`;
+
+const RELATED = [
+  {
+    href: "/blog/price-first-repeat-agent-workflow-before-loop?rhumb_experiment=e008&rhumb_source=boring-first-paid-call-price-first",
+    title: "Price the first repeat workflow",
+    description: "Estimate cost, rail, denied neighbor, and receipt evidence before a paid call becomes an unattended loop.",
+  },
+  {
+    href: "/blog/mcp-route-hardening-checklist?rhumb_experiment=e008&rhumb_source=boring-first-paid-call-route-hardening",
+    title: "MCP route-hardening checklist",
+    description: "Turn one unsafe repeat MCP route into a route card with authority, budget, denial, and receipt proof.",
+  },
+  {
+    href: "/pricing?rhumb_experiment=e008&rhumb_source=boring-first-paid-call-pricing",
+    title: "Pricing and route quote",
+    description: "Use the current public pricing rails and ask Rhumb to quote one route worth hardening.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "The First Paid Agent Call Should Be Boring",
+  datePublished: "2026-05-15T17:20:00Z",
+  dateModified: "2026-05-15T17:20:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A practical guide for making the first paid AI-agent API call constrained, measurable, and boring: route, budget owner, credential rail, denied neighbor, and receipt proof.",
+  url: "https://rhumb.dev/blog/first-paid-agent-call-should-be-boring",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/first-paid-agent-call-should-be-boring",
+};
+---
+
+<Layout
+  rhumbExperiment="e008"
+  rhumbSource="boring-first-paid-call"
+  title="The First Paid Agent Call Should Be Boring | Rhumb"
+  description="The first paid AI-agent API call should be constrained and auditable: one route, one budget owner, one credential rail, one denied neighbor, and one receipt."
+  canonical="/blog/first-paid-agent-call-should-be-boring"
+  ogTitle="The First Paid Agent Call Should Be Boring"
+  ogDescription="Before an agent repeats a paid API call, make the route, budget, credential rail, denial, and receipt boring enough to audit."
+  ogUrl="https://rhumb.dev/blog/first-paid-agent-call-should-be-boring"
+  ogType="article"
+  twitterTitle="The First Paid Agent Call Should Be Boring"
+  twitterDescription="A practical route, budget, credential, denial, and receipt checklist for the first paid AI-agent API call."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-emerald-500/10 via-amber/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-emerald-300">Managed execution</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 15, 2026</span>
+        </div>
+        <div class="max-w-4xl">
+          <p class="mb-4 font-mono text-sm uppercase tracking-[0.28em] text-amber">First paid call</p>
+          <h1 class="text-4xl font-bold tracking-tight text-white md:text-6xl">The first paid agent call should be boring.</h1>
+          <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            Most agent infrastructure makes the first paid step feel futuristic. That is backwards. The first paid call should be constrained enough that a developer can predict the route, cap the spend, test the denial, and read the receipt without trusting magic.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <main class="mx-auto max-w-6xl px-6 py-12">
+      <section class="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+        <div class="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-emerald-300">Fast answer</p>
+          <ul class="mt-5 space-y-4 text-slate-200">
+            {FAST_ANSWER.map((item) => <li class="flex gap-3"><span class="text-amber">→</span><span>{item}</span></li>)}
+          </ul>
+        </div>
+        <aside class="rounded-3xl border border-amber/20 bg-amber/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber">Conversion test</p>
+          <h2 class="mt-4 text-2xl font-semibold text-white">Can you name one route worth paying to harden?</h2>
+          <p class="mt-4 text-sm leading-6 text-slate-300">
+            If yes, the useful next step is not a platform debate. It is a route card: allowed lane, denied neighbor, credential rail, budget owner, repeat ceiling, and receipt proof.
+          </p>
+          <a href={ROUTE_QUOTE_MAILTO} class="mt-6 inline-flex rounded-full bg-amber px-5 py-3 font-mono text-sm font-semibold text-navy transition-transform hover:-translate-y-0.5">Ask Rhumb to quote one route</a>
+        </aside>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">The boring contract</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          {BORING_CONTRACT.map((item) => (
+            <article class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h2 class="text-lg font-semibold text-white">{item.label}</h2>
+              <p class="mt-3 text-sm leading-6 text-slate-300">{item.test}</p>
+              <p class="mt-4 border-t border-slate-800 pt-4 text-xs leading-5 text-slate-400">{item.proof}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12 grid gap-6 lg:grid-cols-2">
+        <div>
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-emerald-300">Order matters</p>
+          <h2 class="mt-3 text-3xl font-bold text-white">Do not make the buyer choose every rail on day one.</h2>
+          <p class="mt-4 leading-7 text-slate-300">
+            Wallets, BYOK, Agent Vault, provider pinning, and managed keys are all valid rails. They are not equally good defaults. The right first sequence is free read, estimate, one paid route, denied-neighbor proof, then repeat traffic only if the receipt is legible.
+          </p>
+        </div>
+        <div class="space-y-4">
+          {RAILS.map((rail) => (
+            <article class="rounded-2xl border border-slate-800 bg-slate-950/50 p-5">
+              <div class="flex items-start justify-between gap-4">
+                <h3 class="text-xl font-semibold text-white">{rail.name}</h3>
+                <a href={rail.href} class="shrink-0 font-mono text-xs text-amber hover:text-amber/80">{rail.cta}</a>
+              </div>
+              <p class="mt-3 text-sm leading-6 text-slate-300"><strong class="text-emerald-300">Use:</strong> {rail.use}</p>
+              <p class="mt-2 text-sm leading-6 text-slate-400"><strong class="text-rose-300">Avoid:</strong> {rail.avoid}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-rose-500/20 bg-rose-500/5 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-rose-300">Bad defaults</p>
+        <h2 class="mt-3 text-3xl font-bold text-white">The paid call gets risky when the default is vague.</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          {BAD_DEFAULTS.map((item) => (
+            <div class="rounded-2xl border border-rose-500/10 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</div>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-amber/20 bg-amber/5 p-6">
+        <div class="grid gap-8 lg:grid-cols-[0.8fr_1.2fr]">
+          <div>
+            <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber">Route quote template</p>
+            <h2 class="mt-3 text-3xl font-bold text-white">If a route is worth paying for, it should fit on one card.</h2>
+            <p class="mt-4 leading-7 text-slate-300">
+              Rhumb's current probe is intentionally narrow: send one route you would pay to harden. The value is in the specificity, not in a broad managed-execution yes/no.
+            </p>
+            <a href={ROUTE_QUOTE_MAILTO} class="mt-6 inline-flex rounded-full bg-amber px-5 py-3 font-mono text-sm font-semibold text-navy transition-transform hover:-translate-y-0.5">Send this route card</a>
+          </div>
+          <pre class="overflow-x-auto rounded-2xl border border-slate-800 bg-navy p-5 text-xs leading-6 text-slate-300">{ROUTE_QUOTE_TEMPLATE.join("\n")}</pre>
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">Related paths</p>
+        <div class="mt-5 grid gap-4 md:grid-cols-3">
+          {RELATED.map((item) => (
+            <a href={item.href} class="rounded-2xl border border-slate-800 bg-slate-950/50 p-5 transition-colors hover:border-amber/50">
+              <h3 class="text-lg font-semibold text-white">{item.title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+  </div>
+</Layout>
