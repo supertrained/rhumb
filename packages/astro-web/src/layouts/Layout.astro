@@ -19,6 +19,8 @@ interface Props {
   jsonLd?: Record<string, unknown>;
   jsonLdBlocks?: Record<string, unknown>[];
   agentContext?: string;
+  rhumbExperiment?: string;
+  rhumbSource?: string;
 }
 
 const {
@@ -38,11 +40,15 @@ const {
   jsonLd,
   jsonLdBlocks = [],
   agentContext,
+  rhumbExperiment,
+  rhumbSource,
 } = Astro.props;
 
 const gaId = import.meta.env.PUBLIC_GA_ID ?? import.meta.env.NEXT_PUBLIC_GA_ID;
 const clarityId = import.meta.env.PUBLIC_CLARITY_ID ?? import.meta.env.NEXT_PUBLIC_CLARITY_ID;
 const currentPath = Astro.url.pathname;
+const pageExperiment = rhumbExperiment;
+const pageSource = rhumbSource;
 
 // Ensure canonical + og:url are always absolute
 function toAbsolute(path: string | undefined): string {
@@ -218,7 +224,7 @@ const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
     </script>
 
     <!-- Experiment attribution telemetry (progressive enhancement; safe no-op without GA) -->
-    <script is:inline>
+    <script is:inline define:vars={{ pageExperiment, pageSource }}>
       (() => {
         const send = (eventName, params) => {
           if (typeof window.gtag !== 'function') return;
@@ -236,8 +242,8 @@ const allJsonLdBlocks = jsonLd ? [jsonLd, ...jsonLdBlocks] : jsonLdBlocks;
         const readAttribution = (href) => {
           const current = new URL(window.location.href);
           const attribution = {
-            experiment: clean(current.searchParams.get('rhumb_experiment')),
-            source: clean(current.searchParams.get('rhumb_source')),
+            experiment: clean(current.searchParams.get('rhumb_experiment')) || clean(pageExperiment),
+            source: clean(current.searchParams.get('rhumb_source')) || clean(pageSource),
           };
 
           if (!href) return attribution;
