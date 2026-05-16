@@ -1,0 +1,258 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const FAST_ANSWER = [
+  "An MCP threat model is not a list of scary things the model might say. It is a route-by-route contract for what a tool can touch when the model is wrong.",
+  "Start with one tool call, then bind caller, trust class, authority surface, credential lane, data boundary, spend boundary, denied neighbor, and receipt fields before production traffic repeats it.",
+  "Treat filesystem, fetch/browser, repo, CRM, payments, email, and deployment tools as different authority classes. A read-only label is not enough when the tool can reach host state, private networks, customer records, or billable side effects.",
+  "The useful output is a copy-paste route card plus negative fixtures: the adjacent file, URL, tenant, amount, provider, row, or side effect that must fail closed.",
+];
+
+const THREAT_MODEL_FIELDS = [
+  {
+    field: "Route and capability",
+    question: "Which exact MCP tool or capability is being exposed, and what job is it allowed to complete?",
+    evidence: "Tool name, capability id, allowed input shape, side-effect class, environment, and owner.",
+  },
+  {
+    field: "Caller and trust class",
+    question: "Who is calling, how much autonomy do they have, and should they see this route at discovery time?",
+    evidence: "User, tenant, workspace, agent role, session, trust class, and filtered tool list.",
+  },
+  {
+    field: "Authority surface",
+    question: "What external system, host state, account, network, filesystem, or customer data can the route affect?",
+    evidence: "Allowed host/path/provider/object/resource prefixes plus explicit forbidden neighbors.",
+  },
+  {
+    field: "Credential lane",
+    question: "Which backend principal, BYOK key, vault reference, wallet, managed key, or provider pin is used?",
+    evidence: "Credential mode, scope, expiry/rotation behavior, revocation path, and owner.",
+  },
+  {
+    field: "Budget and quota owner",
+    question: "Who pays for retries, provider calls, x402 proofs, quota burn, and partial success?",
+    evidence: "Estimate, cost ceiling, quota bucket, retry ceiling, idempotency key, and billing owner.",
+  },
+  {
+    field: "Denied neighbor",
+    question: "What nearby action must fail before the route can be called production-ready?",
+    evidence: "A fixture for sibling path, private IP, wrong tenant, larger amount, write variant, or off-policy provider.",
+  },
+  {
+    field: "Receipt and recovery",
+    question: "Could an operator reconstruct what happened without re-running the agent conversation?",
+    evidence: "Policy decision, normalized input, denial reason, provider outcome, retry state, cost, and recovery hint.",
+  },
+];
+
+const AUTHORITY_CLASSES = [
+  {
+    label: "Filesystem / repo",
+    danger: "Host-state authority disguised as a local helper.",
+    fixture: "Allow one canonical repo prefix; deny parent traversal, symlink escape, hidden config, sibling repo, and host mount.",
+  },
+  {
+    label: "Fetch / browser / crawl",
+    danger: "Network egress that can touch cloud metadata, loopback, private subnets, and internal services.",
+    fixture: "Resolve DNS before request; deny metadata, loopback, RFC1918, IPv6 ULA, current-network, and service-network targets.",
+  },
+  {
+    label: "CRM / ticketing / docs",
+    danger: "Tenant and record authority hidden behind friendly search or update verbs.",
+    fixture: "Allow one workspace/object lane; deny another tenant, private project, archived record, and broad export.",
+  },
+  {
+    label: "Payments / billing",
+    danger: "Budget authority where retries and partial success become real money.",
+    fixture: "Allow one amount/merchant/product lane; deny higher amount, duplicate idempotency key, and unpriced provider path.",
+  },
+  {
+    label: "Email / messaging",
+    danger: "External communication authority that can impersonate intent or leak data.",
+    fixture: "Allow draft or approved recipient class; deny external send, list blast, wrong account, and hidden attachment.",
+  },
+  {
+    label: "Deploy / CI / infra",
+    danger: "Change authority where one tool call can mutate production state.",
+    fixture: "Allow read/build/status first; deny deploy, secret read, privilege escalation, and unreviewed config mutation.",
+  },
+];
+
+const TEMPLATE_LINES = [
+  "Route / MCP tool:",
+  "Workflow job:",
+  "Caller / tenant / workspace:",
+  "Trust class:",
+  "Allowed authority surface:",
+  "Forbidden neighbors:",
+  "Credential lane / backend principal:",
+  "Budget owner / quota bucket:",
+  "Retry and idempotency rule:",
+  "Denial fixture that must fail closed:",
+  "Receipt fields required for audit:",
+  "Recovery path when the call is denied, partial, or duplicated:",
+];
+
+const COMMON_FAILURES = [
+  "Discovery shows tools the caller is not allowed to use, so the model plans around impossible authority.",
+  "A parameter accepts arbitrary strings where the runtime needed normalized path, host, tenant, amount, or provider allowlists.",
+  "Auth proves identity but the backend principal is shared across tenants or workflows.",
+  "A denied neighbor returns a generic 500, silent retry, or partial side effect instead of a typed denial.",
+  "Receipts log the final provider response but omit the policy decision, credential lane, normalized input, and cost owner.",
+  "The test suite covers the happy path and never runs the adjacent path, private IP, wrong tenant, larger spend, or unsafe write variant.",
+];
+
+const RELATED = [
+  {
+    href: "/blog/mcp-security-model?rhumb_source=mcp-threat-model-security-model",
+    title: "MCP Has a Security Model",
+    description: "Scope, principals, and evidence are the practical security model once tool calls become production authority.",
+  },
+  {
+    href: "/blog/remote-mcp-production-readiness-checklist?rhumb_source=mcp-threat-model-remote-readiness",
+    title: "Remote MCP Production Readiness Checklist",
+    description: "Turn the route card into remote-server checks for auth, scope, tenant isolation, governors, and recovery.",
+  },
+  {
+    href: "/blog/mcp-route-hardening-checklist?rhumb_experiment=e008&rhumb_source=mcp-threat-model-route-hardening",
+    title: "MCP Route Hardening Checklist",
+    description: "If one route is already worth repeating, harden that route before broadening the surface.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Threat Model Template for Agent Tools",
+  datePublished: "2026-05-16T08:20:00Z",
+  dateModified: "2026-05-16T08:20:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A practical MCP threat model template for agent tools: route, caller, trust class, authority surface, credential lane, budget owner, denied neighbor, receipt, and recovery fields.",
+  url: "https://rhumb.dev/blog/mcp-threat-model-template-agent-tools",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-threat-model-template-agent-tools",
+};
+---
+
+<Layout
+  title="MCP Threat Model Template for Agent Tools | Rhumb"
+  description="A practical MCP threat model template for agent tools: route, caller, trust class, authority surface, credential lane, budget owner, denied neighbor, receipt, and recovery."
+  canonical="/blog/mcp-threat-model-template-agent-tools"
+  ogTitle="MCP Threat Model Template for Agent Tools"
+  ogDescription="Threat-model one MCP route before it becomes repeated agent authority: route, caller, credential lane, budget, denied neighbor, and receipt."
+  ogUrl="https://rhumb.dev/blog/mcp-threat-model-template-agent-tools"
+  ogType="article"
+  twitterTitle="MCP Threat Model Template for Agent Tools"
+  twitterDescription="A copy-paste threat model for production MCP tool calls: authority, credentials, budget, denial fixtures, and receipts."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-rose-500/10 via-amber/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-rose-300">MCP security</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 16, 2026</span>
+        </div>
+        <div class="max-w-4xl">
+          <p class="mb-4 font-mono text-sm uppercase tracking-[0.28em] text-amber">Threat model template</p>
+          <h1 class="text-4xl font-bold tracking-tight text-white md:text-6xl">MCP threat modeling starts with one tool call.</h1>
+          <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            A production MCP threat model should be small enough to run before the agent repeats a call. If you cannot name the route, caller, authority surface, credential lane, denied neighbor, budget owner, and receipt, the tool is not ready for unattended use.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <main class="mx-auto max-w-6xl px-6 py-12">
+      <section class="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div class="rounded-3xl border border-amber/20 bg-amber/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber">Fast answer</p>
+          <ul class="mt-5 space-y-4 text-slate-200">
+            {FAST_ANSWER.map((item) => <li class="flex gap-3"><span class="text-rose-300">→</span><span>{item}</span></li>)}
+          </ul>
+        </div>
+        <aside class="rounded-3xl border border-rose-500/20 bg-rose-500/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-rose-300">Operator rule</p>
+          <h2 class="mt-4 text-2xl font-semibold text-white">Threat model the authority, not the prompt.</h2>
+          <p class="mt-4 text-sm leading-6 text-slate-300">
+            Prompt injection is the trigger. The blast radius is decided by the tool surface you exposed: paths, networks, tenants, credentials, budgets, side effects, and recovery behavior.
+          </p>
+          <a href="/blog/remote-mcp-production-readiness-checklist?rhumb_source=mcp-threat-model-readiness-cta" class="mt-6 inline-flex rounded-full bg-amber px-5 py-3 font-mono text-sm font-semibold text-navy transition-transform hover:-translate-y-0.5">Run the readiness checklist</a>
+        </aside>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">The seven fields</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {THREAT_MODEL_FIELDS.map((item) => (
+            <article class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h2 class="text-lg font-semibold text-white">{item.field}</h2>
+              <p class="mt-3 text-sm leading-6 text-slate-300">{item.question}</p>
+              <p class="mt-4 border-t border-slate-800 pt-4 text-xs leading-5 text-slate-400">{item.evidence}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-emerald-300">Authority classes</p>
+        <h2 class="mt-3 max-w-3xl text-3xl font-bold text-white">Every MCP tool is not the same kind of risk.</h2>
+        <p class="mt-4 max-w-3xl leading-7 text-slate-300">
+          The mistake is to evaluate tools by whether they are read or write in natural language. Evaluate them by what authority they can exercise when a planner picks the wrong argument.
+        </p>
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {AUTHORITY_CLASSES.map((item) => (
+            <article class="rounded-2xl border border-slate-800 bg-slate-950/50 p-5">
+              <h3 class="text-xl font-semibold text-white">{item.label}</h3>
+              <p class="mt-3 text-sm leading-6 text-rose-200"><strong>Risk:</strong> {item.danger}</p>
+              <p class="mt-3 text-sm leading-6 text-slate-400"><strong class="text-emerald-300">Fixture:</strong> {item.fixture}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+        <div class="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+          <div>
+            <p class="font-mono text-xs uppercase tracking-[0.22em] text-emerald-300">Copy-paste route card</p>
+            <h2 class="mt-3 text-3xl font-bold text-white">The threat model should fit in a route card.</h2>
+            <p class="mt-4 leading-7 text-slate-300">
+              A route card is useful because it forces the security conversation out of abstractions. If the card cannot be filled out, the runtime will improvise under pressure.
+            </p>
+          </div>
+          <pre class="overflow-x-auto rounded-2xl border border-slate-800 bg-navy/80 p-5 text-sm leading-7 text-slate-200"><code>{TEMPLATE_LINES.join("\n")}</code></pre>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-rose-500/20 bg-rose-500/5 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-rose-300">Common failures</p>
+        <h2 class="mt-3 text-3xl font-bold text-white">Most MCP security failures are threat-model omissions.</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          {COMMON_FAILURES.map((item) => (
+            <div class="rounded-2xl border border-rose-500/10 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</div>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">Related operator guides</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          {RELATED.map((item) => (
+            <a href={item.href} class="rounded-2xl border border-slate-800 bg-navy/70 p-5 transition-colors hover:border-amber/40">
+              <h3 class="text-lg font-semibold text-white">{item.title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+  </div>
+</Layout>
