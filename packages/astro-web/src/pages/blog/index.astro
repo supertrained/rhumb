@@ -815,6 +815,24 @@ const POSTS: Post[] = [
   },
 
   {
+    slug: "mcp-fetch-ssrf-protection-checklist",
+    title: "MCP Fetch SSRF Protection Checklist",
+    description: "Prevent SSRF in MCP fetch, browser, crawl, and URL tools with URL parsing, DNS/IP classification, redirect containment, credential-lane isolation, typed denials, and receipts.",
+    date: "May 16, 2026",
+    dateISO: "2026-05-16T14:20:00Z",
+    readTime: "8 min",
+    contentType: "Guide",
+    category: "MCP Security",
+    difficulty: "Intermediate",
+    timeEstimate: "~10 min",
+    related: [
+      { slug: "mcp-threat-model-template-agent-tools", title: "MCP Threat Model Template" },
+      { slug: "mcp-security-model", title: "MCP Has a Security Model" },
+      { slug: "remote-mcp-production-readiness-checklist", title: "Remote MCP Production Readiness Checklist" },
+    ],
+  },
+
+  {
     slug: "mcp-threat-model-template-agent-tools",
     title: "MCP Threat Model Template for Agent Tools",
     description: "Threat-model one MCP route before repeated agent execution: caller, trust class, authority surface, credential lane, budget owner, denied neighbor, receipt, and recovery.",
@@ -826,6 +844,7 @@ const POSTS: Post[] = [
     difficulty: "Intermediate",
     timeEstimate: "~12 min",
     related: [
+      { slug: "mcp-fetch-ssrf-protection-checklist", title: "MCP Fetch SSRF Protection Checklist" },
       { slug: "mcp-security-model", title: "MCP Has a Security Model" },
       { slug: "remote-mcp-production-readiness-checklist", title: "Remote MCP Production Readiness Checklist" },
       { slug: "mcp-route-hardening-checklist", title: "MCP Route Hardening Checklist" },

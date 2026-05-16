@@ -1,0 +1,259 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const FAST_ANSWER = [
+  "A fetch MCP server is not just a read tool. It is network egress running from wherever the agent host sits.",
+  "SSRF protection has to run before the HTTP request: parse the URL, resolve DNS, classify every resolved address, apply redirect policy, and deny metadata, loopback, private, IPv6 ULA, and in-cluster targets by default.",
+  "Allowing public URLs is not the same as allowing internal services. Internal fetch needs its own route card with caller, tenant, target, credential lane, quota owner, review owner, and receipt fields.",
+  "The pass/fail proof is paired: one allowed external URL and one denied neighbor such as 169.254.169.254 must travel through the same endpoint, gateway, retry, and trace path.",
+];
+
+const CHECKS = [
+  {
+    label: "URL parse gate",
+    evidence: "Reject missing schemes, userinfo surprises, encoded host tricks, non-HTTP schemes, overlong inputs, and ambiguous normalization before DNS resolution.",
+  },
+  {
+    label: "DNS and IP classification",
+    evidence: "Resolve the hostname at request time, classify every A/AAAA result, and deny link-local, loopback, private, carrier-grade NAT, multicast, IPv6 ULA, and service-network addresses by default.",
+  },
+  {
+    label: "Redirect containment",
+    evidence: "Apply the same host and IP policy after every redirect. A safe first URL cannot redirect into metadata, loopback, or private infrastructure.",
+  },
+  {
+    label: "Credential-lane isolation",
+    evidence: "Record which server, cloud role, proxy, token, cookie jar, or provider credential would be exposed if the request were allowed.",
+  },
+  {
+    label: "Internal-route exception",
+    evidence: "If internal access is intentional, require a named route card with target host/CIDR, caller, tenant, purpose, review owner, credential lane, and quota owner.",
+  },
+  {
+    label: "Typed denial receipt",
+    evidence: "Return a policy denial with raw URL, normalized host, resolved IP class, rule id, blocked credential lane, and recovery hint instead of a generic network failure.",
+  },
+];
+
+const DENIED_NEIGHBORS = [
+  {
+    target: "Cloud metadata",
+    examples: "169.254.169.254, metadata.google.internal, instance-data, IMDS-style aliases",
+    expected: "Deny before request; receipt names metadata/link-local policy and credential lane protected.",
+  },
+  {
+    target: "Loopback",
+    examples: "127.0.0.1, ::1, localhost, decimal/hex/octal host encodings",
+    expected: "Deny before request; receipt shows normalized host and loopback classification.",
+  },
+  {
+    target: "Private network",
+    examples: "10.0.0.0/8, 172.16/12, 192.168/16, fd00::/8, Kubernetes service ranges",
+    expected: "Deny unless a specific internal route card authorizes that target for the caller and tenant.",
+  },
+  {
+    target: "Redirect into private target",
+    examples: "Public URL returning 30x to metadata, loopback, or RFC1918 address",
+    expected: "Re-run DNS/IP policy on redirect and deny with redirect hop preserved in trace.",
+  },
+];
+
+const TRACE_FIELDS = [
+  "caller / tenant / workspace",
+  "tool route and endpoint family",
+  "raw URL and normalized URL",
+  "normalized host and port",
+  "DNS answers and selected address",
+  "IP class and policy rule",
+  "redirect chain and final target",
+  "credential lane or server role protected",
+  "quota / budget owner",
+  "policy decision and typed denial code",
+  "response size / timeout / retry envelope",
+  "receipt id and recovery hint",
+];
+
+const INTERNAL_ROUTE_CARD = [
+  "Internal target / CIDR:",
+  "Caller / tenant / workspace allowed:",
+  "Business purpose:",
+  "Credential lane exposed:",
+  "Quota owner / retry ceiling:",
+  "Review owner:",
+  "Allowed methods and response size:",
+  "Forbidden neighboring targets:",
+  "Receipt fields:",
+  "Expiration / re-review date:",
+];
+
+const COMMON_MISREADS = [
+  "Calling fetch read-only even though the request originates from a privileged cloud or developer host.",
+  "Checking the hostname string but not resolved IPs, CNAME chains, redirects, or IPv6 results.",
+  "Denying 169.254.169.254 while allowing metadata hostnames, loopback aliases, or private-service DNS.",
+  "Letting retries or fallback proxies reissue the request without the same policy bundle.",
+  "Logging only request failure instead of the policy decision that protected a credential lane.",
+  "Treating internal network access as a boolean feature instead of a separate reviewed route.",
+];
+
+const RELATED = [
+  {
+    href: "/blog/mcp-threat-model-template-agent-tools?rhumb_source=fetch-ssrf-threat-model",
+    title: "MCP Threat Model Template for Agent Tools",
+    description: "Use a route card to bind caller, authority surface, credential lane, denied neighbor, and receipt before a fetch route repeats.",
+  },
+  {
+    href: "/blog/mcp-security-model?rhumb_source=fetch-ssrf-security-model",
+    title: "MCP Has a Security Model",
+    description: "Scope, principals, and evidence are the security model when fetch becomes network authority.",
+  },
+  {
+    href: "/blog/remote-mcp-production-readiness-checklist?rhumb_source=fetch-ssrf-remote-readiness",
+    title: "Remote MCP Production Readiness Checklist",
+    description: "Run fetch SSRF as a readiness gate beside tenant isolation, tool scope, quota, and recovery checks.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Fetch SSRF Protection Checklist",
+  datePublished: "2026-05-16T14:20:00Z",
+  dateModified: "2026-05-16T14:20:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A practical checklist for preventing SSRF in MCP fetch, browser, crawl, and URL tools: URL parse gates, DNS/IP classification, redirect containment, credential-lane isolation, typed denials, and receipts.",
+  url: "https://rhumb.dev/blog/mcp-fetch-ssrf-protection-checklist",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-fetch-ssrf-protection-checklist",
+};
+---
+
+<Layout
+  title="MCP Fetch SSRF Protection Checklist | Rhumb"
+  description="Prevent SSRF in MCP fetch and URL tools with URL parsing, DNS/IP classification, redirect containment, credential-lane isolation, typed denials, and audit receipts."
+  canonical="/blog/mcp-fetch-ssrf-protection-checklist"
+  ogTitle="MCP Fetch SSRF Protection Checklist"
+  ogDescription="Treat fetch as network authority: deny metadata, loopback, private networks, redirects into internal targets, and unreviewed internal route exceptions before request execution."
+  ogUrl="https://rhumb.dev/blog/mcp-fetch-ssrf-protection-checklist"
+  ogType="article"
+  twitterTitle="MCP Fetch SSRF Protection Checklist"
+  twitterDescription="A practical SSRF checklist for MCP fetch, browser, crawl, and URL tools."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-red-500/10 via-amber/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-red-300">MCP security</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 16, 2026</span>
+        </div>
+        <div class="max-w-4xl">
+          <p class="mb-4 font-mono text-sm uppercase tracking-[0.28em] text-amber">Fetch SSRF checklist</p>
+          <h1 class="text-4xl font-bold tracking-tight text-white md:text-6xl">MCP fetch tools need egress policy before they need better prompts.</h1>
+          <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            A URL tool can reach whatever the MCP server can reach. If that server runs in a cloud, CI, laptop, VPC, or cluster, open fetch becomes a credential and internal-network boundary. The safe default is to deny dangerous targets before the request leaves the runtime.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <main class="mx-auto max-w-6xl px-6 py-12">
+      <section class="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div class="rounded-3xl border border-amber/20 bg-amber/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber">Fast answer</p>
+          <ul class="mt-5 space-y-4 text-slate-200">
+            {FAST_ANSWER.map((item) => <li class="flex gap-3"><span class="text-red-300">→</span><span>{item}</span></li>)}
+          </ul>
+        </div>
+        <aside class="rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-red-300">Operator rule</p>
+          <h2 class="mt-4 text-2xl font-semibold text-white">SSRF denial is a successful control outcome.</h2>
+          <p class="mt-4 text-sm leading-6 text-slate-300">
+            A blocked metadata or private-network request should not look like flaky networking. It should leave a typed policy receipt that proves which credential lane and target class were protected.
+          </p>
+          <a href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e008&rhumb_source=fetch-ssrf-route-hardening" class="mt-6 inline-flex rounded-full bg-amber px-5 py-3 font-mono text-sm font-semibold text-navy transition-transform hover:-translate-y-0.5">Harden one fetch route</a>
+        </aside>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">The production checklist</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {CHECKS.map((item) => (
+            <article class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h2 class="text-lg font-semibold text-white">{item.label}</h2>
+              <p class="mt-3 text-sm leading-6 text-slate-300">{item.evidence}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-red-300">Denied neighbors</p>
+        <h2 class="mt-3 max-w-3xl text-3xl font-bold text-white">Pair every allowed URL with the target class that must fail closed.</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          {DENIED_NEIGHBORS.map((item) => (
+            <article class="rounded-2xl border border-red-500/20 bg-red-500/5 p-5">
+              <h3 class="text-xl font-semibold text-white">{item.target}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-300"><strong class="text-red-200">Examples:</strong> {item.examples}</p>
+              <p class="mt-3 text-sm leading-6 text-slate-400"><strong class="text-emerald-300">Expected:</strong> {item.expected}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+        <div class="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+          <div>
+            <p class="font-mono text-xs uppercase tracking-[0.22em] text-emerald-300">Trace evidence</p>
+            <h2 class="mt-3 text-3xl font-bold text-white">The receipt has to prove what did not happen.</h2>
+            <p class="mt-4 leading-7 text-slate-300">
+              Fetch SSRF protection is only operator-grade if the denial is reconstructable. Store enough evidence to show the target was classified and blocked before any credential, proxy, cookie, or cloud role was exposed.
+            </p>
+          </div>
+          <div class="grid gap-2 sm:grid-cols-2">
+            {TRACE_FIELDS.map((field) => <div class="rounded-xl border border-slate-800 bg-navy/70 px-4 py-3 text-sm text-slate-200">{field}</div>)}
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-sky-500/20 bg-sky-500/5 p-6">
+        <div class="grid gap-8 lg:grid-cols-[1fr_1fr]">
+          <div>
+            <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">Internal exception card</p>
+            <h2 class="mt-3 text-3xl font-bold text-white">Internal network access is a different route, not a checkbox.</h2>
+            <p class="mt-4 leading-7 text-slate-300">
+              Some agents legitimately need to reach internal services. That should never be granted by weakening public fetch policy. Give the internal lane its own route card, review owner, target scope, credential lane, and expiration.
+            </p>
+          </div>
+          <pre class="overflow-x-auto rounded-2xl border border-slate-800 bg-navy/80 p-5 text-sm leading-7 text-slate-200"><code>{INTERNAL_ROUTE_CARD.join("\n")}</code></pre>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-red-300">Common misreads</p>
+        <h2 class="mt-3 text-3xl font-bold text-white">Where SSRF defenses usually collapse.</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          {COMMON_MISREADS.map((item) => <div class="rounded-2xl border border-red-500/10 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</div>)}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">Related operator guides</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          {RELATED.map((item) => (
+            <a href={item.href} class="rounded-2xl border border-slate-800 bg-navy/70 p-5 transition-colors hover:border-amber/40">
+              <h3 class="text-lg font-semibold text-white">{item.title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+  </div>
+</Layout>
