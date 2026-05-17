@@ -1,0 +1,261 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const FAST_ANSWER = [
+  "A filesystem MCP tool is not harmless because it is local or read-only. It is authority over host state, repo state, secret-bearing paths, and sometimes customer data.",
+  "The boundary has to be proven before any read, write, diff, patch, summary, or upload runs: resolve cwd, normalize the requested path, canonicalize through symlinks, compare against the allowed root, and deny neighboring paths with typed receipts.",
+  "Scanner findings and schema lint are useful tripwires. Production proof is a paired fixture: one allowed file operation and one denied sibling, parent traversal, hidden config, symlink escape, or host-mount target through the same endpoint and trace path.",
+  "If the receipt cannot show requested path, canonical path, allowlist decision, symlink policy, redaction rule, caller, workspace, and operation class, the route is not ready for repeat agent use.",
+];
+
+const CHECKS = [
+  {
+    label: "Operation class gate",
+    evidence: "Separate read, list, search, summarize, diff, patch, write, delete, execute, and upload. A route approved for read does not inherit write, patch, or command authority.",
+  },
+  {
+    label: "cwd and workspace anchor",
+    evidence: "Record the runtime cwd, workspace id, repo id, branch/ref if applicable, and the intended allowed root before interpreting any model-supplied path.",
+  },
+  {
+    label: "Canonical path proof",
+    evidence: "Normalize the requested path, resolve relative segments, follow or reject symlinks according to policy, and compare the final canonical path to the allowed prefix.",
+  },
+  {
+    label: "Denied-neighbor fixtures",
+    evidence: "Test parent traversal, sibling workspaces, hidden config, lockfiles, credentials, host mounts, generated artifacts, and write targets outside policy under the same caller and endpoint.",
+  },
+  {
+    label: "Output redaction and shape",
+    evidence: "Bound file size, match allowlisted extensions or globs, redact secrets/topology/customer data, and return typed artifacts or summaries instead of dumping unbounded content into context.",
+  },
+  {
+    label: "Typed denial receipt",
+    evidence: "Return a policy denial that includes requested path, canonical path or resolution failure, operation class, rule id, caller/workspace, and recovery hint.",
+  },
+];
+
+const DENIED_NEIGHBORS = [
+  {
+    target: "Parent traversal",
+    examples: "../, ..%2f, nested symlink to parent, absolute path fallback",
+    expected: "Deny before read/write; receipt names normalized path, canonical path decision, and allowed-root rule.",
+  },
+  {
+    target: "Sibling workspace or repo",
+    examples: "../other-customer, ../repo-b, /Volumes/shared/adjacent-project",
+    expected: "Deny unless a separate route card explicitly names that workspace and caller. Same agent identity is not enough.",
+  },
+  {
+    target: "Hidden config and credentials",
+    examples: ".env, .npmrc, .aws/credentials, SSH keys, token caches, local browser/session files",
+    expected: "Deny or redact by default; receipt shows the secret-bearing class protected and the allowed recovery path.",
+  },
+  {
+    target: "Host mount or system path",
+    examples: "/etc, /proc, /var/run/docker.sock, host-mounted volumes, CI workspace parents",
+    expected: "Deny as host-state authority unless a reviewed admin route exists with expiration, receipt, and blast-radius owner.",
+  },
+];
+
+const TRACE_FIELDS = [
+  "caller / tenant / workspace",
+  "tool route and operation class",
+  "runtime cwd and allowed root",
+  "requested path and raw input",
+  "normalized path",
+  "canonical path or resolution error",
+  "symlink and mount decision",
+  "matched allowlist / deny rule",
+  "file size and extension / glob class",
+  "redaction policy applied",
+  "credential lane or host resource protected",
+  "policy decision and denial code",
+  "receipt id and recovery hint",
+];
+
+const ROUTE_CARD = [
+  "Filesystem route:",
+  "Caller / workspace allowed:",
+  "Allowed root / repo / branch:",
+  "Allowed operation class:",
+  "Allowed glob / extension / size:",
+  "Symlink and mount policy:",
+  "Redaction rule:",
+  "Forbidden neighboring paths:",
+  "Credential / host resource protected:",
+  "Receipt fields:",
+  "Expiration / re-review date:",
+];
+
+const COMMON_MISREADS = [
+  "Calling a file read safe because the tool cannot write, while it can still expose secrets, private repos, host topology, customer data, or prompts.",
+  "Validating the path string but not the canonical path after cwd, symlinks, mount points, case behavior, and relative segments resolve.",
+  "Allowing repo access as a blanket instead of separating source files, generated artifacts, hidden config, lockfiles, scripts, and credential stores.",
+  "Letting a denied read retry through search, glob, summarize, archive, or upload helpers that do not share the same filesystem policy.",
+  "Logging only a generic file-not-found or permission error instead of a typed policy receipt that proves the unsafe neighbor was blocked.",
+  "Treating scanner badges as proof instead of keeping allowed and denied runtime fixtures in the promotion gate.",
+];
+
+const RELATED = [
+  {
+    href: "/blog/mcp-server-quality-signals-agents?rhumb_source=filesystem-boundary-quality-signals",
+    title: "MCP Server Quality Signals for Agents",
+    description: "Filesystem/resource boundary is one of the production quality checks before an MCP server is promoted.",
+  },
+  {
+    href: "/blog/how-to-evaluate-mcp-servers?rhumb_source=filesystem-boundary-evaluate",
+    title: "How to Evaluate MCP Servers",
+    description: "Use allowed and denied fixtures to separate useful local context tools from broad host-state authority.",
+  },
+  {
+    href: "/blog/mcp-threat-model-template-agent-tools?rhumb_source=filesystem-boundary-threat-model",
+    title: "MCP Threat Model Template for Agent Tools",
+    description: "Bind caller, authority surface, credential lane, denied neighbor, receipt, and recovery before filesystem routes repeat.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Filesystem Path Boundary Checklist",
+  datePublished: "2026-05-17T05:20:00Z",
+  dateModified: "2026-05-17T05:20:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A practical checklist for filesystem and repo MCP tools: operation classes, cwd anchors, canonical path proof, denied neighbors, output redaction, typed denials, and audit receipts.",
+  url: "https://rhumb.dev/blog/mcp-filesystem-path-boundary-checklist",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-filesystem-path-boundary-checklist",
+};
+---
+
+<Layout
+  title="MCP Filesystem Path Boundary Checklist | Rhumb"
+  description="Harden filesystem and repo MCP tools with operation classes, cwd anchors, canonical path proof, denied-neighbor fixtures, redaction, typed denials, and receipts."
+  canonical="/blog/mcp-filesystem-path-boundary-checklist"
+  ogTitle="MCP Filesystem Path Boundary Checklist"
+  ogDescription="Treat filesystem tools as host-state authority: prove allowed roots, canonical paths, symlink policy, denied neighbors, redaction, and receipt evidence before execution."
+  ogUrl="https://rhumb.dev/blog/mcp-filesystem-path-boundary-checklist"
+  ogType="article"
+  twitterTitle="MCP Filesystem Path Boundary Checklist"
+  twitterDescription="A practical path-boundary checklist for filesystem, repo, workspace, and local-resource MCP tools."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-purple-500/10 via-amber/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-purple-300">MCP security</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 16, 2026</span>
+        </div>
+        <div class="max-w-4xl">
+          <p class="mb-4 font-mono text-sm uppercase tracking-[0.28em] text-amber">Filesystem path-boundary checklist</p>
+          <h1 class="text-4xl font-bold tracking-tight text-white md:text-6xl">MCP filesystem tools need path proof before they need broader repo access.</h1>
+          <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            A model-supplied path is an authorization input. If an MCP server can read, list, summarize, patch, or write files, the production question is not whether the schema accepts a string. It is whether the runtime can prove the final path stayed inside the intended workspace before host state reaches the agent.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <main class="mx-auto max-w-6xl px-6 py-12">
+      <section class="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div class="rounded-3xl border border-amber/20 bg-amber/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber">Fast answer</p>
+          <ul class="mt-5 space-y-4 text-slate-200">
+            {FAST_ANSWER.map((item) => <li class="flex gap-3"><span class="text-purple-300">→</span><span>{item}</span></li>)}
+          </ul>
+        </div>
+        <aside class="rounded-3xl border border-purple-500/20 bg-purple-500/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-purple-300">Operator rule</p>
+          <h2 class="mt-4 text-2xl font-semibold text-white">A denied sibling path is positive evidence.</h2>
+          <p class="mt-4 text-sm leading-6 text-slate-300">
+            The useful proof is not that the happy-path file opened. It is that a nearby unsafe path failed closed with a receipt the operator can audit after the agent moves on.
+          </p>
+          <a href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e008&rhumb_source=filesystem-boundary-route-hardening" class="mt-6 inline-flex rounded-full bg-amber px-5 py-3 font-mono text-sm font-semibold text-navy transition-transform hover:-translate-y-0.5">Harden one filesystem route</a>
+        </aside>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">The production checklist</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {CHECKS.map((item) => (
+            <article class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h2 class="text-lg font-semibold text-white">{item.label}</h2>
+              <p class="mt-3 text-sm leading-6 text-slate-300">{item.evidence}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-purple-300">Denied neighbors</p>
+        <h2 class="mt-3 max-w-3xl text-3xl font-bold text-white">Pair every allowed file with the path class that must fail closed.</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          {DENIED_NEIGHBORS.map((item) => (
+            <article class="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-5">
+              <h3 class="text-xl font-semibold text-white">{item.target}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-300"><strong class="text-purple-200">Examples:</strong> {item.examples}</p>
+              <p class="mt-3 text-sm leading-6 text-slate-400"><strong class="text-emerald-300">Expected:</strong> {item.expected}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+        <div class="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+          <div>
+            <p class="font-mono text-xs uppercase tracking-[0.22em] text-emerald-300">Trace evidence</p>
+            <h2 class="mt-3 text-3xl font-bold text-white">The receipt has to prove which host state stayed unreachable.</h2>
+            <p class="mt-4 leading-7 text-slate-300">
+              Filesystem containment is only operator-grade if the decision is reconstructable. Store enough evidence to show the path was normalized, resolved, classified, and blocked or allowed before content, secrets, or write authority reached the agent.
+            </p>
+          </div>
+          <div class="grid gap-2 sm:grid-cols-2">
+            {TRACE_FIELDS.map((field) => <div class="rounded-xl border border-slate-800 bg-navy/70 px-4 py-3 text-sm text-slate-200">{field}</div>)}
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-sky-500/20 bg-sky-500/5 p-6">
+        <div class="grid gap-8 lg:grid-cols-[1fr_1fr]">
+          <div>
+            <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">Route card</p>
+            <h2 class="mt-3 text-3xl font-bold text-white">Repo-wide access is a different route, not an escalation after failure.</h2>
+            <p class="mt-4 leading-7 text-slate-300">
+              Some agents legitimately need broader repository context. That does not make every path in the workspace fair game. Give each filesystem lane its own caller, operation class, allowed root, redaction rule, denied neighbors, and expiration.
+            </p>
+          </div>
+          <pre class="overflow-x-auto rounded-2xl border border-slate-800 bg-navy/80 p-5 text-sm leading-7 text-slate-200"><code>{ROUTE_CARD.join("\n")}</code></pre>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-purple-500/20 bg-purple-500/5 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-purple-300">Common misreads</p>
+        <h2 class="mt-3 text-3xl font-bold text-white">Where filesystem safety usually collapses.</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          {COMMON_MISREADS.map((item) => <div class="rounded-2xl border border-purple-500/10 bg-navy/70 p-5 text-sm leading-6 text-slate-300">{item}</div>)}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">Related operator guides</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          {RELATED.map((item) => (
+            <a href={item.href} class="rounded-2xl border border-slate-800 bg-navy/70 p-5 transition-colors hover:border-amber/40">
+              <h3 class="text-lg font-semibold text-white">{item.title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+  </div>
+</Layout>
