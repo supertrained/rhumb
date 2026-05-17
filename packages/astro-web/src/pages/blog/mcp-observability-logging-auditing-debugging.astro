@@ -77,6 +77,7 @@ const OBSERVABILITY_CHECKLIST = [
   "Checkpoints let the caller resume from a known-good state instead of replaying the whole workflow blind.",
   "Each tool or lane has a reversibility or permanence class so rollback strategy is not improvised during an incident.",
   "Filesystem traces capture canonical path, allowed root, denied neighbor, redaction rule, and operation class before file contents or patches reach the agent.",
+  "Tool-output traces capture response ceiling, returned bytes, omitted count, summary mode, artifact reference, redaction class, and refill route before large payloads enter model context.",
 ];
 
 const PRICING_BOUNDARY_PROOFS = [

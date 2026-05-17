@@ -1,0 +1,255 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const FAST_ANSWER = [
+  "Tool output is part of the route budget. A verbose MCP result can burn more model context than the call that produced it, then make the next planning step slower, more expensive, and less recoverable.",
+  "A production MCP tool needs an output contract before launch: maximum bytes, maximum records, schema shape, summary rule, artifact handoff, redaction policy, and the exact denial or truncation receipt when the response exceeds budget.",
+  "The useful test is not whether the tool can return a large JSON blob. It is whether the same route can return the minimum safe result, point to a durable artifact when needed, and prove what was omitted.",
+  "If the trace cannot explain how many bytes or tokens were returned, why the payload was shaped that way, what artifact holds the full result, and how the agent can request the next page safely, the route is not ready for unattended loops.",
+];
+
+const CHECKS = [
+  {
+    label: "Per-route output ceiling",
+    evidence: "Set a maximum response size by route, not just by server. A search result, file summary, database row read, transcript extract, and browser scrape should not share one generic payload limit.",
+  },
+  {
+    label: "Schema before prose",
+    evidence: "Return typed fields, stable ids, result counts, omitted-count metadata, and next-page cursors before free-form explanation. Let the model reason over bounded structure instead of raw dumps.",
+  },
+  {
+    label: "Artifact handoff",
+    evidence: "When the full payload is too large, write it to a durable artifact or provider object and return a reference, checksum, expiration, access rule, and safe follow-up route instead of flooding context.",
+  },
+  {
+    label: "Summarization boundary",
+    evidence: "Name whether the tool returned raw data, extracted fields, a lossy summary, or a sampled preview. The receipt should make lossy compression visible before the agent treats it as ground truth.",
+  },
+  {
+    label: "Redaction and data-use policy",
+    evidence: "Apply redaction before payload shaping, and record which secret, customer-data, credential, prompt, or topology class was removed. Truncation is not a security control.",
+  },
+  {
+    label: "Pagination and refill rule",
+    evidence: "Expose a cursor, range, query refinement, or approval step for more data. Do not let the agent repeat the same oversized call hoping the next response is smaller.",
+  },
+];
+
+const FAILURE_FIXTURES = [
+  {
+    fixture: "Oversized search result",
+    expected: "Return top bounded results, total count, omitted count, ranking criteria, and a cursor or refinement hint; do not stream every match into context.",
+  },
+  {
+    fixture: "Large file or transcript",
+    expected: "Return section summaries plus artifact reference, byte range, checksum, and follow-up extraction route instead of a full dump.",
+  },
+  {
+    fixture: "Nested JSON response",
+    expected: "Flatten or select approved fields, include schema version, and receipt omitted nested objects before the agent plans from partial data.",
+  },
+  {
+    fixture: "Sensitive field in allowed result",
+    expected: "Redact before truncation and record the protected class. A payload clipped after the secret is already returned fails the gate.",
+  },
+  {
+    fixture: "Agent asks for 'everything' again",
+    expected: "Deny or require a narrower query after budget exhaustion. The planner should not bypass the output budget by rephrasing the same broad request.",
+  },
+];
+
+const TRACE_FIELDS = [
+  "route id and tool call id",
+  "caller / tenant / workspace",
+  "operation class and data class",
+  "output ceiling in bytes / records / tokens",
+  "actual bytes and estimated tokens returned",
+  "raw count, returned count, and omitted count",
+  "schema version and selected fields",
+  "redaction rule and protected class",
+  "summary / extract / raw-data mode",
+  "artifact id, checksum, and expiration",
+  "cursor, range, or refill route",
+  "policy decision and denial / truncation code",
+  "receipt id and allowed next action",
+];
+
+const ROUTE_CARD = [
+  "MCP route:",
+  "Caller / tenant:",
+  "Data class:",
+  "Max bytes / records / tokens:",
+  "Allowed fields / schema:",
+  "Summary vs raw-data rule:",
+  "Artifact handoff rule:",
+  "Redaction rule:",
+  "Pagination / refill route:",
+  "Oversize denial or truncation code:",
+  "Receipt fields:",
+];
+
+const COMMON_MISREADS = [
+  "Optimizing provider-call retries while ignoring that the returned payload is what actually explodes the model bill.",
+  "Calling a tool read-only and therefore safe, even though it can leak private data or swamp context with unbounded output.",
+  "Returning a natural-language summary without saying which fields were dropped, sampled, redacted, or inferred.",
+  "Using truncation as a quiet success path. The agent must know the response is partial before it takes action.",
+  "Storing a full artifact without a checksum, expiration, access rule, or route for retrieving a narrower slice later.",
+  "Letting the agent retry the same broad query after an output-budget denial instead of requiring a smaller query or human approval.",
+];
+
+const RELATED = [
+  {
+    href: "/blog/agent-fleet-rate-limit-design?rhumb_source=tool-output-budget-fleet-rate-limits",
+    title: "Designing Agent Fleets That Survive Rate Limits",
+    description: "Fleet-level budgets once tool calls, retries, and returned payloads all burn scarce capacity.",
+  },
+  {
+    href: "/blog/mcp-retry-rate-limit-budget-checklist?rhumb_source=tool-output-budget-retry-budget",
+    title: "MCP Retry and Rate-Limit Budget Checklist",
+    description: "Pair output ceilings with retry budgets so one route cannot overspend through repeated large responses.",
+  },
+  {
+    href: "/blog/mcp-observability-logging-auditing-debugging?rhumb_source=tool-output-budget-observability",
+    title: "MCP Observability, Logging, Auditing, and Debugging",
+    description: "Trace fields for proving what was returned, omitted, redacted, or handed off as an artifact.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Tool Output Budget Checklist",
+  datePublished: "2026-05-17T20:20:00Z",
+  dateModified: "2026-05-17T20:20:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A practical checklist for MCP tool-output budgets: response ceilings, schema discipline, artifact handoff, redaction, pagination, truncation receipts, and traces for unattended agent loops.",
+  url: "https://rhumb.dev/blog/mcp-tool-output-budget-checklist",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-tool-output-budget-checklist",
+};
+---
+
+<Layout
+  title="MCP Tool Output Budget Checklist | Rhumb"
+  description="Harden MCP tool output with route-level response ceilings, schema discipline, artifact handoff, redaction, pagination, truncation receipts, and trace evidence."
+  canonical="/blog/mcp-tool-output-budget-checklist"
+  ogTitle="MCP Tool Output Budget Checklist"
+  ogDescription="Tool output is part of the route budget. Prove response ceilings, artifacts, redaction, pagination, and truncation receipts before unattended agent loops."
+  ogUrl="https://rhumb.dev/blog/mcp-tool-output-budget-checklist"
+  ogType="article"
+  twitterTitle="MCP Tool Output Budget Checklist"
+  twitterDescription="A practical output-budget checklist for MCP routes that must avoid context floods, hidden truncation, and repeated oversized calls."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-sky-500/10 via-amber/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-sky-300">MCP reliability</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 17, 2026</span>
+        </div>
+        <div class="max-w-4xl">
+          <p class="mb-4 font-mono text-sm uppercase tracking-[0.28em] text-amber">Tool output budget checklist</p>
+          <h1 class="text-4xl font-bold tracking-tight text-white md:text-6xl">MCP tools need output budgets before they need bigger context windows.</h1>
+          <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            A tool call can be correct and still break the agent if it returns too much. Search results, files, transcripts, logs, and nested API responses need bounded output contracts so the model receives the smallest safe evidence, not a context flood.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <main class="mx-auto max-w-6xl px-6 py-12">
+      <section class="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div class="rounded-3xl border border-amber/20 bg-amber/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber">Fast answer</p>
+          <ul class="mt-5 space-y-4 text-slate-200">
+            {FAST_ANSWER.map((item) => <li class="flex gap-3"><span class="text-sky-300">→</span><span>{item}</span></li>)}
+          </ul>
+        </div>
+        <aside class="rounded-3xl border border-sky-500/20 bg-sky-500/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">Operator rule</p>
+          <h2 class="mt-4 text-2xl font-semibold text-white">Partial output must be explicit output.</h2>
+          <p class="mt-4 text-sm leading-6 text-slate-300">
+            Truncation is not a quiet success. The receipt should tell the agent and the operator what was returned, what was omitted, where the full artifact lives, and which narrower follow-up route is allowed.
+          </p>
+          <a href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e008&rhumb_source=tool-output-budget-route-hardening-cta" class="mt-6 inline-flex rounded-full bg-amber px-5 py-3 font-mono text-sm font-semibold text-navy transition-transform hover:-translate-y-0.5">Budget one output-heavy route</a>
+        </aside>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">The production checklist</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {CHECKS.map((item) => (
+            <article class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h2 class="text-lg font-semibold text-white">{item.label}</h2>
+              <p class="mt-3 text-sm leading-6 text-slate-300">{item.evidence}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-sky-300">Failure fixtures</p>
+        <h2 class="mt-3 max-w-3xl text-3xl font-bold text-white">Test the context-flood cases before the agent discovers them in production.</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          {FAILURE_FIXTURES.map((item) => (
+            <article class="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-5">
+              <h3 class="text-xl font-semibold text-white">{item.fixture}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-300"><strong class="text-sky-200">Expected:</strong> {item.expected}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+        <div class="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+          <div>
+            <p class="font-mono text-xs uppercase tracking-[0.22em] text-emerald-300">Trace evidence</p>
+            <h2 class="mt-3 text-3xl font-bold text-white">The output receipt should make omitted data auditable.</h2>
+            <p class="mt-4 leading-7 text-slate-300">
+              Once the agent moves on, operators need to know whether it acted on raw data, an extraction, a summary, or a clipped preview. The trace should keep returned payload size, omitted data, redaction, artifact references, and allowed next actions in one place.
+            </p>
+          </div>
+          <div class="grid gap-2 sm:grid-cols-2">
+            {TRACE_FIELDS.map((field) => (
+              <div class="rounded-xl border border-emerald-500/20 bg-navy/60 px-4 py-3 font-mono text-xs text-slate-300">{field}</div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-12 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <div class="rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">Copy-paste route card</p>
+          <h2 class="mt-3 text-2xl font-semibold text-white">Budget the returned evidence before the call runs.</h2>
+          <pre class="mt-5 overflow-x-auto rounded-2xl border border-slate-800 bg-navy p-5 text-sm leading-7 text-slate-200"><code>{ROUTE_CARD.join("\n")}</code></pre>
+        </div>
+        <div class="rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-red-300">Common misreads</p>
+          <ul class="mt-5 space-y-4 text-sm leading-6 text-slate-300">
+            {COMMON_MISREADS.map((item) => <li class="flex gap-3"><span class="text-red-300">✕</span><span>{item}</span></li>)}
+          </ul>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-amber/20 bg-amber/5 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber">Related reading</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          {RELATED.map((item) => (
+            <a href={item.href} class="group rounded-2xl border border-slate-800 bg-navy/70 p-5 transition-colors hover:border-amber/50">
+              <h3 class="text-lg font-semibold text-white group-hover:text-amber">{item.title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+  </div>
+</Layout>
