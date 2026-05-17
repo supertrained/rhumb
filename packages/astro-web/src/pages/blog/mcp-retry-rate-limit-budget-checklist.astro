@@ -1,0 +1,258 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+
+const FAST_ANSWER = [
+  "Retries are not a transport detail once an agent can call tools in a loop. They are spend authority, provider pressure, and user-visible side effects repeated by software that may not know when to stop.",
+  "A production MCP route needs a retry budget before launch: max attempts, wall-clock ceiling, provider quota owner, token/cost cap, idempotency rule, backoff shape, and the exact denial returned when the budget is exhausted.",
+  "Rate-limit proof is not a happy-path 200. It is a forced 429/503, timeout, duplicate request, partial side effect, and exhausted-budget fixture through the same route card and receipt path.",
+  "If the trace cannot explain why the agent stopped retrying, who owned the budget, whether the call was safe to replay, and which recovery action is allowed next, the route is not ready for unattended repeat use.",
+];
+
+const CHECKS = [
+  {
+    label: "Route-level retry budget",
+    evidence: "Set max attempts, max elapsed time, max queued delay, max tokens or dollars, and max provider calls per route. Do not inherit a global retry policy blindly across tools with different side effects.",
+  },
+  {
+    label: "Quota owner and lane",
+    evidence: "Name the budget owner: user, tenant, workspace, Rhumb-managed lane, customer key, provider account, or explicit test quota. The receipt should show which lane was charged or protected.",
+  },
+  {
+    label: "Idempotency and side-effect class",
+    evidence: "Separate read, search, estimate, create, update, send, delete, purchase, and external-message calls. Only replay when the route has an idempotency key or a verified no-side-effect class.",
+  },
+  {
+    label: "Backoff and jitter evidence",
+    evidence: "Record the retry-after header, provider reset time, chosen delay, jitter range, queue position, and whether the model is allowed to ask for a manual recovery step instead of hammering the provider.",
+  },
+  {
+    label: "Duplicate and partial-result fixture",
+    evidence: "Force a timeout after provider acceptance, duplicate the same request id, and verify the second call resolves to the original receipt or a typed duplicate denial instead of repeating the side effect.",
+  },
+  {
+    label: "Exhaustion denial",
+    evidence: "When the budget is spent, return a typed denial with attempts, elapsed time, quota owner, protected provider, next retry window, and safe recovery path. Do not let the model improvise another route around the budget.",
+  },
+];
+
+const FAILURE_FIXTURES = [
+  {
+    fixture: "Provider 429",
+    expected: "Respect Retry-After or reset metadata, stop at route budget, and receipt the protected quota owner.",
+  },
+  {
+    fixture: "Provider 503 / network timeout",
+    expected: "Retry only idempotent or explicitly replay-safe classes; include backoff decision, elapsed ceiling, and final recovery hint.",
+  },
+  {
+    fixture: "Timeout after accepted write",
+    expected: "Use idempotency key or status lookup before replay. A second side effect is a failed gate, even if the final response is 200.",
+  },
+  {
+    fixture: "Agent loop repeats same ask",
+    expected: "Collapse duplicate intent into one receipt or deny after budget exhaustion; do not multiply provider calls because the planner rephrased the task.",
+  },
+  {
+    fixture: "Fallback provider route",
+    expected: "Require a separate budget owner, data-use rule, credential lane, and receipt. Fallback is not a hidden retry path.",
+  },
+];
+
+const TRACE_FIELDS = [
+  "route id and tool call id",
+  "caller / tenant / workspace",
+  "operation class and side-effect class",
+  "quota owner and credential lane",
+  "provider account / capability id",
+  "attempt number and max attempts",
+  "elapsed time and wall-clock ceiling",
+  "token, dollar, and provider-call budget",
+  "provider status, retry-after, and reset metadata",
+  "idempotency key or replay decision",
+  "backoff delay and jitter range",
+  "duplicate / partial-result check",
+  "policy decision and denial code",
+  "receipt id and allowed recovery action",
+];
+
+const ROUTE_CARD = [
+  "MCP route:",
+  "Caller / tenant:",
+  "Operation and side-effect class:",
+  "Quota owner:",
+  "Credential lane:",
+  "Max attempts:",
+  "Max elapsed time:",
+  "Token / dollar / provider-call cap:",
+  "Retry-after / backoff rule:",
+  "Idempotency key or replay guard:",
+  "Forbidden fallback routes:",
+  "Exhaustion denial code:",
+  "Receipt fields:",
+];
+
+const COMMON_MISREADS = [
+  "Treating a 429 as a temporary nuisance instead of a budget decision that protects a user, tenant, provider account, or managed lane.",
+  "Using one global retry middleware for read-only search, email sends, calendar writes, purchases, and payment calls.",
+  "Logging final success while losing the evidence that three provider calls, a fallback, and a timeout happened first.",
+  "Letting the model route around a rate limit through a second provider without a separate budget and data-use decision.",
+  "Calling a tool idempotent because the endpoint name says `create_or_update` while the provider does not accept a stable idempotency key.",
+  "Counting token budget but not provider-call budget, even though the provider quota is the scarce production resource.",
+];
+
+const RELATED = [
+  {
+    href: "/blog/agent-fleet-rate-limit-design?rhumb_source=retry-budget-fleet-rate-limits",
+    title: "Designing Agent Fleets That Survive Rate Limits",
+    description: "Fleet-level capacity patterns once multiple agents share provider quotas and retry pressure.",
+  },
+  {
+    href: "/blog/mcp-observability-logging-auditing-debugging?rhumb_source=retry-budget-observability",
+    title: "MCP Observability, Logging, Auditing, and Debugging",
+    description: "Trace fields and drills for reconstructing tool decisions after the agent moves on.",
+  },
+  {
+    href: "/blog/mcp-route-hardening-checklist?rhumb_experiment=e008&rhumb_source=retry-budget-route-hardening",
+    title: "MCP Route Hardening Checklist",
+    description: "Turn one repeat route into a caller, credential, budget, denied-neighbor, and receipt proof packet.",
+  },
+];
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "MCP Retry and Rate-Limit Budget Checklist",
+  datePublished: "2026-05-17T08:20:00Z",
+  dateModified: "2026-05-17T08:20:00Z",
+  author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  description:
+    "A practical checklist for MCP retry budgets, rate-limit handling, idempotency, quota ownership, exhausted-budget denials, and receipts for unattended agent tool calls.",
+  url: "https://rhumb.dev/blog/mcp-retry-rate-limit-budget-checklist",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+  mainEntityOfPage: "https://rhumb.dev/blog/mcp-retry-rate-limit-budget-checklist",
+};
+---
+
+<Layout
+  title="MCP Retry and Rate-Limit Budget Checklist | Rhumb"
+  description="Harden MCP retries and rate-limit handling with route budgets, quota owners, idempotency guards, backoff evidence, exhausted-budget denials, and receipts."
+  canonical="/blog/mcp-retry-rate-limit-budget-checklist"
+  ogTitle="MCP Retry and Rate-Limit Budget Checklist"
+  ogDescription="Retries are spend authority. Prove route budgets, quota owners, idempotency, backoff, duplicate handling, and exhausted-budget receipts before unattended agent use."
+  ogUrl="https://rhumb.dev/blog/mcp-retry-rate-limit-budget-checklist"
+  ogType="article"
+  twitterTitle="MCP Retry and Rate-Limit Budget Checklist"
+  twitterDescription="A practical retry-budget checklist for MCP routes that must survive rate limits, timeouts, duplicate calls, and agent loops."
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-emerald-500/10 via-amber/5 to-transparent pointer-events-none"></div>
+      <div class="relative mx-auto max-w-6xl px-6 py-16">
+        <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+          <a href="/blog" class="text-slate-500 transition-colors hover:text-amber">&larr; Blog</a>
+          <span class="text-slate-800">&middot;</span>
+          <span class="uppercase tracking-widest text-emerald-300">MCP reliability</span>
+          <span class="text-slate-800">&middot;</span>
+          <span class="text-slate-500">May 17, 2026</span>
+        </div>
+        <div class="max-w-4xl">
+          <p class="mb-4 font-mono text-sm uppercase tracking-[0.28em] text-amber">Retry and rate-limit budget checklist</p>
+          <h1 class="text-4xl font-bold tracking-tight text-white md:text-6xl">MCP retries need a budget before they need another attempt.</h1>
+          <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            An unattended agent can turn one 429 into a retry storm, one timeout into a duplicate write, or one fallback into unapproved provider spend. The production boundary is not "does the client retry?" It is whether the route can prove when it must stop.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <main class="mx-auto max-w-6xl px-6 py-12">
+      <section class="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <div class="rounded-3xl border border-amber/20 bg-amber/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-amber">Fast answer</p>
+          <ul class="mt-5 space-y-4 text-slate-200">
+            {FAST_ANSWER.map((item) => <li class="flex gap-3"><span class="text-emerald-300">→</span><span>{item}</span></li>)}
+          </ul>
+        </div>
+        <aside class="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-emerald-300">Operator rule</p>
+          <h2 class="mt-4 text-2xl font-semibold text-white">A clean stop is part of the product.</h2>
+          <p class="mt-4 text-sm leading-6 text-slate-300">
+            Agents do not get credit for eventually succeeding if the route spent the user's quota blindly first. The receipt has to show why the system retried, why it stopped, and what safe recovery remains.
+          </p>
+          <a href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e008&rhumb_source=retry-budget-route-hardening-cta" class="mt-6 inline-flex rounded-full bg-amber px-5 py-3 font-mono text-sm font-semibold text-navy transition-transform hover:-translate-y-0.5">Harden one retry-prone route</a>
+        </aside>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">The production checklist</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {CHECKS.map((item) => (
+            <article class="rounded-2xl border border-slate-800 bg-navy/70 p-5">
+              <h2 class="text-lg font-semibold text-white">{item.label}</h2>
+              <p class="mt-3 text-sm leading-6 text-slate-300">{item.evidence}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-emerald-300">Failure fixtures</p>
+        <h2 class="mt-3 max-w-3xl text-3xl font-bold text-white">Do not promote a route until the bad timing cases have receipts.</h2>
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          {FAILURE_FIXTURES.map((item) => (
+            <article class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+              <h3 class="text-xl font-semibold text-white">{item.fixture}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-300"><strong class="text-emerald-200">Expected:</strong> {item.expected}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-purple-500/20 bg-purple-500/5 p-6">
+        <div class="grid gap-8 lg:grid-cols-[0.85fr_1.15fr]">
+          <div>
+            <p class="font-mono text-xs uppercase tracking-[0.22em] text-purple-300">Trace evidence</p>
+            <h2 class="mt-3 text-3xl font-bold text-white">The retry receipt should make the loop boring to audit.</h2>
+            <p class="mt-4 leading-7 text-slate-300">
+              Rate-limit and timeout handling only become operator-grade when every attempt is reconstructable. The evidence should identify the protected budget, the replay decision, the provider response, and the recovery path without depending on the model's explanation after the fact.
+            </p>
+          </div>
+          <div class="grid gap-2 sm:grid-cols-2">
+            {TRACE_FIELDS.map((field) => (
+              <div class="rounded-xl border border-purple-500/20 bg-navy/60 px-4 py-3 font-mono text-xs text-slate-300">{field}</div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section class="mt-12 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+        <div class="rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">Copy-paste route card</p>
+          <h2 class="mt-3 text-2xl font-semibold text-white">Budget the route before the loop runs.</h2>
+          <pre class="mt-5 overflow-x-auto rounded-2xl border border-slate-800 bg-navy p-5 text-sm leading-7 text-slate-200"><code>{ROUTE_CARD.join("\n")}</code></pre>
+        </div>
+        <div class="rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
+          <p class="font-mono text-xs uppercase tracking-[0.22em] text-red-300">Common misreads</p>
+          <ul class="mt-5 space-y-4 text-sm leading-6 text-slate-300">
+            {COMMON_MISREADS.map((item) => <li class="flex gap-3"><span class="text-red-300">✕</span><span>{item}</span></li>)}
+          </ul>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
+        <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">Related Rhumb guides</p>
+        <div class="mt-6 grid gap-4 md:grid-cols-3">
+          {RELATED.map((item) => (
+            <a href={item.href} class="rounded-2xl border border-slate-800 bg-navy/70 p-5 transition-colors hover:border-amber/60">
+              <h3 class="text-lg font-semibold text-white">{item.title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{item.description}</p>
+            </a>
+          ))}
+        </div>
+      </section>
+    </main>
+  </div>
+</Layout>
