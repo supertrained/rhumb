@@ -19,6 +19,10 @@ const CHECKS = [
     evidence: "Return typed fields, stable ids, result counts, omitted-count metadata, and next-page cursors before free-form explanation. Let the model reason over bounded structure instead of raw dumps.",
   },
   {
+    label: "Content-block order",
+    evidence: "Preserve the original sequence of text, image, file, table, and citation blocks or return an explicit order map. Reordering mixed media can make the agent attach evidence to the wrong step even when every block is present.",
+  },
+  {
     label: "Artifact handoff",
     evidence: "When the full payload is too large, write it to a durable artifact or provider object and return a reference, checksum, expiration, access rule, and safe follow-up route instead of flooding context.",
   },
@@ -50,6 +54,10 @@ const FAILURE_FIXTURES = [
     expected: "Flatten or select approved fields, include schema version, and receipt omitted nested objects before the agent plans from partial data.",
   },
   {
+    fixture: "Mixed text and image blocks",
+    expected: "Return text, images, files, tables, and citations in the route's declared order with block ids and parent ids; do not move all images or artifacts to the end of the response.",
+  },
+  {
     fixture: "Sensitive field in allowed result",
     expected: "Redact before truncation and record the protected class. A payload clipped after the secret is already returned fails the gate.",
   },
@@ -69,6 +77,7 @@ const TRACE_FIELDS = [
   "actual bytes and estimated tokens returned",
   "raw count, returned count, and omitted count",
   "schema version and selected fields",
+  "content block order and parent ids",
   "redaction rule and protected class",
   "summary / extract / raw-data mode",
   "artifact id, checksum, and expiration",
@@ -100,6 +109,7 @@ const ROUTE_CARD = [
   "Policy decision source:",
   "Max bytes / records / tokens:",
   "Allowed fields / schema:",
+  "Content block order rule:",
   "Summary vs raw-data rule:",
   "Artifact handoff rule:",
   "Redaction rule:",
@@ -112,6 +122,7 @@ const COMMON_MISREADS = [
   "Optimizing provider-call retries while ignoring that the returned payload is what actually explodes the model bill.",
   "Calling a tool read-only and therefore safe, even though it can leak private data or swamp context with unbounded output.",
   "Returning a natural-language summary without saying which fields were dropped, sampled, redacted, or inferred.",
+  "Treating mixed content as a bag of blocks. Reordered screenshots, citations, or file excerpts can be as misleading as omitted evidence.",
   "Using truncation as a quiet success path. The agent must know the response is partial before it takes action.",
   "Storing a full artifact without a checksum, expiration, access rule, or route for retrieving a narrower slice later.",
   "Letting the agent retry the same broad query after an output-budget denial instead of requiring a smaller query or human approval.",
@@ -140,7 +151,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Tool Output Budget Checklist",
   datePublished: "2026-05-17T20:20:00Z",
-  dateModified: "2026-05-18T02:20:00Z",
+  dateModified: "2026-05-18T23:21:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A practical checklist for MCP tool-output budgets: response ceilings, schema discipline, artifact handoff, redaction, pagination, truncation receipts, and traces for unattended agent loops.",
