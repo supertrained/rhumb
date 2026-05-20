@@ -54,6 +54,8 @@ from services.service_slugs import (
     canonicalize_service_slug,
     public_service_slug_candidates,
 )
+from schemas.resolve_boundary_contract import boundary_contract_payload
+from schemas.resolve_route_candidate import annotate_resolve_body_with_route_candidates
 
 router = APIRouter()
 
@@ -884,6 +886,23 @@ async def v2_health() -> dict[str, Any]:
     }
 
 
+@router.get("/boundary-contract")
+async def get_boundary_contract_v2() -> dict[str, Any]:
+    """Return the machine-readable Index / Resolve / Runtime boundary contract.
+
+    This is the PP-0 interface seam: downstream implementation can import the
+    same contract module used by this route, while agents and docs can inspect
+    the public ownership boundary without relying on prose-only PRD text.
+    """
+    return {
+        "error": None,
+        "data": {
+            **boundary_contract_payload(),
+            "_rhumb_v2": _compat_meta(),
+        },
+    }
+
+
 @router.get("/capabilities")
 async def list_capabilities_v2(
     domain: str | None = Query(default=None, description="Filter by domain"),
@@ -927,6 +946,7 @@ async def resolve_capability_v2(
     body = _rewrite_navigation_urls(resolve_response.json())
     body = _canonicalize_execute_body_provider_fields(body, provider_slug=None)
     if resolve_response.status_code == 200 and isinstance(body.get("data"), dict):
+        body = annotate_resolve_body_with_route_candidates(body)
         body = _annotate_v2_body(body)
 
     return JSONResponse(
@@ -1057,6 +1077,7 @@ async def estimate_capability_v2(
             body["data"]["credential_mode"] = _canonicalize_credential_mode(
                 body["data"].get("credential_mode")
             )
+        body = annotate_resolve_body_with_route_candidates(body)
         body = _annotate_v2_body(body)
 
     return JSONResponse(
