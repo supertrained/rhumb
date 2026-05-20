@@ -31,6 +31,10 @@ const CHECKS = [
     evidence: "If internal access is intentional, require a named route card with target host/CIDR, caller, tenant, purpose, review owner, credential lane, and quota owner.",
   },
   {
+    label: "Developer-local exception",
+    evidence: "Treat Docker or loopback access as an explicit deployment-mode assertion, not a URL property. Match only a tiny pre-DNS local host-token set and keep the normal SSRF policy on redirects.",
+  },
+  {
     label: "Typed denial receipt",
     evidence: "Return a policy denial with raw URL, normalized host, resolved IP class, rule id, blocked credential lane, and recovery hint instead of a generic network failure.",
   },
@@ -55,7 +59,12 @@ const DENIED_NEIGHBORS = [
   {
     target: "Redirect into private target",
     examples: "Public URL returning 30x to metadata, loopback, or RFC1918 address",
-    expected: "Re-run DNS/IP policy on redirect and deny with redirect hop preserved in trace.",
+    expected: "Re-run DNS/IP policy on every hop and deny with redirect hop preserved in trace.",
+  },
+  {
+    target: "Developer-local escape hatch",
+    examples: "host.docker.internal, localhost, 127.0.0.1, ::1 in local MCP development",
+    expected: "Deny by default; allow only when local/dev mode is asserted by deployment config and the pre-DNS host token is in the known-local set.",
   },
 ];
 
@@ -66,7 +75,7 @@ const TRACE_FIELDS = [
   "normalized host and port",
   "DNS answers and selected address",
   "IP class and policy rule",
-  "redirect chain and final target",
+  "redirect chain, redirect hop index, and final target",
   "credential lane or server role protected",
   "quota / budget owner",
   "policy decision and typed denial code",
@@ -87,9 +96,22 @@ const INTERNAL_ROUTE_CARD = [
   "Expiration / re-review date:",
 ];
 
+const LOCAL_DEV_EXCEPTION_CARD = [
+  "Deployment mode flag:",
+  "Known-local host tokens:",
+  "Allowed port / scheme:",
+  "Single-tenant or shared deployment:",
+  "Redirect policy per hop:",
+  "Denied metadata / private / IPv6 controls:",
+  "Typed denial fields:",
+  "Positive fixture:",
+  "Negative fixtures:",
+];
+
 const COMMON_MISREADS = [
   "Calling fetch read-only even though the request originates from a privileged cloud or developer host.",
   "Checking the hostname string but not resolved IPs, CNAME chains, redirects, or IPv6 results.",
+  "Calling `host.docker.internal` an address-class allow-list instead of a deployment-mode assertion with a tiny pre-DNS host-token set.",
   "Denying 169.254.169.254 while allowing metadata hostnames, loopback aliases, or private-service DNS.",
   "Letting retries or fallback proxies reissue the request without the same policy bundle.",
   "Logging only request failure instead of the policy decision that protected a credential lane.",
@@ -124,7 +146,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Fetch SSRF Protection Checklist",
   datePublished: "2026-05-16T14:20:00Z",
-  dateModified: "2026-05-16T14:20:00Z",
+  dateModified: "2026-05-20T08:40:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A practical checklist for preventing SSRF in MCP fetch, browser, crawl, and URL tools: URL parse gates, DNS/IP classification, redirect containment, credential-lane isolation, typed denials, and receipts.",
@@ -237,6 +259,22 @@ const ARTICLE_JSON_LD = {
             </p>
           </div>
           <pre class="overflow-x-auto rounded-2xl border border-slate-800 bg-navy/80 p-5 text-sm leading-7 text-slate-200"><code>{INTERNAL_ROUTE_CARD.join("\n")}</code></pre>
+        </div>
+      </section>
+
+      <section class="mt-12 rounded-3xl border border-violet-500/20 bg-violet-500/5 p-6">
+        <div class="grid gap-8 lg:grid-cols-[1fr_1fr]">
+          <div>
+            <p class="font-mono text-xs uppercase tracking-[0.22em] text-violet-300">Local development exception</p>
+            <h2 class="mt-3 text-3xl font-bold text-white">Developer-local is a deployment assertion, not a safe address class.</h2>
+            <p class="mt-4 leading-7 text-slate-300">
+              Docker and local MCP workflows often need `host.docker.internal` or loopback during development. Do not turn that into a broad private-network allow-list. Require an explicit local mode flag, match the pre-DNS host token from a tiny known-local set, and re-run policy on every redirect hop.
+            </p>
+            <p class="mt-4 leading-7 text-slate-300">
+              In shared deployments, even loopback is part of the attack surface: the agent is reaching the Letta/container host, not the developer's laptop. Keep localhost, 127.0.0.1, ::1, and host.docker.internal separate unless single-tenant deployment proof says otherwise.
+            </p>
+          </div>
+          <pre class="overflow-x-auto rounded-2xl border border-slate-800 bg-navy/80 p-5 text-sm leading-7 text-slate-200"><code>{LOCAL_DEV_EXCEPTION_CARD.join("\n")}</code></pre>
         </div>
       </section>
 
