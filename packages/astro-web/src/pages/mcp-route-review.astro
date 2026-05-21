@@ -1,0 +1,283 @@
+---
+export const prerender = true;
+import Layout from "../layouts/Layout.astro";
+
+const REVIEW_TEMPLATE = [
+  "Route / MCP tool call:",
+  "What should be allowed:",
+  "Closest denied neighbor:",
+  "Caller / tenant / workspace:",
+  "Credential lane / backend principal:",
+  "Budget or quota owner:",
+  "Expected repeat volume / retry ceiling:",
+  "Receipt or typed denial that would prove the boundary:",
+  "Current implementation or spec link, if public:",
+  "Question for Rhumb:",
+  "Source: e009-mcp-route-review-intake",
+].join("\n");
+
+const REVIEW_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURIComponent(
+  "MCP route review request"
+)}&body=${encodeURIComponent(REVIEW_TEMPLATE)}`;
+
+const REVIEW_STEPS = [
+  {
+    label: "01",
+    title: "Name one route",
+    body:
+      "Start below the server, connector, gateway, or agent role. The review unit is one repeatable MCP tool call or capability path with one owner and one expected outcome.",
+  },
+  {
+    label: "02",
+    title: "Pair it with the dangerous neighbor",
+    body:
+      "The route is not reviewable until the adjacent thing that must fail closed is named: sibling tenant, broader path, hidden tool, expired credential, internal host, over-budget loop, or upstream token misuse.",
+  },
+  {
+    label: "03",
+    title: "Bind authority and budget",
+    body:
+      "A route card needs the caller, tenant, credential rail, backend principal, quota owner, retry ceiling, and approval state before the handler or provider call can observe the request.",
+  },
+  {
+    label: "04",
+    title: "Define proof before execution",
+    body:
+      "A good route review ends in receipt and denial fields: selected route, rejected neighbor, credential mode, estimate or budget owner, policy bundle, trace id, side-effect class, and recovery hint.",
+  },
+];
+
+const DEMO_LANES = [
+  {
+    eyebrow: "OAuth / protected resource",
+    title: "Token authority is not route authority",
+    allowed: "Unauthenticated metadata discovery followed by one client using PKCE, DCR state, and a bound resource value.",
+    denied: "Upstream token passthrough, audience confusion, missing resource binding, or a persisted client id silently widening scope after restart.",
+    proof: "resource, client id, credential lane, protected-resource metadata source, audience decision, and typed auth denial.",
+  },
+  {
+    eyebrow: "Filesystem / path boundary",
+    title: "Canonical path beats visible path",
+    allowed: "Read a file under the configured workspace after resolving symlinks and platform path aliases.",
+    denied: "Sibling directory, parent escape, hidden config, or a path that looks allowed before canonicalization but resolves outside the root.",
+    proof: "cwd, requested path, canonical path, allowed root, symlink decision, redaction class, and typed traversal denial.",
+  },
+  {
+    eyebrow: "Shared budget / rate limit",
+    title: "The API key is not the budget owner",
+    allowed: "Multiple MCP processes sharing one source/API-key budget with an explicit wait, lock, timestamp, and 429 adaptive state.",
+    denied: "Different source, different API key, stale sidecar JSON, partial lock write, or retry storm crossing the route's 1 RPS envelope.",
+    proof: "budget owner, source key, lock file, last-call timestamp, adaptive cooldown, wait receipt, and typed shared-budget recovery.",
+  },
+];
+
+const REVIEW_FIT = [
+  "You can point to one concrete route, tool call, handler, PR, issue, or acceptance test.",
+  "The unsafe neighbor is close enough that an unattended agent might accidentally hit it.",
+  "There is a real repeat use case: a loop, fleet, scheduled job, operator workflow, or production MCP server path.",
+  "You want route-card shape, fixture pair, denial fields, receipt fields, or review questions — not generic MCP security advice.",
+];
+
+const NOT_FIT = [
+  "A broad request to audit an entire codebase, platform, marketplace, or connector catalog.",
+  "A request for pricing, SLA, partnership, or a commitment to operate the route for you.",
+  "A generic best-practices question that does not name a route, allowed lane, and denied neighbor.",
+];
+
+const RELATED = [
+  {
+    href: "/blog/mcp-route-hardening-checklist?rhumb_experiment=e009&rhumb_source=mcp-route-review-related-hardening",
+    title: "MCP route-hardening checklist",
+    body: "The longer route-card checklist behind this intake surface.",
+  },
+  {
+    href: "/blog/mcp-fetch-ssrf-protection-checklist?rhumb_experiment=e009&rhumb_source=mcp-route-review-related-ssrf",
+    title: "MCP fetch SSRF protection checklist",
+    body: "Route-review shape for fetch, browser, crawl, redirect, and local-dev egress lanes.",
+  },
+  {
+    href: "/blog/mcp-filesystem-path-boundary-checklist?rhumb_experiment=e009&rhumb_source=mcp-route-review-related-filesystem",
+    title: "MCP filesystem path-boundary checklist",
+    body: "Route-review shape for workspace, repo, symlink, mount, and denied-neighbor path proof.",
+  },
+  {
+    href: "/blog/mcp-retry-rate-limit-budget-checklist?rhumb_experiment=e009&rhumb_source=mcp-route-review-related-budget",
+    title: "MCP retry and rate-limit budget checklist",
+    body: "Route-review shape for shared quota, retry, idempotency, and partial-result recovery.",
+  },
+];
+
+const PAGE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "MCP Route Review | Rhumb",
+  url: "https://rhumb.dev/mcp-route-review",
+  description:
+    "A first-class intake surface for reviewing one MCP route: allowed lane, denied neighbor, authority owner, budget owner, and receipt or typed-denial proof.",
+  publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
+};
+---
+
+<Layout
+  rhumbExperiment="e009"
+  rhumbSource="mcp-route-review-intake"
+  title="MCP Route Review | Rhumb"
+  description="Send one MCP route for review: allowed lane, denied neighbor, authority owner, budget owner, and receipt or typed-denial proof."
+  canonical="/mcp-route-review"
+  ogTitle="MCP Route Review | Rhumb"
+  ogDescription="A route-card intake surface for operators who need one MCP tool call to become safe enough to repeat."
+  ogUrl="https://rhumb.dev/mcp-route-review"
+  twitterTitle="MCP Route Review"
+  twitterDescription="One MCP route, one denied neighbor, one authority lane, one receipt."
+  jsonLd={PAGE_JSON_LD}
+>
+  <div class="min-h-screen bg-navy">
+    <section class="relative overflow-hidden border-b border-slate-800">
+      <div class="absolute inset-0 bg-grid opacity-30 pointer-events-none"></div>
+      <div class="absolute -left-24 top-10 h-72 w-72 rounded-full bg-emerald-500/10 blur-3xl"></div>
+      <div class="absolute right-0 top-0 h-96 w-96 rounded-full bg-amber/10 blur-3xl"></div>
+      <div class="relative mx-auto grid max-w-6xl gap-10 px-6 py-16 lg:grid-cols-[1.08fr_0.92fr] lg:items-end lg:py-20">
+        <div>
+          <div class="mb-6 flex flex-wrap items-center gap-3 text-xs font-mono">
+            <a href="/" class="text-slate-500 transition-colors hover:text-amber">&larr; Rhumb</a>
+            <span class="text-slate-800">&middot;</span>
+            <span class="uppercase tracking-[0.24em] text-emerald-300">Operator intake</span>
+            <span class="text-slate-800">&middot;</span>
+            <span class="text-slate-500">MCP route review</span>
+          </div>
+          <h1 class="max-w-4xl font-display text-4xl font-bold leading-[0.95] tracking-tight text-slate-100 sm:text-5xl lg:text-6xl">
+            Send one MCP route.<br class="hidden sm:block" /> Not a whole server.
+          </h1>
+          <p class="mt-6 max-w-3xl text-lg leading-8 text-slate-300">
+            Rhumb's route-review intake is for operators who have one MCP tool call close to production use, but still need the allowed lane, denied neighbor, authority owner, budget owner, and proof fields made explicit.
+          </p>
+          <div class="mt-8 flex flex-wrap gap-3">
+            <a href={REVIEW_MAILTO} class="inline-flex rounded-xl bg-emerald-400 px-5 py-3 font-display text-sm font-semibold text-navy transition-colors hover:bg-emerald-300">
+              Send a route for review
+            </a>
+            <a data-rhumb-propagate href="#template" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-200 transition-colors hover:border-emerald-400/60 hover:text-white">
+              Copy the route card
+            </a>
+          </div>
+        </div>
+
+        <div class="rounded-[32px] border border-emerald-500/20 bg-surface/80 p-5 shadow-2xl shadow-emerald-950/30">
+          <div class="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Review unit</div>
+            <div class="rounded-full border border-slate-700 px-3 py-1 text-[11px] font-mono text-slate-500">route-card.v1</div>
+          </div>
+          <div class="grid gap-3 text-sm">
+            <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4">
+              <div class="mb-1 text-[11px] font-mono uppercase tracking-[0.2em] text-slate-500">Allowed lane</div>
+              <p class="text-slate-300">The exact input, caller, tenant, credential rail, quota owner, and side-effect class that may run.</p>
+            </div>
+            <div class="rounded-2xl border border-rose-500/20 bg-rose-500/5 p-4">
+              <div class="mb-1 text-[11px] font-mono uppercase tracking-[0.2em] text-rose-300">Denied neighbor</div>
+              <p class="text-slate-300">The closest dangerous value that must fail closed before a provider call, handler, budget, or credential path is touched.</p>
+            </div>
+            <div class="rounded-2xl border border-amber/20 bg-amber/5 p-4">
+              <div class="mb-1 text-[11px] font-mono uppercase tracking-[0.2em] text-amber">Receipt</div>
+              <p class="text-slate-300">The fields that prove the route selected, the neighbor refused, and the repeat envelope stayed bounded.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 py-14">
+      <div class="grid gap-4 md:grid-cols-4">
+        {REVIEW_STEPS.map((step) => (
+          <div class="rounded-[26px] border border-slate-800 bg-surface/75 p-5">
+            <div class="mb-4 font-mono text-xs text-emerald-300">{step.label}</div>
+            <h2 class="mb-3 font-display text-xl font-semibold tracking-tight text-slate-100">{step.title}</h2>
+            <p class="text-sm leading-6 text-slate-400">{step.body}</p>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 pb-14">
+      <div class="rounded-[34px] border border-slate-800 bg-surface/80 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Demo surface</div>
+          <h2 class="font-display text-3xl font-bold tracking-tight text-slate-100">A route review should collapse abstract MCP safety into fixture pairs.</h2>
+          <p class="mt-4 leading-7 text-slate-400">
+            The useful output is not a generic audit report. It is a route-sized review artifact: allowed fixture, denied neighbor, authority owner, budget owner, trace fields, and the typed failure the agent should see when it tries the wrong thing.
+          </p>
+        </div>
+
+        <div class="mt-8 grid gap-4 lg:grid-cols-3">
+          {DEMO_LANES.map((lane) => (
+            <div class="rounded-[28px] border border-slate-800 bg-navy/65 p-5">
+              <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.22em] text-amber">{lane.eyebrow}</div>
+              <h3 class="mb-4 font-display text-xl font-semibold tracking-tight text-slate-100">{lane.title}</h3>
+              <dl class="space-y-4 text-sm leading-6">
+                <div>
+                  <dt class="font-mono text-[11px] uppercase tracking-[0.18em] text-emerald-300">Allowed</dt>
+                  <dd class="mt-1 text-slate-300">{lane.allowed}</dd>
+                </div>
+                <div>
+                  <dt class="font-mono text-[11px] uppercase tracking-[0.18em] text-rose-300">Denied</dt>
+                  <dd class="mt-1 text-slate-300">{lane.denied}</dd>
+                </div>
+                <div>
+                  <dt class="font-mono text-[11px] uppercase tracking-[0.18em] text-slate-500">Proof</dt>
+                  <dd class="mt-1 text-slate-300">{lane.proof}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto grid max-w-6xl gap-5 px-6 pb-14 lg:grid-cols-2">
+      <div class="rounded-[30px] border border-emerald-500/20 bg-emerald-500/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300">Good fit</div>
+        <h2 class="mb-5 font-display text-2xl font-bold tracking-tight text-slate-100">Send it when the problem is route-sized.</h2>
+        <ul class="space-y-3 text-sm leading-6 text-slate-300">
+          {REVIEW_FIT.map((item) => <li class="flex gap-3"><span class="mt-1 text-emerald-300">◆</span><span>{item}</span></li>)}
+        </ul>
+      </div>
+      <div class="rounded-[30px] border border-rose-500/20 bg-rose-500/5 p-6 sm:p-8">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Not this surface</div>
+        <h2 class="mb-5 font-display text-2xl font-bold tracking-tight text-slate-100">Do not turn this into a vague services page.</h2>
+        <ul class="space-y-3 text-sm leading-6 text-slate-300">
+          {NOT_FIT.map((item) => <li class="flex gap-3"><span class="mt-1 text-rose-300">×</span><span>{item}</span></li>)}
+        </ul>
+      </div>
+    </section>
+
+    <section id="template" class="mx-auto max-w-6xl px-6 pb-14">
+      <div class="overflow-hidden rounded-[34px] border border-amber/20 bg-navy/80">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 px-6 py-4">
+          <div>
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Copy-paste route card</div>
+            <h2 class="mt-2 font-display text-2xl font-bold tracking-tight text-slate-100">Empty fields are signal.</h2>
+          </div>
+          <a href={REVIEW_MAILTO} class="inline-flex rounded-xl bg-amber px-4 py-2.5 font-display text-sm font-semibold text-navy transition-colors hover:bg-amber-300">
+            Open email draft
+          </a>
+        </div>
+        <pre class="overflow-x-auto whitespace-pre-wrap p-6 text-sm leading-7 text-slate-300"><code>{REVIEW_TEMPLATE}</code></pre>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 pb-20">
+      <div class="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-slate-500">Related checklists</div>
+          <h2 class="font-display text-2xl font-bold tracking-tight text-slate-100">Use the canonical if your route is already in one of these lanes.</h2>
+        </div>
+      </div>
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {RELATED.map((item) => (
+          <a data-rhumb-propagate href={item.href} class="rounded-[24px] border border-slate-800 bg-surface/70 p-5 transition-colors hover:border-emerald-400/50">
+            <h3 class="font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h3>
+            <p class="mt-3 text-sm leading-6 text-slate-400">{item.body}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+  </div>
+</Layout>
