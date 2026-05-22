@@ -45,6 +45,34 @@
         }
       ]
     },
+    "route_review": {
+      "description": "Submit one MCP route card for review before promoting a tool call into repeated execution. The useful unit is a route-sized fixture, not a vague security audit: allowed lane, denied neighbor, caller or tenant, credential owner, budget owner, retry ceiling, and receipt or typed-denial proof.",
+      "auth_required": false,
+      "url": "https://rhumb.dev/mcp-route-review",
+      "public_thread_template": "https://rhumb.dev/mcp-route-review#public-thread-template",
+      "public_thread_source": "e009-mcp-route-review-public-thread",
+      "accepted_contexts": [
+        "email",
+        "github_issue",
+        "github_pull_request",
+        "public_spec_thread"
+      ],
+      "route_card_schema": {
+        "version": "route-card.v1",
+        "required_fields": [
+          "mcp_server_or_repo",
+          "route_or_tool_call",
+          "allowed_lane",
+          "denied_neighbor",
+          "caller_tenant_or_workspace",
+          "credential_owner",
+          "budget_or_quota_owner",
+          "repeat_or_retry_ceiling",
+          "receipt_or_typed_denial_proof"
+        ],
+        "public_safety_rule": "Do not paste secrets, private credentials, tokens, customer data, proprietary logs, or exploit payloads into a public thread. Share fixture shape and redacted fields instead."
+      }
+    },
     "execution": {
       "description": "Execute capabilities through Resolve on the live execution rail returned by resolve: governed API key, wallet-prefund, or x402 per-call, with BYOK or Agent Vault where supported",
       "auth_required": true,
@@ -163,6 +191,7 @@
     "provider_guide": "https://rhumb.dev/providers",
     "machine_readable_docs": "https://rhumb.dev/llms.txt",
     "agent_capabilities": "https://rhumb.dev/.well-known/agent-capabilities.json",
+    "mcp_route_review": "https://rhumb.dev/mcp-route-review",
     "current_self_assessment": "https://rhumb.dev/blog/we-scored-ourselves",
     "historical_self_assessment": "https://rhumb.dev/blog/self-score",
     "public_dispute_template": "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md",
@@ -182,6 +211,7 @@
     "trust": "https://rhumb.dev/trust",
     "methodology": "https://rhumb.dev/methodology",
     "providers": "https://rhumb.dev/providers",
+    "mcp_route_review": "https://rhumb.dev/mcp-route-review",
     "blog": "https://rhumb.dev/blog",
     "github": "https://github.com/supertrained/rhumb",
     "disputes": "https://rhumb.dev/providers"
