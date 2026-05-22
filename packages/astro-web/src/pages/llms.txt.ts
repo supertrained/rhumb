@@ -63,6 +63,7 @@ Supporting authority pages:
 - Resolve comparisons: ${PUBLIC_TRUTH.resolveCompareUrl}
 - Key management and credential paths: ${PUBLIC_TRUTH.resolveKeysUrl}
 - Per-call pricing explainer: ${PUBLIC_TRUTH.resolvePricingUrl}
+- MCP Route Review: https://rhumb.dev/mcp-route-review — ask for one route-card review with allowed lane, denied neighbor, authority/credential owner, budget owner, repeat envelope, and receipt or typed-denial proof.
 Current launchable scope: ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}.
 
 ## For Agents
@@ -179,6 +180,7 @@ the specific friction of a tool before integrating.
 
 ## Getting Started
 - https://rhumb.dev/quickstart — Make your first API call in 30 seconds. Copy-paste examples for curl, JS, Python, MCP. No signup required for read endpoints.
+- https://rhumb.dev/mcp-route-review — MCP Route Review intake for one concrete MCP route: allowed lane, denied neighbor, caller/tenant/workspace, credential owner, budget owner, repeat/retry ceiling, and receipt proof.
 - https://rhumb.dev/payments/agent — x402 agent payments: HTTP 402 flow, USDC on Base, wallet setup, and when to use on-chain per-call authorization
 - https://rhumb.dev/blog/how-agents-actually-pay-x402-dogfood — x402 seller dogfood report: 5 compatibility mismatches, authorization proof vs tx_hash gap, and why structured 422 errors beat infinite 402 loops
 - https://rhumb.dev/blog/getting-started-mcp — MCP install guide, framework setup (Claude Desktop, Cursor, direct stdio), 3 workflow walkthroughs, credential paths explained

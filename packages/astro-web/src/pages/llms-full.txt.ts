@@ -72,6 +72,7 @@ Core MCP tools include find_services, get_score, get_alternatives, get_failure_m
 - Resolve comparisons: ${PUBLIC_TRUTH.resolveCompareUrl}
 - Key management and credential paths: ${PUBLIC_TRUTH.resolveKeysUrl}
 - Per-call pricing explainer: ${PUBLIC_TRUTH.resolvePricingUrl}
+- MCP Route Review: https://rhumb.dev/mcp-route-review — one-route intake for route-card review: allowed lane, denied neighbor, caller/tenant/workspace, credential owner, budget owner, repeat/retry ceiling, and receipt or typed-denial proof.
 - Current launchable scope: ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}
 
 ## API

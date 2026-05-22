@@ -14,6 +14,8 @@ const STATIC_PAGES = [
   { path: "/providers", priority: 0.7, changefreq: "monthly" },
   { path: "/docs", priority: 0.8, changefreq: "weekly" },
   { path: "/pricing", priority: 0.6, changefreq: "monthly" },
+  { path: "/start-managed-execution", priority: 0.7, changefreq: "weekly" },
+  { path: "/mcp-route-review", priority: 0.7, changefreq: "weekly" },
   { path: "/payments/agent", priority: 0.5, changefreq: "monthly" },
   { path: "/search", priority: 0.6, changefreq: "daily" },
   { path: "/compare", priority: 0.8, changefreq: "weekly" },
