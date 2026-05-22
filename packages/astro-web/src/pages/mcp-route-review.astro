@@ -16,6 +16,19 @@ const REVIEW_TEMPLATE = [
   "Source: e009-mcp-route-review-intake",
 ].join("\n");
 
+const PUBLIC_THREAD_TEMPLATE = [
+  "Route-card review ask for @supertrained:",
+  "Route / MCP tool call:",
+  "Allowed fixture:",
+  "Denied neighbor fixture:",
+  "Caller / tenant / workspace:",
+  "Credential lane / backend principal:",
+  "Budget or quota owner:",
+  "Receipt or typed denial fields:",
+  "What is unclear in the current implementation/spec:",
+  "Source: e009-mcp-route-review-public-thread",
+].join("\n");
+
 const REVIEW_MAILTO = `mailto:team@getsupertrained.com?subject=${encodeURIComponent(
   "MCP route review request"
 )}&body=${encodeURIComponent(REVIEW_TEMPLATE)}`;
@@ -107,6 +120,12 @@ const NOT_FIT = [
   "A generic best-practices question that does not name a route, allowed lane, and denied neighbor.",
 ];
 
+const PUBLIC_THREAD_GUIDANCE = [
+  "Use public threads when the route is already being designed in an issue, PR, or spec discussion and the fixtures are safe to share.",
+  "Do not paste tokens, tenant names, private URLs, customer data, or internal hostnames. Replace them with stable labels that still preserve authority boundaries.",
+  "Keep the ask route-sized: one allowed fixture, one denied neighbor, and the receipt or typed-denial fields that should prove the decision.",
+];
+
 const RELATED = [
   {
     href: "/blog/mcp-route-hardening-checklist?rhumb_experiment=e009&rhumb_source=mcp-route-review-related-hardening",
@@ -180,6 +199,9 @@ const PAGE_JSON_LD = {
             </a>
             <a data-rhumb-propagate href="#template" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-200 transition-colors hover:border-emerald-400/60 hover:text-white">
               Copy the route card
+            </a>
+            <a data-rhumb-propagate href="#public-thread-template" class="inline-flex rounded-xl border border-slate-700 px-5 py-3 text-sm text-slate-200 transition-colors hover:border-sky-400/60 hover:text-white">
+              Use a public issue
             </a>
           </div>
         </div>
@@ -288,6 +310,28 @@ const PAGE_JSON_LD = {
         <ul class="space-y-3 text-sm leading-6 text-slate-300">
           {NOT_FIT.map((item) => <li class="flex gap-3"><span class="mt-1 text-rose-300">×</span><span>{item}</span></li>)}
         </ul>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 pb-14">
+      <div class="grid gap-5 lg:grid-cols-[0.86fr_1.14fr]">
+        <div class="rounded-[30px] border border-sky-400/20 bg-sky-400/5 p-6 sm:p-8">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Public issue / PR path</div>
+          <h2 class="font-display text-2xl font-bold tracking-tight text-slate-100">Some route reviews should stay where the operator is already working.</h2>
+          <p class="mt-4 text-sm leading-6 text-slate-400">
+            If the implementation discussion is already public, do not force it through email. Paste a public-thread route card into the issue or PR so the maintainer can answer with fixture shape, acceptance criteria, or a concrete denial field in the same context.
+          </p>
+          <ul class="mt-5 space-y-3 text-sm leading-6 text-slate-300">
+            {PUBLIC_THREAD_GUIDANCE.map((item) => <li class="flex gap-3"><span class="mt-1 text-sky-300">◆</span><span>{item}</span></li>)}
+          </ul>
+        </div>
+        <div id="public-thread-template" class="overflow-hidden rounded-[30px] border border-sky-400/20 bg-navy/80">
+          <div class="border-b border-slate-800 px-6 py-4">
+            <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300">Copy-paste public thread card</div>
+            <h3 class="mt-2 font-display text-xl font-bold tracking-tight text-slate-100">For GitHub issues, PRs, and public spec threads.</h3>
+          </div>
+          <pre class="overflow-x-auto whitespace-pre-wrap p-6 text-sm leading-7 text-slate-300"><code>{PUBLIC_THREAD_TEMPLATE}</code></pre>
+        </div>
       </div>
     </section>
 
