@@ -71,7 +71,13 @@
           "receipt_or_typed_denial_proof"
         ],
         "public_safety_rule": "Do not paste secrets, private credentials, tokens, customer data, proprietary logs, or exploit payloads into a public thread. Share fixture shape and redacted fields instead."
-      }
+      },
+      "useful_closure_outcomes": [
+        "positive_negative_fixture_pair",
+        "typed_denial_or_receipt_fields",
+        "docs_or_warning_boundary_with_regression_test",
+        "explicit_non_fit_boundary"
+      ]
     },
     "execution": {
       "description": "Execute capabilities through Resolve on the live execution rail returned by resolve: governed API key, wallet-prefund, or x402 per-call, with BYOK or Agent Vault where supported",

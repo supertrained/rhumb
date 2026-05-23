@@ -107,6 +107,24 @@ const PRODUCTION_GATEWAY_CHECKS = [
   },
 ];
 
+const CLOSURE_OUTCOMES = [
+  {
+    title: "Fixture added",
+    body:
+      "Best outcome: the issue or PR gains a positive/negative fixture pair, typed denial, receipt fields, and a regression test that proves the route boundary before repeated execution.",
+  },
+  {
+    title: "Docs or warning only",
+    body:
+      "Sometimes the right product choice is transparent pass-through plus a warning, not hidden argument rewriting. That is acceptable when the public record names the allowed path, the denied neighbor, and the test or warning that prevents first-run surprise.",
+  },
+  {
+    title: "Explicit non-fit",
+    body:
+      "If the owner says the route should stay out of scope, close it cleanly: name the authority that remains external, the neighboring request that still fails closed, and the proof users should rely on instead.",
+  },
+];
+
 const REVIEW_FIT = [
   "You can point to one concrete route, tool call, handler, PR, issue, or acceptance test.",
   "The unsafe neighbor is close enough that an unattended agent might accidentally hit it.",
@@ -290,6 +308,26 @@ const PAGE_JSON_LD = {
             <div class="rounded-[24px] border border-slate-800 bg-navy/70 p-5">
               <h3 class="font-display text-lg font-semibold tracking-tight text-slate-100">{check.title}</h3>
               <p class="mt-3 text-sm leading-6 text-slate-400">{check.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 pb-14">
+      <div class="rounded-[34px] border border-amber/20 bg-amber/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">Review closure</div>
+          <h2 class="font-display text-3xl font-bold tracking-tight text-slate-100">A useful route review can end in code, tests, or a documented boundary — but it should not end vague.</h2>
+          <p class="mt-4 leading-7 text-slate-400">
+            Not every MCP route needs a new proxy or argument rewrite. For filesystem paths, OAuth discovery, shared budgets, and gateway policies, the closure test is whether a maintainer can point to the allowed lane, the denied neighbor, and the receipt or warning that proves the boundary will not surprise the next operator.
+          </p>
+        </div>
+        <div class="mt-8 grid gap-4 md:grid-cols-3">
+          {CLOSURE_OUTCOMES.map((outcome) => (
+            <div class="rounded-[24px] border border-slate-800 bg-navy/70 p-5">
+              <h3 class="font-display text-lg font-semibold tracking-tight text-slate-100">{outcome.title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{outcome.body}</p>
             </div>
           ))}
         </div>
