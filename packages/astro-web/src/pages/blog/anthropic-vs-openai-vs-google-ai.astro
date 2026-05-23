@@ -162,6 +162,13 @@ const productionTierMigrationRules = [
   "Keep both old and new provider lanes visible in trace context so a later incident can tell whether 429 recovery changed the execution contract.",
   "Block silent fallback back to a consumer or preview surface after production migration; it may fix a limit while losing the governance proof that made the lane safe.",
 ];
+
+const costQualityLatencyRules = [
+  "Normalize price by the route, not the provider: input tokens, output tokens, cached context, tool calls, image/audio payloads, retry rate, and timeout budget change the denominator.",
+  "Treat latency as a separate gate before ranking by value. A cheap model that misses the route's p95/p99 deadline is not cheap for an agent loop; it is a retry generator.",
+  "Compute cost per accepted result, not cost per request. Failed JSON, schema repair, context overflow, moderation reruns, and fallback hops all belong in the numerator.",
+  "Keep provider price snapshots outside the static score unless the timestamp, model version, region, and billing tier are visible in the receipt.",
+];
 ---
 
 <Layout
@@ -385,6 +392,27 @@ const productionTierMigrationRules = [
             </ul>
             <p class="mt-5 text-sm leading-6 text-slate-400">
               Pair this with <a href="/blog/llm-apis-agent-loops" class="text-amber hover:underline underline-offset-2">loop reliability</a>: quota relief only helps if the migrated lane can prove the same workflow contract before another retry storm starts.
+            </p>
+          </div>
+
+          <div class="rounded-[28px] border border-cyan-400/20 bg-cyan-400/5 p-6">
+            <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-cyan-200">Cost / latency gate</p>
+            <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">Cost per quality point only works after the route is bounded</h2>
+            <p class="mt-4 text-base leading-7 text-slate-300">
+              A simple score divided by list price is directionally useful, but it can mislead an agent builder.
+              The honest metric is <span class="font-semibold text-slate-100">cost per accepted route result</span> after latency,
+              retries, schema repair, context size, and fallback behavior are measured for the same workflow.
+            </p>
+            <ul class="mt-5 space-y-3">
+              {costQualityLatencyRules.map((rule) => (
+                <li class="flex items-start gap-3 text-sm leading-6 text-slate-300">
+                  <span class="mt-2 h-1.5 w-1.5 rounded-full bg-cyan-200 shrink-0"></span>
+                  <span>{rule}</span>
+                </li>
+              ))}
+            </ul>
+            <p class="mt-5 text-sm leading-6 text-slate-400">
+              This is why Rhumb keeps the provider score separate from a route review. The score says which API is structurally agent-ready; the route review says whether this exact agent loop is fast and cheap enough to run repeatedly.
             </p>
           </div>
 
