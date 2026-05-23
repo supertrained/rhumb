@@ -89,6 +89,12 @@
         "per_call_policy_gate",
         "output_boundary_gate",
         "audit_metric_receipt"
+      ],
+      "minimum_public_proof_packet": [
+        "allowed_fixture",
+        "closest_denied_neighbor",
+        "authority_and_budget_owner",
+        "receipt_or_typed_denial_fields"
       ]
     },
     "execution": {

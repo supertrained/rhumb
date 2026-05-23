@@ -131,6 +131,29 @@ const GOVERNANCE_CONTROL_POINTS = [
   },
 ];
 
+const MINIMUM_PROOF_PACKET = [
+  {
+    title: "One allowed fixture",
+    body:
+      "A tiny input, caller, workspace, resource, and side-effect class that should run. If the allowed case cannot be made explicit, the route is not ready for review.",
+  },
+  {
+    title: "One closest denied neighbor",
+    body:
+      "The sibling tenant, broader path, hidden tool, internal host, stale credential, or over-budget repeat that should fail before the handler or provider call observes it.",
+  },
+  {
+    title: "Authority and budget owner",
+    body:
+      "Name who owns the credential, backend principal, quota, retry ceiling, and approval state. Do not let the API key, OAuth token, or gateway proxy stand in for ownership.",
+  },
+  {
+    title: "Receipt or typed denial fields",
+    body:
+      "List the fields that would prove the allowed route ran, the neighbor was rejected, and the operator has a trace id, policy bundle, recovery hint, and latency or budget decision to inspect.",
+  },
+];
+
 const CLOSURE_OUTCOMES = [
   {
     title: "Fixture added",
@@ -375,6 +398,26 @@ const PAGE_JSON_LD = {
             <div class="rounded-[24px] border border-slate-800 bg-navy/70 p-5">
               <h3 class="font-display text-lg font-semibold tracking-tight text-slate-100">{point.title}</h3>
               <p class="mt-3 text-sm leading-6 text-slate-400">{point.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 pb-14">
+      <div class="rounded-[34px] border border-cyan-400/20 bg-cyan-400/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-cyan-300">Minimum proof packet</div>
+          <h2 class="font-display text-3xl font-bold tracking-tight text-slate-100">Do not ask for a review until the route has four concrete fields.</h2>
+          <p class="mt-4 leading-7 text-slate-400">
+            The fastest public-thread reviews are not long specs. They are small proof packets: one allowed fixture, one denied neighbor, the authority and budget owner, and the receipt or typed-denial fields that make the boundary inspectable. Missing fields are useful too — they show exactly where the implementation is still hand-wavy.
+          </p>
+        </div>
+        <div class="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {MINIMUM_PROOF_PACKET.map((item) => (
+            <div class="rounded-[24px] border border-slate-800 bg-navy/70 p-5">
+              <h3 class="font-display text-lg font-semibold tracking-tight text-slate-100">{item.title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{item.body}</p>
             </div>
           ))}
         </div>

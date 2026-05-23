@@ -63,7 +63,7 @@ Supporting authority pages:
 - Resolve comparisons: ${PUBLIC_TRUTH.resolveCompareUrl}
 - Key management and credential paths: ${PUBLIC_TRUTH.resolveKeysUrl}
 - Per-call pricing explainer: ${PUBLIC_TRUTH.resolvePricingUrl}
-- MCP Route Review: https://rhumb.dev/mcp-route-review — ask for one route-card review with allowed lane, denied neighbor, authority/credential owner, budget owner, repeat envelope, and receipt or typed-denial proof. If the implementation discussion is already public, use https://rhumb.dev/mcp-route-review#public-thread-template and include Source: e009-mcp-route-review-public-thread rather than moving context into email.
+- MCP Route Review: https://rhumb.dev/mcp-route-review — ask for one route-card review only when you can provide the minimum public proof packet: one allowed fixture, one closest denied neighbor, authority/credential owner plus budget owner, and receipt or typed-denial fields. If the implementation discussion is already public, use https://rhumb.dev/mcp-route-review#public-thread-template and include Source: e009-mcp-route-review-public-thread rather than moving context into email.
 Current launchable scope: ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}.
 
 ## For Agents
