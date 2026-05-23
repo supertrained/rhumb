@@ -107,6 +107,30 @@ const PRODUCTION_GATEWAY_CHECKS = [
   },
 ];
 
+
+const GOVERNANCE_CONTROL_POINTS = [
+  {
+    title: "Startup visibility gate",
+    body:
+      "Before a tool becomes visible, scan the registered name, description, arguments, and schema for prompt-like instructions, typosquat ambiguity, hidden Unicode, sensitive fields, and side-effect claims that do not belong in this caller's route.",
+  },
+  {
+    title: "Per-call policy gate",
+    body:
+      "At invocation time, the route needs caller or agent identity, tenant, resource, credential lane, approval state, quota owner, and rate-limit decision bound before the MCP handler or provider call runs.",
+  },
+  {
+    title: "Output boundary gate",
+    body:
+      "Returned content must pass the same route proof: schema shape, field allow-list, row or artifact budget, redaction class, prompt-like fragment handling, and typed refusal when the response crosses the boundary.",
+  },
+  {
+    title: "Audit and metric receipt",
+    body:
+      "A governed route is repeatable only when the receipt records selected route, denied neighbor, policy bundle, backend principal, trace id, latency or budget decision, and recovery hint for the operator.",
+  },
+];
+
 const CLOSURE_OUTCOMES = [
   {
     title: "Fixture added",
@@ -331,6 +355,26 @@ const PAGE_JSON_LD = {
             <div class="rounded-[24px] border border-slate-800 bg-navy/70 p-5">
               <h3 class="font-display text-lg font-semibold tracking-tight text-slate-100">{check.title}</h3>
               <p class="mt-3 text-sm leading-6 text-slate-400">{check.body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="mx-auto max-w-6xl px-6 pb-14">
+      <div class="rounded-[34px] border border-violet-400/20 bg-violet-400/5 p-6 sm:p-8">
+        <div class="max-w-3xl">
+          <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-violet-300">Governance control points</div>
+          <h2 class="font-display text-3xl font-bold tracking-tight text-slate-100">MCP governance should resolve into route-level proof, not platform-level reassurance.</h2>
+          <p class="mt-4 leading-7 text-slate-400">
+            The market is starting to talk in governance layers: startup scanning, runtime policy, response sanitization, audit, and metrics. Route review turns each layer into the same falsifiable question: what is allowed for this route, what neighbor is denied, and what receipt proves it before the agent repeats the call?
+          </p>
+        </div>
+        <div class="mt-8 grid gap-4 md:grid-cols-2">
+          {GOVERNANCE_CONTROL_POINTS.map((point) => (
+            <div class="rounded-[24px] border border-slate-800 bg-navy/70 p-5">
+              <h3 class="font-display text-lg font-semibold tracking-tight text-slate-100">{point.title}</h3>
+              <p class="mt-3 text-sm leading-6 text-slate-400">{point.body}</p>
             </div>
           ))}
         </div>

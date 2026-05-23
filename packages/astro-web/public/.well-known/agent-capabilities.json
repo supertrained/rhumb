@@ -83,6 +83,12 @@
         "maintainer_owned_acceptance_criteria",
         "documented_boundary_closure",
         "implementation_help_pull"
+      ],
+      "governance_control_points": [
+        "startup_visibility_gate",
+        "per_call_policy_gate",
+        "output_boundary_gate",
+        "audit_metric_receipt"
       ]
     },
     "execution": {
