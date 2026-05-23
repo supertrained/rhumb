@@ -77,6 +77,12 @@
         "typed_denial_or_receipt_fields",
         "docs_or_warning_boundary_with_regression_test",
         "explicit_non_fit_boundary"
+      ],
+      "useful_reply_shapes": [
+        "route_fixture_pair",
+        "maintainer_owned_acceptance_criteria",
+        "documented_boundary_closure",
+        "implementation_help_pull"
       ]
     },
     "execution": {
