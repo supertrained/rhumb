@@ -23,11 +23,11 @@ const PRICING_BOUNDARY_CHECKS = [
 ];
 
 const REQUEST_FIRST_PROBE = [
-  "The exact MCP route or tool call you would put behind an agent if the boundary were boring enough to trust.",
-  "For SSH or remote-command MCP, the named host, user, runbook or command allowlist, working directory, timeout, PTY/session policy, rollback path, and environment-access rule.",
-  "The one unsafe neighbor that must fail closed: path, repo, tenant, URL, cloud-metadata address, customer, amount, or write target.",
-  "The credential lane and budget owner that should be preserved if the call repeats.",
-  "The receipt or typed denial that would make you comfortable paying for the first governed execution.",
+  "One concrete MCP route or tool call you would put behind an agent if the boundary were boring enough to trust.",
+  "One allowed fixture that should pass and the closest denied neighbor that must fail closed: path, repo, tenant, URL, cloud-metadata address, customer, amount, or write target.",
+  "The caller, tenant, workspace, credential lane, authority owner, and budget or quota owner that should survive repeat calls.",
+  "The retry, timeout, output, and rollback envelope that keeps a compromised call from broadening into a fleet problem.",
+  "The receipt fields or typed denial that prove the boundary fired before the tool handler exposed data or spent budget.",
 ];
 
 const ARTICLE_JSON_LD = {
@@ -35,7 +35,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Why Prompt Injection Hits Harder in MCP: Scope Constraints and Blast Radius",
   datePublished: "2026-04-03T00:00:00Z",
-  dateModified: "2026-05-12T01:16:00-07:00",
+  dateModified: "2026-05-24T07:26:00-07:00",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "Prompt injection hits harder in MCP when tools expose unconstrained parameters and the server leaves the blast radius wide open.",
@@ -70,7 +70,7 @@ const ARTICLE_JSON_LD = {
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">Rhumb</span>
           <span class="text-slate-800">&middot;</span>
-          <span class="text-slate-600">Updated May 12, 2026</span>
+          <span class="text-slate-600">Updated May 24, 2026</span>
           <span class="text-slate-800">&middot;</span>
           <span class="text-slate-600">7 min read</span>
         </div>
@@ -199,11 +199,11 @@ const ARTICLE_JSON_LD = {
         </div>
 
 
-        <div id="mcp-route-hardening-fit-check" class="my-8 rounded-[28px] border border-emerald-500/25 bg-emerald-500/5 p-6">
-          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Request-first probe</div>
-          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">Would you pay to make one MCP route safe enough to repeat?</h3>
+        <div id="mcp-route-hardening-fit-check" data-section="mcp-route-review-fit-check" class="my-8 rounded-[28px] border border-emerald-500/25 bg-emerald-500/5 p-6">
+          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">MCP Route Review fit check</div>
+          <h3 class="font-display font-semibold text-xl text-slate-100 mb-3 tracking-tight">When the prompt-injection risk is one route, ask for route review.</h3>
           <p class="text-slate-300 leading-relaxed mb-4">
-            If the answer is yes, do not send a platform wishlist. Send one route that currently feels too risky to put behind an agent. Rhumb can only learn from this if the ask names the workflow, the denied neighbor, the credential lane, and the proof that would make the first governed execution boring. For SSH MCP, "let the agent run commands" is still too broad; the ask has to be one command lane with host, user, directory, timeout, rollback, and typed denial attached.
+            Do not turn a prompt-injection concern into a platform wishlist. MCP Route Review only becomes useful when the risk collapses to one route: an allowed fixture, the closest denied neighbor, the authority and budget owners, and the receipt or typed denial that proves the boundary fired before the tool handler exposed data or spent budget. For SSH MCP, "let the agent run commands" is still too broad; the request has to be one command lane with host, user, directory, timeout, rollback, and typed denial attached.
           </p>
           <ul class="list-disc list-outside ml-5 space-y-2 text-slate-300 leading-relaxed">
             {REQUEST_FIRST_PROBE.map((item) => (
@@ -211,14 +211,11 @@ const ARTICLE_JSON_LD = {
             ))}
           </ul>
           <div class="mt-5 flex flex-wrap gap-3">
-            <a href="mailto:team@getsupertrained.com?subject=Rhumb%20MCP%20route%20hardening%20fit%20check&body=MCP%20route%20or%20tool%20call%3A%0AUnsafe%20neighbor%20that%20must%20fail%3A%0ACredential%20lane%20and%20budget%20owner%3A%0ARepeat%20volume%20or%20agent%20loop%3A%0AReceipt%20or%20typed%20denial%20I%20would%20trust%3A%0ASource%3A%20e007-mcp-route-hardening" class="inline-flex rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">
-              Send one route to harden
+            <a data-rhumb-propagate href="/mcp-route-review?rhumb_experiment=e009&rhumb_source=mcp-prompt-injection-route-review" class="inline-flex rounded-xl bg-emerald-400 px-4 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200">
+              Ask for MCP Route Review
             </a>
-            <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=mcp-prompt-injection-route-hardening" class="inline-flex rounded-xl border border-slate-700 px-4 py-3 text-sm text-slate-300 hover:border-emerald-400/50 hover:text-slate-100 transition-colors duration-200">
-              Scope the managed lane
-            </a>
-            <a data-rhumb-propagate href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e007&rhumb_source=mcp-prompt-injection-checklist" class="inline-flex rounded-xl border border-emerald-500/30 px-4 py-3 text-sm text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200">
-              Use the route-hardening checklist
+            <a data-rhumb-propagate href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e009&rhumb_source=mcp-prompt-injection-route-review-checklist" class="inline-flex rounded-xl border border-emerald-500/30 px-4 py-3 text-sm text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200">
+              Build the route card first
             </a>
           </div>
         </div>
