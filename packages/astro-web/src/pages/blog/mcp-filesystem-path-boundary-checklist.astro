@@ -100,6 +100,11 @@ const COMMON_MISREADS = [
 
 const RELATED = [
   {
+    href: "/mcp-route-review?rhumb_experiment=e009&rhumb_source=filesystem-boundary-route-review",
+    title: "MCP Route Review",
+    description: "When a path-boundary route has an allowed fixture, denied neighbor, authority owner, budget owner, and receipt fields, ask for route review instead of widening access.",
+  },
+  {
     href: "/blog/mcp-server-quality-signals-agents?rhumb_source=filesystem-boundary-quality-signals",
     title: "MCP Server Quality Signals for Agents",
     description: "Filesystem/resource boundary is one of the production quality checks before an MCP server is promoted.",
@@ -121,7 +126,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "MCP Filesystem Path Boundary Checklist",
   datePublished: "2026-05-17T05:20:00Z",
-  dateModified: "2026-05-17T05:20:00Z",
+  dateModified: "2026-05-24T02:24:00Z",
   author: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
   description:
     "A practical checklist for filesystem and repo MCP tools: operation classes, cwd anchors, canonical path proof, denied neighbors, output redaction, typed denials, and audit receipts.",
@@ -179,7 +184,7 @@ const ARTICLE_JSON_LD = {
           <p class="mt-4 text-sm leading-6 text-slate-300">
             The useful proof is not that the happy-path file opened. It is that a nearby unsafe path failed closed with a receipt the operator can audit after the agent moves on.
           </p>
-          <a href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e008&rhumb_source=filesystem-boundary-route-hardening" class="mt-6 inline-flex rounded-full bg-amber px-5 py-3 font-mono text-sm font-semibold text-navy transition-transform hover:-translate-y-0.5">Harden one filesystem route</a>
+          <a href="/mcp-route-review?rhumb_experiment=e009&rhumb_source=filesystem-boundary-route-review" class="mt-6 inline-flex rounded-full bg-amber px-5 py-3 font-mono text-sm font-semibold text-navy transition-transform hover:-translate-y-0.5">Ask for MCP Route Review</a>
         </aside>
       </section>
 
@@ -247,7 +252,7 @@ const ARTICLE_JSON_LD = {
 
       <section class="mt-12 rounded-3xl border border-slate-800 bg-slate-950/40 p-6">
         <p class="font-mono text-xs uppercase tracking-[0.22em] text-slate-500">Related operator guides</p>
-        <div class="mt-6 grid gap-4 md:grid-cols-3">
+        <div class="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {RELATED.map((item) => (
             <a href={item.href} class="rounded-2xl border border-slate-800 bg-navy/70 p-5 transition-colors hover:border-amber/40">
               <h3 class="text-lg font-semibold text-white">{item.title}</h3>
