@@ -128,14 +128,14 @@ const RELATED = [
     description: "The public rail chooser for governed execution, wallet-prefund, x402, BYOK, and Agent Vault.",
   },
   {
-    href: "/blog/mcp-route-hardening-checklist?rhumb_experiment=e007&rhumb_source=mcp-discovery-boundary-checklist",
-    title: "MCP route-hardening checklist",
-    description: "Turn candidate discovery into a route card, denied-neighbor fixture, authority binding, retry envelope, and receipt proof.",
+    href: "/mcp-route-review?rhumb_experiment=e009&rhumb_source=mcp-discovery-boundary-route-review",
+    title: "MCP Route Review",
+    description: "When discovery collapses to one repeat MCP route, send the allowed fixture, denied neighbor, authority/budget owners, and receipt proof.",
   },
   {
-    href: "/start-managed-execution?rhumb_experiment=e007&rhumb_source=mcp-discovery-boundary-route-hardening-managed-start",
-    title: "Route-hardening fit check",
-    description: "When discovery collapses to one repeat MCP route, send the unsafe neighbor, credential/budget owner, volume, and receipt proof.",
+    href: "/blog/mcp-route-hardening-checklist?rhumb_experiment=e009&rhumb_source=mcp-discovery-boundary-checklist",
+    title: "MCP route-hardening checklist",
+    description: "Turn candidate discovery into a route card, denied-neighbor fixture, authority binding, retry envelope, and receipt proof.",
   },
   {
     href: "/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-proof-sprint",
@@ -342,10 +342,10 @@ const ARTICLE_JSON_LD = {
           </section>
 
           <section class="rounded-[32px] border border-rose-500/20 bg-rose-500/5 p-6 sm:p-8">
-            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Route-hardening fork</div>
-            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">When free discovery becomes an E-007 route-hardening ask</h2>
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">Route-review fork</div>
+            <h2 class="mb-4 font-display text-2xl font-bold tracking-tight text-slate-100">When free discovery becomes an MCP Route Review request</h2>
             <p class="mb-5 leading-relaxed text-slate-300">
-              Discovery has done its job when the argument is no longer “which MCP server is best?” but “this one MCP route will run repeatedly, and the adjacent route must never fire.” At that point the buying-intent signal is not another directory search. It is a concrete hardening request.
+              Discovery has done its job when the argument is no longer “which MCP server is best?” but “this one MCP route will run repeatedly, and the adjacent route must never fire.” At that point the useful signal is not another directory search. It is a concrete route-review packet.
             </p>
             <div class="grid gap-3 md:grid-cols-2">
               <div class="rounded-2xl border border-slate-800 bg-navy/70 p-4 text-sm leading-6 text-slate-300">
@@ -356,11 +356,11 @@ const ARTICLE_JSON_LD = {
               </div>
             </div>
             <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-              <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=mcp-discovery-boundary-route-hardening" class="inline-flex items-center justify-center rounded-xl bg-rose-300 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-rose-200">
-                Turn this into a route-hardening request
+              <a href="/mcp-route-review?rhumb_experiment=e009&rhumb_source=mcp-discovery-boundary-route-review" class="inline-flex items-center justify-center rounded-xl bg-rose-300 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-rose-200">
+                Ask for MCP Route Review →
               </a>
-              <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=mcp-discovery-boundary-route-hardening-managed-start" class="inline-flex items-center justify-center rounded-xl border border-rose-500/30 px-5 py-3 text-sm font-display font-semibold text-rose-100 transition-colors duration-200 hover:border-rose-400/60 hover:text-white">
-                Start the managed preflight
+              <a href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e009&rhumb_source=mcp-discovery-boundary-route-review-checklist" class="inline-flex items-center justify-center rounded-xl border border-rose-500/30 px-5 py-3 text-sm font-display font-semibold text-rose-100 transition-colors duration-200 hover:border-rose-400/60 hover:text-white">
+                Shape the minimum proof packet
               </a>
             </div>
           </section>
@@ -383,7 +383,7 @@ const ARTICLE_JSON_LD = {
               Bring one repeat workflow, one denied neighbor, and one budget ceiling. Do not bring a list of servers and ask the agent to improvise production safety.
             </p>
             <div class="flex flex-col gap-2">
-              <a href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=mcp-discovery-boundary-sidebar-route-hardening" class="inline-flex rounded-full border border-amber/30 px-4 py-2 font-mono text-xs uppercase tracking-[0.22em] text-amber transition-colors hover:bg-amber/10">Harden one route</a>
+              <a href="/mcp-route-review?rhumb_experiment=e009&rhumb_source=mcp-discovery-boundary-sidebar-route-review" class="inline-flex rounded-full border border-amber/30 px-4 py-2 font-mono text-xs uppercase tracking-[0.22em] text-amber transition-colors hover:bg-amber/10">Review one route</a>
               <a href="/start-managed-execution?rhumb_experiment=e006&rhumb_source=mcp-discovery-boundary-sidebar" class="inline-flex rounded-full border border-slate-700 px-4 py-2 font-mono text-xs uppercase tracking-[0.22em] text-slate-400 transition-colors hover:border-slate-600 hover:text-slate-200">Scope the first route</a>
             </div>
           </div>

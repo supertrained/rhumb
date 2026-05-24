@@ -454,13 +454,13 @@ const ARTICLE_JSON_LD = {
             </p>
           </div>
 
-          <div class="mt-12 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6" data-section="runtime-discovery-route-hardening">
-            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">E-007 route-hardening fork</div>
+          <div class="mt-12 rounded-[28px] border border-rose-500/20 bg-rose-500/5 p-6" data-section="runtime-discovery-route-review">
+            <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-rose-300">MCP Route Review fork</div>
             <h2 class="mb-3 font-display text-2xl font-semibold tracking-tight text-slate-100">
-              A filtered discovery result becomes buying intent only when one route needs hardening
+              A filtered discovery result becomes useful only when one route can be reviewed
             </h2>
             <p class="mb-5 leading-relaxed text-slate-300">
-              Runtime discovery should stay free proof while it narrows a giant index. The moment it identifies one MCP route that a team wants to repeat with real credentials, budget, and side effects, the question changes from “which server looks best?” to “would we pay to make this route safe enough to run unattended?”
+              Runtime discovery should stay free proof while it narrows a giant index. The moment it identifies one MCP route that a team wants to repeat with real credentials, budget, and side effects, the question changes from “which server looks best?” to “can this exact route prove its allowed lane and denied neighbor?”
             </p>
             <div class="grid gap-3 sm:grid-cols-3">
               {ROUTE_HARDENING_CHECKS.map((item) => (
@@ -468,11 +468,11 @@ const ARTICLE_JSON_LD = {
               ))}
             </div>
             <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-              <a href="/blog/mcp-prompt-injection-scope-constraints?rhumb_experiment=e007&rhumb_source=runtime-discovery-route-hardening" class="inline-flex items-center justify-center rounded-xl bg-rose-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-rose-300">
-                Use the E-007 route-hardening probe →
+              <a href="/mcp-route-review?rhumb_experiment=e009&rhumb_source=runtime-discovery-route-review" class="inline-flex items-center justify-center rounded-xl bg-rose-400 px-5 py-3 text-sm font-display font-semibold text-navy transition-colors duration-200 hover:bg-rose-300">
+                Ask for MCP Route Review →
               </a>
-              <a data-rhumb-propagate href="/start-managed-execution?rhumb_experiment=e007&rhumb_source=runtime-discovery-managed-start" class="inline-flex items-center justify-center rounded-xl border border-rose-500/30 px-5 py-3 text-sm font-display font-semibold text-rose-100 transition-colors duration-200 hover:border-rose-400/60 hover:text-white">
-                Start with one repeat-safe route →
+              <a href="/blog/mcp-route-hardening-checklist?rhumb_experiment=e009&rhumb_source=runtime-discovery-route-review-checklist" class="inline-flex items-center justify-center rounded-xl border border-rose-500/30 px-5 py-3 text-sm font-display font-semibold text-rose-100 transition-colors duration-200 hover:border-rose-400/60 hover:text-white">
+                Shape the minimum proof packet →
               </a>
             </div>
           </div>
