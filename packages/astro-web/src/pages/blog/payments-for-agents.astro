@@ -2,23 +2,147 @@
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
 import { PUBLIC_TRUTH } from "../../lib/public-truth";
+import { getServiceScore } from "../../lib/api";
 import { getTierInfo } from "../../lib/utils";
+import type { ServiceScoreViewModel } from "../../lib/types";
 
 const servicesLabel = PUBLIC_TRUTH.servicesLabel;
 const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
 
+const scoreMap = {
+  stripe: await getServiceScore("stripe"),
+  "lemon-squeezy": await getServiceScore("lemon-squeezy"),
+  square: await getServiceScore("square"),
+  adyen: await getServiceScore("adyen"),
+  braintree: await getServiceScore("braintree"),
+  paypal: await getServiceScore("paypal"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+type ScoreFallback = {
+  agg: number;
+  exec: number;
+  access: number;
+  confidence: number;
+  tier: string;
+  tierLabel: string;
+};
+
+type PaymentService = {
+  slug: keyof typeof scoreMap;
+  name: string;
+  bestFor: string;
+  agentFriction: string;
+  routingRule: string;
+  fallback: ScoreFallback;
+  data: ServiceScoreViewModel | null;
+};
+
+const payments: PaymentService[] = [
+  {
+    slug: "stripe",
+    name: "Stripe",
+    bestFor: "Software-native subscriptions, invoices, checkout, and usage-billing loops where retry safety matters more than channel coverage.",
+    agentFriction: "Restricted-key scope mistakes and webhook version drift are the main ways agents get misleading partial evidence.",
+    routingRule: "Default to Stripe unless the workflow is explicitly physical-commerce, PayPal-native, or enterprise-acquirer constrained.",
+    fallback: { agg: 8.1, exec: 9.0, access: 6.6, confidence: 0.9, tier: "L4", tierLabel: "Native" },
+    data: scoreMap.stripe,
+  },
+  {
+    slug: "lemon-squeezy",
+    name: "Lemon Squeezy",
+    bestFor: "Simple software-product payments when tax handling and merchant-of-record packaging matter more than deep payment orchestration.",
+    agentFriction: "Clean API shape, but less programmatic breadth and weaker enterprise control surface than Stripe.",
+    routingRule: "Use when the product needs merchant-of-record simplicity; do not use it as the default programmable payment rail.",
+    fallback: { agg: 6.8, exec: 7.1, access: 6.2, confidence: 0.52, tier: "L3", tierLabel: "Ready" },
+    data: scoreMap["lemon-squeezy"],
+  },
+  {
+    slug: "square",
+    name: "Square",
+    bestFor: "Retail, catalog, location, inventory, and point-of-sale workflows where payment is attached to physical commerce.",
+    agentFriction: "Merchant/KYC setup, conservative limits, and location-scoped operating context make autonomous setup less smooth than Stripe.",
+    routingRule: "Choose Square when locations or in-person commerce are first-class objects, not when you just need internet payments.",
+    fallback: { agg: 6.27, exec: 7.3, access: 5.2, confidence: 0.92, tier: "L3", tierLabel: "Ready" },
+    data: scoreMap.square,
+  },
+  {
+    slug: "adyen",
+    name: "Adyen",
+    bestFor: "High-volume, multi-region, enterprise commerce that needs acquiring, risk, and payout machinery in one platform.",
+    agentFriction: "Manual onboarding, merchant-account setup, and enterprise assumptions make it a poor default for cold-start agents.",
+    routingRule: "Route to Adyen only when scale, region, acquiring, or compliance constraints justify the enterprise setup cost.",
+    fallback: { agg: 8.8, exec: 8.9, access: 8.5, confidence: 0.61, tier: "L4", tierLabel: "Native" },
+    data: scoreMap.adyen,
+  },
+  {
+    slug: "braintree",
+    name: "Braintree",
+    bestFor: "PayPal-adjacent card processing where a team already lives inside the PayPal/Braintree account model.",
+    agentFriction: "Legacy API patterns, sandbox complexity, and less transparent rate-limit behavior add avoidable agent control-plane work.",
+    routingRule: "Prefer it when PayPal ecosystem constraints are real; otherwise Stripe and Square are cleaner agent targets.",
+    fallback: { agg: 8.3, exec: 8.5, access: 8.0, confidence: 0.56, tier: "L4", tierLabel: "Native" },
+    data: scoreMap.braintree,
+  },
+  {
+    slug: "paypal",
+    name: "PayPal",
+    bestFor: "Buyer-trust, wallet, or payout requirements where PayPal itself is the product requirement.",
+    agentFriction: "Older state machines, account verification, webhook verification, and dashboard-heavy workflows force more human-era handling.",
+    routingRule: "Use PayPal because the market demands PayPal, not because it is the most agent-native payment API.",
+    fallback: { agg: 4.89, exec: 5.9, access: 3.7, confidence: 0.95, tier: "L2", tierLabel: "Developing" },
+    data: scoreMap.paypal,
+  },
+];
+
+function aggregate(item: PaymentService): number {
+  return item.data?.aggregateRecommendationScore ?? item.fallback.agg;
+}
+function execution(item: PaymentService): number {
+  return item.data?.executionScore ?? item.fallback.exec;
+}
+function access(item: PaymentService): number {
+  return item.data?.accessReadinessScore ?? item.fallback.access;
+}
+function confidence(item: PaymentService): number {
+  return item.data?.confidence ?? item.fallback.confidence;
+}
+function tier(item: PaymentService): string {
+  return item.data?.tier ?? item.fallback.tier;
+}
+function tierLabel(item: PaymentService): string {
+  return item.data?.tierLabel ?? item.fallback.tierLabel;
+}
+function scoreDate(item: PaymentService): string | null {
+  return item.data?.calculatedAt ?? null;
+}
+function fmt(value: number): string {
+  return value.toFixed(1);
+}
+function fmtConfidence(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+const ranked = [...payments].sort((a, b) => aggregate(b) - aggregate(a));
+const winner = ranked[0];
+const lastScoreDate = ranked.map(scoreDate).filter(Boolean).sort().at(-1);
+const updatedAt = lastScoreDate
+  ? new Date(lastScoreDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  : "May 26, 2026";
+const updatedAtISO = lastScoreDate ? new Date(lastScoreDate).toISOString() : "2026-05-26T00:00:00.000Z";
+const scoreRange = `${fmt(aggregate(ranked[ranked.length - 1]))}–${fmt(aggregate(winner))}`;
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
-  headline: "Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents",
+  headline: "Payment API Scorecard for AI Agents",
   datePublished: "2026-03-09T00:00:00Z",
-  dateModified: "2026-03-09T00:00:00Z",
+  dateModified: updatedAtISO,
   author: {
     "@type": "Person",
     name: "Pedro Nunes",
   },
   description:
-    "We scored 6 payment APIs on how well they work for AI agents — not humans. The most popular one scored the worst.",
+    "Rhumb's payment API scorecard compares Stripe, Lemon Squeezy, Square, Adyen, Braintree, and PayPal for autonomous AI-agent workflows.",
   url: "https://rhumb.dev/blog/payments-for-agents",
   publisher: {
     "@type": "Organization",
@@ -27,400 +151,149 @@ const ARTICLE_JSON_LD = {
   },
 };
 
-const TOOLS = [
-  {
-    name: "Stripe",
-    slug: "stripe",
-    agg: 8.1,
-    exec: 9.0,
-    access: 6.6,
-    tier: "L4",
-    tierLabel: "Native",
-    p50: 120,
-    whyHigh:
-      "Idempotency keys on every endpoint. Structured JSON errors with machine-readable codes. Webhook signatures with replay protection. API versioning via header — no URL breakage.",
-    whyLow:
-      "OAuth onboarding for Connect still requires human-in-the-loop. Dashboard-only features (dispute management, radar rules) have no API equivalent.",
-  },
-  {
-    name: "Lemon Squeezy",
-    slug: "lemon-squeezy",
-    agg: 7.0,
-    exec: 7.5,
-    access: 5.7,
-    tier: "L3",
-    tierLabel: "Ready",
-    p50: 105,
-    whyHigh:
-      "Clean REST API with consistent JSON responses. Good webhook support. Simple API key auth — no OAuth dance required.",
-    whyLow:
-      "Limited programmatic control over store setup. No idempotency keys. Error messages are human-readable strings, not machine-parseable codes. Fewer integration patterns than Stripe.",
-  },
-  {
-    name: "Square",
-    slug: "square",
-    agg: 6.7,
-    exec: 7.3,
-    access: 5.2,
-    tier: "L3",
-    tierLabel: "Ready",
-    p50: 140,
-    whyHigh:
-      "Solid SDK coverage. Idempotency keys available on create endpoints. GraphQL option for flexible queries.",
-    whyLow:
-      "OAuth flow mandatory for marketplace integrations. SDK error types inconsistent across languages. Higher latency on batch operations.",
-  },
-  {
-    name: "Adyen",
-    slug: "adyen",
-    agg: 6.5,
-    exec: 7.3,
-    access: 4.7,
-    tier: "L3",
-    tierLabel: "Ready",
-    p50: 155,
-    whyHigh:
-      "Enterprise-grade reliability. Comprehensive webhook events. Strong idempotency support.",
-    whyLow:
-      "Onboarding requires human sales contact. Test environment setup is manual. Documentation assumes human readers with prior payment domain knowledge.",
-  },
-  {
-    name: "Braintree",
-    slug: "braintree",
-    agg: 5.8,
-    exec: 6.5,
-    access: 4.3,
-    tier: "L2",
-    tierLabel: "Developing",
-    p50: 185,
-    whyHigh: "PayPal ecosystem integration. Mature SDK with good type coverage.",
-    whyLow:
-      "XML error responses in some endpoints. Complex sandbox provisioning. Rate limits are opaque (no Retry-After header). Legacy API patterns mixed with modern ones.",
-  },
-  {
-    name: "PayPal",
-    slug: "paypal",
-    agg: 4.9,
-    exec: 5.9,
-    access: 3.7,
-    tier: "L2",
-    tierLabel: "Developing",
-    p50: 210,
-    whyHigh:
-      "Ubiquitous — virtually every user already has an account. REST API exists and covers core flows.",
-    whyLow:
-      "Error responses mix human strings with codes inconsistently. OAuth token rotation has undocumented edge cases. Webhook verification requires fetching a signing cert chain. Rate limits enforced silently (requests just fail). P50 latency 2x higher than Stripe. Sandbox environment frequently diverges from production behavior.",
-  },
+const decisionRows = [
+  ["Raw score winner", `${winner.name} leads the scorecard at ${fmt(aggregate(winner))}; treat confidence and onboarding context as tie-breakers before routing production money.`],
+  ["Selling software or subscriptions", "Start with Stripe; consider Lemon Squeezy when merchant-of-record simplicity is the binding requirement."],
+  ["Physical commerce or inventory", "Start with Square because locations, catalogs, and point-of-sale context are first-class."],
+  ["Enterprise acquiring / global risk", "Evaluate Adyen after confirming onboarding and merchant-account requirements are acceptable."],
+  ["PayPal buyer demand", "Use PayPal or Braintree because the market requires it, not because the agent path is cleaner."],
 ];
 ---
 
-
 <Layout
-  title="Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents | Rhumb"
-  description="We scored 6 payment APIs on how well they work for AI agents — not humans. The results still surprised us."
+  title="Payment API Scorecard for AI Agents | Rhumb"
+  description={`Rhumb scored six payment APIs for AI-agent compatibility. Current range: ${scoreRange}. Adyen leads raw score; Stripe stays the software-native default; PayPal remains constraint-driven.`}
   canonical="/blog/payments-for-agents"
-  ogTitle="Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents"
-  ogDescription="We scored 6 payment APIs on how well they work for AI agents. The most popular one scored worst."
-  ogImage="/api/og?title=Payments+for+Agents&subtitle=x402+·+USDC+on+Base+·+Zero-signup+execution"
+  ogTitle="Payment API Scorecard for AI Agents"
+  ogDescription="Adyen, Braintree, Stripe, Lemon Squeezy, Square, and PayPal ranked by Rhumb's Agent-Native Score."
+  ogImage="/api/og?title=Payment+API+Scorecard&subtitle=Agent-Native+Scores+for+AI+agents"
   ogUrl="https://rhumb.dev/blog/payments-for-agents"
   ogType="article"
-  twitterTitle="Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents"
-  twitterDescription="We scored 6 payment APIs on how well they work for AI agents. The most popular one scored worst."
-  twitterImage="/blog/payments-for-agents/og"
+  twitterTitle="Payment API Scorecard for AI Agents"
+  twitterDescription="Six payment APIs ranked by Rhumb's Agent-Native Score, plus the practical routing rule for agents."
+  twitterImage="/api/og?title=Payment+API+Scorecard&subtitle=Agent-Native+Scores+for+AI+agents"
   jsonLd={ARTICLE_JSON_LD}
 >
-  <div class="bg-navy min-h-screen">
-    <article class="max-w-3xl mx-auto px-6 pt-14 pb-24">
-
-      <!-- Article header -->
+  <div class="bg-navy min-h-screen overflow-hidden">
+    <article class="max-w-5xl mx-auto px-6 pt-14 pb-24">
       <header class="mb-12">
-        <div class="flex items-center gap-3 mb-6">
-          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-widest">
-            Tool Autopsy
-          </span>
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-[0.28em]">Scorecard</span>
           <span class="text-slate-700">&middot;</span>
           <span class="text-xs font-mono text-slate-500">March 9, 2026</span>
           <span class="text-slate-700">&middot;</span>
-          <span class="text-xs font-mono text-emerald-400/70">Updated March 9, 2026</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated {updatedAt}</span>
           <span class="text-slate-700">&middot;</span>
-          <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
+          <span class="text-xs font-mono text-slate-600">{servicesLabel} services · {categoriesLabel} categories</span>
         </div>
 
-        <h1 class="font-display font-bold text-3xl sm:text-4xl text-slate-100 leading-tight tracking-tight mb-6">
-          Why Stripe Scores 8.1 and PayPal Scores 4.9 for AI Agents
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight mb-6">
+          Payment API scorecard for AI agents
         </h1>
 
-        <p class="text-lg text-slate-400 leading-relaxed border-l-2 border-amber/50 pl-4">
-          We scored 6 payment APIs on how well they work for AI agents &mdash; not humans.
-          The most popular one scored the worst.
+        <p class="text-lg text-slate-300 leading-relaxed max-w-3xl">
+          Humans choose payment processors by brand, price, and sales context. Agents need a different answer:
+          which API can they call, retry, scope, audit, and recover from without human babysitting?
         </p>
+
+        <div class="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-5">
+          <p class="text-sm leading-6 text-slate-300">
+            <span class="font-semibold text-slate-100">Current verdict:</span>
+            {" "}{winner.name} leads the raw payment scorecard at <span class="font-mono text-emerald-300">{fmt(aggregate(winner))}</span>.
+            Stripe remains the cleanest software-native default because its score has higher confidence and fewer enterprise onboarding assumptions.
+            PayPal sits at <span class="font-mono text-amber-300">{fmt(aggregate(payments.find((item) => item.slug === "paypal")!))}</span>,
+            so treat it as a distribution constraint rather than the default agent rail.
+          </p>
+        </div>
       </header>
 
-      <!-- Intro -->
-      <section class="prose-rhumb mb-12">
-        <p>
-          When a human picks a payment processor, they compare pricing pages, read case studies,
-          and ask their network. When an AI agent picks one, it needs to know:
-          <em>Can I call this API without getting stuck?</em>
-        </p>
-        <p>
-          &quot;Great documentation&quot; means nothing when your user is a language model. What
-          matters is: Are errors machine-readable? Are operations idempotent? Can I retry safely
-          without human intervention?
-        </p>
-        <p>
-          We built the
-          <a href="/leaderboard/payments" class="text-amber hover:underline underline-offset-2">
-            Agent-Native Score
-          </a>
-          to answer this. Here&apos;s what we found when we scored the 6 most common payment
-          APIs that agents actually use.
-        </p>
-      </section>
-
-      <!-- Leaderboard summary -->
       <section class="mb-12">
-        <h2 class="font-display font-semibold text-xl text-slate-100 mb-5">The Leaderboard</h2>
-
-        <div class="bg-surface border border-slate-800 rounded-xl overflow-hidden">
-          {TOOLS.map((tool, i) => {
-            const tier = getTierInfo(tool.agg);
+        <h2 class="font-display font-semibold text-2xl text-slate-100 mb-5">Ranked payment APIs</h2>
+        <div class="grid gap-4">
+          {ranked.map((tool, index) => {
+            const tierStyle = getTierInfo(aggregate(tool));
             return (
-              <div
-                class={`flex items-center gap-4 px-5 py-4 transition-colors hover:bg-elevated ${
-                  i < TOOLS.length - 1 ? "border-b border-slate-800" : ""
-                }`}
-              >
-                <!-- Rank -->
-                <span class="font-mono text-sm text-slate-600 w-5 shrink-0">#{i + 1}</span>
-
-                <!-- Score badge -->
-                <div
-                  class={`w-11 h-11 rounded-full flex flex-col items-center justify-center border shrink-0 ${tier.bgClass} ${tier.borderClass} ${tier.glowClass}`}
-                >
-                  <span class={`font-mono font-bold text-sm leading-none ${tier.textClass}`}>
-                    {tool.agg.toFixed(1)}
-                  </span>
-                </div>
-
-                <!-- Name + tier -->
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <a
-                      href={`/service/${tool.slug}`}
-                      class="font-display font-semibold text-slate-100 hover:text-amber transition-colors"
-                    >
-                      {tool.name}
-                    </a>
-                    <span
-                      class={`text-xs font-mono px-1.5 py-0.5 rounded border ${tier.bgClass} ${tier.borderClass} ${tier.textClass}`}
-                    >
-                      {tool.tier} {tool.tierLabel}
-                    </span>
+              <div class="rounded-2xl border border-slate-800 bg-surface/90 p-5 hover:border-slate-700 transition-colors">
+                <div class="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex flex-wrap items-center gap-3">
+                      <span class="font-mono text-sm text-slate-600">#{index + 1}</span>
+                      <a href={`/service/${tool.slug}`} class="font-display font-semibold text-xl text-slate-100 hover:text-amber transition-colors">
+                        {tool.name}
+                      </a>
+                      <span class={`text-xs font-mono px-2 py-1 rounded border ${tierStyle.bgClass} ${tierStyle.borderClass} ${tierStyle.textClass}`}>
+                        {tier(tool)} {tierLabel(tool)}
+                      </span>
+                      <span class="text-xs font-mono text-slate-500">confidence {fmtConfidence(confidence(tool))}</span>
+                    </div>
+                    <p class="mt-3 text-sm leading-6 text-slate-300">{tool.bestFor}</p>
+                    <p class="mt-2 text-sm leading-6 text-slate-500"><span class="text-slate-400">Agent friction:</span> {tool.agentFriction}</p>
                   </div>
-                  <div class="mt-1 flex gap-4 text-xs font-mono text-slate-600">
-                    <span>Exec: {tool.exec.toFixed(1)}</span>
-                    <span>Access: {tool.access.toFixed(1)}</span>
-                    <span>P50: {tool.p50}ms</span>
+
+                  <div class="grid grid-cols-3 gap-3 md:w-80 shrink-0">
+                    <div class="rounded-xl border border-white/6 bg-navy/65 px-4 py-3 text-center">
+                      <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">AN</div>
+                      <div class="mt-1 font-mono text-xl font-bold text-slate-100">{fmt(aggregate(tool))}</div>
+                    </div>
+                    <div class="rounded-xl border border-white/6 bg-navy/65 px-4 py-3 text-center">
+                      <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Exec</div>
+                      <div class="mt-1 font-mono text-xl font-bold text-slate-100">{fmt(execution(tool))}</div>
+                    </div>
+                    <div class="rounded-xl border border-white/6 bg-navy/65 px-4 py-3 text-center">
+                      <div class="text-[10px] font-mono uppercase tracking-[0.22em] text-slate-500">Access</div>
+                      <div class="mt-1 font-mono text-xl font-bold text-slate-100">{fmt(access(tool))}</div>
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
-
         <p class="mt-3 text-xs font-mono text-slate-600">
-          Agent-Native Score v0.2 &middot; Execution (70%) + Access (30%) &middot; Higher is better &middot;
-          <a href="/leaderboard/payments" class="text-amber hover:underline">
-            Full leaderboard &rarr;
-          </a>
+          Agent-Native Score: Execution 70% + Access Readiness 30%. Scores load from Rhumb's public service-score surface, with May 26, 2026 production-API fallback values embedded for build resilience.
         </p>
       </section>
 
-      <!-- Individual breakdowns -->
-      {TOOLS.map((tool) => {
-        const tier = getTierInfo(tool.agg);
-        const execTier = getTierInfo(tool.exec);
-        const accessTier = getTierInfo(tool.access);
-        const execPct = Math.min((tool.exec / 10) * 100, 100);
-        const accessPct = Math.min((tool.access / 10) * 100, 100);
-        return (
-          <section class="mb-10">
-            <div class="flex items-baseline gap-3 mb-4">
-              <h2 class="font-display font-bold text-xl text-slate-100">
-                <a
-                  href={`/service/${tool.slug}`}
-                  class="hover:text-amber transition-colors"
-                >
-                  {tool.name}
-                </a>
-              </h2>
-              <span class={`font-mono font-bold text-lg ${tier.textClass}`}>
-                {tool.agg.toFixed(1)}
-              </span>
-              <span class={`text-xs font-mono px-1.5 py-0.5 rounded border ${tier.bgClass} ${tier.borderClass} ${tier.textClass}`}>
-                {tool.tier}
-              </span>
-            </div>
-
-            <!-- Score bars -->
-            <div class="mb-4 bg-surface border border-slate-800 rounded-lg p-4 space-y-2.5">
-              <div class="flex items-center gap-3">
-                <span class="text-xs font-mono text-slate-500 w-14 shrink-0">Execution</span>
-                <div class="flex-1">
-                  <div class="flex items-center gap-2">
-                    <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div class="h-full rounded-full" style={`width: ${execPct}%; background-color: ${execTier.hex}`} />
-                    </div>
-                    <span class={`font-mono font-bold text-sm w-7 text-right ${execTier.textClass}`}>
-                      {tool.exec.toFixed(1)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <span class="text-xs font-mono text-slate-500 w-14 shrink-0">Access</span>
-                <div class="flex-1">
-                  <div class="flex items-center gap-2">
-                    <div class="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                      <div class="h-full rounded-full" style={`width: ${accessPct}%; background-color: ${accessTier.hex}`} />
-                    </div>
-                    <span class={`font-mono font-bold text-sm w-7 text-right ${accessTier.textClass}`}>
-                      {tool.access.toFixed(1)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div class="pt-1 border-t border-slate-800 text-xs font-mono text-slate-600">
-                P50 latency: <span class="text-slate-400">{tool.p50}ms</span>
-              </div>
-            </div>
-
-            <div class="prose-rhumb space-y-3">
-              <p>
-                <span class="text-score-native font-semibold">What works for agents:</span>{" "}
-                {tool.whyHigh}
-              </p>
-              <p>
-                <span class="text-score-limited font-semibold">Where agents get stuck:</span>{" "}
-                {tool.whyLow}
-              </p>
-            </div>
-          </section>
-        );
-      })}
-
-      <!-- Key insight -->
-      <section class="my-12 bg-surface border border-l-4 border-amber rounded-xl p-7">
-        <h2 class="font-display font-bold text-lg text-amber mb-4">The Pattern</h2>
-        <div class="prose-rhumb">
-          <p>
-            The gap between Stripe (8.1) and PayPal (4.9) isn&apos;t about features &mdash; both
-            process payments. It&apos;s about
-            <strong>execution ergonomics</strong>: idempotency, structured errors, retry safety,
-            and predictable latency.
-          </p>
-          <p>
-            Stripe was built API-first. PayPal was built for checkout buttons and added an API
-            later. That architectural decision from 2011 still shows up in every agent interaction
-            in 2026.
-          </p>
-          <p>
-            For AI automation teams: if your agent is spending tokens parsing error messages or
-            implementing custom retry logic, the tool isn&apos;t saving you time. It&apos;s
-            costing you compute.
+      <section class="grid gap-5 lg:grid-cols-[0.9fr_1.1fr] mb-12">
+        <div class="rounded-2xl border border-slate-800 bg-surface p-6">
+          <h2 class="font-display font-semibold text-xl text-slate-100 mb-4">The rule agents should use</h2>
+          <p class="text-slate-300 leading-7">
+            Do not ask “which payment API is biggest?” Ask “which one gives the agent the most recoverable control plane for this route?”
+            The raw winner is Adyen, mostly because enterprise governance and execution score well. The practical cold-start default is still Stripe: high confidence, strong execution, and lower onboarding ambiguity for software-native agents.
           </p>
         </div>
-      </section>
 
-      <!-- Methodology -->
-      <section class="mb-12">
-        <h2 class="font-display font-bold text-lg text-slate-100 mb-4">Methodology</h2>
-        <div class="prose-rhumb">
-          <p>
-            The <strong>Agent-Native Score</strong> evaluates tools across 20 dimensions grouped
-            into Execution (how well the API works when called) and Access (how easy it is for an
-            agent to start using it autonomously). Scores are weighted 70/30 Execution/Access.
-          </p>
-          <p>
-            Key dimensions include: schema stability, error ergonomics, idempotency guarantees,
-            latency distribution (P50/P95/P99), cold-start behavior, token cost of integration,
-            and graceful degradation under load.
-          </p>
-          <p>
-            These scores are based on Rhumb&apos;s current scoring dataset and methodology. Today&apos;s published score layer is documentation-derived unless a page explicitly says otherwise, with provenance and freshness made visible so the limitation is legible.
-            <a href="/leaderboard/payments" class="text-amber hover:underline">
-              View the full payments leaderboard &rarr;
-            </a>
-          </p>
-        </div>
-      </section>
-
-      <section class="rounded-[28px] border border-emerald-500/20 bg-emerald-500/5 p-8 text-center sm:text-left">
-        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-emerald-300 mb-3">Next honest step</div>
-        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
-          Turn the comparison into one bounded execution lane
-        </h2>
-        <p class="text-slate-300 leading-relaxed mb-6 max-w-2xl mx-auto sm:mx-0">
-          If you already know which payment surface fits the job, move from scorecards into a governed path. Start capability-first, or go straight to the managed lane when repeatable execution is the real need.
-        </p>
-        <div class="flex flex-col gap-3 sm:flex-row sm:justify-start">
-          <a
-            href="/blog/capability-first-agent-onboarding?rhumb_experiment=e004&rhumb_source=payments-for-agents-onboarding"
-            class="inline-flex items-center justify-center rounded-xl bg-emerald-400 px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-emerald-300 transition-colors duration-200"
-          >
-            See the capability-first handoff &rarr;
-          </a>
-          <a
-            href="/start-managed-execution?rhumb_experiment=e004&rhumb_source=payments-for-agents-direct"
-            class="inline-flex items-center justify-center rounded-xl border border-emerald-500/30 px-5 py-3 text-sm font-display font-semibold text-emerald-200 hover:border-emerald-400/60 hover:text-emerald-100 transition-colors duration-200"
-          >
-            Open the managed path &rarr;
-          </a>
-        </div>
-        <p class="mt-5 text-xs font-mono text-slate-500">
-          Still comparing first? <a href="/leaderboard" class="text-amber hover:underline">Browse all categories &rarr;</a>
-        </p>
-      </section>
-
-      <section class="mt-12">
-        <div class="rounded-[28px] border border-sky-500/20 bg-sky-500/5 p-8 text-center sm:text-left">
-          <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-sky-300 mb-3">Fleet follow-through</div>
-          <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
-            Payment autonomy still breaks on scope, retries, and key drift
-          </h2>
-          <p class="text-slate-300 leading-relaxed max-w-3xl mx-auto sm:mx-0">
-            Choosing credits, x402, or cards is only the first layer. Once agents run unattended, the real work is bounding authority, stopping retry storms from multiplying cost, and rotating credentials without breaking the lane.
-          </p>
-          <div class="mt-6 grid gap-4 lg:grid-cols-3">
-            <a
-              href="/blog/governed-capability-surfaces-agent-integrations"
-              class="block rounded-2xl border border-white/8 bg-navy/55 p-5 text-left hover:border-sky-400/40 transition-colors"
-            >
-              <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-sky-300">Scope boundaries</p>
-              <h3 class="mt-2 font-display font-semibold text-slate-100">Governed Capability Surfaces for Agent Integrations</h3>
-              <p class="mt-2 text-sm leading-6 text-slate-400">Scope agent authority before it can spend, write, or escalate.</p>
-            </a>
-            <a
-              href="/blog/agent-fleet-rate-limit-design"
-              class="block rounded-2xl border border-white/8 bg-navy/55 p-5 text-left hover:border-sky-400/40 transition-colors"
-            >
-              <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-sky-300">Retry discipline</p>
-              <h3 class="mt-2 font-display font-semibold text-slate-100">Designing Agent Fleets That Survive Rate Limits</h3>
-              <p class="mt-2 text-sm leading-6 text-slate-400">Keep retries, backoff, and shared quotas from turning a healthy lane into a cost spiral.</p>
-            </a>
-            <a
-              href="/blog/api-credentials-agent-fleets"
-              class="block rounded-2xl border border-white/8 bg-navy/55 p-5 text-left hover:border-sky-400/40 transition-colors"
-            >
-              <p class="text-[11px] font-mono uppercase tracking-[0.22em] text-sky-300">Credential lifecycle</p>
-              <h3 class="mt-2 font-display font-semibold text-slate-100">API Credentials in Autonomous Agent Fleets</h3>
-              <p class="mt-2 text-sm leading-6 text-slate-400">What safe vending, rotation, and revocation look like once agents run unattended.</p>
-            </a>
+        <div class="rounded-2xl border border-slate-800 bg-surface p-6">
+          <h2 class="font-display font-semibold text-xl text-slate-100 mb-4">Decision table</h2>
+          <div class="space-y-3">
+            {decisionRows.map(([constraint, pick]) => (
+              <div class="grid gap-2 rounded-xl border border-white/6 bg-navy/55 p-4 md:grid-cols-[190px_1fr]">
+                <div class="text-xs font-mono uppercase tracking-[0.18em] text-slate-500">{constraint}</div>
+                <div class="text-sm leading-6 text-slate-300">{pick}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
+      <section class="prose-rhumb max-w-none">
+        <h2>What changed from the old payment article</h2>
+        <p>
+          The previous version of this page hard-coded an older six-service snapshot. This version is tied back to Rhumb's current score surface and keeps the comparison anchored in the product: the scored service index, not a generic payments checklist.
+        </p>
+        <p>
+          The useful market claim is narrower and stronger: agents should not optimize for payment brand familiarity. They should optimize for execution reliability, access readiness, scoped authority, retry safety, and evidence that lets an operator debug the route after money moves.
+        </p>
+      </section>
+
+      <footer class="mt-14 flex flex-wrap items-center gap-4 border-t border-slate-800 pt-8">
+        <a href="/leaderboard/payments" class="inline-flex items-center rounded-lg bg-amber px-5 py-3 font-semibold text-navy hover:bg-amber/90 transition-colors">
+          View the payments leaderboard
+        </a>
+        <a href="/blog/stripe-vs-square-vs-paypal" class="inline-flex items-center rounded-lg border border-slate-700 px-5 py-3 font-semibold text-slate-200 hover:border-amber/70 hover:text-amber transition-colors">
+          Compare Stripe, Square, and PayPal
+        </a>
+      </footer>
     </article>
   </div>
 </Layout>
