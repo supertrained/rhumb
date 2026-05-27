@@ -5,6 +5,7 @@ import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 import ScoreDisplay from "../../components/ScoreDisplay.astro";
 import TierBadge from "../../components/TierBadge.astro";
 import { getServiceScore } from "../../lib/api";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 import type { ServiceScoreViewModel } from "../../lib/types";
 
 const scoreMap = {
@@ -13,6 +14,9 @@ const scoreMap = {
   postmark: await getServiceScore("postmark"),
 } satisfies Record<string, ServiceScoreViewModel | null>;
 
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
+
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
@@ -20,7 +24,7 @@ const ARTICLE_JSON_LD = {
   datePublished: "2026-03-17T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
   description:
-    "Side-by-side comparison of Resend, SendGrid, and Postmark for AI agent email workflows — using live Rhumb AN Score data.",
+    "Side-by-side scorecard for Postmark, Resend, and SendGrid in AI-agent email workflows — using live Rhumb AN Score data.",
   url: "https://rhumb.dev/blog/resend-vs-sendgrid-vs-postmark",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
@@ -41,30 +45,30 @@ type ComparedService = {
 
 const compared: ComparedService[] = [
   {
-    slug: "resend",
-    name: "Resend",
-    accent: "#10B981",
-    accentSoft: "rgba(16,185,129,0.16)",
-    tagline: "default",
-    bestFor: "Agents that need the shortest path from API key to delivered email with the fewest hidden states.",
-    avoidWhen: "You need built-in marketing automation, advanced analytics dashboards, or compliance-heavy enterprise features out of the box.",
-    friction: "Free-tier burst rate limits can break batch loops if the agent does not self-throttle. Error response format is occasionally non-standard, which trips up generic retry logic.",
-    decision: "Pick Resend unless a specific enterprise constraint pushes you elsewhere.",
-    support: "Highest execution score of the three. API-first design means fewer hidden states, fewer legacy endpoints, and the cleanest default path for autonomous send loops.",
-    data: scoreMap.resend,
-  },
-  {
     slug: "postmark",
     name: "Postmark",
     accent: "#F59E0B",
     accentSoft: "rgba(245,158,11,0.16)",
-    tagline: "specialist",
-    bestFor: "Agents that handle time-sensitive transactional email (password resets, alerts, receipts) and need the highest inbox placement rates.",
+    tagline: "raw leader",
+    bestFor: "Agents that handle time-sensitive transactional email (password resets, alerts, receipts) and need the strongest deliverability posture.",
     avoidWhen: "Your agent also needs to send marketing or promotional content — Postmark explicitly refuses bulk marketing traffic.",
     friction: "Server-token architecture is clean for scoping but adds a setup step. Domain verification is mandatory before any email sends, so agents cannot self-provision from scratch.",
-    decision: "Pick Postmark when deliverability reputation and transactional focus matter more than breadth.",
-    support: "Higher execution than SendGrid and a tighter operating model. The server-token architecture naturally scopes agent access without extra ACL work.",
+    decision: "Pick Postmark when transactional deliverability and strict sending reputation matter more than breadth.",
+    support: "Current Rhumb data makes Postmark the raw score leader. The tradeoff is narrower: it is excellent for transactional email, but the same policy clarity becomes a hard no for mixed marketing traffic.",
     data: scoreMap.postmark,
+  },
+  {
+    slug: "resend",
+    name: "Resend",
+    accent: "#10B981",
+    accentSoft: "rgba(16,185,129,0.16)",
+    tagline: "practical default",
+    bestFor: "Agents that need the shortest self-serve path from API key to delivered email with the fewest hidden states.",
+    avoidWhen: "You need built-in marketing automation, advanced analytics dashboards, or compliance-heavy enterprise features out of the box.",
+    friction: "Free-tier burst rate limits can break batch loops if the agent does not self-throttle. Error response format is occasionally non-standard, which trips up generic retry logic.",
+    decision: "Pick Resend unless a specific deliverability, Twilio, or marketing constraint pushes you elsewhere.",
+    support: "Resend trails Postmark by a tenth in the current score data, but its API-first operating model remains the cleanest default for new autonomous send loops.",
+    data: scoreMap.resend,
   },
   {
     slug: "sendgrid",
@@ -76,7 +80,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You are starting fresh and want the cleanest agent integration path with the fewest legacy surfaces.",
     friction: "Twilio account linking adds onboarding overhead. Dashboard and API surface carry legacy complexity from years of feature accumulation. Domain verification is strict.",
     decision: "Pick SendGrid when Twilio lock-in already exists or when you need the broadest feature set at scale.",
-    support: "Widest feature surface of the three, with robust event webhooks and granular API key scoping. But the access readiness score reflects real onboarding drag.",
+    support: "SendGrid remains strong, but the score gap now says it is a constraint-driven choice: Twilio stack, combined marketing plus transactional email, or enterprise feature breadth.",
     data: scoreMap.sendgrid,
   },
 ];
@@ -127,7 +131,7 @@ const scenarioCards = [
   {
     title: "Agent sends transactional email (alerts, receipts, notifications)",
     pick: "Resend",
-    why: "Shortest path from key to delivered email. Highest execution score. Cleanest API for autonomous loops.",
+    why: "Shortest self-serve path from key to delivered email. Cleanest default API for autonomous send loops even though Postmark leads raw score.",
     href: "/service/resend",
   },
   {
@@ -145,8 +149,8 @@ const scenarioCards = [
 ];
 
 const agentRules = [
-  "If there is no strong constraint, route the operator toward Resend.",
-  "If inbox placement for time-sensitive email (2FA, password resets) is the top priority, examine Postmark before SendGrid.",
+  "If there is no strong constraint, route the operator toward Resend — but record Postmark as the current raw-score winner.",
+  "If inbox placement for time-sensitive email (2FA, password resets) is the top priority, examine Postmark first.",
   "If the operator is already on Twilio billing, SendGrid is the path of least organizational resistance — but flag the onboarding drag.",
   "Never send marketing email through Postmark. This is an enforcement policy, not a suggestion.",
   "Treat zero published failure modes as an evidence gap, not a safety guarantee. Resend's documented failure patterns make agent error handling easier to harden.",
@@ -154,15 +158,15 @@ const agentRules = [
 ---
 
 <Layout
-  title="Resend vs SendGrid vs Postmark for AI Agents | Rhumb"
-  description="Compare Resend, SendGrid, and Postmark for agent email workflows. Resend wins by default; Postmark excels in deliverability; SendGrid fits Twilio stacks."
+  title="Postmark vs Resend vs SendGrid for AI Agents | Rhumb"
+  description="Compare Postmark, Resend, and SendGrid for agent email workflows. Postmark leads raw Rhumb score; Resend remains the practical default; SendGrid fits Twilio stacks."
   canonical="/blog/resend-vs-sendgrid-vs-postmark"
-  ogTitle="Resend vs SendGrid vs Postmark for AI Agents"
-  ogDescription="Which email API should an AI agent use? Resend wins by default, Postmark wins for critical transactional, SendGrid wins in Twilio stacks."
+  ogTitle="Postmark vs Resend vs SendGrid for AI Agents"
+  ogDescription="Which email API should an AI agent use? Postmark leads raw score, Resend is the practical default, SendGrid wins in Twilio stacks."
   ogUrl="https://rhumb.dev/blog/resend-vs-sendgrid-vs-postmark"
   ogType="article"
-  twitterTitle="Resend vs SendGrid vs Postmark for AI Agents"
-  twitterDescription="A side-by-side decision page for operators and agents choosing an email delivery stack."
+  twitterTitle="Postmark vs Resend vs SendGrid for AI Agents"
+  twitterDescription="A score-backed decision page for operators and agents choosing an email delivery stack."
   jsonLd={ARTICLE_JSON_LD}
 >
   <div class="bg-navy min-h-screen overflow-hidden">
@@ -181,24 +185,30 @@ const agentRules = [
           </div>
 
           <h1 class="font-display font-bold text-4xl sm:text-5xl lg:text-6xl leading-[0.95] tracking-tight text-slate-100 max-w-4xl text-balance">
-            Resend vs SendGrid vs Postmark for AI agents
+            Postmark vs Resend vs SendGrid for AI agents
           </h1>
 
           <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
             <span class="text-slate-100 font-semibold">Short answer:</span>
-            Resend is the cleanest default for agent email,
-            Postmark wins when transactional deliverability is non-negotiable,
-            and SendGrid makes sense when you are already inside Twilio or need marketing email from the same provider.
+            Postmark leads raw Rhumb score, Resend is still the cleanest practical default for new agent email,
+            and SendGrid makes sense when Twilio already owns the account or marketing email must share the same provider.
           </p>
 
           <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-5 py-4">
             <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></div>
             <p class="text-sm leading-6 text-slate-300">
               <span class="font-semibold text-slate-100">Verdict:</span>
-              {winner?.name ?? "Resend"} leads on current Rhumb scoring because it combines the highest execution reliability
-              with the simplest API-first operating model — fewer legacy surfaces, fewer hidden states, and the fewest steps
-              between credential and delivered email. Scores shown here reflect published Rhumb data as of {updatedAt}.
+              {winner?.name ?? "Postmark"} leads the raw email scorecard, while Resend remains the practical cold-start default for most agent send loops.
+              The useful distinction is not brand preference; it is whether the route needs strict transactional deliverability, shortest self-serve setup, or Twilio/marketing breadth.
+              Scores shown here come from Rhumb's {servicesLabel}-service index across {categoriesLabel} categories, updated {updatedAt}.
             </p>
+          </div>
+
+          <div class="mt-4 rounded-2xl border border-slate-800 bg-surface/70 px-5 py-4 text-sm leading-6 text-slate-300">
+            <span class="font-semibold text-slate-100">Index proof:</span>
+            Rhumb's 1,038-service scored index puts Postmark at Rhumb score 8.9, Resend at Rhumb score 8.8,
+            and SendGrid at Rhumb score 8.5 for this comparison. Adjacent email-category context: Mailgun Rhumb score 8.5
+            and Mailchimp Rhumb score 8.1, so the real decision is operational fit, not whether the category has agent-ready providers.
           </div>
         </div>
 
@@ -362,12 +372,12 @@ const agentRules = [
             <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Decision pattern</p>
             <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">One-line rule</h2>
             <p class="mt-4 text-base leading-7 text-slate-300">
-              <span class="font-semibold text-slate-100">Resend for clean agent-first email.</span>
-              {' '}Postmark for deliverability-critical transactional.
-              {' '}SendGrid when Twilio already owns the billing relationship.
+              <span class="font-semibold text-slate-100">Postmark for raw-score transactional rigor.</span>
+              {' '}Resend for the clean self-serve default.
+              {' '}SendGrid when Twilio already owns the billing relationship or marketing breadth is required.
             </p>
             <div class="mt-5 rounded-2xl border border-amber/20 bg-amber/8 p-4 text-sm leading-6 text-slate-300">
-              The agent version: if the operator has no strong preference, always default to Resend. It has fewer hidden states and the highest execution profile.
+              The agent version: default to Resend for a new software agent, promote Postmark when deliverability/reputation is the binding constraint, and use SendGrid because the surrounding Twilio/marketing context demands it.
             </div>
           </div>
         </aside>
