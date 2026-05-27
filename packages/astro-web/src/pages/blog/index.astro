@@ -40,6 +40,23 @@ const servicesLabel = PUBLIC_TRUTH.servicesLabel;
 const POSTS: Post[] = [
   // ── Comparisons ──────────────────────────────────────────
   {
+    slug: "task-market-payment-provider-profiles",
+    title: "Payment Provider Profiles for Agent Task Markets",
+    description: "A scorecard for choosing payment APIs in autonomous task markets, with provider-profile receipt fields for Stripe, Adyen, Braintree, Lemon Squeezy, Square, and PayPal.",
+    date: "May 27, 2026",
+    dateISO: "2026-05-27T00:00:00Z",
+    readTime: "8 min",
+    contentType: "Comparison",
+    category: "Payments",
+    winner: "Adyen raw score; Stripe practical default",
+    scoreRange: "4.9 – 8.8",
+    verdict: "Settlement receipts prove money moved. Provider-profile receipts prove the agent chose the right payment API for the route.",
+    related: [
+      { slug: "payments-for-agents", title: "Payment API Scorecard" },
+      { slug: "stripe-vs-square-vs-paypal", title: "Stripe vs Square vs PayPal" },
+    ],
+  },
+  {
     slug: "aws-s3-vs-cloudflare-r2-vs-backblaze-b2",
     title: "AWS S3 vs Cloudflare R2 vs Backblaze B2 for AI Agents",
     description: "AN Scores, egress costs, and agent-native access patterns compared across three object storage APIs.",

@@ -1,0 +1,295 @@
+---
+export const prerender = true;
+import Layout from "../../layouts/Layout.astro";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+import { getServiceScore } from "../../lib/api";
+import type { ServiceScoreViewModel } from "../../lib/types";
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
+
+const scoreMap = {
+  stripe: await getServiceScore("stripe"),
+  adyen: await getServiceScore("adyen"),
+  braintree: await getServiceScore("braintree"),
+  "lemon-squeezy": await getServiceScore("lemon-squeezy"),
+  square: await getServiceScore("square"),
+  paypal: await getServiceScore("paypal"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+type Fallback = {
+  aggregate: number;
+  execution: number;
+  access: number;
+  confidence: number;
+  tierLabel: string;
+};
+
+type Provider = {
+  slug: keyof typeof scoreMap;
+  name: string;
+  taskMarketFit: string;
+  failureMode: string;
+  receiptField: string;
+  defaultRule: string;
+  fallback: Fallback;
+  data: ServiceScoreViewModel | null;
+};
+
+const providers: Provider[] = [
+  {
+    slug: "adyen",
+    name: "Adyen",
+    taskMarketFit: "Enterprise marketplaces that need acquiring, risk controls, regional payment methods, and payout machinery in one stack.",
+    failureMode: "A cold-start agent treats an enterprise acquirer like a self-serve checkout API and stalls on merchant-account setup.",
+    receiptField: "enterprise_acquiring_required",
+    defaultRule: "Use after the marketplace has enough volume, geography, or compliance complexity to justify the setup cost.",
+    fallback: { aggregate: 8.8, execution: 8.9, access: 8.5, confidence: 0.61, tierLabel: "Native" },
+    data: scoreMap.adyen,
+  },
+  {
+    slug: "braintree",
+    name: "Braintree",
+    taskMarketFit: "PayPal-adjacent card processing where buyers or sellers already depend on PayPal account flows.",
+    failureMode: "The agent inherits PayPal/Braintree sandbox and webhook complexity without needing the wallet channel.",
+    receiptField: "paypal_ecosystem_constraint",
+    defaultRule: "Choose when PayPal adjacency is binding; otherwise it is rarely the cleanest first payment API for task markets.",
+    fallback: { aggregate: 8.3, execution: 8.5, access: 8.0, confidence: 0.56, tierLabel: "Native" },
+    data: scoreMap.braintree,
+  },
+  {
+    slug: "stripe",
+    name: "Stripe",
+    taskMarketFit: "Software-native task markets with checkout, invoices, usage billing, webhooks, refunds, and high-confidence documentation.",
+    failureMode: "The agent proves money moved but not why this provider was safe for the route, budget window, refund path, and webhook contract.",
+    receiptField: "software_native_default",
+    defaultRule: "Use as the default for early task-market commerce unless the task requires PayPal-native, retail, or enterprise-acquirer constraints.",
+    fallback: { aggregate: 8.1, execution: 9.0, access: 6.6, confidence: 0.9, tierLabel: "Native" },
+    data: scoreMap.stripe,
+  },
+  {
+    slug: "lemon-squeezy",
+    name: "Lemon Squeezy",
+    taskMarketFit: "Small software-product marketplaces that need merchant-of-record packaging more than deep payment orchestration.",
+    failureMode: "The agent optimizes for merchant-of-record simplicity but later needs richer marketplace, split, or enterprise controls.",
+    receiptField: "merchant_of_record_selected",
+    defaultRule: "Use for simple software task products; do not treat it as the general-purpose marketplace settlement layer.",
+    fallback: { aggregate: 6.8, execution: 7.1, access: 6.2, confidence: 0.52, tierLabel: "Ready" },
+    data: scoreMap["lemon-squeezy"],
+  },
+  {
+    slug: "square",
+    name: "Square",
+    taskMarketFit: "Task markets that touch locations, catalogs, inventory, appointments, or physical-world commerce.",
+    failureMode: "The agent uses Square for a pure online service market and absorbs location-scoped operating context it does not need.",
+    receiptField: "physical_commerce_constraint",
+    defaultRule: "Use when the market has physical-commerce objects; otherwise Stripe is a cleaner software-market default.",
+    fallback: { aggregate: 6.27, execution: 7.3, access: 5.2, confidence: 0.92, tierLabel: "Ready" },
+    data: scoreMap.square,
+  },
+  {
+    slug: "paypal",
+    name: "PayPal",
+    taskMarketFit: "Markets where buyer trust, wallet demand, or payout expectations explicitly require PayPal.",
+    failureMode: "The agent chooses PayPal because humans recognize it, then hits account verification and dashboard-heavy recovery paths.",
+    receiptField: "buyer_trust_constraint",
+    defaultRule: "Use because the market requires PayPal, not because it is the most agent-native payment API.",
+    fallback: { aggregate: 4.89, execution: 5.9, access: 3.7, confidence: 0.95, tierLabel: "Developing" },
+    data: scoreMap.paypal,
+  },
+];
+
+function score(provider: Provider): number {
+  return provider.data?.aggregateRecommendationScore ?? provider.fallback.aggregate;
+}
+function execution(provider: Provider): number {
+  return provider.data?.executionScore ?? provider.fallback.execution;
+}
+function access(provider: Provider): number {
+  return provider.data?.accessReadinessScore ?? provider.fallback.access;
+}
+function confidence(provider: Provider): number {
+  return provider.data?.confidence ?? provider.fallback.confidence;
+}
+function tier(provider: Provider): string {
+  return provider.data?.tierLabel ?? provider.fallback.tierLabel;
+}
+function fmt(value: number): string {
+  return value.toFixed(1);
+}
+function pct(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+const ranked = [...providers].sort((a, b) => score(b) - score(a));
+const winner = ranked[0];
+const stripe = providers.find((provider) => provider.slug === "stripe")!;
+const paypal = providers.find((provider) => provider.slug === "paypal")!;
+const scoreRange = `${fmt(score(paypal))}–${fmt(score(winner))}`;
+const updatedAt = "May 27, 2026";
+
+const ARTICLE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Payment Provider Profiles for Agent Task Markets",
+  datePublished: "2026-05-27T00:00:00Z",
+  dateModified: "2026-05-27T00:00:00Z",
+  author: {
+    "@type": "Person",
+    name: "Pedro Nunes",
+  },
+  description:
+    "A Rhumb scorecard for choosing payment APIs in autonomous agent task markets, with provider-profile receipt fields for Stripe, Adyen, Braintree, Lemon Squeezy, Square, and PayPal.",
+  url: "https://rhumb.dev/blog/task-market-payment-provider-profiles",
+  publisher: {
+    "@type": "Organization",
+    name: "Rhumb",
+    url: "https://rhumb.dev",
+  },
+};
+---
+
+<Layout
+  title="Payment Provider Profiles for Agent Task Markets | Rhumb"
+  description={`Agent task markets need payment-provider profiles, not only settlement receipts. Rhumb scores six payment APIs for autonomous marketplace workflows: ${scoreRange}.`}
+  canonical="/blog/task-market-payment-provider-profiles"
+  ogTitle="Payment Provider Profiles for Agent Task Markets"
+  ogDescription="Stripe, Adyen, Braintree, Lemon Squeezy, Square, and PayPal ranked for autonomous agent task markets."
+  ogImage="/api/og?title=Task+Market+Payment+Profiles&subtitle=Rhumb+Agent-Native+Scores"
+  ogUrl="https://rhumb.dev/blog/task-market-payment-provider-profiles"
+  ogType="article"
+  twitterTitle="Payment Provider Profiles for Agent Task Markets"
+  twitterDescription="Settlement receipts prove money moved. Provider-profile receipts explain why the agent chose this payment API."
+  twitterImage="/api/og?title=Task+Market+Payment+Profiles&subtitle=Rhumb+Agent-Native+Scores"
+  jsonLd={ARTICLE_JSON_LD}
+>
+  <div class="bg-navy min-h-screen overflow-hidden">
+    <article class="max-w-5xl mx-auto px-6 pt-14 pb-24">
+      <header class="mb-12">
+        <div class="flex flex-wrap items-center gap-3 mb-6">
+          <span class="text-xs font-mono font-semibold text-amber uppercase tracking-[0.28em]">Scorecard</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-500">May 27, 2026</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated {updatedAt}</span>
+          <span class="text-slate-700">&middot;</span>
+          <span class="text-xs font-mono text-slate-600">{servicesLabel} services · {categoriesLabel} categories</span>
+        </div>
+
+        <h1 class="font-display font-bold text-4xl sm:text-5xl text-slate-100 leading-tight tracking-tight mb-6">
+          Payment provider profiles for agent task markets
+        </h1>
+
+        <p class="text-lg text-slate-300 leading-relaxed max-w-3xl">
+          Agent task-market discussions usually stop at wallets, escrow, and settlement. That is not enough. A settlement receipt proves money moved; it does not prove the agent picked the right payment API for the task market's operating constraints.
+        </p>
+
+        <div class="mt-8 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-5">
+          <p class="text-sm leading-6 text-slate-300">
+            <span class="font-semibold text-slate-100">Current scorecard:</span>
+            {" "}{winner.name} leads raw score at <span class="font-mono text-emerald-300">{fmt(score(winner))}</span>,
+            but Stripe remains the higher-confidence software-native default at <span class="font-mono text-emerald-300">{fmt(score(stripe))}</span> with {pct(confidence(stripe))} confidence.
+            PayPal sits at <span class="font-mono text-amber-300">{fmt(score(paypal))}</span>, so agents should route there only when wallet demand or buyer trust is a real market constraint.
+          </p>
+        </div>
+      </header>
+
+      <section class="mb-12">
+        <h2 class="font-display font-semibold text-2xl text-slate-100 mb-4">Why task markets need a provider-profile receipt</h2>
+        <div class="rounded-2xl border border-slate-800 bg-surface/90 p-6 text-slate-300 leading-7 space-y-4">
+          <p>
+            A task-market agent can discover a job, check reward, accept, submit, and settle. The missing evidence is the payment-provider choice: why this backend, for this operation class, under this budget and refund policy?
+          </p>
+          <p>
+            The receipt should sit next to the wallet or escrow proof. It should be boring, structured, and planner-readable enough for an agent to reject the wrong route before money moves.
+          </p>
+          <pre class="overflow-x-auto rounded-xl border border-slate-800 bg-navy/80 p-4 text-xs text-slate-300"><code>{`provider_profile_receipt = {
+  provider: "stripe",
+  rhumb_score: 8.1,
+  execution_score: 9.0,
+  access_score: 6.6,
+  confidence: 0.90,
+  route_class: "software_task_market_checkout",
+  selected_because: ["webhook_contract", "refund_path", "usage_billing", "high_confidence_docs"],
+  rejected_neighbors: ["paypal: buyer-trust constraint absent", "adyen: enterprise-acquirer setup not needed"],
+  retry_policy: "idempotency_key_required",
+  evidence_version: "rhumb-scorecard-2026-05-27"
+}`}</code></pre>
+        </div>
+      </section>
+
+      <section class="mb-12">
+        <h2 class="font-display font-semibold text-2xl text-slate-100 mb-5">Ranked payment APIs for agent task markets</h2>
+        <div class="grid gap-4">
+          {ranked.map((provider, index) => (
+            <div class="rounded-2xl border border-slate-800 bg-surface/90 p-5 hover:border-slate-700 transition-colors">
+              <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0 flex-1">
+                  <div class="flex flex-wrap items-center gap-3 mb-2">
+                    <span class="font-mono text-sm text-slate-600">#{index + 1}</span>
+                    <h3 class="font-display text-xl font-semibold text-slate-100">{provider.name}</h3>
+                    <span class="rounded-full border border-slate-700 px-2.5 py-1 text-xs font-mono text-slate-400">{tier(provider)}</span>
+                  </div>
+                  <p class="text-sm text-slate-300 leading-6 mb-3">{provider.taskMarketFit}</p>
+                  <p class="text-sm text-amber-200/80 leading-6"><span class="font-semibold text-amber-200">Failure mode:</span> {provider.failureMode}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:w-[430px]">
+                  <div class="rounded-xl border border-slate-800 bg-navy/70 p-3">
+                    <div class="text-[10px] uppercase tracking-[0.2em] text-slate-600">Score</div>
+                    <div class="font-mono text-xl text-emerald-300">{fmt(score(provider))}</div>
+                  </div>
+                  <div class="rounded-xl border border-slate-800 bg-navy/70 p-3">
+                    <div class="text-[10px] uppercase tracking-[0.2em] text-slate-600">Exec</div>
+                    <div class="font-mono text-xl text-slate-200">{fmt(execution(provider))}</div>
+                  </div>
+                  <div class="rounded-xl border border-slate-800 bg-navy/70 p-3">
+                    <div class="text-[10px] uppercase tracking-[0.2em] text-slate-600">Access</div>
+                    <div class="font-mono text-xl text-slate-200">{fmt(access(provider))}</div>
+                  </div>
+                  <div class="rounded-xl border border-slate-800 bg-navy/70 p-3">
+                    <div class="text-[10px] uppercase tracking-[0.2em] text-slate-600">Conf.</div>
+                    <div class="font-mono text-xl text-slate-200">{pct(confidence(provider))}</div>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-5 grid gap-3 md:grid-cols-[220px_1fr]">
+                <div class="rounded-xl border border-slate-800 bg-navy/60 p-3">
+                  <div class="text-[10px] uppercase tracking-[0.2em] text-slate-600 mb-1">Receipt field</div>
+                  <code class="text-xs text-emerald-300">{provider.receiptField}</code>
+                </div>
+                <div class="rounded-xl border border-slate-800 bg-navy/60 p-3 text-sm leading-6 text-slate-300">
+                  <span class="font-semibold text-slate-100">Routing rule:</span> {provider.defaultRule}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section class="mb-12 grid gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-slate-800 bg-surface/90 p-5">
+          <h2 class="font-display font-semibold text-lg text-slate-100 mb-3">For open task markets</h2>
+          <p class="text-sm leading-6 text-slate-300">Use the payment score as a pre-acceptance filter. If the task requires a provider with weak access readiness, the agent should price in setup risk or refuse.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-surface/90 p-5">
+          <h2 class="font-display font-semibold text-lg text-slate-100 mb-3">For framework adapters</h2>
+          <p class="text-sm leading-6 text-slate-300">Expose provider selection as metadata, not a hidden implementation detail. AutoGen, LangChain, and CrewAI agents need a planner-readable denial reason.</p>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-surface/90 p-5">
+          <h2 class="font-display font-semibold text-lg text-slate-100 mb-3">For settlement receipts</h2>
+          <p class="text-sm leading-6 text-slate-300">Keep escrow and wallet evidence, but add the provider profile beside it. Settlement proves the transaction; the profile proves the route was sane.</p>
+        </div>
+      </section>
+
+      <section class="rounded-2xl border border-amber/20 bg-amber/8 p-6">
+        <h2 class="font-display font-semibold text-2xl text-slate-100 mb-4">The practical default</h2>
+        <p class="text-slate-300 leading-7 mb-4">
+          For a new autonomous task market, default to Stripe when the market is software-native and web-delivered. Promote Adyen when enterprise acquiring, region coverage, and risk operations become binding. Use Braintree or PayPal when PayPal ecosystem demand is explicit. Use Square only when the task market has physical-commerce objects. Use Lemon Squeezy when merchant-of-record simplicity beats orchestration depth.
+        </p>
+        <p class="text-sm text-slate-400 leading-6">
+          This is not a brand preference. It is the current result of Rhumb's scored service index: {servicesLabel} services across {categoriesLabel} categories, with payment APIs evaluated on agent execution, access readiness, confidence, and failure-mode surfaces.
+        </p>
+      </section>
+    </article>
+  </div>
+</Layout>
