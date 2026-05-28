@@ -5,6 +5,7 @@ import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
 import ScoreDisplay from "../../components/ScoreDisplay.astro";
 import TierBadge from "../../components/TierBadge.astro";
 import { getServiceScore } from "../../lib/api";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
 import type { ServiceScoreViewModel } from "../../lib/types";
 
 const scoreMap = {
@@ -12,6 +13,9 @@ const scoreMap = {
   auth0: await getServiceScore("auth0"),
   "firebase-auth": await getServiceScore("firebase-auth"),
 } satisfies Record<string, ServiceScoreViewModel | null>;
+
+const servicesLabel = PUBLIC_TRUTH.servicesLabel;
+const categoriesLabel = PUBLIC_TRUTH.categoriesLabel;
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
@@ -50,7 +54,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need deep enterprise compliance (HIPAA, FedRAMP) or the organization is locked into Okta/Auth0 contracts. Clerk is newer and its compliance surface is still growing.",
     friction: "JWT clock skew can cause intermittent auth rejections in distributed systems. Webhook delivery has no retry — events lost to processing latency are gone permanently. Both require defensive coding from day one.",
     decision: "Pick Clerk unless an enterprise compliance requirement or existing contract pushes you elsewhere.",
-    support: "Highest aggregate score. The SDK surface is designed for modern frameworks (Next.js, React, etc.) and the Backend API is clean REST. Self-serve billing removes sales friction. Documented failure modes make agent hardening easier.",
+    support: "Rhumb score 9.0, execution 9.0, access readiness 9.1. The SDK surface is designed for modern frameworks (Next.js, React, etc.) and the Backend API is clean REST. Self-serve billing removes sales friction. Documented failure modes make agent hardening easier.",
     data: scoreMap.clerk,
   },
   {
@@ -63,7 +67,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You are building a greenfield project and do not need enterprise compliance features. Auth0's Management API and Rules/Actions pipeline carry complexity that is unnecessary for simple auth flows.",
     friction: "Management API rate limits are strict (varies by plan). The Rules → Actions migration creates confusion about which extensibility model to use. Okta acquisition introduced billing and dashboard changes that fragment the documentation surface.",
     decision: "Pick Auth0 when the organization needs the deepest compliance surface or is already in the Okta ecosystem.",
-    support: "Highest governance score (9.0) but lower access readiness (5.0). The enterprise compliance surface is genuinely strong: HIPAA BAA, custom roles, audit log export, data residency. But the API surface reflects years of feature accumulation and two extensibility models.",
+    support: "Rhumb score 8.9, execution 8.9, access readiness 9.0, and governance 9.0. The enterprise compliance surface is genuinely strong: HIPAA BAA, custom roles, audit log export, data residency. But the API surface reflects years of feature accumulation and two extensibility models.",
     data: scoreMap.auth0,
   },
   {
@@ -76,7 +80,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You want a standalone auth solution or need to avoid Google Cloud lock-in. Firebase Auth is tightly coupled to the Firebase SDK ecosystem — using it outside that context adds friction.",
     friction: "Admin SDK is the only agent-friendly interface; client SDKs assume browser context. Google Cloud Console setup is multi-step with IAM, service accounts, and project configuration. Token verification requires Google's public key rotation awareness.",
     decision: "Pick Firebase Auth when the project is already on Firebase/GCP and auth is a feature, not the product.",
-    support: "Highest execution of the two runners-up (7.5), but the lowest access readiness (4.8) reflects the reality that Firebase Auth is not designed as a standalone service. It works best as part of a Firebase project — trying to use it in isolation fights the design grain.",
+    support: "Rhumb score 6.3, with execution 7.5 but access readiness 4.8. Firebase Auth is not designed as a standalone service; it works best as part of a Firebase project, and trying to use it in isolation fights the design grain.",
     data: scoreMap["firebase-auth"],
   },
 ];
@@ -200,6 +204,13 @@ const agentRules = [
               Auth0 has the governance edge for enterprises that need HIPAA or deep RBAC. Firebase Auth is the right default
               inside Google Cloud but fights you everywhere else. Scores shown here reflect published Rhumb data as of {updatedAt}.
             </p>
+          </div>
+
+          <div class="mt-4 rounded-2xl border border-slate-800 bg-surface/70 px-5 py-4 text-sm leading-6 text-slate-300">
+            <span class="font-semibold text-slate-100">Index proof:</span>
+            Rhumb's 1,038-service scored index across {categoriesLabel} categories puts Clerk at Rhumb score 9.0,
+            Auth0 at Rhumb score 8.9, and Firebase Auth at Rhumb score 6.3. This is a useful agent-routing split:
+            Clerk wins the default lane, Auth0 wins the enterprise-governance lane, and Firebase Auth should be routed only when the operator is already inside GCP/Firebase.
           </div>
         </div>
 
