@@ -126,14 +126,29 @@ const winner = ranked[0];
 const stripe = providers.find((provider) => provider.slug === "stripe")!;
 const paypal = providers.find((provider) => provider.slug === "paypal")!;
 const scoreRange = `${fmt(score(paypal))}–${fmt(score(winner))}`;
-const updatedAt = "May 27, 2026";
+const updatedAt = "June 1, 2026";
+
+const metadataFields = [
+  {
+    field: "payout_provider",
+    reason: "Names the settlement backend before the agent accepts or prices the task, instead of hiding it behind a wallet abstraction.",
+  },
+  {
+    field: "provider_class",
+    reason: "Distinguishes software-native checkout, enterprise acquiring, PayPal-adjacent wallet flow, retail commerce, or merchant-of-record routing.",
+  },
+  {
+    field: "processor_metadata_direction",
+    reason: "Shows which provider-specific IDs, webhook contracts, refund paths, and chargeback references must survive into the receipt.",
+  },
+];
 
 const ARTICLE_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Payment Provider Profiles for Agent Task Markets",
   datePublished: "2026-05-27T00:00:00Z",
-  dateModified: "2026-05-27T00:00:00Z",
+  dateModified: "2026-06-01T19:37:00Z",
   author: {
     "@type": "Person",
     name: "Pedro Nunes",
@@ -205,6 +220,9 @@ const ARTICLE_JSON_LD = {
           </p>
           <pre class="overflow-x-auto rounded-xl border border-slate-800 bg-navy/80 p-4 text-xs text-slate-300"><code>{`provider_profile_receipt = {
   provider: "stripe",
+  payout_provider: "stripe",
+  provider_class: "software_native_checkout",
+  processor_metadata_direction: "stripe_ids_to_receipt",
   rhumb_score: 8.1,
   execution_score: 9.0,
   access_score: 6.6,
@@ -215,6 +233,26 @@ const ARTICLE_JSON_LD = {
   retry_policy: "idempotency_key_required",
   evidence_version: "rhumb-scorecard-2026-05-27"
 }`}</code></pre>
+        </div>
+      </section>
+
+      <section class="mb-12">
+        <h2 class="font-display font-semibold text-2xl text-slate-100 mb-4">Provider metadata belongs before task acceptance</h2>
+        <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-6 text-slate-300 leading-7 space-y-4">
+          <p>
+            The freshest task-market feedback points to the same pre-commit gap: settlement rail choice must be visible before an agent accepts work. A wallet receipt that omits the payout provider, provider class, or processor metadata direction leaves the planner unable to price setup risk, refund handling, webhook evidence, and recovery before money moves.
+          </p>
+          <div class="grid gap-3 md:grid-cols-3">
+            {metadataFields.map((item) => (
+              <div class="rounded-xl border border-slate-800 bg-navy/70 p-4">
+                <code class="text-xs text-emerald-300">{item.field}</code>
+                <p class="mt-3 text-sm leading-6 text-slate-400">{item.reason}</p>
+              </div>
+            ))}
+          </div>
+          <p class="text-sm leading-6 text-slate-400">
+            Use the Rhumb score as the first filter, then require these fields in the provider-profile receipt. A high score without provider metadata is still discovery evidence, not permission to accept or settle the task.
+          </p>
         </div>
       </section>
 
