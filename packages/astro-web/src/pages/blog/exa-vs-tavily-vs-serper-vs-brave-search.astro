@@ -2,8 +2,105 @@
 export const prerender = true;
 import Layout from "../../layouts/Layout.astro";
 import ResolveComparisonCta from "../../components/ResolveComparisonCta.astro";
+import { getServiceScore } from "../../lib/api";
+import { PUBLIC_TRUTH } from "../../lib/public-truth";
+import type { ServiceScoreViewModel } from "../../lib/types";
 import fs from "node:fs";
 import path from "node:path";
+
+const scoreMap = {
+  exa: await getServiceScore("exa"),
+  tavily: await getServiceScore("tavily"),
+  "brave-search-api": await getServiceScore("brave-search-api"),
+} satisfies Record<string, ServiceScoreViewModel | null>;
+
+type WebSearchScore = {
+  slug: keyof typeof scoreMap | "serper";
+  name: string;
+  score: number;
+  execution: number;
+  access: number;
+  confidence: number;
+  tier: string;
+  bestUse: string;
+  routeRule: string;
+  data?: ServiceScoreViewModel | null;
+};
+
+function score(item: WebSearchScore): number {
+  return item.data?.aggregateRecommendationScore ?? item.score;
+}
+function execution(item: WebSearchScore): number {
+  return item.data?.executionScore ?? item.execution;
+}
+function access(item: WebSearchScore): number {
+  return item.data?.accessReadinessScore ?? item.access;
+}
+function confidence(item: WebSearchScore): number {
+  return item.data?.confidence ?? item.confidence;
+}
+function tier(item: WebSearchScore): string {
+  return item.data?.tierLabel ?? item.tier;
+}
+function fmt(value: number): string {
+  return value.toFixed(1);
+}
+function pct(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+const WEB_SEARCH_SCORES: WebSearchScore[] = [
+  {
+    slug: "exa",
+    name: "Exa",
+    score: 8.7,
+    execution: 8.7,
+    access: 8.8,
+    confidence: 0.60,
+    tier: "Native",
+    bestUse: "Semantic and research-style retrieval where agents need source-rich context instead of a Google-shaped results page.",
+    routeRule: "Default to Exa when meaning, answer synthesis, and retrieval depth matter more than exact SERP mimicry.",
+    data: scoreMap.exa,
+  },
+  {
+    slug: "tavily",
+    name: "Tavily",
+    score: 8.6,
+    execution: 8.6,
+    access: 8.7,
+    confidence: 0.59,
+    tier: "Native",
+    bestUse: "Agent-first web search where the product contract already assumes LLM research loops and answer packaging.",
+    routeRule: "Choose Tavily when the loop wants a purpose-built agent search contract with less post-processing glue.",
+    data: scoreMap.tavily,
+  },
+  {
+    slug: "brave-search-api",
+    name: "Brave Search API",
+    score: 7.1,
+    execution: 7.5,
+    access: 6.4,
+    confidence: 0.54,
+    tier: "Ready",
+    bestUse: "Independent-index search where avoiding Google dependency matters and the agent can own result shaping.",
+    routeRule: "Use Brave when index independence is a requirement; budget more handling for access and response-shaping work.",
+    data: scoreMap["brave-search-api"],
+  },
+  {
+    slug: "serper",
+    name: "Serper",
+    score: 6.8,
+    execution: 7.0,
+    access: 6.6,
+    confidence: 0.50,
+    tier: "Ready",
+    bestUse: "Google-like freshness when exact SERP behavior is the job and the team accepts a discovery-only route here.",
+    routeRule: "Use Serper for freshness comparison; keep it discovery-only until the route card proves credentials, quota, and receipts.",
+  },
+];
+
+const rankedWebSearchScores = [...WEB_SEARCH_SCORES].sort((a, b) => score(b) - score(a));
+const webSearchWinner = rankedWebSearchScores[0];
 
 const RELATED_READING = [
   {
@@ -38,7 +135,7 @@ const ARTICLE_JSON_LD = {
   "@type": "Article",
   headline: "Exa vs Tavily vs Serper vs Brave Search for AI Agents",
   datePublished: "2026-03-30T00:00:00Z",
-  dateModified: "2026-05-02T00:00:00Z",
+  dateModified: "2026-06-01T00:00:00Z",
   author: {
     "@type": "Person",
     name: "Pedro Nunes",
@@ -182,7 +279,7 @@ const htmlContent = markdownToHtml(content);
             March 30, 2026
           </span>
           <span class="text-slate-700">&middot;</span>
-          <span class="text-xs font-mono text-emerald-400/70">Updated May 2, 2026</span>
+          <span class="text-xs font-mono text-emerald-400/70">Updated June 1, 2026</span>
           <span class="text-slate-700">&middot;</span>
           <span class="text-xs font-mono text-slate-600">Pedro Nunes</span>
         </div>
@@ -201,6 +298,51 @@ const htmlContent = markdownToHtml(content);
         callableServices={[{ name: "Exa", href: "/service/exa" }, { name: "Tavily", href: "/service/tavily" }, { name: "Brave Search", href: "/service/brave-search-api" }]}
         discoveryOnlyServices={[{ name: "Serper", href: "/service/serper" }]}
       />
+
+      <section class="mb-10 rounded-[32px] border border-slate-800 bg-surface/80 p-6 sm:p-7" data-section="web-search-scorecard-refresh">
+        <div class="mb-3 text-[11px] font-mono uppercase tracking-[0.24em] text-amber">June 2026 scorecard refresh</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-3">
+          Exa leads the web-search scorecard at {fmt(score(webSearchWinner))}, but Tavily is a near-tie for agent-first loops
+        </h2>
+        <p class="text-slate-300 leading-relaxed mb-5">
+          Rhumb's current web-search comparison uses the 1,038-service index as the evidence layer. Exa scores {fmt(score(WEB_SEARCH_SCORES[0]))} overall with {fmt(execution(WEB_SEARCH_SCORES[0]))} execution and {fmt(access(WEB_SEARCH_SCORES[0]))} access readiness. Tavily follows at {fmt(score(WEB_SEARCH_SCORES[1]))}. Brave Search is still useful when index independence matters, but its {fmt(access(WEB_SEARCH_SCORES[2]))} access-readiness score makes it less automatic for unattended agent loops.
+        </p>
+        <div class="overflow-x-auto rounded-2xl border border-slate-800">
+          <table class="min-w-full divide-y divide-slate-800 text-left">
+            <thead class="bg-navy/70 text-[11px] font-mono uppercase tracking-[0.18em] text-slate-500">
+              <tr>
+                <th class="px-4 py-3">API</th>
+                <th class="px-4 py-3">AN Score</th>
+                <th class="px-4 py-3">Execution</th>
+                <th class="px-4 py-3">Access</th>
+                <th class="px-4 py-3">Confidence</th>
+                <th class="px-4 py-3">Route rule</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 bg-navy/40">
+              {rankedWebSearchScores.map((item) => (
+                <tr>
+                  <td class="px-4 py-4 align-top">
+                    <div class="font-display font-semibold text-slate-100">{item.name}</div>
+                    <div class="mt-1 text-xs text-slate-500">{tier(item)}</div>
+                  </td>
+                  <td class="px-4 py-4 align-top font-mono text-amber">{fmt(score(item))}</td>
+                  <td class="px-4 py-4 align-top font-mono text-slate-300">{fmt(execution(item))}</td>
+                  <td class="px-4 py-4 align-top font-mono text-slate-300">{fmt(access(item))}</td>
+                  <td class="px-4 py-4 align-top font-mono text-slate-400">{pct(confidence(item))}</td>
+                  <td class="px-4 py-4 align-top text-sm leading-6 text-slate-400">
+                    <span class="block text-slate-300">{item.bestUse}</span>
+                    <span class="mt-2 block text-slate-500">{item.routeRule}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-4 text-sm leading-6 text-slate-500">
+          Source: Rhumb scored index ({PUBLIC_TRUTH.servicesLabel} services). Serper is kept as a freshness comparison in this page, but the current governed route should prove credentials, quota owner, and receipt fields before treating it as executable.
+        </p>
+      </section>
 
       <section class="mb-10 rounded-[28px] border border-amber/25 bg-amber/8 p-6 sm:p-7" data-section="web-search-resolve-handoff">
         <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Runnable preflight</div>
