@@ -14,6 +14,7 @@ import re
 from typing import Any, Literal
 
 from schemas.index_evidence import route_fixture_for
+from schemas.route_taxonomy import PROVENANCE_ORIGINS, SOURCE_RISKS, SUBSTRATES
 
 Substrate = Literal[
     "official_api",
@@ -82,9 +83,6 @@ SafetyState = Literal[
 
 ReceiptSupport = Literal["none", "compact", "full", "verifiable"]
 
-SUBSTRATES = frozenset(Substrate.__args__)  # type: ignore[attr-defined]
-PROVENANCE_ORIGINS = frozenset(ProvenanceOrigin.__args__)  # type: ignore[attr-defined]
-SOURCE_RISKS = frozenset(SourceRisk.__args__)  # type: ignore[attr-defined]
 PROMOTION_STATES = frozenset(PromotionState.__args__)  # type: ignore[attr-defined]
 REVIEW_STATUSES = frozenset(ReviewStatus.__args__)  # type: ignore[attr-defined]
 SAFETY_STATES = frozenset(SafetyState.__args__)  # type: ignore[attr-defined]

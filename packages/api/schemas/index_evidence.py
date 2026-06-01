@@ -13,11 +13,10 @@ import hashlib
 import json
 from typing import Any
 
+from schemas.route_taxonomy import PROVENANCE_ORIGINS, SOURCE_RISKS, SUBSTRATES
+
 REVIEW_STATES = frozenset({"draft", "current", "stale", "expired", "quarantined", "superseded", "missing"})
 PROMOTION_STATES = frozenset({"indexed", "candidate", "fixture_only", "experimental_non_default", "beta_executable", "production_executable", "blocked", "deprecated"})
-SUBSTRATES = frozenset({"official_api", "documented_public_endpoint", "official_cli", "official_mcp", "official_sdk", "sdk_code_mode", "generated_adapter", "browser_discovered_private_endpoint", "user_authorized_private_endpoint"})
-PROVENANCE_ORIGINS = frozenset({"vendor_official", "vendor_authorized", "rhumb_managed", "community_submitted", "rhumb_generated", "user_authorized", "browser_observed", "unknown"})
-SOURCE_RISKS = frozenset({"verified_low", "community_unverified", "experimental_private", "deprecated_fragile", "anti_bot_or_tos_sensitive", "payment_or_real_world_write", "unsupported"})
 
 DIGEST_FIELDS = frozenset({"manifest_digest", "evidence_packet_digest"})
 
