@@ -29,6 +29,8 @@ from services.service_slugs import (
     normalize_proxy_slug,
     public_service_slug_candidates,
 )
+from schemas.index_evidence import route_fixture_for
+from schemas.route_taxonomy import route_recommendation_policy
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +79,7 @@ class CandidateExplanation:
     composite_score: float
     factors: dict[str, CandidateFactor] = field(default_factory=dict)
     policy_checks: dict[str, bool] = field(default_factory=dict)
+    route_facts: dict[str, Any] = field(default_factory=dict)
     ineligible_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
@@ -87,6 +90,8 @@ class CandidateExplanation:
             "factors": {k: v.to_dict() for k, v in self.factors.items()},
             "policy_checks": self.policy_checks,
         }
+        if self.route_facts:
+            d["route_facts"] = self.route_facts
         if self.ineligible_reason:
             d["ineligible_reason"] = self.ineligible_reason
         return d
@@ -189,6 +194,86 @@ def _public_provider_id(slug: str | None) -> str | None:
     if not cleaned:
         return None
     return canonicalize_service_slug(cleaned)
+
+
+def _route_facts_for_mapping(capability_id: str, mapping: dict[str, Any]) -> dict[str, Any]:
+    provider_id = str(
+        mapping.get("provider_id")
+        or mapping.get("service_slug")
+        or mapping.get("provider")
+        or "unknown"
+    ).strip()
+    fixture = route_fixture_for(capability_id, provider_id)
+    manifest = fixture.get("manifest") if isinstance(fixture, dict) else None
+    evidence_packet = fixture.get("evidence_packet") if isinstance(fixture, dict) else None
+
+    route: dict[str, Any] = {}
+    if isinstance(manifest, dict):
+        route.update(
+            {
+                "route_id": manifest.get("route_id"),
+                "service_id": manifest.get("service_id"),
+                "provider_id": manifest.get("provider_id"),
+                "substrate": manifest.get("substrate"),
+                "provenance_origin": manifest.get("provenance_origin"),
+                "source_risk": manifest.get("source_risk"),
+                "manifest_id": manifest.get("manifest_id"),
+                "manifest_digest": manifest.get("manifest_digest"),
+                "manifest_version": manifest.get("manifest_version"),
+                "side_effect_class": manifest.get("side_effect_class"),
+                "public_claim_boundary": manifest.get("public_claim_boundary"),
+            }
+        )
+    else:
+        for field_name in (
+            "route_id",
+            "service_id",
+            "provider_id",
+            "substrate",
+            "provenance_origin",
+            "source_risk",
+            "manifest_id",
+            "manifest_digest",
+            "manifest_version",
+            "side_effect_class",
+            "public_claim_boundary",
+        ):
+            if mapping.get(field_name) is not None:
+                route[field_name] = mapping.get(field_name)
+
+    if isinstance(evidence_packet, dict):
+        route.update(
+            {
+                "evidence_packet_id": evidence_packet.get("evidence_packet_id"),
+                "evidence_packet_digest": evidence_packet.get("evidence_packet_digest"),
+                "review_status": evidence_packet.get("review_status"),
+                "promotion_state": evidence_packet.get("promotion_state"),
+                "evidence_expires_at": evidence_packet.get("evidence_expires_at"),
+            }
+        )
+    else:
+        for field_name in (
+            "evidence_packet_id",
+            "evidence_packet_digest",
+            "review_status",
+            "promotion_state",
+            "evidence_expires_at",
+        ):
+            if mapping.get(field_name) is not None:
+                route[field_name] = mapping.get(field_name)
+
+    if not route:
+        return {}
+
+    policy = route_recommendation_policy(route)
+    route["recommendation_policy"] = {
+        "default_recommendable": policy["default_recommendable"],
+        "recommendable": policy["recommendable"],
+        "requires_explicit_request": policy["requires_explicit_request"],
+        "blocked": policy["blocked"],
+        "reasons": policy["reasons"],
+    }
+    return {key: value for key, value in route.items() if value is not None}
 
 
 def _canonicalize_provider_text(text: str, provider_ids: list[str] | None) -> str:
@@ -354,6 +439,7 @@ def build_explanation(
             composite_score=composite,
             factors=factors,
             policy_checks=checks,
+            route_facts=_route_facts_for_mapping(capability_id, m),
             ineligible_reason=ineligible_reason,
         )
         candidates.append(candidate)
@@ -568,6 +654,7 @@ def _row_to_explanation(row: dict[str, Any]) -> RouteExplanation:
                     composite_score=float(candidate.get("composite_score") or 0.0),
                     factors=factor_objs,
                     policy_checks=(candidate.get("policy_checks") if isinstance(candidate.get("policy_checks"), dict) else {}),
+                    route_facts=(candidate.get("route_facts") if isinstance(candidate.get("route_facts"), dict) else {}),
                     ineligible_reason=candidate.get("ineligible_reason"),
                 )
             )
