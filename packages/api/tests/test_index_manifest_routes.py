@@ -7,6 +7,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app import create_app
 from schemas.capability_manifest import fixture_manifests_by_route_id
+from services.index_manifest_store import IndexManifestStore
 
 
 @pytest.mark.asyncio
@@ -93,3 +94,19 @@ async def test_index_manifest_unknown_route_id_returns_typed_not_found() -> None
     body = response.json()
     assert body["error"]["code"] == "ROUTE_MANIFEST_NOT_FOUND"
     assert "GET /v2/index/manifests" in body["error"]["detail"]
+
+
+def test_index_manifest_store_returns_deep_copies_and_route_facts() -> None:
+    store = IndexManifestStore()
+
+    manifests = store.list_manifests(capability_id="search.query")
+    manifests[0]["substrate"] = "mutated_by_test"
+
+    fresh = store.list_manifests(capability_id="search.query")[0]
+    assert fresh["substrate"] == "official_api"
+
+    route_facts = store.route_facts_for_provider("search.query", "brave-search-api")
+    assert route_facts["route_id"] == "route_search_query_brave_search_api_official_api_v1"
+    assert route_facts["manifest_digest"].startswith("sha256:")
+    assert route_facts["evidence_packet_id"] == "evidence_search_query_brave_search_api_official_api_2026_05_19"
+    assert route_facts["recommendation_policy"]["default_recommendable"] is True

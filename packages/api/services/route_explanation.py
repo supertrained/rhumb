@@ -29,7 +29,7 @@ from services.service_slugs import (
     normalize_proxy_slug,
     public_service_slug_candidates,
 )
-from schemas.index_evidence import route_fixture_for
+from services.index_manifest_store import get_index_manifest_store
 from schemas.route_taxonomy import route_recommendation_policy
 
 logger = logging.getLogger(__name__)
@@ -203,64 +203,31 @@ def _route_facts_for_mapping(capability_id: str, mapping: dict[str, Any]) -> dic
         or mapping.get("provider")
         or "unknown"
     ).strip()
-    fixture = route_fixture_for(capability_id, provider_id)
-    manifest = fixture.get("manifest") if isinstance(fixture, dict) else None
-    evidence_packet = fixture.get("evidence_packet") if isinstance(fixture, dict) else None
+    stored_route = get_index_manifest_store().route_facts_for_provider(capability_id, provider_id)
+    if stored_route:
+        return stored_route
 
     route: dict[str, Any] = {}
-    if isinstance(manifest, dict):
-        route.update(
-            {
-                "route_id": manifest.get("route_id"),
-                "service_id": manifest.get("service_id"),
-                "provider_id": manifest.get("provider_id"),
-                "substrate": manifest.get("substrate"),
-                "provenance_origin": manifest.get("provenance_origin"),
-                "source_risk": manifest.get("source_risk"),
-                "manifest_id": manifest.get("manifest_id"),
-                "manifest_digest": manifest.get("manifest_digest"),
-                "manifest_version": manifest.get("manifest_version"),
-                "side_effect_class": manifest.get("side_effect_class"),
-                "public_claim_boundary": manifest.get("public_claim_boundary"),
-            }
-        )
-    else:
-        for field_name in (
-            "route_id",
-            "service_id",
-            "provider_id",
-            "substrate",
-            "provenance_origin",
-            "source_risk",
-            "manifest_id",
-            "manifest_digest",
-            "manifest_version",
-            "side_effect_class",
-            "public_claim_boundary",
-        ):
-            if mapping.get(field_name) is not None:
-                route[field_name] = mapping.get(field_name)
-
-    if isinstance(evidence_packet, dict):
-        route.update(
-            {
-                "evidence_packet_id": evidence_packet.get("evidence_packet_id"),
-                "evidence_packet_digest": evidence_packet.get("evidence_packet_digest"),
-                "review_status": evidence_packet.get("review_status"),
-                "promotion_state": evidence_packet.get("promotion_state"),
-                "evidence_expires_at": evidence_packet.get("evidence_expires_at"),
-            }
-        )
-    else:
-        for field_name in (
-            "evidence_packet_id",
-            "evidence_packet_digest",
-            "review_status",
-            "promotion_state",
-            "evidence_expires_at",
-        ):
-            if mapping.get(field_name) is not None:
-                route[field_name] = mapping.get(field_name)
+    for field_name in (
+        "route_id",
+        "service_id",
+        "provider_id",
+        "substrate",
+        "provenance_origin",
+        "source_risk",
+        "manifest_id",
+        "manifest_digest",
+        "manifest_version",
+        "side_effect_class",
+        "public_claim_boundary",
+        "evidence_packet_id",
+        "evidence_packet_digest",
+        "review_status",
+        "promotion_state",
+        "evidence_expires_at",
+    ):
+        if mapping.get(field_name) is not None:
+            route[field_name] = mapping.get(field_name)
 
     if not route:
         return {}
