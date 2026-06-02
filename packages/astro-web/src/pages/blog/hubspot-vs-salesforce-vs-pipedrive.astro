@@ -20,7 +20,7 @@ const ARTICLE_JSON_LD = {
   datePublished: "2026-03-17T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
   description:
-    "No CRM is agent-native yet. Here's which one hurts the least — using live Rhumb AN Score data.",
+    "Compare HubSpot, Salesforce, and Pipedrive for agent CRM workflows using current Rhumb score data.",
   url: "https://rhumb.dev/blog/hubspot-vs-salesforce-vs-pipedrive",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
@@ -50,7 +50,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need marketing automation, complex custom objects, or enterprise governance features. Pipedrive is a sales pipeline tool, not a platform.",
     friction: "API tokens are scoped per-user, not per-app. No granular permission model means an agent with API access can modify anything the token owner can. Limited webhook reliability under load.",
     decision: "Pick Pipedrive when the agent's job is pipeline mechanics and the organization is SMB-scale.",
-    support: "Highest execution score of the three. REST API is straightforward with predictable CRUD patterns. Self-serve billing removes the sales-team bottleneck. But no real permission scoping means governance is weak.",
+    support: "Lowest aggregate score of the three in the current snapshot, but still useful when the route is narrow pipeline mechanics. REST API patterns are straightforward and self-serve billing removes the sales-team bottleneck. The tradeoff is weak governance: user-scoped API tokens leave little blast-radius control.",
     data: scoreMap.pipedrive,
   },
   {
@@ -63,7 +63,7 @@ const compared: ComparedService[] = [
     avoidWhen: "The agent needs to self-provision access or the organization does not already have Salesforce. The onboarding surface is enterprise-sales-gated and effectively impossible for an agent to navigate alone.",
     friction: "OAuth 2.0 connected app setup is a multi-step human process. Lightning SPA dashboard is not agent-readable. SOQL query language has a steep learning curve for agents. Sandbox vs production environment management adds state.",
     decision: "Pick Salesforce when governance and compliance requirements outweigh integration simplicity.",
-    support: "The highest governance score in the comparison (10.0) but the lowest payment autonomy (2.0). This is the enterprise pattern: maximum control, minimum self-serve. Agents get powerful tools once credentialed, but getting credentialed is a human-gated multi-step process.",
+    support: "Second on aggregate in the current snapshot and still the governance ceiling. This is the enterprise pattern: maximum control, minimum self-serve. Agents get powerful tools once credentialed, but getting credentialed is a human-gated multi-step process.",
     data: scoreMap.salesforce,
   },
   {
@@ -76,7 +76,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need just pipeline management. HubSpot's API surface is broad but inconsistent across hubs — the CRM API is cleaner than the marketing API, and agents need to handle different patterns for different object types.",
     friction: "OAuth 2.0 app setup required for production use. Free tier API has strict rate limits (100 calls per 10 seconds). API surface is inconsistent across hubs — associations, custom objects, and workflows each have different patterns. Dashboard is a complex React SPA.",
     decision: "Pick HubSpot when the agent needs to span CRM + marketing + sales in one integration.",
-    support: "Scores lowest on aggregate but has the broadest feature surface. The problem is not capability — it is consistency. An agent working across hubs needs to handle multiple API patterns, different rate limit tiers, and inconsistent error formats.",
+    support: "Current aggregate leader and the broadest feature surface. The problem is not capability — it is consistency. An agent working across hubs needs to handle multiple API patterns, different rate limit tiers, and inconsistent error formats.",
     data: scoreMap.hubspot,
   },
 ];
@@ -146,9 +146,9 @@ const scenarioCards = [
 
 const agentRules = [
   "No CRM is agent-native. Calibrate expectations: CRM integrations are harder than payments or email, and all three options carry real friction.",
-  "If the operator has no existing CRM, default to Pipedrive for the lowest integration cost.",
-  "If the operator already has Salesforce, do not suggest switching — the migration cost exceeds any agent-friendliness gain.",
-  "If the operator needs marketing automation alongside CRM, HubSpot is the path of least resistance despite the lower score.",
+  "If the operator has no existing CRM, compare HubSpot for breadth, Salesforce for governance requirements, and Pipedrive for narrow pipeline mechanics.",
+  "If the operator already has Salesforce, do not suggest switching by default — the migration cost usually exceeds any agent-friendliness gain.",
+  "If the operator needs marketing automation alongside CRM, HubSpot is the current score leader and the path of least resistance for breadth.",
   "Never assume agent-provisioned access to Salesforce. Always confirm that a human has completed the connected app setup.",
   "For all three: implement rate-limit backoff from day one. CRM APIs are the most aggressive rate-limiters in the scored services.",
 ];
@@ -156,10 +156,10 @@ const agentRules = [
 
 <Layout
   title="HubSpot vs Salesforce vs Pipedrive for AI Agents | Rhumb"
-  description="Compare HubSpot, Salesforce, and Pipedrive for agent CRM workflows. Pipedrive has the least friction, Salesforce the strongest governance."
+  description="Compare HubSpot, Salesforce, and Pipedrive for agent CRM workflows using current Rhumb scores. HubSpot leads the snapshot, Salesforce has the governance ceiling, and Pipedrive is the narrow-pipeline default."
   canonical="/blog/hubspot-vs-salesforce-vs-pipedrive"
   ogTitle="HubSpot vs Salesforce vs Pipedrive for AI Agents"
-  ogDescription="No CRM is agent-native yet. Here's which one hurts the least — using live Rhumb AN Score data."
+  ogDescription="A current Rhumb scorecard for HubSpot, Salesforce, and Pipedrive in agent CRM workflows."
   ogUrl="https://rhumb.dev/blog/hubspot-vs-salesforce-vs-pipedrive"
   ogType="article"
   twitterTitle="HubSpot vs Salesforce vs Pipedrive for AI Agents"
@@ -187,19 +187,18 @@ const agentRules = [
 
           <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
             <span class="text-slate-100 font-semibold">Short answer:</span>
-            None of these are agent-native.
-            Pipedrive has the least friction for simple pipeline operations,
+            HubSpot leads this snapshot on aggregate score,
             Salesforce has the governance ceiling enterprises need,
-            and HubSpot is the broadest surface when an agent spans CRM, marketing, and sales.
+            and Pipedrive is still the cleanest narrow-pipeline default when an agent only needs deals, stages, and activities.
           </p>
 
           <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-amber-500/20 bg-amber-500/8 px-5 py-4">
             <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0"></div>
             <p class="text-sm leading-6 text-slate-300">
               <span class="font-semibold text-slate-100">Reality check:</span>
-              CRM is one of the hardest categories for autonomous agents. Every option here scores below 6.0 — meaning real
-              friction in onboarding, access provisioning, or API consistency. The choice is driven by organizational constraints,
-              not agent ergonomics. Scores reflect published Rhumb data as of {updatedAt}.
+              CRM is still one of the harder categories for autonomous agents. The current aggregate scores are strong, but the
+              practical decision is constrained by incumbent systems, access provisioning, object-model consistency, and governance.
+              Scores reflect published Rhumb data as of {updatedAt}.
             </p>
           </div>
         </div>
@@ -356,9 +355,9 @@ const agentRules = [
               <div class="mt-0.5 h-2 w-2 rounded-full bg-amber-400 shrink-0"></div>
               <p class="text-sm leading-6 text-slate-400">
                 <span class="font-semibold text-slate-300">Note the governance inversion:</span>
-                Salesforce scores highest on governance (10.0) but lowest on payment autonomy (2.0).
-                This is the enterprise pattern — maximum control, minimum self-serve. Agents get powerful tools once
-                credentialed, but getting credentialed is human-gated.
+                Salesforce can be the right enterprise choice even when it is not the easiest agent integration.
+                This is the CRM pattern — the existing system of record and governance boundary often matter more than the
+                cleanest API path. Agents get powerful tools once credentialed, but getting credentialed is human-gated.
               </p>
             </div>
           </div>
@@ -382,12 +381,12 @@ const agentRules = [
             <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Decision pattern</p>
             <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">The honest take</h2>
             <p class="mt-4 text-base leading-7 text-slate-300">
-              <span class="font-semibold text-slate-100">CRM is constraint-driven, not quality-driven.</span>
-              {' '}Unlike payments or email, the CRM choice is almost always already made before the agent enters the picture.
-              {' '}The agent's job is to work within the existing tool, not to recommend switching.
+              <span class="font-semibold text-slate-100">CRM is incumbent-driven before it is score-driven.</span>
+              {' '}Unlike payments or email, the CRM choice is often made before the agent enters the picture.
+              {' '}The score helps price the integration tax and governance risk; it rarely justifies asking a team to migrate systems.
             </p>
             <div class="mt-5 rounded-2xl border border-amber/20 bg-amber/8 p-4 text-sm leading-6 text-slate-300">
-              The agent version: ask which CRM the organization already uses. If they say "none," recommend Pipedrive. If they name one, do not suggest switching — the migration cost dwarfs the integration friction delta.
+              The agent version: ask which CRM the organization already uses. If they say "none," compare HubSpot for breadth, Salesforce for governance, and Pipedrive for simple pipeline mechanics. If they name an incumbent, treat the score as an integration-risk receipt before suggesting a switch.
             </div>
           </div>
         </aside>
