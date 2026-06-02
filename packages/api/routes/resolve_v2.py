@@ -54,8 +54,10 @@ from services.service_slugs import (
     canonicalize_service_slug,
     public_service_slug_candidates,
 )
+from schemas.capability_manifest import command_manifest_fixtures, fixture_manifests_by_route_id
 from schemas.resolve_boundary_contract import boundary_contract_payload
 from schemas.resolve_route_candidate import annotate_resolve_body_with_route_candidates
+from schemas.route_taxonomy import PROVENANCE_ORIGINS, SOURCE_RISKS, SUBSTRATES, route_recommendation_policy
 
 router = APIRouter()
 
@@ -898,6 +900,132 @@ async def get_boundary_contract_v2() -> dict[str, Any]:
         "error": None,
         "data": {
             **boundary_contract_payload(),
+            "_rhumb_v2": _compat_meta(),
+        },
+    }
+
+
+def _validated_index_taxonomy_filter(
+    value: str | None,
+    *,
+    field_name: str,
+    allowed: frozenset[str],
+) -> str | None:
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    if normalized in allowed:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail=f"Use one of: {', '.join(sorted(allowed))}.",
+    )
+
+
+def _validated_index_text_filter(value: str | None, *, field_name: str) -> str | None:
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    if normalized:
+        return normalized
+
+    raise RhumbError(
+        "INVALID_PARAMETERS",
+        message=f"Invalid '{field_name}' filter.",
+        detail=f"Provide a non-empty {field_name} value or omit the filter.",
+    )
+
+
+def _index_manifest_payload(manifest: dict[str, Any]) -> dict[str, Any]:
+    policy = route_recommendation_policy(manifest)
+    return {
+        **manifest,
+        "recommendation_policy": {
+            "default_recommendable": policy["default_recommendable"],
+            "recommendable": policy["recommendable"],
+            "requires_explicit_request": policy["requires_explicit_request"],
+            "blocked": policy["blocked"],
+            "reasons": policy["reasons"],
+        },
+    }
+
+
+@router.get("/index/manifests")
+async def list_index_manifests_v2(
+    capability_id: str | None = Query(None, description="Filter by capability ID."),
+    substrate: str | None = Query(None, description="Filter by route substrate."),
+    provenance_origin: str | None = Query(None, description="Filter by provenance/origin."),
+    source_risk: str | None = Query(None, description="Filter by source-risk class."),
+) -> dict[str, Any]:
+    """Serve the current PP-2 command manifest index fixtures.
+
+    This is the first Index serving seam for vNext: deterministic manifest facts
+    plus the PP-1 default recommendation policy. The backing store remains the
+    in-repo fixture registry until a durable Index store lands.
+    """
+
+    parsed_capability_id = _validated_index_text_filter(capability_id, field_name="capability_id")
+    parsed_substrate = _validated_index_taxonomy_filter(substrate, field_name="substrate", allowed=SUBSTRATES)
+    parsed_provenance_origin = _validated_index_taxonomy_filter(
+        provenance_origin,
+        field_name="provenance_origin",
+        allowed=PROVENANCE_ORIGINS,
+    )
+    parsed_source_risk = _validated_index_taxonomy_filter(source_risk, field_name="source_risk", allowed=SOURCE_RISKS)
+
+    manifests = command_manifest_fixtures()
+    filtered = [
+        manifest
+        for manifest in manifests
+        if (parsed_capability_id is None or manifest.get("capability_id") == parsed_capability_id)
+        and (parsed_substrate is None or manifest.get("substrate") == parsed_substrate)
+        and (parsed_provenance_origin is None or manifest.get("provenance_origin") == parsed_provenance_origin)
+        and (parsed_source_risk is None or manifest.get("source_risk") == parsed_source_risk)
+    ]
+    filtered.sort(key=lambda item: (str(item.get("capability_id") or ""), str(item.get("route_id") or "")))
+
+    return {
+        "error": None,
+        "data": {
+            "contract_id": "index_command_manifest_v1",
+            "source": "PP-2",
+            "status": "fixture_registry_until_index_store",
+            "total": len(filtered),
+            "manifests": [_index_manifest_payload(manifest) for manifest in filtered],
+            "taxonomy": {
+                "substrates": sorted(SUBSTRATES),
+                "provenance_origins": sorted(PROVENANCE_ORIGINS),
+                "source_risks": sorted(SOURCE_RISKS),
+            },
+            "_rhumb_v2": _compat_meta(),
+        },
+    }
+
+
+@router.get("/index/manifests/{route_id}")
+async def get_index_manifest_v2(route_id: str) -> dict[str, Any]:
+    """Return one command-level route manifest by stable route ID."""
+
+    parsed_route_id = _validated_index_text_filter(route_id, field_name="route_id")
+    manifest = fixture_manifests_by_route_id().get(parsed_route_id)
+    if manifest is None:
+        raise RhumbError(
+            "ROUTE_MANIFEST_NOT_FOUND",
+            message=f"Route manifest '{parsed_route_id}' not found.",
+            detail="Use GET /v2/index/manifests to list currently indexed route manifests.",
+        )
+
+    return {
+        "error": None,
+        "data": {
+            "contract_id": "index_command_manifest_v1",
+            "source": "PP-2",
+            "status": "fixture_registry_until_index_store",
+            "manifest": _index_manifest_payload(manifest),
             "_rhumb_v2": _compat_meta(),
         },
     }
