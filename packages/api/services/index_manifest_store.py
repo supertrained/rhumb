@@ -11,9 +11,18 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from routes._supabase import supabase_fetch
 from schemas.capability_manifest import command_manifest_fixtures
 from schemas.index_evidence import route_fixture_for
 from schemas.route_taxonomy import route_recommendation_policy
+
+_SELECT_COLUMNS = (
+    "route_id,manifest_id,manifest_version,manifest_digest,service_id,provider_id,"
+    "capability_id,substrate,provenance_origin,source_risk,side_effect_class,"
+    "promotion_state,review_status,evidence_packet_id,evidence_packet_digest,"
+    "evidence_expires_at,public_claim_boundary,manifest_json,evidence_packet_json,"
+    "owner,reviewer,expires_at"
+)
 
 
 class IndexManifestStore:
@@ -118,3 +127,157 @@ def with_recommendation_policy(manifest: dict[str, Any]) -> dict[str, Any]:
 
 def get_index_manifest_store() -> IndexManifestStore:
     return IndexManifestStore()
+
+
+class DurableIndexManifestStore:
+    """Hosted Index-backed manifest reader with fixture fallback.
+
+    Supabase/PostgREST is the durable source when rows are available.  Empty or
+    unavailable reads fall back to the fixture store so local development and
+    fail-closed tests continue to expose the current public contract honestly.
+    """
+
+    source = "PP-2"
+    status = "hosted_index_with_fixture_fallback"
+    contract_id = "index_command_manifest_v1"
+
+    def __init__(self, fallback: IndexManifestStore | None = None) -> None:
+        self._fallback = fallback or IndexManifestStore()
+
+    async def list_manifests(
+        self,
+        *,
+        capability_id: str | None = None,
+        substrate: str | None = None,
+        provenance_origin: str | None = None,
+        source_risk: str | None = None,
+    ) -> list[dict[str, Any]]:
+        rows = await supabase_fetch(self._manifest_query(
+            capability_id=capability_id,
+            substrate=substrate,
+            provenance_origin=provenance_origin,
+            source_risk=source_risk,
+        ))
+        manifests = [_manifest_from_row(row) for row in rows or [] if isinstance(row, dict)]
+        manifests = [manifest for manifest in manifests if manifest]
+        if manifests:
+            return manifests
+        return self._fallback.list_manifests(
+            capability_id=capability_id,
+            substrate=substrate,
+            provenance_origin=provenance_origin,
+            source_risk=source_risk,
+        )
+
+    async def get_manifest(self, route_id: str) -> dict[str, Any] | None:
+        rows = await supabase_fetch(
+            "index_command_manifests"
+            f"?route_id=eq.{route_id}"
+            f"&select={_SELECT_COLUMNS}"
+            "&limit=1"
+        )
+        if isinstance(rows, list) and rows:
+            manifest = _manifest_from_row(rows[0]) if isinstance(rows[0], dict) else None
+            if manifest:
+                return manifest
+        return self._fallback.get_manifest(route_id)
+
+    async def route_facts_for_provider(self, capability_id: str, provider_id: str) -> dict[str, Any]:
+        rows = await supabase_fetch(
+            "index_command_manifests"
+            f"?capability_id=eq.{capability_id}"
+            f"&provider_id=eq.{provider_id}"
+            f"&select={_SELECT_COLUMNS}"
+            "&limit=1"
+        )
+        if isinstance(rows, list) and rows:
+            route = _route_facts_from_row(rows[0]) if isinstance(rows[0], dict) else None
+            if route:
+                return route
+        return self._fallback.route_facts_for_provider(capability_id, provider_id)
+
+    def _manifest_query(
+        self,
+        *,
+        capability_id: str | None,
+        substrate: str | None,
+        provenance_origin: str | None,
+        source_risk: str | None,
+    ) -> str:
+        filters = []
+        if capability_id is not None:
+            filters.append(f"capability_id=eq.{capability_id}")
+        if substrate is not None:
+            filters.append(f"substrate=eq.{substrate}")
+        if provenance_origin is not None:
+            filters.append(f"provenance_origin=eq.{provenance_origin}")
+        if source_risk is not None:
+            filters.append(f"source_risk=eq.{source_risk}")
+        filter_prefix = "&".join(filters)
+        if filter_prefix:
+            filter_prefix += "&"
+        return (
+            "index_command_manifests?"
+            f"{filter_prefix}select={_SELECT_COLUMNS}"
+            "&order=capability_id.asc,route_id.asc"
+        )
+
+
+def _manifest_from_row(row: dict[str, Any]) -> dict[str, Any]:
+    manifest_json = row.get("manifest_json")
+    manifest = deepcopy(manifest_json) if isinstance(manifest_json, dict) else {}
+    for field_name in (
+        "route_id",
+        "manifest_id",
+        "manifest_version",
+        "manifest_digest",
+        "service_id",
+        "provider_id",
+        "capability_id",
+        "substrate",
+        "provenance_origin",
+        "source_risk",
+        "side_effect_class",
+        "promotion_state",
+        "public_claim_boundary",
+        "owner",
+        "reviewer",
+        "expires_at",
+    ):
+        if row.get(field_name) is not None:
+            manifest[field_name] = row.get(field_name)
+    return manifest
+
+
+def _route_facts_from_row(row: dict[str, Any]) -> dict[str, Any]:
+    route = {
+        "route_id": row.get("route_id"),
+        "service_id": row.get("service_id"),
+        "provider_id": row.get("provider_id"),
+        "substrate": row.get("substrate"),
+        "provenance_origin": row.get("provenance_origin"),
+        "source_risk": row.get("source_risk"),
+        "manifest_id": row.get("manifest_id"),
+        "manifest_digest": row.get("manifest_digest"),
+        "manifest_version": row.get("manifest_version"),
+        "side_effect_class": row.get("side_effect_class"),
+        "public_claim_boundary": row.get("public_claim_boundary"),
+        "evidence_packet_id": row.get("evidence_packet_id"),
+        "evidence_packet_digest": row.get("evidence_packet_digest"),
+        "review_status": row.get("review_status"),
+        "promotion_state": row.get("promotion_state"),
+        "evidence_expires_at": row.get("evidence_expires_at"),
+    }
+    policy = route_recommendation_policy(route)
+    route["recommendation_policy"] = {
+        "default_recommendable": policy["default_recommendable"],
+        "recommendable": policy["recommendable"],
+        "requires_explicit_request": policy["requires_explicit_request"],
+        "blocked": policy["blocked"],
+        "reasons": policy["reasons"],
+    }
+    return {key: value for key, value in route.items() if value is not None}
+
+
+def get_durable_index_manifest_store() -> DurableIndexManifestStore:
+    return DurableIndexManifestStore()

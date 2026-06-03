@@ -54,7 +54,7 @@ from services.service_slugs import (
     canonicalize_service_slug,
     public_service_slug_candidates,
 )
-from services.index_manifest_store import get_index_manifest_store, with_recommendation_policy
+from services.index_manifest_store import get_durable_index_manifest_store, with_recommendation_policy
 from schemas.resolve_boundary_contract import boundary_contract_payload
 from schemas.resolve_route_candidate import annotate_resolve_body_with_route_candidates
 from schemas.route_taxonomy import PROVENANCE_ORIGINS, SOURCE_RISKS, SUBSTRATES
@@ -963,8 +963,8 @@ async def list_index_manifests_v2(
     )
     parsed_source_risk = _validated_index_taxonomy_filter(source_risk, field_name="source_risk", allowed=SOURCE_RISKS)
 
-    store = get_index_manifest_store()
-    filtered = store.list_manifests(
+    store = get_durable_index_manifest_store()
+    filtered = await store.list_manifests(
         capability_id=parsed_capability_id,
         substrate=parsed_substrate,
         provenance_origin=parsed_provenance_origin,
@@ -994,8 +994,8 @@ async def get_index_manifest_v2(route_id: str) -> dict[str, Any]:
     """Return one command-level route manifest by stable route ID."""
 
     parsed_route_id = _validated_index_text_filter(route_id, field_name="route_id")
-    store = get_index_manifest_store()
-    manifest = store.get_manifest(parsed_route_id)
+    store = get_durable_index_manifest_store()
+    manifest = await store.get_manifest(parsed_route_id)
     if manifest is None:
         raise RhumbError(
             "ROUTE_MANIFEST_NOT_FOUND",
