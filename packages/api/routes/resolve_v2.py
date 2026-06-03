@@ -37,6 +37,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from routes import capabilities as v1_capabilities
 from routes import capability_execute as v1_execute
 from services.budget_enforcer import BudgetEnforcer, BudgetStatus
+from services.chain_integrity import get_signing_key
 from services.error_envelope import RhumbError
 from services.policy_engine import PolicyProviderDecision, get_policy_engine
 from services.receipt_service import (
@@ -48,6 +49,11 @@ from services.receipt_service import (
 )
 from services.provider_attribution import build_attribution
 from services.resolve_policy_store import StoredResolvePolicy, get_resolve_policy_store
+from services.route_plan_enforcement import (
+    canonical_json_sha256,
+    issue_route_plan,
+    validate_route_plan,
+)
 from services.route_explanation import build_explanation, persist_explanation, store_explanation
 from services.service_slugs import (
     CANONICAL_TO_PROXY,
@@ -56,7 +62,10 @@ from services.service_slugs import (
 )
 from services.index_manifest_store import get_durable_index_manifest_store, with_recommendation_policy
 from schemas.resolve_boundary_contract import boundary_contract_payload
-from schemas.resolve_route_candidate import annotate_resolve_body_with_route_candidates
+from schemas.resolve_route_candidate import (
+    annotate_resolve_body_with_route_candidates,
+    route_candidates_from_resolve_data,
+)
 from schemas.route_taxonomy import PROVENANCE_ORIGINS, SOURCE_RISKS, SUBSTRATES
 
 router = APIRouter()
@@ -93,6 +102,14 @@ _RESPONSE_HEADER_NAMES = [
     "X-Rhumb-Wallet",
     "X-Rhumb-Rate-Remaining",
 ]
+_ROUTE_PLAN_TTL_SECONDS = 300
+_ROUTE_PLAN_CLAIM_BOUNDARY = (
+    "PP-16 compact bridge: v2 execute binds the signed route plan to the same "
+    "estimate/planner facts used for forwarding and fail-closes on signature, "
+    "expiry, principal, route/provider, credential, input, manifest, policy, "
+    "budget, scope, kill-switch, or runtime echo mismatch. Durable revocation "
+    "and replay storage are not claimed in this slice."
+)
 _V2_NAVIGATION_URL_KEYS = {
     "search_url",
     "resolve_url",
@@ -209,6 +226,14 @@ class V2CapabilityExecuteRequest(BaseModel):
     idempotency_key: str | None = Field(
         default=None,
         description="Optional per-call idempotency key.",
+    )
+    route_plan_id: str | None = Field(
+        default=None,
+        description=(
+            "Optional opaque signed Resolve route plan id. When supplied, "
+            "v2 execute fail-closes unless it matches the current internal "
+            "planner route for this request."
+        ),
     )
     interface: str = Field(
         default="rest",
@@ -399,6 +424,269 @@ def _extract_error_fields(body: Any) -> tuple[str | None, str | None]:
             message = body.get("resolution") if isinstance(body.get("resolution"), str) else None
         return error, message
     return None, None
+
+
+def _route_plan_principal_facts(raw_request: Request, agent: Any | None) -> dict[str, str]:
+    if agent is not None:
+        agent_id = str(agent.agent_id)
+        return {
+            "org_id": str(agent.organization_id),
+            "agent_id": agent_id,
+            "principal_id": agent_id,
+            "auth_rail": "governed_api_key",
+        }
+
+    principal_id = _normalized_agent_id_header(raw_request) or "x402_anonymous"
+    return {
+        "org_id": "anonymous",
+        "agent_id": principal_id,
+        "principal_id": principal_id,
+        "auth_rail": (
+            "x402_per_call" if _has_inline_x402_payment(raw_request) else "anonymous_compat"
+        ),
+    }
+
+
+def _route_plan_digest_or_sentinel(value: Any, *, sentinel: str) -> str:
+    if value is None or value == {} or value == []:
+        return canonical_json_sha256({"sentinel": sentinel})
+    return canonical_json_sha256(value)
+
+
+def _selected_route_candidate(
+    *,
+    capability_id: str,
+    estimate_data: dict[str, Any],
+    selected_provider_public: str | None,
+) -> dict[str, Any]:
+    candidate_source = dict(estimate_data)
+    candidate_source.setdefault("capability_id", capability_id)
+    if selected_provider_public:
+        candidate_source["provider"] = selected_provider_public
+    candidates = route_candidates_from_resolve_data(candidate_source)
+    for candidate in candidates:
+        candidate_provider = _public_provider_slug(candidate.get("provider_id"))
+        if selected_provider_public and candidate_provider == selected_provider_public:
+            return candidate
+    return candidates[0] if candidates else {}
+
+
+def _route_plan_boundary_facts(
+    *,
+    capability_id: str,
+    estimate_data: dict[str, Any],
+    selected_provider_public: str | None,
+    credential_mode: str,
+    parameters: dict[str, Any],
+    raw_request: Request,
+    agent: Any | None,
+    policy_summary: dict[str, Any] | None,
+    policy_source: str,
+    budget_summary: dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    route_candidate = _selected_route_candidate(
+        capability_id=capability_id,
+        estimate_data=estimate_data,
+        selected_provider_public=selected_provider_public,
+    )
+    provider_id = (
+        _public_provider_slug(selected_provider_public)
+        or _public_provider_slug(route_candidate.get("provider_id"))
+        or selected_provider_public
+        or str(route_candidate.get("provider_id") or "unknown")
+    )
+    service_id = _public_provider_slug(route_candidate.get("service_id")) or str(
+        route_candidate.get("service_id") or provider_id
+    )
+    required_scopes = route_candidate.get("required_scopes")
+    if not isinstance(required_scopes, list):
+        required_scopes = []
+    required_scopes = [str(scope) for scope in required_scopes]
+    manifest_digest = route_candidate.get("manifest_digest") or canonical_json_sha256(
+        {
+            "source": "v1_catalog_compat_until_index_manifest",
+            "capability_id": capability_id,
+            "provider_id": provider_id,
+        }
+    )
+    policy_snapshot = {
+        "source": policy_source,
+        "summary": policy_summary or {"active": False},
+    }
+    budget_snapshot = budget_summary or {"active": False}
+    base = {
+        **_route_plan_principal_facts(raw_request, agent),
+        "capability_id": capability_id,
+        "service_id": service_id,
+        "provider_id": provider_id,
+        "route_id": str(route_candidate.get("route_id") or "route_unknown"),
+        "credential_mode": _canonicalize_credential_mode(
+            estimate_data.get("credential_mode") or credential_mode
+        ),
+        "credential_handle_id": None,
+        "required_scopes": required_scopes,
+        "input_hash": canonical_json_sha256(parameters),
+        "manifest_digest": str(manifest_digest),
+        "evidence_packet_digest": route_candidate.get("evidence_packet_digest"),
+        "policy_snapshot_digest": _route_plan_digest_or_sentinel(
+            policy_snapshot,
+            sentinel="no_policy_snapshot",
+        ),
+        "budget_snapshot_digest": _route_plan_digest_or_sentinel(
+            budget_snapshot,
+            sentinel="no_budget_snapshot",
+        ),
+        "sandbox_profile_id": route_candidate.get("sandbox_profile_id"),
+        "artifact_hashes": [],
+    }
+    expected = {
+        **base,
+        "granted_scopes": required_scopes,
+        "kill_switch_allows_execution": True,
+    }
+    return base, expected
+
+
+def _issue_internal_route_plan(payload: dict[str, Any]) -> tuple[str, int]:
+    issued_at = int(time.time())
+    route_plan_id = issue_route_plan(
+        payload,
+        get_signing_key(),
+        now=issued_at,
+        ttl_seconds=_ROUTE_PLAN_TTL_SECONDS,
+    )
+    return route_plan_id, issued_at + _ROUTE_PLAN_TTL_SECONDS
+
+
+def _route_plan_id_hash(route_plan_id: str | None) -> str | None:
+    if not route_plan_id:
+        return None
+    return canonical_json_sha256({"route_plan_id": route_plan_id})
+
+
+def _route_plan_failed_checks(checks: dict[str, Any] | None) -> list[str]:
+    return sorted(name for name, passed in (checks or {}).items() if passed is not True)
+
+
+def _raise_route_plan_rejected(
+    validation: dict[str, Any],
+    *,
+    route_plan_id: str | None,
+    message: str,
+    detail: str,
+    extra: dict[str, Any] | None = None,
+) -> None:
+    checks = validation.get("checks") if isinstance(validation, dict) else {}
+    stop_condition = validation.get("stop_condition") if isinstance(validation, dict) else None
+    enforcement = {
+        "source": "PP-16",
+        "status": "fail_closed",
+        "stop_condition": stop_condition or "route_plan_mismatch",
+        "route_plan_id_hash": _route_plan_id_hash(route_plan_id),
+        "checks": checks,
+        "failed_checks": _route_plan_failed_checks(checks),
+        "claim_boundary": _ROUTE_PLAN_CLAIM_BOUNDARY,
+    }
+    if extra:
+        enforcement.update(extra)
+    raise RhumbError(
+        "ROUTE_PLAN_REJECTED",
+        message=message,
+        detail=detail,
+        extra={
+            "stop_condition": enforcement["stop_condition"],
+            "route_plan_enforcement": enforcement,
+        },
+    )
+
+
+def _validate_route_plan_or_reject(
+    route_plan_id: str | None,
+    expected: dict[str, Any],
+    *,
+    source: str,
+) -> dict[str, Any]:
+    validation = validate_route_plan(route_plan_id, expected, get_signing_key())
+    if validation.get("allowed") is True:
+        return validation
+    _raise_route_plan_rejected(
+        validation,
+        route_plan_id=route_plan_id,
+        message="Resolve route plan was rejected before execution.",
+        detail=(
+            "Retry through Resolve/estimate for a fresh route plan; execution will not "
+            "silently switch route, provider, credential mode, principal, policy, budget, or input."
+        ),
+        extra={"mode": source},
+    )
+
+
+def _route_plan_enforcement_meta(
+    *,
+    validation: dict[str, Any],
+    mode: str,
+    route_plan_id: str,
+    expected: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "source": "PP-16",
+        "mode": mode,
+        "status": "enforced",
+        "stop_condition": None,
+        "route_plan_id_hash": _route_plan_id_hash(route_plan_id),
+        "checks": validation.get("checks", {}),
+        "failed_checks": [],
+        "binding": {
+            "capability_id": expected.get("capability_id"),
+            "service_id": expected.get("service_id"),
+            "provider_id": expected.get("provider_id"),
+            "route_id": expected.get("route_id"),
+            "credential_mode": expected.get("credential_mode"),
+            "input_hash": expected.get("input_hash"),
+            "manifest_digest": expected.get("manifest_digest"),
+            "evidence_packet_digest": expected.get("evidence_packet_digest"),
+        },
+        "claim_boundary": _ROUTE_PLAN_CLAIM_BOUNDARY,
+    }
+
+
+def _enforce_runtime_route_plan_echo(
+    *,
+    execution_data: dict[str, Any],
+    effective_credential_mode: str,
+    expected: dict[str, Any],
+    validation: dict[str, Any],
+    route_plan_id: str,
+) -> None:
+    expected_provider = _public_provider_slug(expected.get("provider_id")) or expected.get(
+        "provider_id"
+    )
+    actual_provider = _public_provider_slug(
+        execution_data.get("provider_used")
+    ) or execution_data.get("provider_used")
+    checks = dict(validation.get("checks", {}))
+    checks["runtime_provider_matches_plan"] = bool(
+        expected_provider and actual_provider and actual_provider == expected_provider
+    )
+    checks["runtime_credential_mode_matches_plan"] = _canonicalize_credential_mode(
+        effective_credential_mode
+    ) == _canonicalize_credential_mode(expected.get("credential_mode"))
+    if checks["runtime_provider_matches_plan"] and checks["runtime_credential_mode_matches_plan"]:
+        validation["checks"] = checks
+        return
+    _raise_route_plan_rejected(
+        {"allowed": False, "stop_condition": "route_plan_mismatch", "checks": checks},
+        route_plan_id=route_plan_id,
+        message="Runtime result diverged from the Resolve route plan.",
+        detail="Execution result was withheld because provider or credential mode did not echo the planned route.",
+        extra={
+            "mode": "runtime_echo",
+            "expected_provider": expected_provider,
+            "actual_provider": actual_provider,
+            "expected_credential_mode": expected.get("credential_mode"),
+            "actual_credential_mode": effective_credential_mode,
+        },
+    )
 
 
 def _forward_request_headers(raw_request: Request) -> dict[str, str]:
@@ -1274,6 +1562,9 @@ async def execute_capability_v2(
     endpoint_pattern = estimate_data.get("endpoint_pattern")
     estimated_cost = estimate_data.get("cost_estimate_usd")
     method, path = _parse_endpoint_pattern(endpoint_pattern)
+    selected_credential_mode = _canonicalize_credential_mode(
+        estimate_data.get("credential_mode") or canonical_credential_mode
+    )
 
     if (
         provider_decision
@@ -1308,9 +1599,38 @@ async def execute_capability_v2(
             estimated_cost=float(estimated_cost) if estimated_cost is not None else None,
         )
 
+    route_policy_summary = _public_policy_summary(
+        provider_decision.policy_summary
+        if provider_decision is not None
+        else _policy_summary(effective_policy)
+    )
+    route_budget_summary = _budget_summary(budget_status)
+    route_plan_payload, route_plan_expected = _route_plan_boundary_facts(
+        capability_id=capability_id,
+        estimate_data=estimate_data,
+        selected_provider_public=selected_provider_public,
+        credential_mode=selected_credential_mode,
+        parameters=payload.parameters,
+        raw_request=raw_request,
+        agent=agent,
+        policy_summary=route_policy_summary,
+        policy_source=policy_source,
+        budget_summary=route_budget_summary,
+    )
+    route_plan_mode = "supplied_signed_plan"
+    route_plan_id = payload.route_plan_id.strip() if payload.route_plan_id else None
+    if route_plan_id is None:
+        route_plan_id, _ = _issue_internal_route_plan(route_plan_payload)
+        route_plan_mode = "internal_same_planner"
+    route_plan_validation = _validate_route_plan_or_reject(
+        route_plan_id,
+        route_plan_expected,
+        source=route_plan_mode,
+    )
+
     v1_payload: dict[str, Any] = {
         "provider": selected_provider_public or selected_provider,
-        "credential_mode": canonical_credential_mode,
+        "credential_mode": selected_credential_mode,
         "idempotency_key": effective_idempotency_key,
         "interface": f"{payload.interface}-v2",
         "body": payload.parameters,
@@ -1335,7 +1655,7 @@ async def execute_capability_v2(
 
     # ── Receipt creation ─────────────────────────────────────────────
     execution_data = body.get("data") if isinstance(body.get("data"), dict) else {}
-    effective_credential_mode = canonical_credential_mode
+    effective_credential_mode = selected_credential_mode
     if execution_data.get("credential_mode") is not None:
         effective_credential_mode = _canonicalize_credential_mode(
             execution_data.get("credential_mode")
@@ -1355,6 +1675,15 @@ async def execute_capability_v2(
             execution_data["credential_mode"] = effective_credential_mode
     execution_id = execution_data.get("execution_id", "")
     is_success = execute_response.status_code == 200
+
+    if is_success and execution_data:
+        _enforce_runtime_route_plan_echo(
+            execution_data=execution_data,
+            effective_credential_mode=effective_credential_mode,
+            expected=route_plan_expected,
+            validation=route_plan_validation,
+            route_plan_id=route_plan_id,
+        )
 
     receipt_id: str | None = None
     provider_public_slug = provider_used_public or selected_provider_public or "unknown"
@@ -1456,11 +1785,6 @@ async def execute_capability_v2(
 
     # ── Annotate response ─────────────────────────────────────────────
     if is_success and execution_data:
-        policy_summary = _public_policy_summary(
-            provider_decision.policy_summary
-            if provider_decision is not None
-            else _policy_summary(effective_policy)
-        )
         v2_meta: dict[str, Any] = {
             **_compat_meta(),
             "receipt_id": receipt_id or _compat_receipt_id(execution_id),
@@ -1469,11 +1793,17 @@ async def execute_capability_v2(
             "policy_applied": _effective_policy_active(effective_policy),
             "policy_selected_reason": provider_decision.selected_reason if provider_decision else None,
             "policy_candidates": policy_candidates_public if provider_decision else None,
-            "policy_summary": policy_summary,
+            "policy_summary": route_policy_summary,
             "policy_source": policy_source,
             "budget_applied": bool(budget_status and budget_status.budget_usd is not None),
-            "budget_summary": _budget_summary(budget_status),
+            "budget_summary": route_budget_summary,
             "estimated_cost_usd": estimated_cost,
+            "route_plan_enforcement": _route_plan_enforcement_meta(
+                validation=route_plan_validation,
+                mode=route_plan_mode,
+                route_plan_id=route_plan_id,
+                expected=route_plan_expected,
+            ),
             "translated_from": {
                 "parameters": True,
                 "policy_provider_preference": bool(payload.policy and payload.policy.provider_preference),

@@ -195,6 +195,13 @@ ERROR_CODES: dict[str, ErrorCodeDef] = {
         description="All providers unavailable",
         default_retry_after_ms=10000,
     ),
+    "ROUTE_PLAN_REJECTED": ErrorCodeDef(
+        code="ROUTE_PLAN_REJECTED",
+        category=ErrorCategory.ROUTING,
+        http_status=409,
+        retryable=False,
+        description="Signed Resolve route plan failed Runtime enforcement",
+    ),
     "PROVIDER_TIMEOUT": ErrorCodeDef(
         code="PROVIDER_TIMEOUT",
         category=ErrorCategory.PROVIDER,
