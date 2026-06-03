@@ -947,11 +947,11 @@ async def list_index_manifests_v2(
     provenance_origin: str | None = Query(None, description="Filter by provenance/origin."),
     source_risk: str | None = Query(None, description="Filter by source-risk class."),
 ) -> dict[str, Any]:
-    """Serve the current PP-2 command manifest index fixtures.
+    """Serve current PP-2 command manifests from hosted Index storage.
 
-    This is the first Index serving seam for vNext: deterministic manifest facts
-    plus the PP-1 default recommendation policy. The backing store remains the
-    in-repo fixture registry until a durable Index store lands.
+    This Index serving seam exposes deterministic manifest facts plus the PP-1
+    default recommendation policy. Hosted rows are preferred, with deterministic
+    fixture fallback for local development and empty/unavailable stores.
     """
 
     parsed_capability_id = _validated_index_text_filter(capability_id, field_name="capability_id")
