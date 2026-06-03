@@ -20,7 +20,7 @@ const ARTICLE_JSON_LD = {
   datePublished: "2026-03-22T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
   description:
-    "Search-as-a-service comparison for AI agent workflows. Algolia leads on developer experience, Typesense on self-hosting simplicity, Elasticsearch on flexibility. Live AN Score data.",
+    "Current Rhumb search-as-a-service scorecard for AI agents: Algolia 9.0, Elasticsearch 8.9, and Typesense 8.6, with search, analytics, and indexing-authority tradeoffs.",
   url: "https://rhumb.dev/blog/algolia-vs-typesense-vs-elasticsearch",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
@@ -45,7 +45,7 @@ const services: ServiceEntry[] = [
     useWhen: "You need sub-50ms search with zero infrastructure management. Your agent needs to index documents, configure relevance, and query results through clean REST endpoints.",
     avoidWhen: "You need full-text analytics, complex aggregations, or log-based search. Algolia is optimized for user-facing search, not data exploration. Pricing scales with record count and search operations — large datasets get expensive fast.",
     friction: "API key management is clean (application ID + API key pair). The Dashboard handles index configuration, but agents can do everything via the REST API or official SDKs. The main friction point is relevance tuning — Algolia's ranking formula has many knobs that require domain understanding.",
-    support: "Best-in-class documentation. REST API is consistent and well-typed. Official SDKs in every major language. InstantSearch UI components for frontend if needed. The API surface is broad (search, indexing, analytics, A/B testing, rules) and well-maintained.",
+    support: "Current Rhumb score leader in this comparison: aggregate 9.0, execution 9.0, access readiness 9.1. Best-in-class documentation, consistent REST API, official SDKs in every major language, and clean API-key management make Algolia the easiest managed search lane for agents. The tradeoff is cost and relevance tuning: the agent can call the API cleanly, but ranking quality still depends on domain-specific setup.",
     decision: "Pick Algolia when search quality and developer experience matter more than infrastructure cost. The managed service eliminates operational overhead entirely — no clusters, no shards, no version upgrades.",
     data: scoreMap.algolia,
   },
@@ -56,7 +56,7 @@ const services: ServiceEntry[] = [
     useWhen: "You want search that's easy to deploy and configure without deep search expertise. Your agent needs fast, typo-tolerant search with a straightforward API. You prefer open-source with a managed cloud option.",
     avoidWhen: "You need complex nested document structures, advanced aggregation pipelines, or massive scale (billions of documents). Typesense trades some flexibility for simplicity.",
     friction: "Self-hosted deployment is genuinely simple — single binary, no JVM, no cluster configuration for small-to-medium workloads. Typesense Cloud removes even that. API design is clean and RESTful. Collection schemas are required upfront (no schemaless mode), which is actually better for agents because it catches errors early.",
-    support: "Good documentation with clear examples. The REST API is straightforward — collections, documents, search — without the sprawling surface area of Elasticsearch. Community is smaller but responsive. Typesense Cloud adds managed hosting. Geosearch, vector search, and federated multi-search are supported.",
+    support: "Current Rhumb snapshot: aggregate 8.6, execution 8.6, access readiness 8.7. The REST API is straightforward — collections, documents, search — without the sprawling surface area of Elasticsearch. Typesense Cloud adds managed hosting, and the open-source path gives teams an escape hatch. The tradeoff is governance depth: API-key scoping is useful, but audit/compliance controls are thinner than Algolia or Elastic.",
     decision: "Pick Typesense when you want search that works well out of the box without tuning. The default relevance is surprisingly good. Best ratio of capability-to-complexity in the category.",
     data: scoreMap.typesense,
   },
@@ -67,7 +67,7 @@ const services: ServiceEntry[] = [
     useWhen: "You need full-text search combined with analytics, log aggregation, or complex query patterns. Your use case requires nested aggregations, custom scoring functions, or sub-document indexing. You have infrastructure expertise.",
     avoidWhen: "You just need product search or autocomplete. Elasticsearch's power comes with operational complexity — cluster management, shard allocation, version upgrades, JVM tuning. For simple search use cases, it's overkill and the operational burden will outweigh the flexibility.",
     friction: "Deployment complexity is the defining friction. Self-hosted requires JVM management, cluster topology decisions, shard planning, and monitoring. Elastic Cloud reduces this but adds cost. The Query DSL is powerful but verbose — agents need to construct nested JSON query objects that are non-trivial. Mapping types and index settings have many gotchas.",
-    support: "The most comprehensive documentation in the search space — bordering on overwhelming. The REST API is complete but the surface area is enormous. Community is massive. Plugin ecosystem is deep. But the learning curve is steep, and misconfigured clusters degrade silently until they fail hard.",
+    support: "Current Rhumb snapshot: aggregate 8.9, execution 9.0, access readiness 8.6. Elasticsearch has the deepest search and analytics surface, strong governance controls, and the most comprehensive docs in the category. The tradeoff is operational complexity: agents can express powerful queries, but cluster settings, mappings, shard health, and Kibana-heavy workflows add more failure modes than Algolia or Typesense.",
     decision: "Pick Elasticsearch when your search requirements genuinely need its power — analytics, complex queries, log aggregation, or when you're already in the Elastic ecosystem. Don't pick it for simple search just because it's the default name.",
     data: scoreMap.elasticsearch,
   },
@@ -80,7 +80,7 @@ services.sort(
 );
 
 const desc =
-  "Search-as-a-service comparison for AI agents: Algolia vs Typesense vs Elasticsearch with live AN Score data, failure modes, and agent-readiness analysis.";
+  "Current Rhumb search-as-a-service scorecard for AI agents: Algolia 9.0, Elasticsearch 8.9, and Typesense 8.6, with retrieval, analytics, indexing, and governance tradeoffs.";
 ---
 
 <Layout
@@ -109,13 +109,13 @@ const desc =
           Algolia vs Typesense vs Elasticsearch
         </h1>
         <p class="mt-4 text-lg text-slate-400 leading-relaxed">
-          Three search engines, three philosophies. Algolia bets on managed simplicity.
-          Typesense bets on open-source pragmatism. Elasticsearch bets on being the
-          Swiss Army knife of search. Here's what the data says about using each one
-          from an AI agent.
+          Three search engines, three philosophies. Algolia leads the current Rhumb snapshot at 9.0 on managed simplicity.
+          Elasticsearch sits just behind at 8.9 when analytics and governance matter more than operational simplicity.
+          Typesense scores 8.6 and stays attractive when the agent needs straightforward open-source search.
+          Here's what the score data says about using each one from an AI agent.
         </p>
         <p class="mt-3 text-sm text-slate-500">
-          Last updated March 2026 · Scores from live AN Score data
+          Updated June 2026 snapshot · Current scores: Algolia 9.0, Elasticsearch 8.9, Typesense 8.6
         </p>
       </header>
 
@@ -217,26 +217,25 @@ const desc =
         <div class="bg-surface border border-amber/20 rounded-xl p-6">
           <h2 class="font-display text-xl font-semibold text-slate-100">The agent perspective</h2>
           <p class="mt-3 text-sm text-slate-400 leading-relaxed">
-            For most agent workflows, the choice comes down to one question:
-            <strong class="text-slate-200">do you need analytics and complex queries, or just search?</strong>
+            For most agent workflows, the current score order is tight: Algolia <strong class="text-slate-200">9.0</strong>, Elasticsearch <strong class="text-slate-200">8.9</strong>, Typesense <strong class="text-slate-200">8.6</strong>. The choice comes down to one question:
+            <strong class="text-slate-200">do you need managed search, analytics-grade search, or simple open-source search?</strong>
           </p>
           <div class="mt-4 space-y-3 text-sm text-slate-400">
             <p>
-              <strong class="text-slate-200">Just search?</strong> Algolia if you want managed, Typesense
-              if you want open-source. Both have clean APIs that agents can drive without deep search expertise.
-              Typesense's default relevance is surprisingly good without tuning. Algolia's is better with tuning
-              but requires more domain knowledge.
+              <strong class="text-slate-200">Managed application search?</strong> Algolia is the current score leader at 9.0,
+              mostly because access readiness is strongest at 9.1 and the API surface is clean for indexing, querying, and key scoping.
+              Use Typesense when open-source simplicity matters more than managed-service polish; its 8.6 score is still native-tier, but governance depth is thinner.
             </p>
             <p>
-              <strong class="text-slate-200">Search + analytics + logs?</strong> Elasticsearch, but go in
-              with your eyes open about operational complexity. The Query DSL gives agents maximum flexibility
-              at the cost of verbose, nested JSON queries. Consider Elastic Cloud over self-hosted unless you
-              have strong infrastructure reasons.
+              <strong class="text-slate-200">Search + analytics + logs?</strong> Elasticsearch is the near-tie at 8.9,
+              with execution quality matching Algolia at 9.0 and stronger governance controls than Typesense.
+              Go in with your eyes open about operational complexity: the Query DSL gives agents maximum flexibility
+              at the cost of verbose nested JSON, mapping decisions, and cluster-health failure modes.
             </p>
             <p>
-              <strong class="text-slate-200">Cost-sensitive?</strong> Typesense self-hosted is free.
-              Algolia's pricing scales with operations and records — it gets expensive at scale.
-              Elasticsearch self-hosted is free; Elastic Cloud pricing is usage-based.
+              <strong class="text-slate-200">Cost-sensitive or self-hosted?</strong> Typesense is the pragmatic default.
+              Its 8.7 access readiness is close to Elasticsearch's 8.6, but the setup surface is much smaller.
+              Algolia's pricing scales with operations and records; Elasticsearch self-hosted is free but shifts the operational tax back onto the operator.
             </p>
           </div>
         </div>
