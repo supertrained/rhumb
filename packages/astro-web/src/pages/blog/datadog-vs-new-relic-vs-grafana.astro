@@ -22,7 +22,7 @@ const ARTICLE_JSON_LD = {
     name: "Pedro Nunes",
   },
   description:
-    "A side-by-side comparison of Datadog, New Relic, and Grafana Cloud APIs for AI agent observability. Datadog leads on execution; Grafana Cloud on openness.",
+    "Current Rhumb observability API scorecard for AI agents: Datadog 9.0, Grafana Cloud 8.6, and New Relic 8.4, with telemetry authority and query-surface tradeoffs.",
   url: "https://rhumb.dev/blog/datadog-vs-new-relic-vs-grafana",
   publisher: {
     "@type": "Organization",
@@ -54,7 +54,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need open-source flexibility, want to avoid vendor lock-in on data formats, or are running on a tight budget where per-host pricing compounds fast.",
     friction: "API key + application key dual authentication adds setup complexity. Custom metrics cardinality limits can surprise agents that dynamically create tags. Query API has tight rate limits (600 req/min default) that agents doing bulk analysis will hit.",
     decision: "Pick Datadog when execution reliability and breadth of integrations matter more than cost or data portability.",
-    support: "Highest AN Score in the category. Best execution score — the API does what it says, consistently. Strongest integration breadth (800+ integrations) means an agent can observe almost anything through one API.",
+    support: "Current Rhumb score leader: aggregate 9.0, execution 9.0, access readiness 9.1. Datadog is the broadest single-vendor telemetry surface in this comparison, which helps agents that need metrics, logs, traces, APM, infrastructure, and security signals through one route. The caution is authority: dashboard, alert, incident, and remediation privileges should not ride on the same key just because the observability API is reliable.",
     data: scoreMap.datadog,
   },
   {
@@ -66,7 +66,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need REST-first simplicity — New Relic's heavy reliance on NerdGraph (GraphQL) and NRQL query language means agents must handle nested query construction. Not ideal for simple metric push/pull workflows.",
     friction: "NerdGraph mutations require careful schema introspection. NRQL syntax has edge cases around escaping and time windowing that trip up agents generating queries dynamically. License key vs API key vs user key vs ingest key — four different credential types for different purposes.",
     decision: "Pick New Relic when powerful querying and data exploration are the primary use case. Its NRQL + GraphQL combination is uniquely powerful for agents that need to ask complex questions about system behavior.",
-    support: "Strong querying capabilities — NRQL is genuinely powerful for agents that can construct structured queries. Generous free tier (100GB/month ingest) lowers experimentation barriers. GraphQL API is well-documented.",
+    support: "Current Rhumb snapshot: aggregate 8.4, execution 8.5, access readiness 8.1. New Relic is now the lower-scoring option in this set, but NRQL and NerdGraph still matter when the agent needs ad-hoc exploration over simple telemetry collection. The score penalty mostly reflects query-language and credential-shape complexity, not weak analytical capability.",
     data: scoreMap["new-relic"],
   },
   {
@@ -78,7 +78,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You want a single cohesive API — Grafana Cloud exposes separate APIs for metrics (Prometheus), logs (Loki), and traces (Tempo), each with different query languages and auth patterns.",
     friction: "Three separate query languages (PromQL, LogQL, TraceQL) for three data types. API key scoping requires understanding Grafana Cloud's stack/organization model. Dashboard API is REST, but data queries hit different endpoints per signal type. The cognitive load is higher than the other two.",
     decision: "Pick Grafana Cloud when data ownership, open-source compatibility, and avoiding vendor lock-in outweigh API surface simplicity.",
-    support: "Best portability story — everything speaks open standards (Prometheus, OpenTelemetry). No proprietary data formats. An agent's knowledge of PromQL transfers to any Prometheus-compatible system. Strong community ecosystem.",
+    support: "Current Rhumb snapshot: aggregate 8.6, execution 8.7, access readiness 8.3. Grafana Cloud now sits between Datadog and New Relic on raw score. Its open-standard surface is still the portability winner, but agents must handle separate metrics, logs, and traces paths instead of one cohesive observability API.",
     data: scoreMap["grafana-cloud"],
   },
 ];
@@ -93,13 +93,13 @@ const sorted = [...compared].sort((a, b) => {
 const winner = sorted[0];
 const title = "Datadog vs New Relic vs Grafana Cloud for AI Agents";
 const description =
-  "A side-by-side comparison of Datadog, New Relic, and Grafana Cloud APIs for AI agent observability workflows using Rhumb's live AN Score data.";
+  "Compare Datadog, Grafana Cloud, and New Relic observability APIs for AI agent workflows using current Rhumb scores: Datadog 9.0, Grafana Cloud 8.6, New Relic 8.4.";
 ---
 
 <Layout
   title={title}
   description={description}
-  ogImage="/api/og?title=Datadog+vs+New+Relic+vs+Grafana&subtitle=AN+Scores:+7.8+·+7.0+·+7.1+—+Scored+for+agent+readiness"
+  ogImage="/api/og?title=Datadog+vs+New+Relic+vs+Grafana&subtitle=AN+Scores:+9.0+·+8.6+·+8.4+—+Scored+for+agent+readiness"
 >
   <script type="application/ld+json" set:html={JSON.stringify(ARTICLE_JSON_LD)} />
   <meta name="rhumb:category" content="monitoring" />
@@ -124,7 +124,7 @@ const description =
         {description}
       </p>
       <p class="text-xs text-slate-600 mt-3">
-        Last updated March 2026 · Scores from live AN Score data
+        Updated June 2026 snapshot · Current scores: Datadog 9.0, Grafana Cloud 8.6, New Relic 8.4
       </p>
     </div>
 
@@ -274,11 +274,9 @@ const description =
             score.
           </p>
           <p>
-            Scores combine documentation analysis, SDK quality assessment,
-            authentication flow evaluation, and — where available — runtime
-            testing of actual API calls. Confidence reflects the depth of
-            evidence: higher confidence means more data points informing the
-            score.
+            The current snapshot has Datadog at 9.0 aggregate / 9.0 execution / 9.1 access readiness,
+            Grafana Cloud at 8.6 / 8.7 / 8.3, and New Relic at 8.4 / 8.5 / 8.1. Confidence is modest
+            across the group (roughly 0.58–0.64), so use the scores to route the first candidate, then check whether the workflow needs one vendor surface, open-standard portability, or ad-hoc query depth.
           </p>
           <p>
             These scores are not pay-to-play. Rhumb has no commercial
@@ -292,32 +290,19 @@ const description =
         <h2 class="text-xl font-semibold text-white mb-4">Bottom line</h2>
         <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
           <p>
-            <strong>Datadog</strong> leads on raw execution quality and
-            integration breadth. If your agent needs to observe a heterogeneous
-            stack through one API, Datadog has the highest reliability and the
-            most comprehensive coverage. The dual API key + app key auth is
-            annoying but manageable.
+            <strong>Datadog</strong> leads the current scorecard at 9.0 aggregate,
+            with 9.0 execution and 9.1 access readiness. If your agent needs to observe a heterogeneous stack through one API, Datadog has the cleanest score-backed default. The dual API key + app key auth is manageable, but the real governance issue is what the agent is allowed to do after telemetry becomes an action trigger.
           </p>
           <p>
-            <strong>New Relic</strong> is the querying powerhouse. NRQL gives
-            agents a genuine analytical language for exploring system behavior
-            — something neither Datadog's API nor Grafana's PromQL can match
-            for ad-hoc exploration. The free tier is the most generous in the
-            category.
+            <strong>Grafana Cloud</strong> is the 8.6 portability lane. Prometheus, OpenTelemetry, Loki, and Tempo keep the agent closer to open standards and reduce vendor-format lock-in. The tradeoff is cognitive load: metrics, logs, and traces still feel like separate surfaces, so correlation work needs more explicit orchestration.
           </p>
           <p>
-            <strong>Grafana Cloud</strong> wins on openness and portability.
-            Everything speaks open standards — Prometheus, OpenTelemetry, Loki.
-            An agent that learns PromQL can take that knowledge anywhere. But the
-            three-API-surface reality (metrics, logs, traces as separate systems)
-            adds real cognitive overhead for agents trying to correlate across
-            signal types.
+            <strong>New Relic</strong> scores 8.4 aggregate / 8.5 execution / 8.1 access readiness.
+            It is the lower-scoring option in this current snapshot, but still the strongest analytical-query story when NRQL and NerdGraph match the job. Use it when exploration depth beats REST-first simplicity.
           </p>
           <p>
-            None of these platforms were designed for autonomous agent
-            consumption. All three require agents to handle complexity that
-            wouldn't exist if the APIs were built agent-first. The scores
-            reflect reality, not aspiration.
+            The scores now cluster higher than the March copy implied: Datadog 9.0,
+            Grafana Cloud 8.6, New Relic 8.4. The hard agent problem is not only telemetry access; it is authority after observation. A monitoring key that can read symptoms should not automatically be allowed to change alerts, trigger incident workflows, or remediate production without a governed lane.
           </p>
         </div>
       </section>
