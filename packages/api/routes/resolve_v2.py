@@ -103,6 +103,7 @@ _RESPONSE_HEADER_NAMES = [
     "X-Rhumb-Rate-Remaining",
 ]
 _ROUTE_PLAN_TTL_SECONDS = 300
+_ROUTE_PLAN_ISSUABLE_SAFETY_STATES = frozenset({"executable", "dry_run_only"})
 _ROUTE_PLAN_CLAIM_BOUNDARY = (
     "PP-16 compact bridge: v2 execute binds the signed route plan to the same "
     "estimate/planner facts used for forwarding and fail-closes on signature, "
@@ -489,6 +490,35 @@ def _route_plan_boundary_facts(
         estimate_data=estimate_data,
         selected_provider_public=selected_provider_public,
     )
+    return _route_plan_boundary_facts_from_candidate(
+        capability_id=capability_id,
+        route_candidate=route_candidate,
+        selected_provider_public=selected_provider_public,
+        credential_mode=credential_mode,
+        parameters=parameters,
+        raw_request=raw_request,
+        agent=agent,
+        policy_summary=policy_summary,
+        policy_source=policy_source,
+        budget_summary=budget_summary,
+    )
+
+
+def _route_plan_boundary_facts_from_candidate(
+    *,
+    capability_id: str,
+    route_candidate: dict[str, Any],
+    selected_provider_public: str | None = None,
+    credential_mode: str | None = None,
+    parameters: dict[str, Any] | None = None,
+    raw_request: Request,
+    agent: Any | None,
+    policy_summary: dict[str, Any] | None,
+    policy_source: dict[str, Any],
+    budget_summary: dict[str, Any] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build signed-route-plan payload and expected Runtime checks for one candidate."""
+
     provider_id = (
         _public_provider_slug(selected_provider_public)
         or _public_provider_slug(route_candidate.get("provider_id"))
@@ -521,11 +551,11 @@ def _route_plan_boundary_facts(
         "provider_id": provider_id,
         "route_id": str(route_candidate.get("route_id") or "route_unknown"),
         "credential_mode": _canonicalize_credential_mode(
-            estimate_data.get("credential_mode") or credential_mode
+            route_candidate.get("credential_mode") or credential_mode
         ),
         "credential_handle_id": None,
         "required_scopes": required_scopes,
-        "input_hash": canonical_json_sha256(parameters),
+        "input_hash": canonical_json_sha256(parameters or {}),
         "manifest_digest": str(manifest_digest),
         "evidence_packet_digest": route_candidate.get("evidence_packet_digest"),
         "policy_snapshot_digest": _route_plan_digest_or_sentinel(
@@ -556,6 +586,82 @@ def _issue_internal_route_plan(payload: dict[str, Any]) -> tuple[str, int]:
         ttl_seconds=_ROUTE_PLAN_TTL_SECONDS,
     )
     return route_plan_id, issued_at + _ROUTE_PLAN_TTL_SECONDS
+
+
+async def _route_plan_issue_context(
+    raw_request: Request,
+) -> tuple[Any | None, dict[str, Any] | None, dict[str, Any], dict[str, Any] | None]:
+    """Resolve read-only context needed to bind route-plan tokens in Resolve responses."""
+
+    agent = None
+    account_policy = None
+    if _normalized_governed_key(raw_request):
+        agent = await _resolve_policy_agent(raw_request)
+        account_policy = await get_resolve_policy_store().get_policy(agent.organization_id)
+
+    effective_policy, policy_source = _merge_effective_policy(account_policy, None)
+    return (
+        agent,
+        _public_policy_summary(_policy_summary(effective_policy)),
+        policy_source,
+        None,
+    )
+
+
+def _issue_route_plans_for_response_candidates(
+    body: dict[str, Any],
+    *,
+    capability_id: str,
+    credential_mode: str | None,
+    parameters: dict[str, Any] | None,
+    raw_request: Request,
+    agent: Any | None,
+    policy_summary: dict[str, Any] | None,
+    policy_source: dict[str, Any],
+    budget_summary: dict[str, Any] | None,
+) -> dict[str, Any]:
+    data = body.get("data")
+    if not isinstance(data, dict):
+        return body
+
+    candidates = data.get("route_candidates")
+    if not isinstance(candidates, list):
+        return body
+
+    annotated = dict(body)
+    annotated_data = dict(data)
+    issued_candidates: list[Any] = []
+    for candidate in candidates:
+        if not isinstance(candidate, dict):
+            issued_candidates.append(candidate)
+            continue
+
+        candidate_with_plan = dict(candidate)
+        if candidate_with_plan.get("safety_state") not in _ROUTE_PLAN_ISSUABLE_SAFETY_STATES:
+            candidate_with_plan["route_plan_id"] = None
+            candidate_with_plan["route_plan_expires_at"] = None
+            issued_candidates.append(candidate_with_plan)
+            continue
+
+        route_plan_payload, _ = _route_plan_boundary_facts_from_candidate(
+            capability_id=capability_id,
+            route_candidate=candidate_with_plan,
+            credential_mode=credential_mode,
+            parameters=parameters,
+            raw_request=raw_request,
+            agent=agent,
+            policy_summary=policy_summary,
+            policy_source=policy_source,
+            budget_summary=budget_summary,
+        )
+        route_plan_id, expires_at = _issue_internal_route_plan(route_plan_payload)
+        candidate_with_plan["route_plan_id"] = route_plan_id
+        candidate_with_plan["route_plan_expires_at"] = expires_at
+        issued_candidates.append(candidate_with_plan)
+
+    annotated_data["route_candidates"] = issued_candidates
+    annotated["data"] = annotated_data
+    return annotated
 
 
 def _route_plan_id_hash(route_plan_id: str | None) -> str | None:
@@ -1347,6 +1453,20 @@ async def resolve_capability_v2(
     body = _canonicalize_execute_body_provider_fields(body, provider_slug=None)
     if resolve_response.status_code == 200 and isinstance(body.get("data"), dict):
         body = annotate_resolve_body_with_route_candidates(body)
+        agent, policy_summary, policy_source, budget_summary = await _route_plan_issue_context(
+            raw_request
+        )
+        body = _issue_route_plans_for_response_candidates(
+            body,
+            capability_id=capability_id,
+            credential_mode=canonical_credential_mode,
+            parameters={},
+            raw_request=raw_request,
+            agent=agent,
+            policy_summary=policy_summary,
+            policy_source=policy_source,
+            budget_summary=budget_summary,
+        )
         body = _annotate_v2_body(body)
 
     return JSONResponse(
@@ -1478,6 +1598,20 @@ async def estimate_capability_v2(
                 body["data"].get("credential_mode")
             )
         body = annotate_resolve_body_with_route_candidates(body)
+        agent, policy_summary, policy_source, budget_summary = await _route_plan_issue_context(
+            raw_request
+        )
+        body = _issue_route_plans_for_response_candidates(
+            body,
+            capability_id=capability_id,
+            credential_mode=canonical_credential_mode,
+            parameters={},
+            raw_request=raw_request,
+            agent=agent,
+            policy_summary=policy_summary,
+            policy_source=policy_source,
+            budget_summary=budget_summary,
+        )
         body = _annotate_v2_body(body)
 
     return JSONResponse(

@@ -632,6 +632,86 @@ async def test_v2_resolve_wraps_metadata_and_rewrites_nested_urls(app):
 
 
 @pytest.mark.anyio
+async def test_v2_resolve_issues_route_plan_ids_only_for_issuable_candidates(app):
+    issued_at = 1_800_000_000
+    resolve_resp = _make_mock_response(
+        status_code=200,
+        json_body={
+            "data": {
+                "capability_id": "search.query",
+                "providers": [
+                    {
+                        "service_slug": "brave-search-api",
+                        "credential_modes": ["byok"],
+                        "auth_method": "api_key",
+                        "endpoint_pattern": "GET /res/v1/web/search",
+                        "cost_per_call": 0.003,
+                    },
+                    {
+                        "service_slug": "dry-run-provider",
+                        "credential_modes": ["byok"],
+                        "auth_method": "api_key",
+                        "endpoint_pattern": "POST /dry-run",
+                        "safety_state": "dry_run_only",
+                    },
+                    {
+                        "service_slug": "blocked-provider",
+                        "credential_modes": ["byok"],
+                        "auth_method": "api_key",
+                        "endpoint_pattern": "POST /blocked",
+                        "safety_state": "blocked_policy",
+                        "stop_condition": "policy_denied",
+                    },
+                ],
+                "execute_hint": {"preferred_provider": "brave-search-api"},
+            },
+            "error": None,
+        },
+    )
+    resolve_resp.headers = {}
+
+    with (
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=resolve_resp)),
+        patch("routes.resolve_v2.time.time", return_value=issued_at),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get("/v2/capabilities/search.query/resolve")
+
+    assert resp.status_code == 200
+    candidates = resp.json()["data"]["route_candidates"]
+    executable, dry_run, blocked = candidates
+    assert executable["safety_state"] == "executable"
+    assert executable["route_plan_id"].startswith("rhrp1.")
+    assert executable["route_plan_expires_at"] == issued_at + 300
+    assert dry_run["safety_state"] == "dry_run_only"
+    assert dry_run["route_plan_id"].startswith("rhrp1.")
+    assert dry_run["route_plan_expires_at"] == issued_at + 300
+    assert blocked["safety_state"] == "blocked_policy"
+    assert blocked["route_plan_id"] is None
+    assert blocked["route_plan_expires_at"] is None
+
+    _, policy_source = resolve_v2_route._merge_effective_policy(None, None)
+    _, expected = resolve_v2_route._route_plan_boundary_facts_from_candidate(
+        capability_id="search.query",
+        route_candidate=executable,
+        credential_mode=None,
+        parameters={},
+        raw_request=_request_with_headers({}),
+        agent=None,
+        policy_summary=None,
+        policy_source=policy_source,
+        budget_summary=None,
+    )
+    validation = resolve_v2_route.validate_route_plan(
+        executable["route_plan_id"],
+        expected,
+        resolve_v2_route.get_signing_key(),
+        now=issued_at + 1,
+    )
+    assert validation["allowed"] is True
+
+
+@pytest.mark.anyio
 async def test_v2_resolve_rejects_invalid_credential_mode_filter_before_forward(app):
     with patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -1436,6 +1516,51 @@ async def test_v2_estimate_rewrites_recovery_urls_and_canonicalizes_mode(app):
         "credential_mode": "byok",
         "provider": "sendgrid",
     }
+
+
+@pytest.mark.anyio
+async def test_v2_estimate_issues_route_plan_id_for_executable_candidate(app):
+    issued_at = 1_800_000_000
+    estimate_resp = _route_plan_estimate_response()
+
+    with (
+        patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)) as mock_forward,
+        patch("routes.resolve_v2.time.time", return_value=issued_at),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                "/v2/capabilities/search.query/execute/estimate",
+                params={"credential_mode": "byok", "provider": "brave-search-api"},
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    candidate = data["route_candidates"][0]
+    assert candidate["safety_state"] == "executable"
+    assert candidate["route_plan_id"].startswith("rhrp1.")
+    assert candidate["route_plan_expires_at"] == issued_at + 300
+
+    _, policy_source = resolve_v2_route._merge_effective_policy(None, None)
+    _, expected = resolve_v2_route._route_plan_boundary_facts(
+        capability_id="search.query",
+        estimate_data=data,
+        selected_provider_public="brave-search-api",
+        credential_mode="byok",
+        parameters={},
+        raw_request=_request_with_headers({}),
+        agent=None,
+        policy_summary=None,
+        policy_source=policy_source,
+        budget_summary=None,
+    )
+    validation = resolve_v2_route.validate_route_plan(
+        candidate["route_plan_id"],
+        expected,
+        resolve_v2_route.get_signing_key(),
+        now=issued_at + 1,
+    )
+    assert validation["allowed"] is True
+    assert mock_forward.await_count == 1
 
 
 @pytest.mark.anyio
