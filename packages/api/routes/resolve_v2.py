@@ -21,6 +21,7 @@ internals land in later R40 slices.
 
 from __future__ import annotations
 
+import json
 import logging
 import re
 import time
@@ -54,6 +55,11 @@ from services.route_plan_enforcement import (
     issue_route_plan,
     validate_route_plan,
 )
+from services.route_plan_state import (
+    RoutePlanStateUnavailable,
+    init_route_plan_state_store,
+)
+from services.kill_switches import init_kill_switch_registry
 from services.route_explanation import build_explanation, persist_explanation, store_explanation
 from services.service_slugs import (
     CANONICAL_TO_PROXY,
@@ -105,11 +111,11 @@ _RESPONSE_HEADER_NAMES = [
 _ROUTE_PLAN_TTL_SECONDS = 300
 _ROUTE_PLAN_ISSUABLE_SAFETY_STATES = frozenset({"executable", "dry_run_only"})
 _ROUTE_PLAN_CLAIM_BOUNDARY = (
-    "PP-16 compact bridge: v2 execute binds the signed route plan to the same "
-    "estimate/planner facts used for forwarding and fail-closes on signature, "
-    "expiry, principal, route/provider, credential, input, manifest, policy, "
-    "budget, scope, kill-switch, or runtime echo mismatch. Durable revocation "
-    "and replay storage are not claimed in this slice."
+    "PP-16 bridge: v2 Resolve/estimate issue opaque signed route plans for "
+    "executable/dry-run candidates; v2 execute binds supplied or same-planner "
+    "plans to planner facts and fail-closes on signature, expiry, principal, "
+    "route/provider, credential, input, manifest, policy, budget, scope, durable "
+    "replay/revocation, kill-switch, or runtime echo mismatch."
 )
 _V2_NAVIGATION_URL_KEYS = {
     "search_url",
@@ -454,6 +460,34 @@ def _route_plan_digest_or_sentinel(value: Any, *, sentinel: str) -> str:
     return canonical_json_sha256(value)
 
 
+def _planned_parameters_from_query(value: str | None) -> dict[str, Any]:
+    """Parse optional route-plan parameter binding from read endpoints.
+
+    Resolve/estimate are GET endpoints, so the execute body is not otherwise
+    present when a route plan is issued. This opt-in query parameter lets a
+    caller bind a signed plan to the exact later execute parameters without
+    weakening the fail-closed empty-parameters default.
+    """
+
+    if value is None or value == "":
+        return {}
+    try:
+        loaded = json.loads(value)
+    except json.JSONDecodeError as exc:
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid planned_parameters query value.",
+            detail="Provide planned_parameters as a JSON object so the route plan can bind the later execute body.",
+        ) from exc
+    if not isinstance(loaded, dict):
+        raise RhumbError(
+            "INVALID_PARAMETERS",
+            message="Invalid planned_parameters query value.",
+            detail="planned_parameters must be a JSON object.",
+        )
+    return loaded
+
+
 def _selected_route_candidate(
     *,
     capability_id: str,
@@ -640,6 +674,7 @@ def _issue_route_plans_for_response_candidates(
         if candidate_with_plan.get("safety_state") not in _ROUTE_PLAN_ISSUABLE_SAFETY_STATES:
             candidate_with_plan["route_plan_id"] = None
             candidate_with_plan["route_plan_expires_at"] = None
+            candidate_with_plan["route_plan_input_hash"] = None
             issued_candidates.append(candidate_with_plan)
             continue
 
@@ -657,6 +692,7 @@ def _issue_route_plans_for_response_candidates(
         route_plan_id, expires_at = _issue_internal_route_plan(route_plan_payload)
         candidate_with_plan["route_plan_id"] = route_plan_id
         candidate_with_plan["route_plan_expires_at"] = expires_at
+        candidate_with_plan["route_plan_input_hash"] = route_plan_payload.get("input_hash")
         issued_candidates.append(candidate_with_plan)
 
     annotated_data["route_candidates"] = issued_candidates
@@ -706,14 +742,103 @@ def _raise_route_plan_rejected(
     )
 
 
-def _validate_route_plan_or_reject(
+async def _apply_route_plan_kill_switch_state(expected: dict[str, Any]) -> dict[str, Any]:
+    """Fold durable kill-switch state into the expected route-plan facts."""
+
+    checked = dict(expected)
+    try:
+        registry = await init_kill_switch_registry()
+        blocked, reason = registry.is_blocked(
+            agent_id=str(checked.get("agent_id") or ""),
+            provider_slug=str(checked.get("provider_id") or ""),
+            operation_class="non_financial",
+            require_authoritative=False,
+        )
+    except Exception as exc:
+        logger.warning("route_plan_kill_switch_check_failed", exc_info=True)
+        blocked = True
+        reason = f"Kill-switch state unavailable: {exc}"
+
+    if blocked:
+        checked["kill_switch_allows_execution"] = False
+        checked["execution_disabled"] = True
+        checked["kill_switch_reason"] = reason
+    else:
+        checked["kill_switch_allows_execution"] = True
+    return checked
+
+
+async def _claim_route_plan_state_or_reject(
+    *,
+    validation: dict[str, Any],
+    route_plan_id: str | None,
+    source: str,
+) -> None:
+    try:
+        store = await init_route_plan_state_store()
+        claim = await store.check_and_claim(
+            nonce=validation.get("nonce"),
+            route_plan_id_hash=_route_plan_id_hash(route_plan_id),
+            expires_at=validation.get("expires_at"),
+            allow_fallback=True,
+        )
+    except RoutePlanStateUnavailable as exc:
+        checks = dict(validation.get("checks", {}))
+        checks["durable_replay_state_available"] = False
+        _raise_route_plan_rejected(
+            {"allowed": False, "stop_condition": "route_plan_mismatch", "checks": checks},
+            route_plan_id=route_plan_id,
+            message="Resolve route plan durable state was unavailable.",
+            detail="Execution was blocked because route-plan replay/revocation state could not be checked.",
+            extra={"mode": source, "state_backend": "unavailable", "state_error": str(exc)},
+        )
+    except Exception as exc:
+        checks = dict(validation.get("checks", {}))
+        checks["durable_replay_state_available"] = False
+        _raise_route_plan_rejected(
+            {"allowed": False, "stop_condition": "route_plan_mismatch", "checks": checks},
+            route_plan_id=route_plan_id,
+            message="Resolve route plan durable state was unavailable.",
+            detail="Execution was blocked because route-plan replay/revocation state could not be checked.",
+            extra={"mode": source, "state_backend": "unavailable", "state_error": str(exc)},
+        )
+
+    checks = dict(validation.get("checks", {}))
+    checks["durable_replay_state_available"] = claim.state_backend in {
+        "database",
+        "memory_fallback",
+    }
+    checks["durable_replay_not_seen"] = claim.stop_condition != "route_plan_replay"
+    checks["durable_not_revoked"] = claim.stop_condition != "route_plan_revoked"
+    validation["checks"] = checks
+    validation["state_backend"] = claim.state_backend
+    validation["nonce_hash"] = claim.nonce_hash
+    if claim.allowed:
+        return
+
+    _raise_route_plan_rejected(
+        {"allowed": False, "stop_condition": claim.stop_condition, "checks": checks},
+        route_plan_id=route_plan_id,
+        message="Resolve route plan was rejected before execution.",
+        detail=claim.detail or "Route-plan nonce state rejected execution.",
+        extra={"mode": source, "state_backend": claim.state_backend},
+    )
+
+
+async def _validate_route_plan_or_reject(
     route_plan_id: str | None,
     expected: dict[str, Any],
     *,
     source: str,
 ) -> dict[str, Any]:
+    expected = await _apply_route_plan_kill_switch_state(expected)
     validation = validate_route_plan(route_plan_id, expected, get_signing_key())
     if validation.get("allowed") is True:
+        await _claim_route_plan_state_or_reject(
+            validation=validation,
+            route_plan_id=route_plan_id,
+            source=source,
+        )
         return validation
     _raise_route_plan_rejected(
         validation,
@@ -742,6 +867,8 @@ def _route_plan_enforcement_meta(
         "route_plan_id_hash": _route_plan_id_hash(route_plan_id),
         "checks": validation.get("checks", {}),
         "failed_checks": [],
+        "state_backend": validation.get("state_backend"),
+        "nonce_hash": validation.get("nonce_hash"),
         "binding": {
             "capability_id": expected.get("capability_id"),
             "service_id": expected.get("service_id"),
@@ -1435,9 +1562,14 @@ async def resolve_capability_v2(
         default=None,
         description="Filter by credential mode (byok, rhumb_managed, agent_vault; legacy byo accepted).",
     ),
+    planned_parameters: str | None = Query(
+        default=None,
+        description="Optional JSON object whose hash is bound into issued route_plan_id values.",
+    ),
 ) -> JSONResponse:
     capability_id = _validated_capability_path_id(capability_id)
     canonical_credential_mode = _validated_credential_mode_filter(credential_mode)
+    route_plan_parameters = _planned_parameters_from_query(planned_parameters)
     resolve_response = await _forward_internal(
         raw_request,
         method="GET",
@@ -1460,7 +1592,7 @@ async def resolve_capability_v2(
             body,
             capability_id=capability_id,
             credential_mode=canonical_credential_mode,
-            parameters={},
+            parameters=route_plan_parameters,
             raw_request=raw_request,
             agent=agent,
             policy_summary=policy_summary,
@@ -1573,10 +1705,15 @@ async def estimate_capability_v2(
         description="Credential mode (auto, byok, rhumb_managed, agent_vault; legacy byo accepted).",
     ),
     provider: str | None = Query(default=None),
+    planned_parameters: str | None = Query(
+        default=None,
+        description="Optional JSON object whose hash is bound into issued route_plan_id values.",
+    ),
 ) -> JSONResponse:
     capability_id = _validated_capability_path_id(capability_id)
     canonical_credential_mode = _validated_estimate_credential_mode(credential_mode)
     canonical_provider = _validated_estimate_provider_filter(provider)
+    route_plan_parameters = _planned_parameters_from_query(planned_parameters)
     estimate_response = await _forward_internal(
         raw_request,
         method="GET",
@@ -1605,7 +1742,7 @@ async def estimate_capability_v2(
             body,
             capability_id=capability_id,
             credential_mode=canonical_credential_mode,
-            parameters={},
+            parameters=route_plan_parameters,
             raw_request=raw_request,
             agent=agent,
             policy_summary=policy_summary,
@@ -1756,7 +1893,7 @@ async def execute_capability_v2(
     if route_plan_id is None:
         route_plan_id, _ = _issue_internal_route_plan(route_plan_payload)
         route_plan_mode = "internal_same_planner"
-    route_plan_validation = _validate_route_plan_or_reject(
+    route_plan_validation = await _validate_route_plan_or_reject(
         route_plan_id,
         route_plan_expected,
         source=route_plan_mode,

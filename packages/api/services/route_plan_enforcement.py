@@ -214,7 +214,15 @@ def validate_route_plan(
         return _result(False, "route_plan_mismatch", checks)
 
     _remember_nonce(seen_nonces, nonce)
-    return _result(True, None, checks)
+    result = _result(True, None, checks)
+    result.update(
+        {
+            "nonce": nonce,
+            "route_plan_id": str(payload["route_plan_id"]),
+            "expires_at": expires_at,
+        }
+    )
+    return result
 
 
 def _blank_checks() -> dict[str, bool]:
