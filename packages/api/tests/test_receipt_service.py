@@ -100,6 +100,31 @@ def test_compute_receipt_hash_changes_on_different_data():
     assert _compute_receipt_hash(data1) != _compute_receipt_hash(data2)
 
 
+def test_compute_receipt_hash_covers_route_facts_and_route_plan_hash():
+    data = {
+        "receipt_id": "rcpt_test123",
+        "status": "success",
+        "execution_id": "exec_abc",
+        "layer": 2,
+        "capability_id": "search.query",
+        "agent_id": "agent_123",
+        "provider_id": "brave-search-api",
+        "credential_mode": "rhumb_managed",
+        "route_id": "route_search_query_brave_search_api_official_api_v1",
+        "manifest_digest": "sha256:manifest",
+        "route_plan_id_hash": "sha256:plan",
+    }
+
+    assert _compute_receipt_hash(data) != _compute_receipt_hash({
+        **data,
+        "route_id": "route_search_query_other_official_api_v1",
+    })
+    assert _compute_receipt_hash(data) != _compute_receipt_hash({
+        **data,
+        "route_plan_id_hash": "sha256:other-plan",
+    })
+
+
 @pytest.mark.anyio
 async def test_create_receipt_writes_to_supabase():
     """Receipt creation should write to Supabase and return a valid Receipt."""
@@ -120,6 +145,18 @@ async def test_create_receipt_writes_to_supabase():
             provider_id="brave-search",
             credential_mode="rhumb_managed",
             layer=2,
+            route_id="route_search_query_brave_search_api_official_api_v1",
+            service_id="brave-search-api",
+            substrate="official_api",
+            provenance_origin="rhumb_managed",
+            source_risk="verified_low",
+            manifest_digest="sha256:manifest",
+            evidence_packet_digest="sha256:evidence",
+            route_plan_id_hash="sha256:plan",
+            route_explanation_id="rex_123",
+            stop_condition=None,
+            retryable=False,
+            next_recommended_action="fetch_or_verify_receipt",
             total_latency_ms=342.5,
             provider_latency_ms=290.0,
             rhumb_overhead_ms=52.5,
@@ -140,6 +177,10 @@ async def test_create_receipt_writes_to_supabase():
     assert inserted_data["receipt_id"] == receipt.receipt_id
     assert inserted_data["execution_id"] == "exec_test_001"
     assert inserted_data["chain_sequence"] == 1
+    assert inserted_data["route_id"] == "route_search_query_brave_search_api_official_api_v1"
+    assert inserted_data["manifest_digest"] == "sha256:manifest"
+    assert inserted_data["route_plan_id_hash"] == "sha256:plan"
+    assert inserted_data["next_recommended_action"] == "fetch_or_verify_receipt"
 
 
 @pytest.mark.anyio

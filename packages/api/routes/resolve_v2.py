@@ -883,6 +883,89 @@ def _route_plan_enforcement_meta(
     }
 
 
+def _compact_next_action(*, status: str, stop_condition: str | None, retryable: bool) -> str:
+    if status == "success":
+        return "fetch_or_verify_receipt"
+    if retryable:
+        return "retry_after_following_error_guidance"
+    if stop_condition:
+        return f"resolve_stop_condition:{stop_condition}"
+    return "inspect_error_and_resolve_again"
+
+
+def _compact_execution_receipt_meta(
+    *,
+    status: str,
+    receipt_id: str | None,
+    route_plan_validation: dict[str, Any],
+    route_plan_mode: str,
+    route_plan_id: str,
+    route_plan_expected: dict[str, Any],
+    route_candidate: dict[str, Any],
+    route_policy_summary: dict[str, Any] | None,
+    route_budget_summary: dict[str, Any] | None,
+    explanation_id: str | None,
+    estimated_cost: Any,
+    error_code: str | None = None,
+    error_message: str | None = None,
+) -> dict[str, Any]:
+    stop_condition = route_plan_validation.get("stop_condition") or route_candidate.get("stop_condition")
+    retryable = status != "success" and stop_condition in {
+        "payment_required",
+        "budget_exceeded",
+        "missing_credentials",
+        "route_plan_expired",
+        "kill_switch_state_unavailable",
+    }
+    return {
+        "mode": "compact",
+        "status": status,
+        "typed_error": error_code,
+        "stop_condition": stop_condition,
+        "retryable": bool(retryable),
+        "receipt_id": receipt_id,
+        "route_explanation_id": explanation_id,
+        "route": {
+            "capability_id": route_plan_expected.get("capability_id"),
+            "service_id": route_plan_expected.get("service_id"),
+            "provider_id": route_plan_expected.get("provider_id"),
+            "route_id": route_plan_expected.get("route_id"),
+            "substrate": route_candidate.get("substrate"),
+            "provenance_origin": route_candidate.get("provenance_origin"),
+            "source_risk": route_candidate.get("source_risk"),
+            "manifest_digest": route_plan_expected.get("manifest_digest"),
+            "evidence_packet_digest": route_plan_expected.get("evidence_packet_digest"),
+        },
+        "route_plan": _route_plan_enforcement_meta(
+            validation=route_plan_validation,
+            mode=route_plan_mode,
+            route_plan_id=route_plan_id,
+            expected=route_plan_expected,
+        ),
+        "budget": {
+            "estimated_cost_usd": estimated_cost,
+            "summary": route_budget_summary,
+        },
+        "policy": route_policy_summary,
+        "next_recommended_action": _compact_next_action(
+            status=status,
+            stop_condition=stop_condition,
+            retryable=bool(retryable),
+        ),
+        "what_is_proven": [
+            "receipt row carries request/response hashes and append-only chain hash",
+            "route metadata is copied from Resolve/Index facts selected before runtime",
+            "route_plan_id_hash binds the receipt to the enforced signed route plan without exposing the raw token",
+        ],
+        "what_is_not_proven": [
+            "provider-side content truth beyond returned payload hashing",
+            "external API availability after receipt creation",
+            "redacted raw payload recovery from compact receipt metadata",
+        ],
+        **({"error_message": error_message} if error_message else {}),
+    }
+
+
 def _enforce_runtime_route_plan_echo(
     *,
     execution_data: dict[str, Any],
@@ -1888,6 +1971,11 @@ async def execute_capability_v2(
         policy_source=policy_source,
         budget_summary=route_budget_summary,
     )
+    route_candidate_for_receipt = _selected_route_candidate(
+        capability_id=capability_id,
+        estimate_data=estimate_data,
+        selected_provider_public=selected_provider_public,
+    )
     route_plan_mode = "supplied_signed_plan"
     route_plan_id = payload.route_plan_id.strip() if payload.route_plan_id else None
     if route_plan_id is None:
@@ -1980,6 +2068,17 @@ async def execute_capability_v2(
             winner_reason=(
                 provider_decision.selected_reason if provider_decision else None
             ),
+            route_id=route_plan_expected.get("route_id"),
+            service_id=route_plan_expected.get("service_id"),
+            substrate=route_candidate_for_receipt.get("substrate"),
+            provenance_origin=route_candidate_for_receipt.get("provenance_origin"),
+            source_risk=route_candidate_for_receipt.get("source_risk"),
+            manifest_digest=route_plan_expected.get("manifest_digest"),
+            evidence_packet_digest=route_plan_expected.get("evidence_packet_digest"),
+            route_plan_id_hash=_route_plan_id_hash(route_plan_id),
+            stop_condition=route_plan_validation.get("stop_condition") or route_candidate_for_receipt.get("stop_condition"),
+            retryable=False if is_success else None,
+            next_recommended_action="fetch_or_verify_receipt" if is_success else "inspect_error_and_resolve_again",
             total_latency_ms=execution_data.get("latency_ms"),
             rhumb_overhead_ms=execution_data.get("overhead_ms"),
             provider_latency_ms=execution_data.get("provider_latency_ms"),
@@ -2039,6 +2138,22 @@ async def execute_capability_v2(
     except Exception:
         logger.exception("v2_route_explanation_failed execution_id=%s", execution_id)
 
+    compact_receipt = _compact_execution_receipt_meta(
+        status="success" if is_success else "failure",
+        receipt_id=receipt_id,
+        route_plan_validation=route_plan_validation,
+        route_plan_mode=route_plan_mode,
+        route_plan_id=route_plan_id,
+        route_plan_expected=route_plan_expected,
+        route_candidate=route_candidate_for_receipt,
+        route_policy_summary=route_policy_summary,
+        route_budget_summary=route_budget_summary,
+        explanation_id=explanation_id,
+        estimated_cost=estimated_cost,
+        error_code=_extract_error_fields(body)[0] if not is_success else None,
+        error_message=_extract_error_fields(body)[1] if not is_success else None,
+    )
+
     # ── Provider attribution (WU-41.2) ─────────────────────────────
     attribution_headers: dict[str, str] = {}
     try:
@@ -2075,6 +2190,7 @@ async def execute_capability_v2(
                 route_plan_id=route_plan_id,
                 expected=route_plan_expected,
             ),
+            "compact_receipt": compact_receipt,
             "translated_from": {
                 "parameters": True,
                 "policy_provider_preference": bool(payload.policy and payload.policy.provider_preference),

@@ -184,6 +184,18 @@ def _compute_receipt_hash(receipt_data: dict[str, Any]) -> str:
         "router_version",
         "candidates_evaluated",
         "winner_reason",
+        "route_id",
+        "service_id",
+        "substrate",
+        "provenance_origin",
+        "source_risk",
+        "manifest_digest",
+        "evidence_packet_digest",
+        "route_plan_id_hash",
+        "route_explanation_id",
+        "stop_condition",
+        "retryable",
+        "next_recommended_action",
         "total_latency_ms",
         "rhumb_overhead_ms",
         "provider_latency_ms",
@@ -241,6 +253,18 @@ class ReceiptInput:
     router_version: str | None = None
     candidates_evaluated: int | None = None
     winner_reason: str | None = None
+    route_id: str | None = None
+    service_id: str | None = None
+    substrate: str | None = None
+    provenance_origin: str | None = None
+    source_risk: str | None = None
+    manifest_digest: str | None = None
+    evidence_packet_digest: str | None = None
+    route_plan_id_hash: str | None = None
+    route_explanation_id: str | None = None
+    stop_condition: str | None = None
+    retryable: bool | None = None
+    next_recommended_action: str | None = None
 
     # Timing
     total_latency_ms: float | None = None
@@ -340,6 +364,18 @@ class ReceiptService:
                 input.winner_reason,
                 provider_text_contexts,
             ),
+            "route_id": input.route_id,
+            "service_id": input.service_id,
+            "substrate": input.substrate,
+            "provenance_origin": input.provenance_origin,
+            "source_risk": input.source_risk,
+            "manifest_digest": input.manifest_digest,
+            "evidence_packet_digest": input.evidence_packet_digest,
+            "route_plan_id_hash": input.route_plan_id_hash,
+            "route_explanation_id": input.route_explanation_id,
+            "stop_condition": input.stop_condition,
+            "retryable": input.retryable,
+            "next_recommended_action": input.next_recommended_action,
             "total_latency_ms": input.total_latency_ms,
             "rhumb_overhead_ms": input.rhumb_overhead_ms,
             "provider_latency_ms": input.provider_latency_ms,

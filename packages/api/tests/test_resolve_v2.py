@@ -916,6 +916,14 @@ async def test_v2_execute_enforces_internal_same_planner_route_plan(app):
     assert "route_plan_id" not in enforcement
     assert enforcement["binding"]["provider_id"] == "brave-search-api"
     assert enforcement["binding"]["credential_mode"] == "byok"
+    compact = data["_rhumb_v2"]["compact_receipt"]
+    assert compact["mode"] == "compact"
+    assert compact["status"] == "success"
+    assert compact["route"]["provider_id"] == "brave-search-api"
+    assert compact["route"]["route_id"] == enforcement["binding"]["route_id"]
+    assert compact["route_plan"]["route_plan_id_hash"] == enforcement["route_plan_id_hash"]
+    assert compact["next_recommended_action"] == "fetch_or_verify_receipt"
+    assert "provider-side content truth" in " ".join(compact["what_is_not_proven"])
     assert mock_forward.await_count == 2
 
 
