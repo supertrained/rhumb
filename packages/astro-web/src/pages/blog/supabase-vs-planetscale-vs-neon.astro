@@ -20,7 +20,7 @@ const ARTICLE_JSON_LD = {
   datePublished: "2026-03-17T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
   description:
-    "Side-by-side comparison of Supabase, PlanetScale, and Neon for AI agent database workflows — using live Rhumb AN Score data.",
+    "Current Rhumb database scorecard for AI agents: Supabase 9.1, Neon 9.0, and PlanetScale 8.5, with platform breadth, serverless Postgres, and MySQL tradeoffs.",
   url: "https://rhumb.dev/blog/supabase-vs-planetscale-vs-neon",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
@@ -50,7 +50,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need a pure database with maximum SQL control, complex multi-region topologies, or want to avoid platform lock-in. Supabase wraps Postgres with opinions that may conflict with advanced database administration.",
     friction: "Row-level security (RLS) policies are powerful but add a layer agents must understand and configure correctly — misconfigured RLS silently returns empty results, not errors. Realtime subscriptions use websockets which add connection management complexity for agents.",
     decision: "Pick Supabase when the agent needs more than just a database — auth, storage, and realtime come free.",
-    support: "Highest confidence score (88%) means the most measured and verified of the three. The platform breadth (Postgres + Auth + Storage + Edge Functions + Realtime) gives it the widest agent utility surface. REST and GraphQL APIs mean agents never need a direct database connection.",
+    support: "Current Rhumb score leader in this comparison: aggregate 9.1, execution 9.1, access readiness 9.2. The platform breadth (Postgres + Auth + Storage + Edge Functions + Realtime) gives Supabase the widest agent utility surface. REST and GraphQL APIs mean agents can avoid a direct database connection when the route should stay behind policy and service boundaries.",
     data: scoreMap.supabase,
   },
   {
@@ -63,7 +63,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need Postgres features (JSON operators, full-text search, extensions) or a broad platform play beyond just the database. PlanetScale is a pure database service — no auth, storage, or functions bundled.",
     friction: "Foreign key constraints are not supported in the traditional sense (Vitess limitation). Agents expecting referential integrity enforcement at the database level will see silent data inconsistencies. Schema branching workflow adds complexity for agents that just need a connection string.",
     decision: "Pick PlanetScale when the project is MySQL-native and needs safe schema migrations at scale.",
-    support: "Mid-range score with lower confidence (56%) — less measured than Supabase. The Vitess-powered scaling is genuinely strong for MySQL workloads, but the foreign key limitation is a significant constraint that agents often discover too late.",
+    support: "Current Rhumb snapshot: aggregate 8.5, execution 8.6, access readiness 8.3. PlanetScale no longer looks like a near-tie on raw score, but it remains the right answer when the project is MySQL-native and needs Vitess-backed scale or schema branching. The foreign-key limitation is still the constraint agents discover too late if the route assumes database-enforced referential integrity.",
     data: scoreMap.planetscale,
   },
   {
@@ -76,7 +76,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need a full platform play (auth, storage, functions) or the project has sustained high-throughput workloads where connection pooling overhead matters. Neon's serverless model excels at bursty workloads, not steady-state.",
     friction: "Serverless cold starts add latency for the first query after idle periods. Connection pooling through their proxy adds a layer between the agent and Postgres that can mask connection errors. Branch creation is fast but branch management (cleanup, promotion) requires explicit API calls.",
     decision: "Pick Neon when you want pure Postgres with serverless economics and don't need the broader platform.",
-    support: "Highest raw score (7.6, L4 tier) but lowest confidence (59%) — the score reflects strong architectural decisions but less measurement depth. Serverless Postgres with branching is a genuinely differentiated offering. The autoscale-to-zero model is most cost-efficient for agent workloads that are inherently bursty.",
+    support: "Current Rhumb snapshot: aggregate 9.0, execution 9.0, access readiness 9.1. Neon is now a near-tie with Supabase on raw score, but the shape is different: pure serverless Postgres, branching, and autoscale-to-zero without the broader auth/storage/realtime platform. That makes it attractive for bounded database workflows where platform breadth would become lock-in.",
     data: scoreMap.neon,
   },
 ];
@@ -127,7 +127,7 @@ const scenarioCards = [
   {
     title: "Agent needs database + auth + storage in one integration",
     pick: "Supabase",
-    why: "Only option where a single integration covers Postgres, auth, file storage, edge functions, and realtime. Highest confidence score means the most predictable behavior.",
+    why: "Only option where a single integration covers Postgres, auth, file storage, edge functions, and realtime. Current score leader at 9.1, mostly because platform breadth and access readiness both help agents.",
     href: "/service/supabase",
   },
   {
@@ -151,16 +151,16 @@ const agentRules = [
   "For Supabase: always verify RLS policies before reporting empty query results. An empty result set may be a permissions issue, not missing data.",
   "For PlanetScale: do not assume foreign key constraints exist. Validate referential integrity in application logic, not database constraints.",
   "For Neon: implement connection keep-alive for latency-sensitive workloads. The first query after idle will be slow; subsequent queries are fast.",
-  "Confidence matters here: Supabase at 88% is the most measured; Neon and PlanetScale at ~57% may shift as more evidence accumulates.",
+  "Current scores are close at the top: Supabase 9.1 and Neon 9.0. PlanetScale at 8.5 is lower, but still the MySQL route when migration would be the larger risk.",
 ];
 ---
 
 <Layout
   title="Supabase vs PlanetScale vs Neon for AI Agents | Rhumb"
-  description="Compare Supabase, PlanetScale, and Neon for agent database workflows. Supabase leads on breadth, Neon on serverless Postgres, PlanetScale on MySQL."
+  description="Compare Supabase, Neon, and PlanetScale for agent database workflows using current Rhumb scores: Supabase 9.1, Neon 9.0, PlanetScale 8.5."
   canonical="/blog/supabase-vs-planetscale-vs-neon"
   ogTitle="Supabase vs PlanetScale vs Neon for AI Agents"
-  ogDescription="Which database should an AI agent use? The closest race in any category — scores within 0.4 of each other, but confidence tells a different story."
+  ogDescription="Current Rhumb database scorecard for AI agents: Supabase 9.1, Neon 9.0, PlanetScale 8.5 — close at the top, but different authority boundaries."
   ogUrl="https://rhumb.dev/blog/supabase-vs-planetscale-vs-neon"
   ogType="article"
   twitterTitle="Supabase vs PlanetScale vs Neon for AI Agents"
@@ -188,19 +188,17 @@ const agentRules = [
 
           <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
             <span class="text-slate-100 font-semibold">Short answer:</span>
-            The closest race in any category we've scored.
-            Neon edges on raw score, Supabase on confidence and platform breadth,
-            PlanetScale when MySQL is non-negotiable.
+            Supabase leads the current snapshot at 9.1, Neon is a near-tie at 9.0,
+            and PlanetScale sits lower at 8.5 but remains the MySQL route when migration risk is the real constraint.
           </p>
 
           <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-5 py-4">
             <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></div>
             <p class="text-sm leading-6 text-slate-300">
               <span class="font-semibold text-slate-100">Verdict:</span>
-              All three score between 7.2 and 7.6 — a 0.4-point spread that is within margin of error.
-              The real differentiator is not the score but the <em>shape</em> of the offering: Supabase is a platform,
-              PlanetScale is a MySQL scaling engine, Neon is a serverless Postgres primitive.
-              Confidence matters: Supabase at 88% is the most measured; Neon and PlanetScale at ~57% may shift.
+              Current scores: Supabase <span class="font-semibold text-slate-100">9.1</span>, Neon <span class="font-semibold text-slate-100">9.0</span>, PlanetScale <span class="font-semibold text-slate-100">8.5</span>.
+              The top two are close, but the real differentiator is the <em>shape</em> of the offering: Supabase is a platform,
+              Neon is a serverless Postgres primitive, and PlanetScale is a MySQL scaling engine.
               Scores shown here reflect published Rhumb data as of {updatedAt}.
             </p>
           </div>
@@ -361,16 +359,13 @@ const agentRules = [
 
           <div class="rounded-[28px] border border-slate-800 bg-surface/80 p-6">
             <p class="text-[11px] font-mono uppercase tracking-[0.28em] text-slate-500">Confidence note</p>
-            <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">When scores are this close</h2>
+            <h2 class="mt-2 font-display font-bold text-2xl text-slate-100">When the top two are this close</h2>
             <p class="mt-4 text-base leading-7 text-slate-300">
-              A 0.4-point spread between 7.2 and 7.6 is within measurement uncertainty.
-              When scores are this close, <span class="font-semibold text-slate-100">confidence becomes the deciding factor.</span>
-              {' '}Supabase at 88% has the most stable score. Neon and PlanetScale at ~57% may shift
-              significantly as more evidence accumulates.
+              Supabase at <span class="font-semibold text-slate-100">9.1</span> and Neon at <span class="font-semibold text-slate-100">9.0</span> are separated by only 0.1 points.
+              PlanetScale at <span class="font-semibold text-slate-100">8.5</span> is lower on aggregate, but still a native-tier database route when MySQL compatibility is the non-negotiable constraint.
             </p>
             <div class="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 p-4 text-sm leading-6 text-slate-300">
-              The honest read: all three are good enough. The decision should be driven by what you already use
-              (Postgres vs MySQL) and how much platform you want around your database, not by a 0.4-point score difference.
+              The honest read: choose Supabase when platform breadth reduces total integrations, Neon when pure serverless Postgres keeps the authority boundary narrow, and PlanetScale when moving away from MySQL would create more integration risk than the score gap.
             </div>
           </div>
         </aside>
