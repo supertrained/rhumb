@@ -23,7 +23,7 @@ const ARTICLE_JSON_LD = {
     name: "Pedro Nunes",
   },
   description:
-    "A side-by-side comparison of Vercel, Netlify, and Render deployment APIs for AI agent workflows. Vercel leads on execution; Render on simplicity.",
+    "Current Rhumb deployment API scorecard for AI agents: Vercel 9.1, Netlify 8.7, and Render 8.5, with release-authority and workload-shape tradeoffs.",
   url: "https://rhumb.dev/blog/vercel-vs-netlify-vs-render",
   publisher: {
     "@type": "Organization",
@@ -51,11 +51,11 @@ const compared: ComparedService[] = [
     name: "Vercel",
     accent: "#000000",
     accentSoft: "rgba(255,255,255,0.12)",
-    bestFor: "Agents deploying frontend applications, Next.js projects, and edge functions where deployment speed and preview environments matter. Highest execution score of the three.",
+    bestFor: "Agents deploying frontend applications, Next.js projects, and edge functions where deployment speed and preview environments matter. Current score leader: 9.1 aggregate, 9.1 execution, 9.2 access readiness.",
     avoidWhen: "You need to deploy arbitrary containers, background workers, or anything that doesn't fit the serverless/edge model. Vercel's opinions about architecture are strong, and fighting them costs more than switching platforms.",
     friction: "Team and project scoping adds authentication complexity — agents need to understand the org → project → deployment hierarchy. API rate limits are tight for programmatic workflows (100 deployments/day on free tier). Git-based deployments are first-class; API-triggered deployments require more setup.",
     decision: "Pick Vercel when deploying frontend applications where build speed, preview URLs, and edge performance are the primary concerns.",
-    support: "Highest execution score. Build and deploy APIs work reliably. Preview deployment URLs are automatically generated and accessible — an agent can deploy, get a URL, and verify its work in a single pipeline. Edge functions deploy fast.",
+    support: "Current Rhumb score leader: aggregate 9.1, execution 9.1, access readiness 9.2. Build and deploy APIs work reliably, preview deployment URLs are generated automatically, and the verify loop is clean when the workload fits Vercel's frontend/serverless model. The tradeoff is release authority: production aliases, team scopes, and project settings need narrower credentials than preview deploys.",
     data: scoreMap.vercel,
   },
   {
@@ -67,7 +67,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need the sophisticated edge network and build optimization that Vercel provides for frontend-heavy projects. Render is simpler by design, which means fewer knobs to turn but also fewer optimizations.",
     friction: "Service types (web service, private service, background worker, cron job, static site) require upfront decision-making. Auto-scaling configuration is less granular than Vercel's edge network. Blueprint spec (render.yaml) is powerful but another format to learn.",
     decision: "Pick Render when you need a straightforward deployment API that handles backends, databases, and cron jobs — not just frontends.",
-    support: "Cleanest API design of the three for general-purpose deployment. REST endpoints are predictable and well-documented. Blueprint infrastructure-as-code (render.yaml) lets agents define entire stacks declaratively. Native PostgreSQL and Redis mean fewer external dependencies.",
+    support: "Current Rhumb snapshot: aggregate 8.5, execution 8.6, access readiness 8.3. Render scores below Vercel and Netlify, but it remains the pragmatic route for mixed workloads: web services, background workers, cron jobs, PostgreSQL, and Redis through one simpler platform. The lower score reflects thinner edge/build optimization, not a bad API.",
     data: scoreMap.render,
   },
   {
@@ -79,7 +79,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need to deploy containers, run long-running processes, or work outside the Jamstack paradigm. Netlify's platform has strong opinions that work well within its model and poorly outside it.",
     friction: "Deploy hooks vs API deployments vs Git-triggered builds — three different deployment paths with different capabilities. Function bundling behavior can surprise agents that expect standard Node.js module resolution. Build plugin ecosystem adds power but also complexity for agents trying to understand the build pipeline.",
     decision: "Pick Netlify when deploying Jamstack sites where built-in platform features (forms, identity, edge functions) reduce the number of external services an agent needs to integrate.",
-    support: "Mature platform with well-documented APIs. Deploy previews work well. The Netlify CLI is comprehensive. Built-in features (forms, identity, edge functions) reduce integration surface area — fewer services means fewer failure points for an agent to manage.",
+    support: "Current Rhumb snapshot: aggregate 8.7, execution 8.7, access readiness 8.8. Netlify sits between Vercel and Render: strong deploy previews, mature CLI/API coverage, and built-in forms, identity, and edge functions that reduce integration count for Jamstack-shaped work. The friction is path complexity — deploy hooks, API deploys, and Git-triggered builds each behave differently.",
     data: scoreMap.netlify,
   },
 ];
@@ -94,13 +94,13 @@ const sorted = [...compared].sort((a, b) => {
 const winner = sorted[0];
 const title = "Vercel vs Netlify vs Render for AI Agents";
 const description =
-  "A side-by-side comparison of Vercel, Netlify, and Render deployment APIs for AI agent workflows using Rhumb's live AN Score data.";
+  "Compare Vercel, Netlify, and Render deployment APIs for AI agent workflows using current Rhumb scores: Vercel 9.1, Netlify 8.7, Render 8.5.";
 ---
 
 <Layout
   title={title}
   description={description}
-  ogImage="/api/og?title=Vercel+vs+Netlify+vs+Render&subtitle=AN+Scores:+7.1+·+6.2+·+6.5+—+Scored+for+agent+readiness"
+  ogImage="/api/og?title=Vercel+vs+Netlify+vs+Render&subtitle=AN+Scores:+9.1+·+8.7+·+8.5+—+Scored+for+agent+readiness"
 >
   <script type="application/ld+json" set:html={JSON.stringify(ARTICLE_JSON_LD)} />
   <meta name="rhumb:category" content="devops" />
@@ -125,7 +125,7 @@ const description =
         {description}
       </p>
       <p class="text-xs text-slate-600 mt-3">
-        Last updated March 2026 · Scores from live AN Score data
+        Updated June 2026 snapshot · Current scores: Vercel 9.1, Netlify 8.7, Render 8.5
       </p>
     </div>
 
@@ -284,9 +284,9 @@ const description =
             score.
           </p>
           <p>
-            Vercel's high confidence (0.97) reflects deeper evidence — more
-            reviews, more runtime data. Render and Netlify are also well-evidenced
-            (0.84 and 0.89 respectively). These are not provisional scores.
+            The current snapshot has Vercel at 9.1 aggregate / 9.1 execution / 9.2 access readiness,
+            Netlify at 8.7 / 8.7 / 8.8, and Render at 8.5 / 8.6 / 8.3. Confidence is now more modest
+            across the group (roughly 0.59–0.65), so the score gap should guide routing, not replace the workload-shape decision.
           </p>
           <p>
             These scores are not pay-to-play. Rhumb has no commercial
@@ -300,35 +300,23 @@ const description =
         <h2 class="text-xl font-semibold text-white mb-4">Bottom line</h2>
         <div class="prose prose-invert prose-sm max-w-none text-slate-300 space-y-3">
           <p>
-            <strong>Vercel</strong> has the highest execution score (8.0) —
-            when you call its API, deployments work reliably and fast. But the
-            lowest access readiness score (5.8) means getting authenticated and
-            configured is harder. The platform has strong opinions about how
-            you should build (Next.js, edge-first, serverless), and those
-            opinions help if you're aligned with them and hurt if you're not.
+            <strong>Vercel</strong> leads the current scorecard at 9.1 aggregate,
+            with 9.1 execution and 9.2 access readiness. When the workload is frontend-heavy,
+            preview-first, or already aligned with Next.js/serverless deployment, it gives agents the cleanest deploy → URL → verify loop. The caution is authority scope: production aliases and team/project settings should not share the same credential lane as low-risk preview deploys.
           </p>
           <p>
-            <strong>Render</strong> offers the most straightforward deployment
-            model for mixed workloads. Web services, background workers, cron
-            jobs, PostgreSQL — all through one REST API with consistent
-            patterns. The Blueprint spec (render.yaml) is infrastructure-as-code
-            that an agent can generate and commit. It won't win on frontend
-            build speed, but it will deploy a complete backend stack with less
-            friction than either competitor.
+            <strong>Netlify</strong> is the 8.7 middle lane: strong access readiness,
+            mature deploy previews, and useful bundled primitives for Jamstack sites. It is not the raw score leader,
+            but it can reduce integration count when forms, identity, functions, and edge behavior are part of the same site workflow.
           </p>
           <p>
-            <strong>Netlify</strong> is the platform for teams already in the
-            Jamstack ecosystem. Built-in forms, identity, and edge functions
-            reduce the number of services an agent needs to integrate. But the
-            multiple deployment paths (API, deploy hooks, Git) add cognitive
-            overhead, and the platform's abstractions can surprise agents that
-            expect standard behavior.
+            <strong>Render</strong> scores 8.5 aggregate / 8.6 execution / 8.3 access readiness.
+            It is lower than Vercel and Netlify on the current snapshot, but still often the right operational choice for mixed backend workloads: web services, background workers, cron jobs, PostgreSQL, and Redis under one straightforward deployment model.
           </p>
           <p>
-            The scores are close (6.2 – 7.1) because all three platforms are
-            genuinely functional for programmatic deployment. The differentiation
-            is in what kind of deployment your agent needs, not whether the API
-            works.
+            The scores now cluster higher than the March copy implied: Vercel 9.1,
+            Netlify 8.7, Render 8.5. The differentiation is still workload shape and release authority:
+            preview deploys are not production deploys, and a governed agent lane should prove project, branch, environment, artifact, smoke test, rollback path, and budget before touching production.
           </p>
         </div>
       </section>
