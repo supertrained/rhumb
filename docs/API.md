@@ -152,6 +152,142 @@ curl "https://api.rhumb.dev/v1/capabilities/search.query/resolve"
 curl "https://api.rhumb.dev/v1/capabilities/search.query/execute/estimate?credential_mode=rhumb_managed"
 ```
 
+## Resolve v2 first-call proof: `search.query`
+
+Use this path when you want the boring first successful Rhumb-managed official API call with one governed key and no provider credential setup:
+
+`search -> resolve -> estimate -> execute -> receipt -> verify`
+
+Requirements:
+
+- a funded governed Rhumb API key in `RHUMB_API_KEY`, sent as `X-Rhumb-Key`;
+- no Brave/provider key, wallet, browser login, Agent Vault, or BYOK setup;
+- curl with `--fail-with-body` so typed 401/402 JSON remains visible when a step fails. If your curl is too old, rerun the same command with `-sS` and without `--fail-with-body` to print the body.
+
+Copy-paste flow:
+
+```bash
+set -euo pipefail
+
+: "${RHUMB_API_KEY:?Set RHUMB_API_KEY to a funded governed Rhumb key}"
+RHUMB_API_BASE="${RHUMB_API_BASE:-https://api.rhumb.dev}"
+
+curlf() {
+  curl --fail-with-body -sS "$@"
+}
+
+# 1) Search for the capability slug.
+curlf \
+  -X GET \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  "$RHUMB_API_BASE/v2/capabilities?search=web%20research&limit=5"
+
+# 2) Resolve the Rhumb-managed route. This is a read/preflight step.
+curlf \
+  -X GET \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  "$RHUMB_API_BASE/v2/capabilities/search.query/resolve?credential_mode=rhumb_managed" \
+  | tee /tmp/rhumb-first-call-resolve.json
+
+# 3) Estimate the concrete execution rail before spend.
+curlf \
+  -X GET \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  "$RHUMB_API_BASE/v2/capabilities/search.query/execute/estimate?provider=brave-search-api&credential_mode=rhumb_managed" \
+  | tee /tmp/rhumb-first-call-estimate.json
+
+# 4) Execute one bounded read-only official API search.
+curlf \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  "$RHUMB_API_BASE/v2/capabilities/search.query/execute" \
+  -d '{
+    "credential_mode": "rhumb_managed",
+    "interface": "first-call-quickstart",
+    "parameters": {"query": "agent-native tool access", "numResults": 3},
+    "policy": {"max_cost_usd": 0.05, "provider_preference": ["brave-search-api"]}
+  }' \
+  | tee /tmp/rhumb-first-call-execute.json
+
+RECEIPT_ID="$(
+  python3 - <<'PY'
+import json
+from pathlib import Path
+
+payload = json.loads(Path('/tmp/rhumb-first-call-execute.json').read_text())
+data = payload.get('data') if isinstance(payload, dict) and 'data' in payload else payload
+receipt_id = (
+    data.get('receipt_id')
+    or (data.get('_rhumb_v2') or {}).get('receipt_id')
+    or (data.get('_rhumb') or {}).get('receipt_id')
+)
+if not receipt_id:
+    raise SystemExit('No receipt_id in execute response')
+print(receipt_id)
+PY
+)"
+echo "receipt_id=$RECEIPT_ID"
+
+# 5) Fetch the full receipt row.
+curlf \
+  -X GET \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  "$RHUMB_API_BASE/v2/receipts/$RECEIPT_ID" \
+  | tee /tmp/rhumb-first-call-receipt.json
+
+# 6) Verify the compact receipt evidence. `verified` means the receipt row,
+# hashes, route facts, route-plan hash, status, and explanation linkage are present;
+# it does not claim provider-side content truth beyond returned-payload hashing.
+curlf \
+  -X POST \
+  -H "X-Rhumb-Key: $RHUMB_API_KEY" \
+  "$RHUMB_API_BASE/v2/receipts/$RECEIPT_ID/verify" \
+  | tee /tmp/rhumb-first-call-verify.json
+
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+payload = json.loads(Path('/tmp/rhumb-first-call-verify.json').read_text())
+data = payload.get('data') if isinstance(payload, dict) and 'data' in payload else payload
+status = data.get('verifier_status')
+if status != 'verified':
+    raise SystemExit(f"receipt verifier_status={status!r}; expected 'verified'")
+compact = data.get('compact_receipt') or {}
+route = compact.get('route') or {}
+print('verified receipt:', data.get('receipt_id'))
+print('provider:', route.get('provider_id'))
+print('route_id:', route.get('route_id'))
+print('manifest_digest:', route.get('manifest_digest'))
+PY
+```
+
+Expected proof fields:
+
+- selected provider: `brave-search-api` unless policy or availability selects another executable official API route;
+- substrate/provenance/source risk: `official_api` / `rhumb_managed` / `verified_low` for the seeded Brave route;
+- receipt and verifier: `receipt_id`, `compact_receipt`, `route_plan.route_plan_id_hash`, and `verifier_status=verified`;
+- cost/usage: budget fields in the compact receipt and billing events in `/v2/billing/events`.
+
+Diagnostics that should stay typed:
+
+- missing key: `missing_credentials` / missing `X-Rhumb-Key` guidance;
+- invalid key: `invalid_rhumb_key` / invalid governed key guidance;
+- valid but unfunded or over-budget key: `payment_required` with `auth_handoff` and retry/setup URLs such as `/auth/login` or `/payments/agent`.
+
+For the hosted operator artifact, run the same flow through the dogfood harness after confirming the key is funded:
+
+```bash
+python3 scripts/resolve_v2_dogfood.py \
+  --profile pedro \
+  --force-provider-preference \
+  --json-out artifacts/resolve-v2-first-call-<timestamp>.json \
+  --summary-only
+```
+
+The harness stores `first_call_proof` and fails if the Layer 2 receipt verifier does not return `verified`.
+
 ## Resolve hint contract
 
 `GET /v1/capabilities/{capability_id}/resolve` now returns an `execute_hint` block that is meant to answer the first-success question directly:
