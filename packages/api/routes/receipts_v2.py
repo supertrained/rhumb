@@ -4,6 +4,7 @@ GET /v2/receipts/{receipt_id}                — Get a single execution receipt
 GET /v2/receipts/{receipt_id}/explanation     — Get routing explanation for receipt
 GET /v2/receipts                             — Query receipts with filters
 GET /v2/receipts/chain/verify                — Verify chain integrity
+POST /v2/receipts/{receipt_id}/verify         — Verify one receipt
 """
 
 from __future__ import annotations
@@ -23,6 +24,113 @@ from services.route_explanation import (
 router = APIRouter()
 
 _VALID_RECEIPT_STATUSES = frozenset({"success", "failure", "timeout", "rejected"})
+
+
+def _compact_receipt_from_row(receipt: dict[str, Any]) -> dict[str, Any]:
+    """Build PP-6 compact receipt facts from the full stored receipt row."""
+
+    status = str(receipt.get("status") or "unknown")
+    retryable = bool(receipt.get("retryable"))
+    return {
+        "mode": "compact",
+        "status": status,
+        "typed_error": receipt.get("error_code"),
+        "stop_condition": receipt.get("stop_condition"),
+        "retryable": retryable,
+        "receipt_id": receipt.get("receipt_id"),
+        "route_explanation_id": receipt.get("route_explanation_id") or receipt.get("explanation_id"),
+        "route": {
+            "capability_id": receipt.get("capability_id"),
+            "service_id": receipt.get("service_id"),
+            "provider_id": receipt.get("provider_id"),
+            "route_id": receipt.get("route_id"),
+            "substrate": receipt.get("substrate"),
+            "provenance_origin": receipt.get("provenance_origin"),
+            "source_risk": receipt.get("source_risk"),
+            "manifest_digest": receipt.get("manifest_digest"),
+            "evidence_packet_digest": receipt.get("evidence_packet_digest"),
+        },
+        "route_plan": {
+            "route_plan_id_hash": receipt.get("route_plan_id_hash"),
+        },
+        "budget": {
+            "provider_cost_usd": receipt.get("provider_cost_usd"),
+            "total_cost_usd": receipt.get("total_cost_usd"),
+            "credits_deducted": receipt.get("credits_deducted"),
+        },
+        "next_recommended_action": receipt.get("next_recommended_action") or (
+            "fetch_or_verify_receipt" if status == "success" else "inspect_error_and_resolve_again"
+        ),
+    }
+
+
+def _verify_single_receipt(receipt: dict[str, Any], explanation_available: bool) -> dict[str, Any]:
+    """Return PP-6 single-receipt verifier output.
+
+    This verifies what the stored row can prove locally: issuer/shape,
+    chain-material presence, request/output hash presence, route-plan binding
+    by token hash, redaction posture, receipt status, and explanation lookup.
+    It intentionally does not claim provider-side truth beyond returned payload
+    hashing or global chain inclusion outside this receipt row.
+    """
+
+    receipt_hash = receipt.get("receipt_hash")
+    chain_sequence = receipt.get("chain_sequence")
+    request_hash = receipt.get("request_hash")
+    response_hash = receipt.get("response_hash")
+    route_plan_hash = receipt.get("route_plan_id_hash")
+    status = receipt.get("status")
+    status_ok = status in _VALID_RECEIPT_STATUSES
+    checks = {
+        "issuer_format_valid": bool(str(receipt.get("receipt_id") or "").startswith("rcpt_")),
+        "receipt_hash_present": bool(receipt_hash),
+        "chain_material_present": bool(receipt_hash and chain_sequence is not None),
+        "request_hash_present": bool(request_hash),
+        "response_hash_present": bool(response_hash),
+        "route_plan_hash_present": bool(route_plan_hash),
+        "route_facts_present": bool(receipt.get("route_id") and receipt.get("manifest_digest")),
+        "redaction_compact_mode": True,
+        "status_known": status_ok,
+        "explanation_available": explanation_available,
+    }
+    return {
+        "receipt_id": receipt.get("receipt_id"),
+        "verifier_status": "verified" if all(checks.values()) else "partial",
+        "checks": checks,
+        "issuer": {
+            "format_valid": checks["issuer_format_valid"],
+            "signature_result": "not_signed_in_compact_mode",
+        },
+        "chain": {
+            "inclusion_status": "material_present" if checks["chain_material_present"] else "missing_chain_material",
+            "chain_sequence": chain_sequence,
+            "receipt_hash": receipt_hash,
+            "previous_receipt_hash": receipt.get("previous_receipt_hash"),
+        },
+        "hashes": {
+            "input_hash_status": "present" if request_hash else "missing",
+            "output_hash_status": "present" if response_hash else "missing",
+            "request_hash": request_hash,
+            "response_hash": response_hash,
+        },
+        "redaction": {
+            "status": "compact_hashes_only",
+            "raw_payload_returned": False,
+        },
+        "receipt_status": status,
+        "explanation_available": explanation_available,
+        "compact_receipt": _compact_receipt_from_row(receipt),
+        "what_is_proven": [
+            "receipt row exists and carries chain material",
+            "stored input/output hashes are present when corresponding checks pass",
+            "route facts and route-plan token hash are present when corresponding checks pass",
+        ],
+        "what_is_not_proven": [
+            "provider-side content truth beyond returned payload hashing",
+            "global chain continuity; use GET /v2/receipts/chain/verify for range checks",
+            "raw payload recovery from compact receipt metadata",
+        ],
+    }
 
 
 def _validated_receipt_id(receipt_id: str) -> str:
@@ -224,6 +332,32 @@ async def get_receipt_explanation(receipt_id: str) -> dict[str, Any]:
         }
 
     return {"data": explanation.to_dict(), "error": None}
+
+
+@router.post("/receipts/{receipt_id}/verify")
+async def verify_receipt(receipt_id: str) -> dict[str, Any]:
+    """Verify one receipt and return compact/full-verifier status fields."""
+
+    receipt_id = _validated_receipt_id(receipt_id)
+    service = get_receipt_service()
+    receipt = await service.get_receipt(receipt_id)
+    if receipt is None:
+        raise RhumbError(
+            "RECEIPT_NOT_FOUND",
+            message=f"No receipt found with id '{receipt_id}'",
+            detail="Check the receipt_id from an execution response, or query receipts at GET /v2/receipts",
+        )
+
+    explanation_available = False
+    exp_id_from_receipt = receipt.get("route_explanation_id") or receipt.get("explanation_id")
+    if exp_id_from_receipt:
+        explanation_available = get_explanation(str(exp_id_from_receipt)) is not None
+        if not explanation_available:
+            explanation_available = await get_persisted_explanation(str(exp_id_from_receipt)) is not None
+    if not explanation_available:
+        explanation_available = await get_persisted_explanation_by_receipt(receipt_id) is not None
+
+    return {"data": _verify_single_receipt(receipt, explanation_available), "error": None}
 
 
 @router.get("/receipts")

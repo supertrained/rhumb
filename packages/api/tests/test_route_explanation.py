@@ -203,6 +203,47 @@ class TestBuildExplanation:
         assert pdl.policy_checks["allow_list_ok"] is False
         assert pdl.ineligible_reason == "not_in_allow_list"
 
+    def test_explanation_candidates_embed_index_route_facts_and_recommendation_policy(self):
+        exp = build_explanation(
+            capability_id="search.query",
+            mappings=[
+                {
+                    "service_slug": "brave-search-api",
+                    "cost_per_call": 0.01,
+                    "credential_modes": ["rhumb_managed"],
+                },
+                {
+                    "service_slug": "private-search",
+                    "cost_per_call": 0.02,
+                    "credential_modes": ["byok"],
+                    "route_id": "route_private_search_browser_v1",
+                    "substrate": "browser_discovered_private_endpoint",
+                    "provenance_origin": "browser_observed",
+                    "source_risk": "anti_bot_or_tos_sensitive",
+                    "side_effect_class": "read",
+                    "public_claim_boundary": "Private observed route, not approved for default execution.",
+                },
+            ],
+            scores_by_slug={"brave-search-api": 8.7, "private-search": 7.0},
+            circuit_states={"brave-search-api": "closed", "private-search": "closed"},
+            selected_provider="brave-search-api",
+        )
+
+        by_provider = {candidate.provider_id: candidate.to_dict() for candidate in exp.candidates}
+        brave_facts = by_provider["brave-search-api"]["route_facts"]
+        assert brave_facts["route_id"] == "route_search_query_brave_search_api_official_api_v1"
+        assert brave_facts["manifest_digest"].startswith("sha256:")
+        assert brave_facts["evidence_packet_id"] == "evidence_search_query_brave_search_api_official_api_2026_05_19"
+        assert brave_facts["source_risk"] == "verified_low"
+        assert brave_facts["recommendation_policy"]["default_recommendable"] is True
+
+        private_facts = by_provider["private-search"]["route_facts"]
+        assert private_facts["substrate"] == "browser_discovered_private_endpoint"
+        assert private_facts["source_risk"] == "anti_bot_or_tos_sensitive"
+        assert private_facts["recommendation_policy"]["default_recommendable"] is False
+        assert private_facts["recommendation_policy"]["blocked"] is True
+        assert "source_risk_anti_bot_or_tos_sensitive_not_default" in private_facts["recommendation_policy"]["reasons"]
+
     def test_no_provider_available(self):
         exp = build_explanation(
             capability_id="ai.generate_text",

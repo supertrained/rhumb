@@ -5,10 +5,10 @@ This script exercises the honest post-build operator loop for Rhumb's v2 API:
 
 1. Health + capability catalog read
 2. Optional account-policy smoke test
-3. Layer 2 capability estimate + execute
-4. Layer 2 receipt + explanation fetch
+3. Layer 2 capability resolve + estimate + execute
+4. Layer 2 receipt + explanation fetch + single-receipt verification
 5. Layer 1 provider detail + exact-provider execute
-6. Layer 1 receipt fetch
+6. Layer 1 receipt fetch + single-receipt verification
 7. Billing / trust / audit reads
 8. Receipt-chain verification
 
@@ -645,6 +645,23 @@ def extract_receipt_id(data: dict[str, Any] | None) -> str | None:
     return None
 
 
+def extract_compact_receipt(data: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not isinstance(data, dict):
+        return None
+    rhumb_v2 = data.get("_rhumb_v2")
+    if not isinstance(rhumb_v2, dict):
+        return None
+    compact = rhumb_v2.get("compact_receipt")
+    return compact if isinstance(compact, dict) else None
+
+
+def extract_verifier_status(data: dict[str, Any] | None) -> str | None:
+    if not isinstance(data, dict):
+        return None
+    value = data.get("verifier_status")
+    return value if isinstance(value, str) and value else None
+
+
 def extract_execution_id(data: dict[str, Any] | None) -> str | None:
     if not isinstance(data, dict):
         return None
@@ -717,7 +734,65 @@ def _build_summary(state: dict[str, Any]) -> str:
     if isinstance(audit, dict):
         parts.append(f"audit_events={audit.get('total_events', 'n/a')}")
 
+    proof = state.get("first_call_proof") or {}
+    if isinstance(proof, dict) and proof:
+        parts.append(
+            "first_call_verified="
+            f"{str(bool(proof.get('ok'))).lower()}"
+            f" verifier={proof.get('layer2_verifier_status') or 'n/a'}"
+        )
+
     return "; ".join(parts)
+
+
+def _require_verified_receipt(label: str, verify_data: Any, state: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(verify_data, dict):
+        raise FlowError(f"{label} receipt verifier returned malformed payload", state)
+    if verify_data.get("verifier_status") != "verified":
+        checks = verify_data.get("checks") if isinstance(verify_data.get("checks"), dict) else {}
+        failed_checks = sorted(key for key, value in checks.items() if not value)
+        state["last_error_response"] = {
+            "label": f"{label} receipt verify",
+            "status": "partial",
+            "detail": f"verifier_status={verify_data.get('verifier_status')}; failed_checks={failed_checks}",
+        }
+        raise FlowError(f"{label} receipt verifier did not return verified", state)
+    return verify_data
+
+
+def _build_first_call_proof(state: dict[str, Any]) -> dict[str, Any]:
+    config = state.get("config") or {}
+    layer2 = state.get("layer2") or {}
+    execute_data = ((layer2.get("execute") or {}).get("data") or {})
+    receipt = layer2.get("receipt") or {}
+    verify = layer2.get("verify") or {}
+    compact = extract_compact_receipt(execute_data)
+    if compact is None and isinstance(verify, dict):
+        verifier_compact = verify.get("compact_receipt")
+        compact = verifier_compact if isinstance(verifier_compact, dict) else None
+    route = (compact or {}).get("route") if isinstance(compact, dict) else {}
+    if not isinstance(route, dict):
+        route = {}
+
+    verifier_status = extract_verifier_status(verify if isinstance(verify, dict) else None)
+    receipt_id = extract_receipt_id(execute_data) or receipt.get("receipt_id")
+    provider_selected = extract_provider_used(execute_data) or route.get("provider_id")
+    return {
+        "ok": bool(receipt_id and verifier_status == "verified"),
+        "flow": ["search", "resolve", "estimate", "execute", "receipt", "verify"],
+        "capability": config.get("capability"),
+        "credential_mode": config.get("credential_mode"),
+        "provider_selected": provider_selected,
+        "substrate": route.get("substrate"),
+        "provenance_origin": route.get("provenance_origin"),
+        "source_risk": route.get("source_risk"),
+        "route_id": route.get("route_id"),
+        "manifest_digest": route.get("manifest_digest"),
+        "evidence_packet_digest": route.get("evidence_packet_digest"),
+        "layer2_receipt_id": receipt_id,
+        "layer2_verifier_status": verifier_status,
+        "compact_receipt_present": isinstance(compact, dict),
+    }
 
 
 def _build_batch_summary(results: dict[str, dict[str, Any]]) -> str:
@@ -1102,6 +1177,26 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
 
     state["policy"] = policy_state
 
+    state["layer2"] = {}
+
+    resolve_resp = _expect_success(
+        "v2 layer2 resolve",
+        _http_json(
+            "GET",
+            (
+                f"{v2_root}/capabilities/{quote(args.capability, safe='')}/resolve"
+                f"?credential_mode={quote(args.credential_mode, safe='')}"
+            ),
+            headers=headers,
+            timeout=args.timeout,
+        ),
+        state,
+    )
+    state["layer2"]["resolve"] = {
+        "data": _extract_data(resolve_resp.get("json")),
+        "headers": resolve_resp.get("headers"),
+    }
+
     estimate_resp = _expect_success(
         "v2 layer2 estimate",
         _http_json(
@@ -1119,11 +1214,9 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
         ),
         state,
     )
-    state["layer2"] = {
-        "estimate": {
-            "data": _extract_data(estimate_resp.get("json")),
-            "headers": estimate_resp.get("headers"),
-        }
+    state["layer2"]["estimate"] = {
+        "data": _extract_data(estimate_resp.get("json")),
+        "headers": estimate_resp.get("headers"),
     }
 
     l2_payload = build_l2_execute_payload(
@@ -1175,6 +1268,22 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
     )
     state["layer2"]["explanation"] = _extract_data(l2_explanation_resp.get("json"))
 
+    l2_verify_resp = _expect_success(
+        "v2 layer2 receipt verify",
+        _http_json(
+            "POST",
+            f"{v2_root}/receipts/{quote(l2_receipt_id, safe='')}/verify",
+            headers=headers,
+            timeout=args.timeout,
+        ),
+        state,
+    )
+    state["layer2"]["verify"] = _require_verified_receipt(
+        "v2 layer2",
+        _extract_data(l2_verify_resp.get("json")),
+        state,
+    )
+
     if not args.skip_layer1:
         provider_resp = _expect_success(
             "v2 provider detail",
@@ -1224,6 +1333,22 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
             state,
         )
         state["layer1"]["receipt"] = _extract_data(l1_receipt_resp.get("json"))
+
+        l1_verify_resp = _expect_success(
+            "v2 layer1 receipt verify",
+            _http_json(
+                "POST",
+                f"{v2_root}/receipts/{quote(l1_receipt_id, safe='')}/verify",
+                headers=headers,
+                timeout=args.timeout,
+            ),
+            state,
+        )
+        state["layer1"]["verify"] = _require_verified_receipt(
+            "v2 layer1",
+            _extract_data(l1_verify_resp.get("json")),
+            state,
+        )
 
     billing_summary_resp = _expect_success(
         "v2 billing summary",
@@ -1315,6 +1440,8 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
         state,
     )
     state["receipt_chain"] = _extract_data(receipt_chain_resp.get("json"))
+
+    state["first_call_proof"] = _build_first_call_proof(state)
 
     state["ok"] = True
     state["summary"] = _build_summary(state)

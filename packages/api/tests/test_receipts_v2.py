@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from services.route_explanation import RouteExplanation
 
 
 @pytest.fixture
@@ -152,6 +151,48 @@ def test_get_receipt_canonicalizes_same_provider_alias_text_when_structured_fiel
         assert "brave-search-api-api" not in body["data"]["provider_name"]
         assert "brave-search-api-api" not in body["data"]["error_message"]
         assert "brave-search-api-api" not in body["data"]["winner_reason"]
+
+
+def test_verify_receipt_returns_compact_verifier_status(client):
+    receipt_data = {
+        "receipt_id": "rcpt_test_verify",
+        "execution_id": "exec_verify",
+        "status": "success",
+        "capability_id": "search.query",
+        "provider_id": "brave-search-api",
+        "route_id": "route_search_query_brave_search_api_official_api_v1",
+        "service_id": "brave-search-api",
+        "substrate": "official_api",
+        "provenance_origin": "rhumb_managed",
+        "source_risk": "verified_low",
+        "manifest_digest": "sha256:manifest",
+        "evidence_packet_digest": "sha256:evidence",
+        "route_plan_id_hash": "sha256:plan",
+        "request_hash": "sha256:req",
+        "response_hash": "sha256:resp",
+        "chain_sequence": 7,
+        "receipt_hash": "sha256:receipt",
+        "previous_receipt_hash": "sha256:prev",
+        "next_recommended_action": "fetch_or_verify_receipt",
+    }
+    with (
+        patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
+        patch("routes.receipts_v2.get_persisted_explanation_by_receipt", new_callable=AsyncMock) as mock_exp,
+    ):
+        mock_fetch.return_value = [receipt_data]
+        mock_exp.return_value = object()
+        resp = client.post("/v2/receipts/rcpt_test_verify/verify")
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["verifier_status"] == "verified"
+    assert data["checks"]["route_plan_hash_present"] is True
+    assert data["checks"]["route_facts_present"] is True
+    assert data["hashes"]["input_hash_status"] == "present"
+    assert data["redaction"]["raw_payload_returned"] is False
+    assert data["compact_receipt"]["route"]["route_id"] == receipt_data["route_id"]
+    assert data["compact_receipt"]["route_plan"]["route_plan_id_hash"] == "sha256:plan"
+    assert "global chain continuity" in " ".join(data["what_is_not_proven"])
 
 
 def test_query_receipts_empty(client):

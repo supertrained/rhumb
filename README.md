@@ -213,6 +213,9 @@ python examples/resolve-and-execute.py
 
 `resolve-and-execute.py` will still show the ranked providers plus any machine-readable recovery handoff Rhumb already identified. Set `RHUMB_API_KEY` only when you want to continue into estimate and execute.
 
+For the current Rhumb-managed P0 launch catalog, see
+[`docs/RESOLVE-LAUNCH-CATALOG-2026-06-04.md`](docs/RESOLVE-LAUNCH-CATALOG-2026-06-04.md).
+
 ---
 
 ## Docs
@@ -221,6 +224,7 @@ python examples/resolve-and-execute.py
 - [AN Score Methodology](docs/AN-SCORE-V2-SPEC.md) — scoring dimensions, weights, and rubrics
 - [Architecture](docs/ARCHITECTURE.md) — scoring engine design
 - [API Reference](docs/API.md) — endpoint details
+- [Resolve Launch Catalog](docs/RESOLVE-LAUNCH-CATALOG-2026-06-04.md) — current P0 Rhumb-managed capability contract
 - [Repo Boundary](docs/REPO-BOUNDARY.md) — what stays public here vs. what lives in the private ops workspace
 - [Security Policy](SECURITY.md) — vulnerability reporting and security architecture
 

@@ -113,6 +113,13 @@ ERROR_CODES: dict[str, ErrorCodeDef] = {
         retryable=False,
         description="Score provider ID does not exist in the score cache",
     ),
+    "ROUTE_MANIFEST_NOT_FOUND": ErrorCodeDef(
+        code="ROUTE_MANIFEST_NOT_FOUND",
+        category=ErrorCategory.CLIENT,
+        http_status=404,
+        retryable=False,
+        description="Route manifest ID does not exist in the Index manifest registry",
+    ),
     "CREDENTIAL_INVALID": ErrorCodeDef(
         code="CREDENTIAL_INVALID",
         category=ErrorCategory.AUTH,
@@ -187,6 +194,13 @@ ERROR_CODES: dict[str, ErrorCodeDef] = {
         retryable=True,
         description="All providers unavailable",
         default_retry_after_ms=10000,
+    ),
+    "ROUTE_PLAN_REJECTED": ErrorCodeDef(
+        code="ROUTE_PLAN_REJECTED",
+        category=ErrorCategory.ROUTING,
+        http_status=409,
+        retryable=False,
+        description="Signed Resolve route plan failed Runtime enforcement",
     ),
     "PROVIDER_TIMEOUT": ErrorCodeDef(
         code="PROVIDER_TIMEOUT",

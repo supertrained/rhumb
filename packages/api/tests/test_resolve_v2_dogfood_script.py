@@ -97,6 +97,75 @@ def test_extract_receipt_id_prefers_top_level_receipt_id():
     assert resolve_v2_dogfood.extract_receipt_id(data) == "rcpt_top"
 
 
+def test_extract_compact_receipt_reads_v2_execute_metadata():
+    compact = {"receipt_id": "rcpt_123", "route": {"substrate": "official_api"}}
+
+    assert resolve_v2_dogfood.extract_compact_receipt({"_rhumb_v2": {"compact_receipt": compact}}) == compact
+    assert resolve_v2_dogfood.extract_compact_receipt({"_rhumb_v2": {}}) is None
+
+
+def test_require_verified_receipt_rejects_partial_verifier_status():
+    state = {}
+
+    with pytest.raises(resolve_v2_dogfood.FlowError) as exc_info:
+        resolve_v2_dogfood._require_verified_receipt(
+            "v2 layer2",
+            {"verifier_status": "partial", "checks": {"route_plan_hash_present": False}},
+            state,
+        )
+
+    assert "receipt verifier did not return verified" in str(exc_info.value)
+    assert state["last_error_response"]["label"] == "v2 layer2 receipt verify"
+    assert "route_plan_hash_present" in state["last_error_response"]["detail"]
+
+
+def test_build_first_call_proof_uses_compact_receipt_and_verifier():
+    proof = resolve_v2_dogfood._build_first_call_proof(
+        {
+            "config": {"capability": "search.query", "credential_mode": "rhumb_managed"},
+            "layer2": {
+                "execute": {
+                    "data": {
+                        "provider_used": "brave-search-api",
+                        "receipt_id": "rcpt_l2",
+                        "_rhumb_v2": {
+                            "compact_receipt": {
+                                "route": {
+                                    "route_id": "route_search_query_brave_search_api_official_api_v1",
+                                    "substrate": "official_api",
+                                    "provenance_origin": "rhumb_managed",
+                                    "source_risk": "verified_low",
+                                    "manifest_digest": "sha256:manifest",
+                                    "evidence_packet_digest": "sha256:evidence",
+                                }
+                            }
+                        },
+                    }
+                },
+                "receipt": {"receipt_id": "rcpt_l2"},
+                "verify": {"verifier_status": "verified"},
+            },
+        }
+    )
+
+    assert proof == {
+        "ok": True,
+        "flow": ["search", "resolve", "estimate", "execute", "receipt", "verify"],
+        "capability": "search.query",
+        "credential_mode": "rhumb_managed",
+        "provider_selected": "brave-search-api",
+        "substrate": "official_api",
+        "provenance_origin": "rhumb_managed",
+        "source_risk": "verified_low",
+        "route_id": "route_search_query_brave_search_api_official_api_v1",
+        "manifest_digest": "sha256:manifest",
+        "evidence_packet_digest": "sha256:evidence",
+        "layer2_receipt_id": "rcpt_l2",
+        "layer2_verifier_status": "verified",
+        "compact_receipt_present": True,
+    }
+
+
 def test_extract_provider_used_reads_top_level_provider():
     data = {"provider_used": "exa"}
 
@@ -258,6 +327,7 @@ def test_build_summary_mentions_l1_and_l2_receipts():
         "audit": {
             "status": {"data": {"total_events": 7}},
         },
+        "first_call_proof": {"ok": True, "layer2_verifier_status": "verified"},
     })
 
     assert "Resolve v2 dogfood complete" in summary
@@ -265,6 +335,7 @@ def test_build_summary_mentions_l1_and_l2_receipts():
     assert "L1 provider=brave-search-api exec=exec_l1 receipt=rcpt_l1" in summary
     assert "billing_events=4" in summary
     assert "audit_events=7" in summary
+    assert "first_call_verified=true verifier=verified" in summary
 
 
 def test_build_summary_uses_canonical_layer1_provider_when_requested_provider_is_runtime_alias():
