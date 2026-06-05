@@ -60,7 +60,7 @@ execute_capability({
 
 `email.send` is a real capability but remains gated because it sends externally. It needs an owned verified sender, one-message cap, idempotency, approval policy, and receipt review before public managed execution.
 
-`sendgrid` is a valid pass-through provider for `email.send`, but hosted Resolve currently marks it non-callable because no `RHUMB_CREDENTIAL_SENDGRID_API_KEY` is configured. This is not a launch blocker while Postmark and Resend remain callable.
+`sendgrid` is a valid pass-through provider for `email.send`, but hosted Resolve currently marks it non-callable because no `RHUMB_CREDENTIAL_SENDGRID_API_KEY` is configured. This is not a launch blocker because `email.send` is deferred as an external-write surface; do not treat any email provider as part of the P0 managed launch catalog until the email-send gates above are complete.
 
 `email.verify` is deferred because no managed verification provider is configured. Add Emailable, ZeroBounce, NeverBounce, Kickbox, or another approved provider before advertising it as managed.
 

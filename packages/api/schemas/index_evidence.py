@@ -8,15 +8,28 @@ core `search.query` / `brave-search-api` official API fixture.
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import UTC, datetime
+from datetime import datetime
 import hashlib
 import json
 from typing import Any
 
 from schemas.route_taxonomy import PROVENANCE_ORIGINS, SOURCE_RISKS, SUBSTRATES
 
-REVIEW_STATES = frozenset({"draft", "current", "stale", "expired", "quarantined", "superseded", "missing"})
-PROMOTION_STATES = frozenset({"indexed", "candidate", "fixture_only", "experimental_non_default", "beta_executable", "production_executable", "blocked", "deprecated"})
+REVIEW_STATES = frozenset(
+    {"draft", "current", "stale", "expired", "quarantined", "superseded", "missing"}
+)
+PROMOTION_STATES = frozenset(
+    {
+        "indexed",
+        "candidate",
+        "fixture_only",
+        "experimental_non_default",
+        "beta_executable",
+        "production_executable",
+        "blocked",
+        "deprecated",
+    }
+)
 
 DIGEST_FIELDS = frozenset({"manifest_digest", "evidence_packet_digest"})
 
@@ -106,9 +119,17 @@ def lint_manifest(manifest: dict[str, Any]) -> list[str]:
         errors.append("invalid_provenance_origin")
     if manifest.get("source_risk") not in SOURCE_RISKS:
         errors.append("invalid_source_risk")
-    if manifest.get("side_effect_class") not in {"read", "write", "admin", "payment", "destructive"}:
+    if manifest.get("side_effect_class") not in {
+        "read",
+        "write",
+        "admin",
+        "payment",
+        "destructive",
+    }:
         errors.append("invalid_side_effect_class")
-    if not isinstance(manifest.get("credential_modes"), list) or not all(isinstance(item, str) and item for item in manifest.get("credential_modes", [])):
+    if not isinstance(manifest.get("credential_modes"), list) or not all(
+        isinstance(item, str) and item for item in manifest.get("credential_modes", [])
+    ):
         errors.append("invalid_credential_modes")
     if _parse_time(manifest.get("expires_at")) is None:
         errors.append("invalid_expires_at")
@@ -119,7 +140,9 @@ def lint_manifest(manifest: dict[str, Any]) -> list[str]:
     return sorted(set(errors))
 
 
-def lint_evidence_packet(evidence_packet: dict[str, Any], manifest: dict[str, Any] | None = None) -> list[str]:
+def lint_evidence_packet(
+    evidence_packet: dict[str, Any], manifest: dict[str, Any] | None = None
+) -> list[str]:
     errors: list[str] = []
     required = [
         "evidence_packet_id",
@@ -162,19 +185,31 @@ def lint_evidence_packet(evidence_packet: dict[str, Any], manifest: dict[str, An
     sources = evidence_packet.get("sources")
     if not isinstance(sources, list) or not sources:
         errors.append("missing_sources")
-    elif not all(isinstance(source, dict) and source.get("url") and source.get("kind") for source in sources):
+    elif not all(
+        isinstance(source, dict) and source.get("url") and source.get("kind") for source in sources
+    ):
         errors.append("invalid_sources")
 
     reviews = evidence_packet.get("reviews")
     if not isinstance(reviews, list) or not reviews:
         errors.append("missing_reviews")
-    elif not all(isinstance(review, dict) and review.get("reviewer") and review.get("verdict") for review in reviews):
+    elif not all(
+        isinstance(review, dict) and review.get("reviewer") and review.get("verdict")
+        for review in reviews
+    ):
         errors.append("invalid_reviews")
 
     if manifest is not None:
         if evidence_packet.get("manifest_digest") != manifest_digest(manifest):
             errors.append("linked_manifest_digest_mismatch")
-        for field in ("route_id", "service_id", "provider_id", "capability_id", "manifest_id", "manifest_version"):
+        for field in (
+            "route_id",
+            "service_id",
+            "provider_id",
+            "capability_id",
+            "manifest_id",
+            "manifest_version",
+        ):
             if evidence_packet.get(field) != manifest.get(field):
                 errors.append(f"linked_{field}_mismatch")
 
@@ -185,10 +220,18 @@ def lint_evidence_packet(evidence_packet: dict[str, Any], manifest: dict[str, An
 
 
 def lint_index_route_fixture(route_fixture: dict[str, Any]) -> list[str]:
-    manifest = route_fixture.get("manifest") if isinstance(route_fixture.get("manifest"), dict) else {}
-    evidence_packet = route_fixture.get("evidence_packet") if isinstance(route_fixture.get("evidence_packet"), dict) else {}
+    manifest = (
+        route_fixture.get("manifest") if isinstance(route_fixture.get("manifest"), dict) else {}
+    )
+    evidence_packet = (
+        route_fixture.get("evidence_packet")
+        if isinstance(route_fixture.get("evidence_packet"), dict)
+        else {}
+    )
     errors = [f"manifest:{error}" for error in lint_manifest(manifest)]
-    errors.extend(f"evidence_packet:{error}" for error in lint_evidence_packet(evidence_packet, manifest))
+    errors.extend(
+        f"evidence_packet:{error}" for error in lint_evidence_packet(evidence_packet, manifest)
+    )
     if route_fixture.get("entity_vocabulary") != INDEX_ENTITY_VOCABULARY:
         errors.append("entity_vocabulary_mismatch")
     return sorted(set(errors))
@@ -212,7 +255,10 @@ def _base_search_query_manifest() -> dict[str, Any]:
         "side_effect_class": "read",
         "endpoint_pattern": "GET /res/v1/web/search",
         "cost_model": {"unit": "call", "estimated_cost_usd": 0.003},
-        "rate_limit_model": {"provider_limit_source": "vendor_dashboard", "enforced_by": "Rhumb budget and provider account limits"},
+        "rate_limit_model": {
+            "provider_limit_source": "vendor_dashboard",
+            "enforced_by": "Rhumb budget and provider account limits",
+        },
         "confirmation_policy": "none",
         "sandbox_profile_class": "network_official_api_readonly",
         "owner": "Pedro",

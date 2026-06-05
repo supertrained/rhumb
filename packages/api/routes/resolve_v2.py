@@ -29,8 +29,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import httpx
-
-logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Body, Header, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -66,7 +64,10 @@ from services.service_slugs import (
     canonicalize_service_slug,
     public_service_slug_candidates,
 )
-from services.index_manifest_store import get_durable_index_manifest_store, with_recommendation_policy
+from services.index_manifest_store import (
+    get_durable_index_manifest_store,
+    with_recommendation_policy,
+)
 from schemas.resolve_boundary_contract import boundary_contract_payload
 from schemas.resolve_route_candidate import (
     annotate_resolve_body_with_route_candidates,
@@ -74,6 +75,7 @@ from schemas.resolve_route_candidate import (
 )
 from schemas.route_taxonomy import PROVENANCE_ORIGINS, SOURCE_RISKS, SUBSTRATES
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _COMPAT_VERSION = "2026-03-30"
@@ -909,7 +911,9 @@ def _compact_execution_receipt_meta(
     error_code: str | None = None,
     error_message: str | None = None,
 ) -> dict[str, Any]:
-    stop_condition = route_plan_validation.get("stop_condition") or route_candidate.get("stop_condition")
+    stop_condition = route_plan_validation.get("stop_condition") or route_candidate.get(
+        "stop_condition"
+    )
     retryable = status != "success" and stop_condition in {
         "payment_required",
         "budget_exceeded",
@@ -1218,8 +1222,7 @@ def _policy_summary(policy: V2CapabilityPolicy | None) -> dict[str, Any] | None:
 
 def _has_inline_x402_payment(raw_request: Request) -> bool:
     return bool(
-        raw_request.headers.get("X-Payment")
-        or raw_request.headers.get("PAYMENT-SIGNATURE")
+        raw_request.headers.get("X-Payment") or raw_request.headers.get("PAYMENT-SIGNATURE")
     )
 
 
@@ -1393,8 +1396,7 @@ def _canonicalize_execute_body_provider_payload(
                 )
             elif key in _PUBLIC_PROVIDER_LIST_KEYS and isinstance(item, list):
                 canonicalized[key] = [
-                    _canonicalize_execute_body_provider_value(entry)
-                    for entry in item
+                    _canonicalize_execute_body_provider_value(entry) for entry in item
                 ]
             else:
                 canonicalized[key] = _canonicalize_execute_body_provider_payload(
@@ -1470,10 +1472,11 @@ async def _evaluate_provider_policy(
     )
     # Eligible = the candidates that survived policy filtering
     eligible_slugs = set(decision.candidate_providers) if decision else set()
-    eligible_mappings = [
-        m for m in all_mappings
-        if m.get("service_slug") in eligible_slugs
-    ] if eligible_slugs else all_mappings
+    eligible_mappings = (
+        [m for m in all_mappings if m.get("service_slug") in eligible_slugs]
+        if eligible_slugs
+        else all_mappings
+    )
 
     return PolicyEvaluationResult(
         decision=decision,
@@ -1559,13 +1562,17 @@ async def list_index_manifests_v2(
     """
 
     parsed_capability_id = _validated_index_text_filter(capability_id, field_name="capability_id")
-    parsed_substrate = _validated_index_taxonomy_filter(substrate, field_name="substrate", allowed=SUBSTRATES)
+    parsed_substrate = _validated_index_taxonomy_filter(
+        substrate, field_name="substrate", allowed=SUBSTRATES
+    )
     parsed_provenance_origin = _validated_index_taxonomy_filter(
         provenance_origin,
         field_name="provenance_origin",
         allowed=PROVENANCE_ORIGINS,
     )
-    parsed_source_risk = _validated_index_taxonomy_filter(source_risk, field_name="source_risk", allowed=SOURCE_RISKS)
+    parsed_source_risk = _validated_index_taxonomy_filter(
+        source_risk, field_name="source_risk", allowed=SOURCE_RISKS
+    )
 
     store = get_durable_index_manifest_store()
     filtered = await store.list_manifests(
@@ -1868,7 +1875,9 @@ async def execute_capability_v2(
         if "policy" in extra:
             extra["policy"] = _public_policy_summary(extra.get("policy"))
         if "selected_provider" in extra:
-            extra["selected_provider"] = _public_provider_slug(extra.get("selected_provider")) or extra.get("selected_provider")
+            extra["selected_provider"] = _public_provider_slug(
+                extra.get("selected_provider")
+            ) or extra.get("selected_provider")
         raise RhumbError(
             exc.code,
             message=exc.message,
@@ -1935,7 +1944,11 @@ async def execute_capability_v2(
             },
         )
 
-    if effective_policy and effective_policy.max_cost_usd is not None and estimated_cost is not None:
+    if (
+        effective_policy
+        and effective_policy.max_cost_usd is not None
+        and estimated_cost is not None
+    ):
         if float(estimated_cost) > effective_policy.max_cost_usd:
             raise RhumbError(
                 "BUDGET_EXCEEDED",
@@ -2020,10 +2033,9 @@ async def execute_capability_v2(
             execution_data.get("credential_mode")
         )
         execution_data["credential_mode"] = effective_credential_mode
-    provider_used_public = (
-        _public_provider_slug(execution_data.get("provider_used"))
-        or execution_data.get("provider_used")
-    )
+    provider_used_public = _public_provider_slug(
+        execution_data.get("provider_used")
+    ) or execution_data.get("provider_used")
     if provider_used_public:
         body = _canonicalize_execute_body_provider_fields(
             body,
@@ -2065,9 +2077,7 @@ async def execute_capability_v2(
                 if provider_decision and provider_decision.candidate_providers
                 else None
             ),
-            winner_reason=(
-                provider_decision.selected_reason if provider_decision else None
-            ),
+            winner_reason=(provider_decision.selected_reason if provider_decision else None),
             route_id=route_plan_expected.get("route_id"),
             service_id=route_plan_expected.get("service_id"),
             substrate=route_candidate_for_receipt.get("substrate"),
@@ -2076,9 +2086,12 @@ async def execute_capability_v2(
             manifest_digest=route_plan_expected.get("manifest_digest"),
             evidence_packet_digest=route_plan_expected.get("evidence_packet_digest"),
             route_plan_id_hash=_route_plan_id_hash(route_plan_id),
-            stop_condition=route_plan_validation.get("stop_condition") or route_candidate_for_receipt.get("stop_condition"),
+            stop_condition=route_plan_validation.get("stop_condition")
+            or route_candidate_for_receipt.get("stop_condition"),
             retryable=False if is_success else None,
-            next_recommended_action="fetch_or_verify_receipt" if is_success else "inspect_error_and_resolve_again",
+            next_recommended_action=(
+                "fetch_or_verify_receipt" if is_success else "inspect_error_and_resolve_again"
+            ),
             total_latency_ms=execution_data.get("latency_ms"),
             rhumb_overhead_ms=execution_data.get("overhead_ms"),
             provider_latency_ms=execution_data.get("provider_latency_ms"),
@@ -2095,7 +2108,10 @@ async def execute_capability_v2(
         receipt_id = receipt.receipt_id
         logger.info(
             "v2_receipt_created receipt_id=%s execution_id=%s provider=%s status=%s",
-            receipt_id, execution_id, provider_public_slug, receipt_input.status,
+            receipt_id,
+            execution_id,
+            provider_public_slug,
+            receipt_input.status,
         )
     except Exception:
         # Receipt creation must never block execution delivery.
@@ -2107,18 +2123,24 @@ async def execute_capability_v2(
     try:
         # Gather scores for explanation via read-only score cache (WU-41.4)
         from services.score_cache import get_score_cache as _get_sc
-        _slugs = [m.get("service_slug", "") for m in policy_eval.all_mappings if m.get("service_slug")]
+
+        _slugs = [
+            m.get("service_slug", "") for m in policy_eval.all_mappings if m.get("service_slug")
+        ]
         _scores_by_slug: dict[str, float] = _get_sc().scores_by_slug(_slugs) if _slugs else {}
 
         _circuit_states: dict[str, str] = {}
         from routes.proxy import get_breaker_registry as _get_br
+
         _br = _get_br()
         for m in policy_eval.all_mappings:
             slug = m.get("service_slug", "")
             if slug:
                 agent_for_br = agent.agent_id if agent else "anonymous"
                 breaker = _br.get(slug, agent_for_br)
-                _circuit_states[slug] = breaker.state.value if hasattr(breaker.state, 'value') else str(breaker.state)
+                _circuit_states[slug] = (
+                    breaker.state.value if hasattr(breaker.state, "value") else str(breaker.state)
+                )
 
         explanation = build_explanation(
             capability_id=capability_id,
@@ -2127,8 +2149,16 @@ async def execute_capability_v2(
             circuit_states=_circuit_states,
             selected_provider=selected_provider_public or selected_provider,
             policy_pin=effective_policy.pin if effective_policy else None,
-            policy_deny=list(effective_policy.provider_deny) if effective_policy and effective_policy.provider_deny else None,
-            policy_allow_only=list(effective_policy.allow_only) if effective_policy and effective_policy.allow_only else None,
+            policy_deny=(
+                list(effective_policy.provider_deny)
+                if effective_policy and effective_policy.provider_deny
+                else None
+            ),
+            policy_allow_only=(
+                list(effective_policy.allow_only)
+                if effective_policy and effective_policy.allow_only
+                else None
+            ),
             max_cost_usd=effective_policy.max_cost_usd if effective_policy else None,
             layer=2,
         )
@@ -2177,7 +2207,9 @@ async def execute_capability_v2(
             "explanation_id": explanation_id,
             "selected_provider": selected_provider_public,
             "policy_applied": _effective_policy_active(effective_policy),
-            "policy_selected_reason": provider_decision.selected_reason if provider_decision else None,
+            "policy_selected_reason": (
+                provider_decision.selected_reason if provider_decision else None
+            ),
             "policy_candidates": policy_candidates_public if provider_decision else None,
             "policy_summary": route_policy_summary,
             "policy_source": policy_source,
@@ -2193,11 +2225,15 @@ async def execute_capability_v2(
             "compact_receipt": compact_receipt,
             "translated_from": {
                 "parameters": True,
-                "policy_provider_preference": bool(payload.policy and payload.policy.provider_preference),
+                "policy_provider_preference": bool(
+                    payload.policy and payload.policy.provider_preference
+                ),
                 "policy_pin": bool(payload.policy and payload.policy.pin),
                 "policy_provider_deny": bool(payload.policy and payload.policy.provider_deny),
                 "policy_allow_only": bool(payload.policy and payload.policy.allow_only),
-                "idempotency_header_used": bool(header_idempotency_key and not payload_idempotency_key),
+                "idempotency_header_used": bool(
+                    header_idempotency_key and not payload_idempotency_key
+                ),
             },
         }
         if receipt_id:
@@ -2211,6 +2247,7 @@ async def execute_capability_v2(
     # ── Billing event emission (WU-41.5) ──────────────────────────────
     try:
         from services.billing_events import BillingEventType, get_billing_event_stream
+
         _billing_org = agent.organization_id if agent else None
         if _billing_org and is_success:
             get_billing_event_stream().emit(

@@ -29,13 +29,18 @@ def test_command_manifest_fixtures_cover_managed_and_non_native_substrates() -> 
         assert by_capability[capability_id]["auth_mode"] == "rhumb_managed"
 
     substrates = {manifest["substrate"] for manifest in manifests}
-    assert {"official_cli", "official_mcp", "sdk_code_mode", "generated_adapter"}.issubset(substrates)
+    assert {"official_cli", "official_mcp", "sdk_code_mode", "generated_adapter"}.issubset(
+        substrates
+    )
 
 
 def test_command_manifest_digest_is_deterministic_and_route_index_is_stable() -> None:
     manifests = command_manifest_fixtures()
     first = manifests[0]
-    shuffled = {"manifest_digest": "sha256:old", **{key: first[key] for key in reversed(first.keys()) if key != "manifest_digest"}}
+    shuffled = {
+        "manifest_digest": "sha256:old",
+        **{key: first[key] for key in reversed(first.keys()) if key != "manifest_digest"},
+    }
 
     assert capability_manifest_digest(first) == capability_manifest_digest(shuffled)
     assert first["manifest_digest"] == capability_manifest_digest(first)
@@ -65,7 +70,11 @@ def test_manifest_linter_fails_closed_on_missing_allowlists_evidence_expiry_and_
 
 
 def test_non_native_manifest_requires_sandbox_and_artifact_allowlist() -> None:
-    cli_manifest = next(manifest for manifest in command_manifest_fixtures() if manifest["substrate"] == "official_cli")
+    cli_manifest = next(
+        manifest
+        for manifest in command_manifest_fixtures()
+        if manifest["substrate"] == "official_cli"
+    )
     broken = deepcopy(cli_manifest)
     broken.pop("sandbox_profile_class")
     broken["artifact_allowlist"] = []

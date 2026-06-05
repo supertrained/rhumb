@@ -12,18 +12,14 @@ Target: 20+ tests
 
 from __future__ import annotations
 
-import asyncio
 import base64
 import sys
-import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import patch
 
 import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -32,8 +28,8 @@ from schemas.agent_identity import (
     _LegacyAgentIdentitySchema as AgentIdentitySchema,
 )
 from services.proxy_auth import AuthInjectionRequest, AuthInjector, AuthMethod
-from services.proxy_credentials import CredentialEntry, CredentialStore, ProviderCredentials
-from services.proxy_rate_limit import RateLimiter, RateLimitStatus
+from services.proxy_credentials import CredentialStore
+from services.proxy_rate_limit import RateLimiter
 
 
 def _utcnow() -> datetime:
@@ -155,15 +151,11 @@ class TestCredentialStore:
         assert credential_store.get_credential("scraperapi", "api_key") is not None
         assert credential_store.get_credential("deepgram", "api_key") is not None
 
-    def test_credential_not_found_unknown_service(
-        self, credential_store: CredentialStore
-    ) -> None:
+    def test_credential_not_found_unknown_service(self, credential_store: CredentialStore) -> None:
         """Unknown service returns None."""
         assert credential_store.get_credential("unknown_svc", "key") is None
 
-    def test_credential_not_found_unknown_key(
-        self, credential_store: CredentialStore
-    ) -> None:
+    def test_credential_not_found_unknown_key(self, credential_store: CredentialStore) -> None:
         """Known service but unknown key returns None."""
         assert credential_store.get_credential("stripe", "nonexistent_key") is None
 
@@ -180,9 +172,7 @@ class TestCredentialStore:
         assert credential_store.get_credential("stripe", "api_key") == "fresh_key"
 
     @pytest.mark.asyncio
-    async def test_credential_refresh_when_stale(
-        self, credential_store: CredentialStore
-    ) -> None:
+    async def test_credential_refresh_when_stale(self, credential_store: CredentialStore) -> None:
         """Stale provider triggers a refresh (force last_refreshed into the past)."""
         credential_store.set_credential("stripe", "api_key", "original", ttl_minutes=1)
         # Force staleness by backdating last_refreshed
@@ -220,9 +210,7 @@ class TestAgentIdentityVerifier:
     """Bearer token verification and service access control."""
 
     @pytest.mark.asyncio
-    async def test_verify_bearer_token_valid(
-        self, agent_verifier: AgentIdentityVerifier
-    ) -> None:
+    async def test_verify_bearer_token_valid(self, agent_verifier: AgentIdentityVerifier) -> None:
         """Valid token returns the correct identity."""
         identity = await agent_verifier.verify_bearer_token("rhumb_lead_token_xyz")
         assert identity is not None
@@ -230,9 +218,7 @@ class TestAgentIdentityVerifier:
         assert identity.rate_limit_qpm == 500
 
     @pytest.mark.asyncio
-    async def test_verify_bearer_token_invalid(
-        self, agent_verifier: AgentIdentityVerifier
-    ) -> None:
+    async def test_verify_bearer_token_invalid(self, agent_verifier: AgentIdentityVerifier) -> None:
         """Invalid token returns None."""
         identity = await agent_verifier.verify_bearer_token("totally_bogus_token")
         assert identity is None
@@ -263,9 +249,7 @@ class TestAgentIdentityVerifier:
         assert await agent_verifier.verify_service_access("snowy", "twilio") is False
 
     @pytest.mark.asyncio
-    async def test_cache_hit(
-        self, agent_verifier: AgentIdentityVerifier
-    ) -> None:
+    async def test_cache_hit(self, agent_verifier: AgentIdentityVerifier) -> None:
         """Subsequent lookups use the cache (no Supabase call)."""
         id1 = await agent_verifier.verify_bearer_token("rhumb_lead_token_xyz")
         id2 = await agent_verifier.verify_bearer_token("rhumb_lead_token_xyz")
@@ -804,9 +788,7 @@ class TestSliceCIntegration:
         assert retry_after > -1  # reset is roughly now or in the near future
 
     @pytest.mark.asyncio
-    async def test_e2e_credential_refresh_on_stale(
-        self, credential_store: CredentialStore
-    ) -> None:
+    async def test_e2e_credential_refresh_on_stale(self, credential_store: CredentialStore) -> None:
         """Stale credentials trigger a refresh before the next request."""
         credential_store.set_credential("stripe", "api_key", "old_key", ttl_minutes=1)
         # Force staleness

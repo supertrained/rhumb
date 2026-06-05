@@ -100,7 +100,10 @@ def test_extract_receipt_id_prefers_top_level_receipt_id():
 def test_extract_compact_receipt_reads_v2_execute_metadata():
     compact = {"receipt_id": "rcpt_123", "route": {"substrate": "official_api"}}
 
-    assert resolve_v2_dogfood.extract_compact_receipt({"_rhumb_v2": {"compact_receipt": compact}}) == compact
+    assert (
+        resolve_v2_dogfood.extract_compact_receipt({"_rhumb_v2": {"compact_receipt": compact}})
+        == compact
+    )
     assert resolve_v2_dogfood.extract_compact_receipt({"_rhumb_v2": {}}) is None
 
 
@@ -176,7 +179,9 @@ def test_extract_provider_used_reads_top_level_provider():
 
 def test_get_api_key_uses_env_first_when_the_governed_probe_passes():
     with (
-        patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_env_key"}, clear=True),
+        patch.dict(
+            resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_env_key"}, clear=True
+        ),
         patch.object(resolve_v2_dogfood, "_api_key_probe_ok", return_value=True) as mock_probe,
     ):
         assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_env_key"
@@ -191,16 +196,24 @@ def test_get_api_key_uses_env_first_when_the_governed_probe_passes():
 def test_get_api_key_falls_back_to_sop_when_env_missing():
     with (
         patch.dict(resolve_v2_dogfood.os.environ, {}, clear=True),
-        patch.object(resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value="rhumb_sop_key"),
+        patch.object(
+            resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value="rhumb_sop_key"
+        ),
     ):
         assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_sop_key"
 
 
 def test_get_api_key_falls_back_to_sop_when_env_key_fails_governed_probe():
     with (
-        patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_stale_env_key"}, clear=True),
+        patch.dict(
+            resolve_v2_dogfood.os.environ,
+            {"RHUMB_DOGFOOD_API_KEY": "rhumb_stale_env_key"},
+            clear=True,
+        ),
         patch.object(resolve_v2_dogfood, "_api_key_probe_ok", return_value=False) as mock_probe,
-        patch.object(resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value="rhumb_sop_key"),
+        patch.object(
+            resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value="rhumb_sop_key"
+        ),
     ):
         assert resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY") == "rhumb_sop_key"
 
@@ -261,17 +274,22 @@ def test_get_api_key_raises_when_no_candidate_is_live():
             raise AssertionError("Expected RuntimeError when no live API key is available")
 
 
-
 def test_get_api_key_raises_when_stale_env_key_has_no_live_fallback():
     with (
-        patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_DOGFOOD_API_KEY": "rhumb_stale_env_key"}, clear=True),
+        patch.dict(
+            resolve_v2_dogfood.os.environ,
+            {"RHUMB_DOGFOOD_API_KEY": "rhumb_stale_env_key"},
+            clear=True,
+        ),
         patch.object(resolve_v2_dogfood, "_api_key_probe_ok", return_value=False),
         patch.object(resolve_v2_dogfood, "_load_first_working_api_key_from_sop", return_value=None),
     ):
         try:
             resolve_v2_dogfood._get_api_key("RHUMB_DOGFOOD_API_KEY")
         except RuntimeError as exc:
-            assert "Configured RHUMB_DOGFOOD_API_KEY did not pass the governed API probe" in str(exc)
+            assert "Configured RHUMB_DOGFOOD_API_KEY did not pass the governed API probe" in str(
+                exc
+            )
             assert "Rhumb API Key - pedro-dogfood" in str(exc)
             assert "Rhumb API Key - atlas@supertrained.ai" in str(exc)
         else:
@@ -279,7 +297,9 @@ def test_get_api_key_raises_when_stale_env_key_has_no_live_fallback():
 
 
 def test_get_admin_key_uses_primary_env_first():
-    with patch.dict(resolve_v2_dogfood.os.environ, {"RHUMB_ADMIN_SECRET": "admin_primary"}, clear=True):
+    with patch.dict(
+        resolve_v2_dogfood.os.environ, {"RHUMB_ADMIN_SECRET": "admin_primary"}, clear=True
+    ):
         assert resolve_v2_dogfood._get_admin_key("RHUMB_ADMIN_SECRET") == "admin_primary"
 
 
@@ -297,38 +317,40 @@ def test_get_admin_key_falls_back_to_sop_when_env_missing():
 
 
 def test_build_summary_mentions_l1_and_l2_receipts():
-    summary = resolve_v2_dogfood._build_summary({
-        "config": {
-            "capability": "search.query",
-            "provider": "brave-search-api",
-        },
-        "layer2": {
-            "execute": {
-                "data": {
-                    "execution_id": "exec_l2",
-                    "provider_used": "brave-search-api",
-                    "receipt_id": "rcpt_l2",
-                }
+    summary = resolve_v2_dogfood._build_summary(
+        {
+            "config": {
+                "capability": "search.query",
+                "provider": "brave-search-api",
             },
-            "receipt": {"receipt_id": "rcpt_l2"},
-        },
-        "layer1": {
-            "execute": {
-                "data": {
-                    "execution_id": "exec_l1",
-                    "receipt_id": "rcpt_l1",
-                }
+            "layer2": {
+                "execute": {
+                    "data": {
+                        "execution_id": "exec_l2",
+                        "provider_used": "brave-search-api",
+                        "receipt_id": "rcpt_l2",
+                    }
+                },
+                "receipt": {"receipt_id": "rcpt_l2"},
             },
-            "receipt": {"receipt_id": "rcpt_l1"},
-        },
-        "billing": {
-            "summary": {"data": {"events_count": 4}},
-        },
-        "audit": {
-            "status": {"data": {"total_events": 7}},
-        },
-        "first_call_proof": {"ok": True, "layer2_verifier_status": "verified"},
-    })
+            "layer1": {
+                "execute": {
+                    "data": {
+                        "execution_id": "exec_l1",
+                        "receipt_id": "rcpt_l1",
+                    }
+                },
+                "receipt": {"receipt_id": "rcpt_l1"},
+            },
+            "billing": {
+                "summary": {"data": {"events_count": 4}},
+            },
+            "audit": {
+                "status": {"data": {"total_events": 7}},
+            },
+            "first_call_proof": {"ok": True, "layer2_verifier_status": "verified"},
+        }
+    )
 
     assert "Resolve v2 dogfood complete" in summary
     assert "L2 search.query via brave-search-api exec=exec_l2 receipt=rcpt_l2" in summary
@@ -339,33 +361,35 @@ def test_build_summary_mentions_l1_and_l2_receipts():
 
 
 def test_build_summary_uses_canonical_layer1_provider_when_requested_provider_is_runtime_alias():
-    summary = resolve_v2_dogfood._build_summary({
-        "config": {
-            "capability": "search.query",
-            "provider": "brave-search",
-        },
-        "layer2": {
-            "execute": {
-                "data": {
-                    "execution_id": "exec_l2",
-                    "provider_used": "brave-search-api",
-                    "receipt_id": "rcpt_l2",
-                }
+    summary = resolve_v2_dogfood._build_summary(
+        {
+            "config": {
+                "capability": "search.query",
+                "provider": "brave-search",
             },
-            "receipt": {"receipt_id": "rcpt_l2"},
-        },
-        "layer1": {
-            "provider": {"id": "brave-search-api"},
-            "execute": {
-                "data": {
-                    "execution_id": "exec_l1",
-                    "provider_used": "brave-search-api",
-                    "receipt_id": "rcpt_l1",
-                }
+            "layer2": {
+                "execute": {
+                    "data": {
+                        "execution_id": "exec_l2",
+                        "provider_used": "brave-search-api",
+                        "receipt_id": "rcpt_l2",
+                    }
+                },
+                "receipt": {"receipt_id": "rcpt_l2"},
             },
-            "receipt": {"receipt_id": "rcpt_l1"},
-        },
-    })
+            "layer1": {
+                "provider": {"id": "brave-search-api"},
+                "execute": {
+                    "data": {
+                        "execution_id": "exec_l1",
+                        "provider_used": "brave-search-api",
+                        "receipt_id": "rcpt_l1",
+                    }
+                },
+                "receipt": {"receipt_id": "rcpt_l1"},
+            },
+        }
+    )
 
     assert "L1 provider=brave-search-api exec=exec_l1 receipt=rcpt_l1" in summary
     assert "L1 provider=brave-search exec=exec_l1 receipt=rcpt_l1" not in summary
@@ -395,7 +419,10 @@ def test_apply_profile_defaults_sets_interface_and_parameters_from_profile():
     assert profiled.interface == "dogfood-beacon"
     assert profiled.provider == "brave-search"
     assert profiled.capability == "search.query"
-    assert profiled.parameters_json == '{"query": "best MCP server distribution channels for developers", "numResults": 3}'
+    assert (
+        profiled.parameters_json
+        == '{"query": "best MCP server distribution channels for developers", "numResults": 3}'
+    )
 
 
 def test_parse_args_accepts_summary_only_flag():
@@ -507,7 +534,9 @@ def test_build_batch_summary_mentions_profile_statuses_and_actual_provider_used(
     )
 
     assert "Resolve v2 dogfood batch complete; ok_profiles=1/2" in summary
-    assert "pedro=ok provider=exa requested_provider=brave-search interface=dogfood-pedro" in summary
+    assert (
+        "pedro=ok provider=exa requested_provider=brave-search interface=dogfood-pedro" in summary
+    )
     assert "beacon=failed provider=brave-search interface=dogfood-beacon" in summary
 
 
@@ -538,7 +567,10 @@ def test_run_batch_writes_latest_profile_artifacts(tmp_path):
 
     assert payload["ok"] is True
     assert payload["profile_count"] == 2
-    assert {call_args.args[0].profile for call_args in mock_run_flow.call_args_list} == {"pedro", "keel"}
+    assert {call_args.args[0].profile for call_args in mock_run_flow.call_args_list} == {
+        "pedro",
+        "keel",
+    }
 
     pedro_artifact = json.loads(
         (artifact_root / "resolve-v2-dogfood-pedro-admin-latest.json").read_text(encoding="utf-8")
@@ -571,7 +603,9 @@ def test_build_fleet_status_entry_marks_profile_ok(tmp_path):
                         }
                     }
                 },
-                "layer1": {"execute": {"data": {"execution_id": "exec_l1", "receipt_id": "rcpt_l1"}}},
+                "layer1": {
+                    "execute": {"data": {"execution_id": "exec_l1", "receipt_id": "rcpt_l1"}}
+                },
                 "billing": {"summary": {"data": {"events_count": 4}}},
                 "audit": {"status": {"data": {"total_events": 2}}},
                 "receipt_chain": {"chain_intact": True, "verified": 20, "total_checked": 20},
@@ -649,7 +683,10 @@ def test_build_fleet_status_summary_mentions_age_and_freshness_window():
         1080,
     )
 
-    assert "Resolve v2 dogfood fleet status complete; ok_profiles=1/2; freshness_window_minutes=1080" in summary
+    assert (
+        "Resolve v2 dogfood fleet status complete; ok_profiles=1/2; freshness_window_minutes=1080"
+        in summary
+    )
     assert "keel=ok provider=brave-search age_min=5.0" in summary
     assert "helm=failed provider=brave-search age_min=1200.0" in summary
 
@@ -697,13 +734,16 @@ def test_run_fleet_status_refreshes_only_non_ok_profiles_and_recomputes_status(t
     with (
         patch.object(resolve_v2_dogfood, "_artifact_root", return_value=artifact_root),
         patch.object(resolve_v2_dogfood, "run_flow", side_effect=fake_run_flow) as mock_run_flow,
-            patch.object(resolve_v2_dogfood.time, "time", side_effect=[1_700_066_800, 1_700_066_800]),
+        patch.object(resolve_v2_dogfood.time, "time", side_effect=[1_700_066_800, 1_700_066_800]),
     ):
         payload = resolve_v2_dogfood.run_fleet_status(args, ["keel", "helm", "beacon"])
 
     assert payload["ok"] is True
     assert payload["refreshed_profiles"] == ["keel", "beacon"]
-    assert {call_args.args[0].profile for call_args in mock_run_flow.call_args_list} == {"keel", "beacon"}
+    assert {call_args.args[0].profile for call_args in mock_run_flow.call_args_list} == {
+        "keel",
+        "beacon",
+    }
     assert payload["profiles"]["keel"]["ok"] is True
     assert payload["profiles"]["helm"]["ok"] is True
     assert payload["profiles"]["beacon"]["ok"] is True
@@ -714,8 +754,12 @@ def test_run_fleet_status_refreshes_only_non_ok_profiles_and_recomputes_status(t
     assert fleet_status_payload["ok"] is True
     assert fleet_status_payload["refreshed_profiles"] == ["keel", "beacon"]
 
-    refreshed_keel = json.loads((artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").read_text(encoding="utf-8"))
-    refreshed_beacon = json.loads((artifact_root / "resolve-v2-dogfood-beacon-admin-latest.json").read_text(encoding="utf-8"))
+    refreshed_keel = json.loads(
+        (artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").read_text(encoding="utf-8")
+    )
+    refreshed_beacon = json.loads(
+        (artifact_root / "resolve-v2-dogfood-beacon-admin-latest.json").read_text(encoding="utf-8")
+    )
     assert refreshed_keel["summary"] == "refreshed keel"
     assert refreshed_beacon["summary"] == "refreshed beacon"
 
@@ -746,7 +790,13 @@ def test_run_fleet_status_refresh_preserves_failure_when_rerun_still_fails(tmp_p
             "run_flow",
             side_effect=resolve_v2_dogfood.FlowError(
                 "refresh failed",
-                {"config": {"profile": "keel", "provider": "brave-search", "interface": "dogfood-keel"}},
+                {
+                    "config": {
+                        "profile": "keel",
+                        "provider": "brave-search",
+                        "interface": "dogfood-keel",
+                    }
+                },
             ),
         ),
         patch.object(resolve_v2_dogfood.time, "time", side_effect=[1_700_066_800, 1_700_066_800]),
@@ -758,7 +808,9 @@ def test_run_fleet_status_refresh_preserves_failure_when_rerun_still_fails(tmp_p
     assert payload["profiles"]["keel"]["ok"] is False
     assert "artifact marked failed" in payload["profiles"]["keel"]["blocker"]
 
-    refreshed_keel = json.loads((artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").read_text(encoding="utf-8"))
+    refreshed_keel = json.loads(
+        (artifact_root / "resolve-v2-dogfood-keel-admin-latest.json").read_text(encoding="utf-8")
+    )
     assert refreshed_keel["summary"] == "refresh failed"
     assert refreshed_keel["ok"] is False
 
@@ -773,17 +825,23 @@ def test_provision_api_key_via_admin_creates_agent_and_grants_access():
         timeout=30.0,
     )
 
-    responses = iter([
-        {"status": 200, "json": []},
-        {"status": 200, "json": {"agent_id": "agent_123", "api_key": "rhumb_new_key"}},
-        {"status": 200, "json": {"access_id": "acc_123"}},
-    ])
+    responses = iter(
+        [
+            {"status": 200, "json": []},
+            {"status": 200, "json": {"agent_id": "agent_123", "api_key": "rhumb_new_key"}},
+            {"status": 200, "json": {"access_id": "acc_123"}},
+        ]
+    )
 
     with (
         patch.object(resolve_v2_dogfood, "_get_admin_key", return_value="admin_secret"),
-        patch.object(resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)) as mock_http,
+        patch.object(
+            resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)
+        ) as mock_http,
     ):
-        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(args, provider="brave-search")
+        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(
+            args, provider="brave-search"
+        )
 
     assert api_key == "rhumb_new_key"
     assert metadata == {
@@ -808,17 +866,21 @@ def test_provision_api_key_via_admin_rotates_existing_agent_and_tolerates_existi
         timeout=30.0,
     )
 
-    responses = iter([
-        {"status": 200, "json": [{"agent_id": "agent_existing", "name": "Verifier Agent"}]},
-        {"status": 200, "json": {"new_api_key": "rhumb_rotated_key"}},
-        {"status": 409, "json": {"detail": "already granted"}, "detail": "already granted"},
-    ])
+    responses = iter(
+        [
+            {"status": 200, "json": [{"agent_id": "agent_existing", "name": "Verifier Agent"}]},
+            {"status": 200, "json": {"new_api_key": "rhumb_rotated_key"}},
+            {"status": 409, "json": {"detail": "already granted"}, "detail": "already granted"},
+        ]
+    )
 
     with (
         patch.object(resolve_v2_dogfood, "_get_admin_key", return_value="admin_secret"),
         patch.object(resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)),
     ):
-        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(args, provider="brave-search")
+        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(
+            args, provider="brave-search"
+        )
 
     assert api_key == "rhumb_rotated_key"
     assert metadata == {
@@ -842,19 +904,25 @@ def test_provision_api_key_via_admin_retries_transient_list_failure_once():
         timeout=30.0,
     )
 
-    responses = iter([
-        {"status": 500, "json": {"detail": "An unexpected error occurred."}},
-        {"status": 200, "json": [{"agent_id": "agent_existing", "name": "Verifier Agent"}]},
-        {"status": 200, "json": {"new_api_key": "rhumb_rotated_key"}},
-        {"status": 409, "json": {"detail": "already granted"}, "detail": "already granted"},
-    ])
+    responses = iter(
+        [
+            {"status": 500, "json": {"detail": "An unexpected error occurred."}},
+            {"status": 200, "json": [{"agent_id": "agent_existing", "name": "Verifier Agent"}]},
+            {"status": 200, "json": {"new_api_key": "rhumb_rotated_key"}},
+            {"status": 409, "json": {"detail": "already granted"}, "detail": "already granted"},
+        ]
+    )
 
     with (
         patch.object(resolve_v2_dogfood, "_get_admin_key", return_value="admin_secret"),
-        patch.object(resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)) as mock_http,
+        patch.object(
+            resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)
+        ) as mock_http,
         patch.object(resolve_v2_dogfood.time, "sleep") as mock_sleep,
     ):
-        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(args, provider="brave-search")
+        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(
+            args, provider="brave-search"
+        )
 
     assert api_key == "rhumb_rotated_key"
     assert metadata == {
@@ -880,21 +948,27 @@ def test_provision_api_key_via_admin_retries_multiple_transient_list_failures_be
         timeout=30.0,
     )
 
-    responses = iter([
-        {"status": 500, "json": {"detail": "An unexpected error occurred."}},
-        {"status": 500, "json": {"detail": "An unexpected error occurred."}},
-        {"status": 500, "json": {"detail": "An unexpected error occurred."}},
-        {"status": 200, "json": [{"agent_id": "agent_existing", "name": "Verifier Agent"}]},
-        {"status": 200, "json": {"new_api_key": "rhumb_rotated_key"}},
-        {"status": 409, "json": {"detail": "already granted"}, "detail": "already granted"},
-    ])
+    responses = iter(
+        [
+            {"status": 500, "json": {"detail": "An unexpected error occurred."}},
+            {"status": 500, "json": {"detail": "An unexpected error occurred."}},
+            {"status": 500, "json": {"detail": "An unexpected error occurred."}},
+            {"status": 200, "json": [{"agent_id": "agent_existing", "name": "Verifier Agent"}]},
+            {"status": 200, "json": {"new_api_key": "rhumb_rotated_key"}},
+            {"status": 409, "json": {"detail": "already granted"}, "detail": "already granted"},
+        ]
+    )
 
     with (
         patch.object(resolve_v2_dogfood, "_get_admin_key", return_value="admin_secret"),
-        patch.object(resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)) as mock_http,
+        patch.object(
+            resolve_v2_dogfood, "_http_json", side_effect=lambda *a, **k: next(responses)
+        ) as mock_http,
         patch.object(resolve_v2_dogfood.time, "sleep") as mock_sleep,
     ):
-        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(args, provider="brave-search")
+        api_key, metadata = resolve_v2_dogfood.provision_api_key_via_admin(
+            args, provider="brave-search"
+        )
 
     assert api_key == "rhumb_rotated_key"
     assert metadata == {
@@ -908,7 +982,6 @@ def test_provision_api_key_via_admin_retries_multiple_transient_list_failures_be
     }
     assert mock_http.call_count == 6
     assert mock_sleep.call_args_list == [call(0.5), call(1.0), call(2.0)]
-
 
 
 def test_provision_api_key_via_admin_surfaces_http_status_and_detail_on_list_failure():

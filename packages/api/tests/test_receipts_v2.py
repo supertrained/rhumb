@@ -7,12 +7,14 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
+from services.route_explanation import RouteExplanation
 
 
 @pytest.fixture
 def client():
     """Create a test client for the FastAPI app."""
     from app import create_app
+
     app = create_app()
     return TestClient(app)
 
@@ -101,12 +103,20 @@ def test_get_receipt_canonicalizes_alternate_provider_alias_text(client):
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["provider_id"] == "brave-search-api"
-        assert body["data"]["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
-        assert body["data"]["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
+        assert (
+            body["data"]["error_message"]
+            == "brave-search-api failed after people-data-labs credential lookup"
+        )
+        assert (
+            body["data"]["winner_reason"]
+            == "brave-search-api fell back to people-data-labs on contact coverage"
+        )
         assert "error_provider_raw" not in body["data"]
 
 
-def test_get_receipt_canonicalizes_known_alternate_provider_alias_text_without_raw_provider_hint(client):
+def test_get_receipt_canonicalizes_known_alternate_provider_alias_text_without_raw_provider_hint(
+    client,
+):
     receipt_data = {
         "receipt_id": "rcpt_test125",
         "execution_id": "exec_003",
@@ -123,11 +133,19 @@ def test_get_receipt_canonicalizes_known_alternate_provider_alias_text_without_r
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["provider_id"] == "brave-search-api"
-        assert body["data"]["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
-        assert body["data"]["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
+        assert (
+            body["data"]["error_message"]
+            == "brave-search-api failed after people-data-labs credential lookup"
+        )
+        assert (
+            body["data"]["winner_reason"]
+            == "brave-search-api fell back to people-data-labs on contact coverage"
+        )
 
 
-def test_get_receipt_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(client):
+def test_get_receipt_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(
+    client,
+):
     receipt_data = {
         "receipt_id": "rcpt_test126",
         "execution_id": "exec_004",
@@ -177,7 +195,9 @@ def test_verify_receipt_returns_compact_verifier_status(client):
     }
     with (
         patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
-        patch("routes.receipts_v2.get_persisted_explanation_by_receipt", new_callable=AsyncMock) as mock_exp,
+        patch(
+            "routes.receipts_v2.get_persisted_explanation_by_receipt", new_callable=AsyncMock
+        ) as mock_exp,
     ):
         mock_fetch.return_value = [receipt_data]
         mock_exp.return_value = object()
@@ -294,7 +314,9 @@ def test_query_receipts_rejects_blank_filters_before_reads(client, field, query)
 def test_query_receipts_trims_filters_before_reads(client):
     with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
         mock_fetch.return_value = []
-        resp = client.get("/v2/receipts?agent_id=%20agent_test%20&provider_id=%20brave-search-api%20")
+        resp = client.get(
+            "/v2/receipts?agent_id=%20agent_test%20&provider_id=%20brave-search-api%20"
+        )
 
     assert resp.status_code == 200
     query = mock_fetch.await_args.args[0]
@@ -332,11 +354,19 @@ def test_query_receipts_canonicalizes_alias_backed_provider_text(client):
         body = resp.json()
         assert body["data"]["receipts"][0]["provider_id"] == "people-data-labs"
         assert body["data"]["receipts"][0]["provider_name"] == "people-data-labs"
-        assert body["data"]["receipts"][0]["error_message"] == "people-data-labs credential unavailable"
-        assert body["data"]["receipts"][0]["winner_reason"] == "people-data-labs won on contact coverage"
+        assert (
+            body["data"]["receipts"][0]["error_message"]
+            == "people-data-labs credential unavailable"
+        )
+        assert (
+            body["data"]["receipts"][0]["winner_reason"]
+            == "people-data-labs won on contact coverage"
+        )
 
 
-def test_query_receipts_canonicalizes_known_alternate_provider_alias_text_without_raw_provider_hint(client):
+def test_query_receipts_canonicalizes_known_alternate_provider_alias_text_without_raw_provider_hint(
+    client,
+):
     receipts = [
         {
             "receipt_id": "rcpt_2",
@@ -351,11 +381,19 @@ def test_query_receipts_canonicalizes_known_alternate_provider_alias_text_withou
         assert resp.status_code == 200
         body = resp.json()
         assert body["data"]["receipts"][0]["provider_id"] == "brave-search-api"
-        assert body["data"]["receipts"][0]["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
-        assert body["data"]["receipts"][0]["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
+        assert (
+            body["data"]["receipts"][0]["error_message"]
+            == "brave-search-api failed after people-data-labs credential lookup"
+        )
+        assert (
+            body["data"]["receipts"][0]["winner_reason"]
+            == "brave-search-api fell back to people-data-labs on contact coverage"
+        )
 
 
-def test_query_receipts_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(client):
+def test_query_receipts_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(
+    client,
+):
     receipts = [
         {
             "receipt_id": "rcpt_3",
@@ -411,7 +449,9 @@ def test_get_receipt_explanation_uses_persisted_receipt_link(client):
     )
     with (
         patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch,
-        patch("routes.receipts_v2.get_persisted_explanation_by_receipt", new_callable=AsyncMock) as mock_get,
+        patch(
+            "routes.receipts_v2.get_persisted_explanation_by_receipt", new_callable=AsyncMock
+        ) as mock_get,
     ):
         mock_fetch.return_value = [receipt_data]
         mock_get.return_value = persisted
@@ -461,7 +501,9 @@ def test_verify_chain_invalid_range_uses_explicit_invalid_parameters(client):
     assert mock_fetch.await_count == 0
 
 
-@pytest.mark.parametrize("query", ["limit=0", "limit=1001", "limit=ten", "limit=false", "limit=%20%20"])
+@pytest.mark.parametrize(
+    "query", ["limit=0", "limit=1001", "limit=ten", "limit=false", "limit=%20%20"]
+)
 def test_verify_chain_rejects_invalid_limit_before_reads(client, query):
     with patch("services.receipt_service.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
         resp = client.get(f"/v2/receipts/chain/verify?{query}")
@@ -470,7 +512,10 @@ def test_verify_chain_rejects_invalid_limit_before_reads(client, query):
     body = resp.json()
     assert body["error"]["code"] == "INVALID_PARAMETERS"
     assert body["error"]["message"] == "Invalid 'limit' filter."
-    assert "between 1 and 1000" in body["error"]["detail"] or "integer value" in body["error"]["detail"]
+    assert (
+        "between 1 and 1000" in body["error"]["detail"]
+        or "integer value" in body["error"]["detail"]
+    )
     assert mock_fetch.await_count == 0
 
 

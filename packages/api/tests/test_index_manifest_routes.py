@@ -15,7 +15,9 @@ from services.index_manifest_store import DurableIndexManifestStore, IndexManife
 @pytest.fixture(autouse=True)
 def _disable_durable_index_reads():
     """Keep route tests on deterministic fixture fallback unless a test opts in."""
-    with patch("services.index_manifest_store.supabase_fetch", new_callable=AsyncMock) as mock_fetch:
+    with patch(
+        "services.index_manifest_store.supabase_fetch", new_callable=AsyncMock
+    ) as mock_fetch:
         mock_fetch.return_value = []
         yield mock_fetch
 
@@ -43,7 +45,9 @@ def _durable_manifest_row() -> dict:
             "route_name": "Durable Brave Search API route",
             "network_allowlist": ["api.search.brave.com"],
         },
-        "evidence_packet_json": {"sources": [{"kind": "vendor_docs", "url": "https://api.search.brave.com/"}]},
+        "evidence_packet_json": {
+            "sources": [{"kind": "vendor_docs", "url": "https://api.search.brave.com/"}]
+        },
         "owner": "Pedro",
         "reviewer": "Pedro",
         "expires_at": "2026-08-17T00:00:00Z",
@@ -53,7 +57,9 @@ def _durable_manifest_row() -> dict:
 @pytest.mark.asyncio
 async def test_index_manifest_list_serves_taxonomy_policy_and_manifest_facts() -> None:
     app = create_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
         response = await client.get("/v2/index/manifests?capability_id=search.query")
 
     assert response.status_code == 200
@@ -80,7 +86,9 @@ async def test_index_manifest_list_serves_taxonomy_policy_and_manifest_facts() -
 @pytest.mark.asyncio
 async def test_index_manifest_filters_expose_non_default_fixture_policy() -> None:
     app = create_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
         response = await client.get("/v2/index/manifests?substrate=generated_adapter")
 
     assert response.status_code == 200
@@ -99,7 +107,9 @@ async def test_index_manifest_detail_returns_one_stable_route_manifest() -> None
     expected = fixture_manifests_by_route_id()[route_id]
 
     app = create_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
         response = await client.get(f"/v2/index/manifests/{route_id}")
 
     assert response.status_code == 200
@@ -114,7 +124,9 @@ async def test_index_manifest_detail_returns_one_stable_route_manifest() -> None
 @pytest.mark.asyncio
 async def test_index_manifest_invalid_taxonomy_filter_rejects_before_manifest_serving() -> None:
     app = create_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
         response = await client.get("/v2/index/manifests?source_risk=totally-made-up")
 
     assert response.status_code == 400
@@ -127,7 +139,9 @@ async def test_index_manifest_invalid_taxonomy_filter_rejects_before_manifest_se
 @pytest.mark.asyncio
 async def test_index_manifest_unknown_route_id_returns_typed_not_found() -> None:
     app = create_app()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://testserver"
+    ) as client:
         response = await client.get("/v2/index/manifests/route_missing")
 
     assert response.status_code == 404
@@ -148,12 +162,17 @@ def test_index_manifest_store_returns_deep_copies_and_route_facts() -> None:
     route_facts = store.route_facts_for_provider("search.query", "brave-search-api")
     assert route_facts["route_id"] == "route_search_query_brave_search_api_official_api_v1"
     assert route_facts["manifest_digest"].startswith("sha256:")
-    assert route_facts["evidence_packet_id"] == "evidence_search_query_brave_search_api_official_api_2026_05_19"
+    assert (
+        route_facts["evidence_packet_id"]
+        == "evidence_search_query_brave_search_api_official_api_2026_05_19"
+    )
     assert route_facts["recommendation_policy"]["default_recommendable"] is True
 
 
 @pytest.mark.asyncio
-async def test_durable_index_manifest_store_prefers_hosted_rows(_disable_durable_index_reads) -> None:
+async def test_durable_index_manifest_store_prefers_hosted_rows(
+    _disable_durable_index_reads,
+) -> None:
     _disable_durable_index_reads.return_value = [_durable_manifest_row()]
     store = DurableIndexManifestStore()
 
@@ -161,11 +180,15 @@ async def test_durable_index_manifest_store_prefers_hosted_rows(_disable_durable
 
     assert manifests[0]["route_name"] == "Durable Brave Search API route"
     assert manifests[0]["manifest_digest"] == "sha256:durable-manifest"
-    assert _disable_durable_index_reads.await_args.args[0].startswith("index_command_manifests?capability_id=eq.search.query")
+    assert _disable_durable_index_reads.await_args.args[0].startswith(
+        "index_command_manifests?capability_id=eq.search.query"
+    )
 
 
 @pytest.mark.asyncio
-async def test_durable_index_manifest_store_route_facts_include_evidence_and_policy(_disable_durable_index_reads) -> None:
+async def test_durable_index_manifest_store_route_facts_include_evidence_and_policy(
+    _disable_durable_index_reads,
+) -> None:
     _disable_durable_index_reads.return_value = [_durable_manifest_row()]
     store = DurableIndexManifestStore()
 
@@ -179,7 +202,9 @@ async def test_durable_index_manifest_store_route_facts_include_evidence_and_pol
 
 
 @pytest.mark.asyncio
-async def test_durable_index_manifest_store_falls_back_when_hosted_rows_empty(_disable_durable_index_reads) -> None:
+async def test_durable_index_manifest_store_falls_back_when_hosted_rows_empty(
+    _disable_durable_index_reads,
+) -> None:
     _disable_durable_index_reads.return_value = []
     store = DurableIndexManifestStore()
 

@@ -33,8 +33,12 @@ class IndexManifestStore:
     contract_id = "index_command_manifest_v1"
 
     def __init__(self, manifests: list[dict[str, Any]] | None = None) -> None:
-        self._manifests = [deepcopy(manifest) for manifest in (manifests or command_manifest_fixtures())]
-        self._by_route_id = {str(manifest.get("route_id")): manifest for manifest in self._manifests}
+        self._manifests = [
+            deepcopy(manifest) for manifest in (manifests or command_manifest_fixtures())
+        ]
+        self._by_route_id = {
+            str(manifest.get("route_id")): manifest for manifest in self._manifests
+        }
 
     def list_manifests(
         self,
@@ -49,10 +53,14 @@ class IndexManifestStore:
             for manifest in self._manifests
             if (capability_id is None or manifest.get("capability_id") == capability_id)
             and (substrate is None or manifest.get("substrate") == substrate)
-            and (provenance_origin is None or manifest.get("provenance_origin") == provenance_origin)
+            and (
+                provenance_origin is None or manifest.get("provenance_origin") == provenance_origin
+            )
             and (source_risk is None or manifest.get("source_risk") == source_risk)
         ]
-        manifests.sort(key=lambda item: (str(item.get("capability_id") or ""), str(item.get("route_id") or "")))
+        manifests.sort(
+            key=lambda item: (str(item.get("capability_id") or ""), str(item.get("route_id") or ""))
+        )
         return [deepcopy(manifest) for manifest in manifests]
 
     def get_manifest(self, route_id: str) -> dict[str, Any] | None:
@@ -152,12 +160,14 @@ class DurableIndexManifestStore:
         provenance_origin: str | None = None,
         source_risk: str | None = None,
     ) -> list[dict[str, Any]]:
-        rows = await supabase_fetch(self._manifest_query(
-            capability_id=capability_id,
-            substrate=substrate,
-            provenance_origin=provenance_origin,
-            source_risk=source_risk,
-        ))
+        rows = await supabase_fetch(
+            self._manifest_query(
+                capability_id=capability_id,
+                substrate=substrate,
+                provenance_origin=provenance_origin,
+                source_risk=source_risk,
+            )
+        )
         manifests = [_manifest_from_row(row) for row in rows or [] if isinstance(row, dict)]
         manifests = [manifest for manifest in manifests if manifest]
         if manifests:
@@ -182,7 +192,9 @@ class DurableIndexManifestStore:
                 return manifest
         return self._fallback.get_manifest(route_id)
 
-    async def route_facts_for_provider(self, capability_id: str, provider_id: str) -> dict[str, Any]:
+    async def route_facts_for_provider(
+        self, capability_id: str, provider_id: str
+    ) -> dict[str, Any]:
         rows = await supabase_fetch(
             "index_command_manifests"
             f"?capability_id=eq.{capability_id}"

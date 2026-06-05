@@ -25,8 +25,7 @@ FAKE_RHUMB_KEY = "rhumb_test_key_v2"
 
 def _request_with_headers(headers: dict[str, str]) -> Request:
     raw_headers = [
-        (key.lower().encode("latin-1"), value.encode("latin-1"))
-        for key, value in headers.items()
+        (key.lower().encode("latin-1"), value.encode("latin-1")) for key, value in headers.items()
     ]
     return Request({"type": "http", "method": "POST", "path": "/", "headers": raw_headers})
 
@@ -64,16 +63,18 @@ def _mock_policy_store():
 @pytest.fixture(autouse=True)
 def _mock_v2_budget_enforcer():
     mock_enforcer = MagicMock()
-    mock_enforcer.get_budget = AsyncMock(return_value=BudgetStatus(
-        allowed=True,
-        remaining_usd=None,
-        budget_usd=None,
-        spent_usd=None,
-        period=None,
-        hard_limit=None,
-        alert_threshold_pct=None,
-        alert_fired=None,
-    ))
+    mock_enforcer.get_budget = AsyncMock(
+        return_value=BudgetStatus(
+            allowed=True,
+            remaining_usd=None,
+            budget_usd=None,
+            spent_usd=None,
+            period=None,
+            hard_limit=None,
+            alert_threshold_pct=None,
+            alert_fired=None,
+        )
+    )
     with patch("routes.resolve_v2._v2_budget_enforcer", mock_enforcer):
         yield mock_enforcer
 
@@ -85,8 +86,14 @@ def _mock_v2_route_plan_runtime_seams():
             self.seen: set[str] = set()
             self.revoked: set[str] = set()
 
-        async def check_and_claim(self, *, nonce, route_plan_id_hash, expires_at, allow_fallback=True):
-            nonce_hash = resolve_v2_route.canonical_json_sha256({"route_plan_nonce": nonce}) if nonce else None
+        async def check_and_claim(
+            self, *, nonce, route_plan_id_hash, expires_at, allow_fallback=True
+        ):
+            nonce_hash = (
+                resolve_v2_route.canonical_json_sha256({"route_plan_nonce": nonce})
+                if nonce
+                else None
+            )
             if nonce_hash in self.revoked:
                 return SimpleNamespace(
                     allowed=False,
@@ -116,8 +123,14 @@ def _mock_v2_route_plan_runtime_seams():
     kill_switch_registry = MagicMock()
     kill_switch_registry.is_blocked.return_value = (False, "")
     with (
-        patch("routes.resolve_v2.init_route_plan_state_store", new=AsyncMock(return_value=route_plan_store)),
-        patch("routes.resolve_v2.init_kill_switch_registry", new=AsyncMock(return_value=kill_switch_registry)),
+        patch(
+            "routes.resolve_v2.init_route_plan_state_store",
+            new=AsyncMock(return_value=route_plan_store),
+        ),
+        patch(
+            "routes.resolve_v2.init_kill_switch_registry",
+            new=AsyncMock(return_value=kill_switch_registry),
+        ),
     ):
         yield {"route_plan_store": route_plan_store, "kill_switch_registry": kill_switch_registry}
 
@@ -131,11 +144,24 @@ def _mock_v1_execute_runtime_seams():
     mock_kill_switch_registry.is_blocked.return_value = (False, None)
 
     with (
-        patch("routes.capability_execute._get_rate_limiter", new=AsyncMock(return_value=mock_rate_limiter)),
-        patch("routes.capability_execute.init_kill_switch_registry", new=AsyncMock(return_value=mock_kill_switch_registry)),
-        patch("routes.capability_execute.check_billing_health", new=AsyncMock(return_value=(True, None))),
-        patch("routes.capability_execute.supabase_insert_required", new=AsyncMock(return_value=True)),
-        patch("routes.capability_execute.supabase_patch_required", new=AsyncMock(return_value=True)),
+        patch(
+            "routes.capability_execute._get_rate_limiter",
+            new=AsyncMock(return_value=mock_rate_limiter),
+        ),
+        patch(
+            "routes.capability_execute.init_kill_switch_registry",
+            new=AsyncMock(return_value=mock_kill_switch_registry),
+        ),
+        patch(
+            "routes.capability_execute.check_billing_health",
+            new=AsyncMock(return_value=(True, None)),
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert_required", new=AsyncMock(return_value=True)
+        ),
+        patch(
+            "routes.capability_execute.supabase_patch_required", new=AsyncMock(return_value=True)
+        ),
         patch(
             "routes.capability_execute._budget_enforcer.check_and_decrement",
             new=AsyncMock(
@@ -151,7 +177,9 @@ def _mock_v1_execute_runtime_seams():
                 )
             ),
         ),
-        patch("routes.capability_execute._budget_enforcer.release", new=AsyncMock(return_value=None)),
+        patch(
+            "routes.capability_execute._budget_enforcer.release", new=AsyncMock(return_value=None)
+        ),
         patch(
             "routes.capability_execute._credit_deduction.deduct",
             new=AsyncMock(
@@ -284,25 +312,29 @@ def _mock_db_direct_supabase_with_stale_mapping(path: str):
 def _mock_search_alias_supabase(path: str):
     if path.startswith("capabilities?"):
         if "id=eq.search.query" in path:
-            return [{
-                "id": "search.query",
-                "domain": "search",
-                "action": "query",
-                "description": "Search the web through Brave Search",
-            }]
+            return [
+                {
+                    "id": "search.query",
+                    "domain": "search",
+                    "action": "query",
+                    "description": "Search the web through Brave Search",
+                }
+            ]
         return []
     if path.startswith("capability_services?"):
         if "capability_id=eq.search.query" in path:
-            return [{
-                "capability_id": "search.query",
-                "service_slug": "brave-search",
-                "credential_modes": ["byo"],
-                "auth_method": "api_key",
-                "endpoint_pattern": "GET /res/v1/web/search",
-                "cost_per_call": 0.003,
-                "cost_currency": "USD",
-                "free_tier_calls": 2000,
-            }]
+            return [
+                {
+                    "capability_id": "search.query",
+                    "service_slug": "brave-search",
+                    "credential_modes": ["byo"],
+                    "auth_method": "api_key",
+                    "endpoint_pattern": "GET /res/v1/web/search",
+                    "cost_per_call": 0.003,
+                    "cost_currency": "USD",
+                    "free_tier_calls": 2000,
+                }
+            ]
         return []
     if path.startswith("scores?"):
         return []
@@ -427,7 +459,7 @@ async def test_v2_capabilities_direct_capability_ignores_stale_catalog_mapping_r
         del table, ttl
         if path.startswith("capabilities?"):
             return [DB_DIRECT_CAPABILITY]
-        if path.startswith("capability_services?") and "capability_id=in.(\"db.query.read\")" in path:
+        if path.startswith("capability_services?") and 'capability_id=in.("db.query.read")' in path:
             return [
                 {
                     "capability_id": "db.query.read",
@@ -477,7 +509,9 @@ async def test_v2_capabilities_rejects_invalid_domain_filter(app):
         ]
 
     with (
-        patch("routes.capabilities._cached_fetch", new=AsyncMock(side_effect=mock_cached_fetch)) as mock_fetch,
+        patch(
+            "routes.capabilities._cached_fetch", new=AsyncMock(side_effect=mock_cached_fetch)
+        ) as mock_fetch,
         patch("routes.capabilities._synthetic_capability_records", return_value=[]),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -540,7 +574,11 @@ async def test_v2_capabilities_rejects_invalid_offset_filter(app):
         ({"limit": "ten"}, "Invalid 'limit' filter.", "Provide an integer between 1 and 100."),
         ({"limit": "true"}, "Invalid 'limit' filter.", "Provide an integer between 1 and 100."),
         ({"limit": "   "}, "Invalid 'limit' filter.", "Provide an integer between 1 and 100."),
-        ({"offset": "false"}, "Invalid 'offset' filter.", "Provide an integer greater than or equal to 0."),
+        (
+            {"offset": "false"},
+            "Invalid 'offset' filter.",
+            "Provide an integer greater than or equal to 0.",
+        ),
     ],
 )
 async def test_v2_capabilities_rejects_malformed_pagination_before_reads(
@@ -589,7 +627,9 @@ async def test_v2_capabilities_normalizes_padded_pagination(app):
         return []
 
     with (
-        patch("routes.capabilities._cached_fetch", new=AsyncMock(side_effect=mock_cached_fetch)) as mock_fetch,
+        patch(
+            "routes.capabilities._cached_fetch", new=AsyncMock(side_effect=mock_cached_fetch)
+        ) as mock_fetch,
         patch("routes.capabilities._synthetic_capability_records", return_value=[]),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -638,7 +678,9 @@ async def test_v2_capabilities_search_ignores_stale_direct_provider_alias_rows(a
             return [{"slug": "resend", "name": "Resend"}]
         return []
 
-    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+    with patch(
+        "routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/v2/capabilities", params={"search": "resend"})
 
@@ -658,7 +700,9 @@ async def test_v2_capabilities_search_ignores_stale_direct_provider_alias_rows(a
 
 @pytest.mark.anyio
 async def test_v2_resolve_wraps_metadata_and_rewrites_nested_urls(app):
-    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+    with patch(
+        "routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
                 "/v2/capabilities/email.send/resolve",
@@ -676,7 +720,10 @@ async def test_v2_resolve_wraps_metadata_and_rewrites_nested_urls(app):
         "layer": 2,
     }
     assert data["execute_hint"]["preferred_credential_mode"] == "byok"
-    assert data["execute_hint"]["credential_modes_url"] == "/v2/capabilities/email.send/credential-modes"
+    assert (
+        data["execute_hint"]["credential_modes_url"]
+        == "/v2/capabilities/email.send/credential-modes"
+    )
     assert all(provider["credential_modes"] == ["byok"] for provider in data["providers"])
 
 
@@ -895,7 +942,10 @@ async def test_v2_execute_enforces_internal_same_planner_route_plan(app):
     execute_resp.headers = {}
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=_route_plan_policy_eval())),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy",
+            new=AsyncMock(return_value=_route_plan_policy_eval()),
+        ),
         patch(
             "routes.resolve_v2._forward_internal",
             new=AsyncMock(side_effect=[_route_plan_estimate_response(), execute_resp]),
@@ -944,14 +994,19 @@ async def test_v2_estimate_route_plan_can_bind_planned_parameters_for_execute(ap
     execute_resp.headers = {}
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=_route_plan_no_policy_eval())),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy",
+            new=AsyncMock(return_value=_route_plan_no_policy_eval()),
+        ),
         patch(
             "routes.resolve_v2._forward_internal",
-            new=AsyncMock(side_effect=[
-                _route_plan_estimate_response(),
-                _route_plan_estimate_response(),
-                execute_resp,
-            ]),
+            new=AsyncMock(
+                side_effect=[
+                    _route_plan_estimate_response(),
+                    _route_plan_estimate_response(),
+                    execute_resp,
+                ]
+            ),
         ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -964,7 +1019,9 @@ async def test_v2_estimate_route_plan_can_bind_planned_parameters_for_execute(ap
                 },
             )
             route_plan_id = estimate.json()["data"]["route_candidates"][0]["route_plan_id"]
-            route_plan_input_hash = estimate.json()["data"]["route_candidates"][0]["route_plan_input_hash"]
+            route_plan_input_hash = estimate.json()["data"]["route_candidates"][0][
+                "route_plan_input_hash"
+            ]
 
             resp = await client.post(
                 "/v2/capabilities/search.query/execute",
@@ -1000,15 +1057,20 @@ async def test_v2_execute_rejects_supplied_route_plan_replay_before_runtime(app)
     execute_resp.headers = {}
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=_route_plan_no_policy_eval())),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy",
+            new=AsyncMock(return_value=_route_plan_no_policy_eval()),
+        ),
         patch(
             "routes.resolve_v2._forward_internal",
-            new=AsyncMock(side_effect=[
-                _route_plan_estimate_response(),
-                _route_plan_estimate_response(),
-                execute_resp,
-                _route_plan_estimate_response(),
-            ]),
+            new=AsyncMock(
+                side_effect=[
+                    _route_plan_estimate_response(),
+                    _route_plan_estimate_response(),
+                    execute_resp,
+                    _route_plan_estimate_response(),
+                ]
+            ),
         ) as mock_forward,
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -1024,11 +1086,19 @@ async def test_v2_execute_rejects_supplied_route_plan_replay_before_runtime(app)
 
             first = await client.post(
                 "/v2/capabilities/search.query/execute",
-                json={"parameters": {"q": "rhumb"}, "credential_mode": "byok", "route_plan_id": route_plan_id},
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byok",
+                    "route_plan_id": route_plan_id,
+                },
             )
             second = await client.post(
                 "/v2/capabilities/search.query/execute",
-                json={"parameters": {"q": "rhumb"}, "credential_mode": "byok", "route_plan_id": route_plan_id},
+                json={
+                    "parameters": {"q": "rhumb"},
+                    "credential_mode": "byok",
+                    "route_plan_id": route_plan_id,
+                },
             )
 
     assert first.status_code == 200
@@ -1041,14 +1111,19 @@ async def test_v2_execute_rejects_supplied_route_plan_replay_before_runtime(app)
 
 
 @pytest.mark.anyio
-async def test_v2_execute_rejects_route_plan_when_kill_switch_blocks(app, _mock_v2_route_plan_runtime_seams):
+async def test_v2_execute_rejects_route_plan_when_kill_switch_blocks(
+    app, _mock_v2_route_plan_runtime_seams
+):
     _mock_v2_route_plan_runtime_seams["kill_switch_registry"].is_blocked.return_value = (
         True,
         "Provider kill switch active: incident",
     )
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=_route_plan_policy_eval())),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy",
+            new=AsyncMock(return_value=_route_plan_policy_eval()),
+        ),
         patch(
             "routes.resolve_v2._forward_internal",
             new=AsyncMock(return_value=_route_plan_estimate_response()),
@@ -1071,7 +1146,10 @@ async def test_v2_execute_rejects_route_plan_when_kill_switch_blocks(app, _mock_
 @pytest.mark.anyio
 async def test_v2_execute_rejects_bad_signed_route_plan_before_runtime(app):
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=_route_plan_policy_eval())),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy",
+            new=AsyncMock(return_value=_route_plan_policy_eval()),
+        ),
         patch(
             "routes.resolve_v2._forward_internal",
             new=AsyncMock(return_value=_route_plan_estimate_response()),
@@ -1114,9 +1192,13 @@ async def test_v2_execute_rejects_route_plan_that_names_different_provider(app):
             "credential_handle_id": None,
             "required_scopes": [],
             "input_hash": resolve_v2_route.canonical_json_sha256({"q": "rhumb"}),
-            "manifest_digest": resolve_v2_route.canonical_json_sha256({"provider_id": "people-data-labs"}),
+            "manifest_digest": resolve_v2_route.canonical_json_sha256(
+                {"provider_id": "people-data-labs"}
+            ),
             "evidence_packet_digest": None,
-            "policy_snapshot_digest": resolve_v2_route.canonical_json_sha256({"source": "mismatch"}),
+            "policy_snapshot_digest": resolve_v2_route.canonical_json_sha256(
+                {"source": "mismatch"}
+            ),
             "budget_snapshot_digest": resolve_v2_route.canonical_json_sha256({"active": False}),
             "sandbox_profile_id": None,
             "artifact_hashes": [],
@@ -1127,7 +1209,10 @@ async def test_v2_execute_rejects_route_plan_that_names_different_provider(app):
     )
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=_route_plan_policy_eval())),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy",
+            new=AsyncMock(return_value=_route_plan_policy_eval()),
+        ),
         patch(
             "routes.resolve_v2._forward_internal",
             new=AsyncMock(return_value=_route_plan_estimate_response()),
@@ -1170,7 +1255,10 @@ async def test_v2_execute_rejects_runtime_provider_divergence_from_route_plan(ap
     execute_resp.headers = {}
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=_route_plan_policy_eval())),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy",
+            new=AsyncMock(return_value=_route_plan_policy_eval()),
+        ),
         patch(
             "routes.resolve_v2._forward_internal",
             new=AsyncMock(side_effect=[_route_plan_estimate_response(), execute_resp]),
@@ -1192,7 +1280,14 @@ async def test_v2_execute_rejects_runtime_provider_divergence_from_route_plan(ap
 
 @pytest.mark.anyio
 async def test_v2_resolve_rewrites_nested_recovery_urls_for_alternate_handoff(app):
-    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+    with (
+        patch(
+            "routes.capabilities.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch("routes.capabilities._has_proxy_credential_configured", return_value=False),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
                 "/v2/capabilities/email.send/resolve",
@@ -1272,7 +1367,14 @@ async def test_v2_resolve_preserves_blocker_hints_when_no_alternate_handoff(app)
             return []
         return []
 
-    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+    with (
+        patch(
+            "routes.capabilities.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=mock_fetch,
+        ),
+        patch("routes.capabilities._has_proxy_credential_configured", return_value=False),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
                 "/v2/capabilities/email.send/resolve",
@@ -1347,7 +1449,9 @@ async def test_v2_resolve_rewrites_filtered_no_execute_ready_alternate_handoff(a
             return []
         return []
 
-    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch):
+    with patch(
+        "routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=mock_fetch
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
                 "/v2/capabilities/email.send/resolve",
@@ -1393,7 +1497,11 @@ async def test_v2_resolve_rewrites_filtered_no_execute_ready_alternate_handoff(a
 
 @pytest.mark.anyio
 async def test_v2_resolve_rewrites_direct_execute_endpoint_pattern(app):
-    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_db_direct_supabase):
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_db_direct_supabase,
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get("/v2/capabilities/db.query.read/resolve")
 
@@ -1423,7 +1531,11 @@ async def test_v2_resolve_rewrites_direct_execute_endpoint_pattern(app):
 
 @pytest.mark.anyio
 async def test_v2_resolve_rewrites_direct_recovery_alternate_execute_endpoint_pattern(app):
-    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_db_direct_supabase):
+    with patch(
+        "routes.capabilities.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_db_direct_supabase,
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
                 "/v2/capabilities/db.query.read/resolve",
@@ -1483,7 +1595,9 @@ async def test_v2_resolve_direct_capability_ignores_stale_catalog_mapping_rows(a
 
 @pytest.mark.anyio
 async def test_v2_credential_modes_wraps_metadata(app):
-    with patch("routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase):
+    with patch(
+        "routes.capabilities.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
                 "/v2/capabilities/email.send/credential-modes",
@@ -1574,10 +1688,16 @@ async def test_v2_resolve_canonicalizes_alias_backed_provider_fields_in_success_
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["providers"][0]["service_slug"] == "brave-search-api"
-    assert data["providers"][0]["setup_hint"] == "Configure brave-search-api before falling back to people-data-labs."
+    assert (
+        data["providers"][0]["setup_hint"]
+        == "Configure brave-search-api before falling back to people-data-labs."
+    )
     assert data["execute_hint"]["preferred_provider"] == "brave-search-api"
     assert data["execute_hint"]["fallback_providers"] == ["people-data-labs"]
-    assert data["execute_hint"]["setup_hint"] == "Use brave-search-api before switching to people-data-labs."
+    assert (
+        data["execute_hint"]["setup_hint"]
+        == "Use brave-search-api before switching to people-data-labs."
+    )
 
 
 @pytest.mark.anyio
@@ -1610,7 +1730,9 @@ async def test_v2_resolve_canonicalizes_alias_backed_provider_fields_in_failure_
 
 
 @pytest.mark.anyio
-async def test_v2_credential_modes_canonicalizes_alias_backed_provider_fields_in_success_payload(app):
+async def test_v2_credential_modes_canonicalizes_alias_backed_provider_fields_in_success_payload(
+    app,
+):
     modes_resp = _make_mock_response(
         status_code=200,
         json_body={
@@ -1644,11 +1766,16 @@ async def test_v2_credential_modes_canonicalizes_alias_backed_provider_fields_in
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["providers"][0]["service_slug"] == "brave-search-api"
-    assert data["providers"][0]["modes"][0]["setup_hint"] == "Set brave-search-api before falling back to people-data-labs."
+    assert (
+        data["providers"][0]["modes"][0]["setup_hint"]
+        == "Set brave-search-api before falling back to people-data-labs."
+    )
 
 
 @pytest.mark.anyio
-async def test_v2_credential_modes_canonicalizes_alias_backed_provider_fields_in_failure_payload(app):
+async def test_v2_credential_modes_canonicalizes_alias_backed_provider_fields_in_failure_payload(
+    app,
+):
     modes_resp = MagicMock(spec=httpx.Response)
     modes_resp.status_code = 503
     modes_resp.json.return_value = {
@@ -1699,7 +1826,9 @@ async def test_v2_estimate_rewrites_recovery_urls_and_canonicalizes_mode(app):
     }
     estimate_resp.headers = {}
 
-    with patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)) as mock_forward:
+    with patch(
+        "routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)
+    ) as mock_forward:
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(
                 "/v2/capabilities/email.send/execute/estimate",
@@ -1709,7 +1838,10 @@ async def test_v2_estimate_rewrites_recovery_urls_and_canonicalizes_mode(app):
     assert resp.status_code == 402
     body = resp.json()
     assert body["resolve_url"] == "/v2/capabilities/email.send/resolve?credential_mode=byok"
-    assert body["estimate_url"] == "/v2/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byok"
+    assert (
+        body["estimate_url"]
+        == "/v2/capabilities/email.send/execute/estimate?provider=sendgrid&credential_mode=byok"
+    )
     assert mock_forward.await_args.kwargs["params"] == {
         "credential_mode": "byok",
         "provider": "sendgrid",
@@ -1722,7 +1854,9 @@ async def test_v2_estimate_issues_route_plan_id_for_executable_candidate(app):
     estimate_resp = _route_plan_estimate_response()
 
     with (
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)) as mock_forward,
+        patch(
+            "routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)
+        ) as mock_forward,
         patch("routes.resolve_v2.time.time", return_value=issued_at),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -1852,8 +1986,14 @@ async def test_v2_estimate_rewrites_direct_execute_readiness_handoff(app):
     data = resp.json()["data"]
     assert data["endpoint_pattern"] == "POST /v2/capabilities/workflow_run.list/execute"
     assert data["execute_readiness"]["resolve_url"] == "/v2/capabilities/workflow_run.list/resolve"
-    assert data["execute_readiness"]["credential_modes_url"] == "/v2/capabilities/workflow_run.list/credential-modes"
-    assert data["execute_readiness"]["auth_handoff"]["retry_url"] == "/v2/capabilities/workflow_run.list/execute"
+    assert (
+        data["execute_readiness"]["credential_modes_url"]
+        == "/v2/capabilities/workflow_run.list/credential-modes"
+    )
+    assert (
+        data["execute_readiness"]["auth_handoff"]["retry_url"]
+        == "/v2/capabilities/workflow_run.list/execute"
+    )
 
 
 @pytest.mark.anyio
@@ -1880,7 +2020,10 @@ async def test_v2_estimate_direct_capability_ignores_stale_catalog_mapping_rows(
     assert data["provider"] == "postgresql"
     assert data["endpoint_pattern"] == "POST /v2/capabilities/db.query.read/execute"
     assert data["execute_readiness"]["resolve_url"] == "/v2/capabilities/db.query.read/resolve"
-    assert data["execute_readiness"]["credential_modes_url"] == "/v2/capabilities/db.query.read/credential-modes"
+    assert (
+        data["execute_readiness"]["credential_modes_url"]
+        == "/v2/capabilities/db.query.read/credential-modes"
+    )
 
 
 @pytest.mark.anyio
@@ -1900,14 +2043,19 @@ async def test_v2_estimate_direct_capability_accepts_canonical_provider_query(ap
         patch("routes.capability_execute.get_breaker_registry", return_value=breaker_registry),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.get("/v2/capabilities/db.query.read/execute/estimate?provider=postgresql")
+            resp = await client.get(
+                "/v2/capabilities/db.query.read/execute/estimate?provider=postgresql"
+            )
 
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["provider"] == "postgresql"
     assert data["endpoint_pattern"] == "POST /v2/capabilities/db.query.read/execute"
     assert data["execute_readiness"]["resolve_url"] == "/v2/capabilities/db.query.read/resolve"
-    assert data["execute_readiness"]["credential_modes_url"] == "/v2/capabilities/db.query.read/credential-modes"
+    assert (
+        data["execute_readiness"]["credential_modes_url"]
+        == "/v2/capabilities/db.query.read/credential-modes"
+    )
 
 
 @pytest.mark.anyio
@@ -1927,7 +2075,9 @@ async def test_v2_estimate_direct_capability_rejects_stale_provider_query(app):
         patch("routes.capability_execute.get_breaker_registry", return_value=breaker_registry),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            resp = await client.get("/v2/capabilities/db.query.read/execute/estimate?provider=stale-db-proxy")
+            resp = await client.get(
+                "/v2/capabilities/db.query.read/execute/estimate?provider=stale-db-proxy"
+            )
 
     assert resp.status_code == 503
     assert "stale-db-proxy" in resp.text
@@ -2067,7 +2217,9 @@ async def test_v2_execute_canonicalizes_alias_backed_estimate_failure_payload(ap
     )
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)
+        ),
         patch("routes.resolve_v2._forward_internal", new=AsyncMock(return_value=estimate_resp)),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -2140,12 +2292,18 @@ async def test_v2_execute_direct_capability_ignores_stale_catalog_mapping_rows(a
             new_callable=AsyncMock,
             side_effect=_mock_db_direct_supabase_with_stale_mapping,
         ),
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])) as mock_forward,
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ) as mock_forward,
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
         patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
         patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
         patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_db_v2_test")) as mock_build_explanation,
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_db_v2_test"),
+        ) as mock_build_explanation,
         patch("routes.resolve_v2.store_explanation"),
         patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
     ):
@@ -2186,7 +2344,9 @@ async def test_v2_execute_direct_capability_ignores_stale_catalog_mapping_rows(a
         "method": "POST",
         "path": "/v2/capabilities/db.query.read/execute",
     }
-    assert [m["service_slug"] for m in mock_build_explanation.call_args.kwargs["mappings"]] == ["postgresql"]
+    assert [m["service_slug"] for m in mock_build_explanation.call_args.kwargs["mappings"]] == [
+        "postgresql"
+    ]
 
 
 @pytest.mark.anyio
@@ -2278,13 +2438,21 @@ async def test_v2_execute_normalizes_idempotency_keys_before_forwarding_and_rece
         headers["X-Rhumb-Idempotency-Key"] = header_key
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])) as mock_forward,
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)
+        ),
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ) as mock_forward,
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
         patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
         patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
         patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_idem")),
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_v2_idem"),
+        ),
         patch("routes.resolve_v2.store_explanation"),
         patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
         patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
@@ -2302,7 +2470,10 @@ async def test_v2_execute_normalizes_idempotency_keys_before_forwarding_and_rece
     assert execute_call.kwargs["json_body"]["idempotency_key"] == expected_key
     receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
     assert receipt_input.idempotency_key == expected_key
-    assert resp.json()["data"]["_rhumb_v2"]["translated_from"]["idempotency_header_used"] is header_used
+    assert (
+        resp.json()["data"]["_rhumb_v2"]["translated_from"]["idempotency_header_used"]
+        is header_used
+    )
 
 
 @pytest.mark.anyio
@@ -2457,11 +2628,24 @@ async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app)
     _, mock_pool, budget_state = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -2490,7 +2674,10 @@ async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app)
     assert data["_rhumb_v2"]["policy_applied"] is True
     assert data["_rhumb_v2"]["policy_selected_reason"] == "policy_preference_match"
     assert data["_rhumb_v2"]["policy_candidates"] == ["sendgrid", "resend"]
-    assert data["_rhumb_v2"]["receipt_id"] == data.get("receipt_id") or f"rcpt_compat_{data['execution_id']}"
+    assert (
+        data["_rhumb_v2"]["receipt_id"] == data.get("receipt_id")
+        or f"rcpt_compat_{data['execution_id']}"
+    )
 
     request_call = mock_pool.acquire.return_value.request.await_args
     assert request_call.kwargs["json"] == {"to": "test@example.com"}
@@ -2498,15 +2685,30 @@ async def test_v2_execute_translates_provider_preference_and_wraps_metadata(app)
 
 
 @pytest.mark.anyio
-async def test_v2_execute_honors_alias_provider_preference_and_reports_canonical_public_selection(app):
+async def test_v2_execute_honors_alias_provider_preference_and_reports_canonical_public_selection(
+    app,
+):
     _, mock_pool, budget_state = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_alias_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -2541,11 +2743,24 @@ async def test_v2_execute_honors_pinned_alias_provider_and_reports_canonical_pub
     _, mock_pool, budget_state = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_alias_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -2575,15 +2790,30 @@ async def test_v2_execute_honors_pinned_alias_provider_and_reports_canonical_pub
 
 
 @pytest.mark.anyio
-async def test_v2_execute_honors_allow_only_alias_provider_and_reports_canonical_public_selection(app):
+async def test_v2_execute_honors_allow_only_alias_provider_and_reports_canonical_public_selection(
+    app,
+):
     _, mock_pool, budget_state = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_alias_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -2616,7 +2846,11 @@ async def test_v2_execute_honors_allow_only_alias_provider_and_reports_canonical
 @pytest.mark.anyio
 async def test_v2_execute_rejects_denied_alias_provider_and_surfaces_normalized_policy(app):
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_alias_supabase,
+        ),
         patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward,
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -2683,11 +2917,24 @@ async def test_v2_execute_uses_single_canonical_receipt_id_and_skips_v1_receipt(
     mock_attribution.to_rhumb_block.return_value = {"receipt_id": "rcpt_v2_canonical"}
 
     with (
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])) as mock_forward,
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=SimpleNamespace(decision=None, all_mappings=[], eligible_mappings=[]))),
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ) as mock_forward,
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy",
+            new=AsyncMock(
+                return_value=SimpleNamespace(decision=None, all_mappings=[], eligible_mappings=[])
+            ),
+        ),
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
-        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)) as mock_build_attribution,
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_test")),
+        patch(
+            "routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)
+        ) as mock_build_attribution,
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_test"),
+        ),
         patch("routes.resolve_v2.store_explanation"),
     ):
         mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
@@ -2722,11 +2969,24 @@ async def test_v2_execute_respects_provider_deny_and_uses_next_allowed_preferenc
     _, mock_pool, budget_state = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -2758,11 +3018,24 @@ async def test_v2_execute_rejects_when_policy_filters_remove_all_providers(app):
     _, mock_pool, budget_state = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -2789,11 +3062,24 @@ async def test_v2_execute_enforces_max_cost_ceiling_before_execution(app):
     _, mock_pool, budget_state = _build_patches()
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -2817,7 +3103,9 @@ async def test_v2_execute_enforces_max_cost_ceiling_before_execution(app):
 
 
 @pytest.mark.anyio
-async def test_v2_execute_rejects_when_durable_agent_budget_is_exhausted(app, _mock_v2_budget_enforcer):
+async def test_v2_execute_rejects_when_durable_agent_budget_is_exhausted(
+    app, _mock_v2_budget_enforcer
+):
     _, mock_pool, budget_state = _build_patches()
     budget_state.remaining_usd = 0.001
     budget_state.budget_usd = 0.001
@@ -2837,11 +3125,24 @@ async def test_v2_execute_rejects_when_durable_agent_budget_is_exhausted(app, _m
     )
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -2878,8 +3179,14 @@ async def test_v2_policy_auth_errors_use_governed_api_key_language(app, _mock_id
     assert missing_resp.status_code == 401
     missing_body = missing_resp.json()
     assert missing_body["error"]["code"] == "CREDENTIAL_INVALID"
-    assert missing_body["error"]["message"] == "Resolve v2 policy endpoints require a valid governed API key."
-    assert missing_body["error"]["detail"] == "Provide a valid X-Rhumb-Key header tied to an organization-backed agent."
+    assert (
+        missing_body["error"]["message"]
+        == "Resolve v2 policy endpoints require a valid governed API key."
+    )
+    assert (
+        missing_body["error"]["detail"]
+        == "Provide a valid X-Rhumb-Key header tied to an organization-backed agent."
+    )
 
     _mock_identity_store.verify_api_key_with_agent.return_value = None
 
@@ -2890,24 +3197,34 @@ async def test_v2_policy_auth_errors_use_governed_api_key_language(app, _mock_id
     invalid_body = invalid_resp.json()
     assert invalid_body["error"]["code"] == "CREDENTIAL_INVALID"
     assert invalid_body["error"]["message"] == "Invalid or expired governed API key."
-    assert invalid_body["error"]["detail"] == "Provide a valid X-Rhumb-Key header or use an x402 payment flow."
+    assert (
+        invalid_body["error"]["detail"]
+        == "Provide a valid X-Rhumb-Key header or use an x402 payment flow."
+    )
 
 
 @pytest.mark.anyio
-async def test_v2_policy_governed_key_headers_are_normalized_before_identity_reads(app, _mock_identity_store):
+async def test_v2_policy_governed_key_headers_are_normalized_before_identity_reads(
+    app, _mock_identity_store
+):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         blank_resp = await client.get("/v2/policy", headers={"X-Rhumb-Key": "   	  "})
 
     assert blank_resp.status_code == 401
     blank_body = blank_resp.json()
     assert blank_body["error"]["code"] == "CREDENTIAL_INVALID"
-    assert blank_body["error"]["message"] == "Resolve v2 policy endpoints require a valid governed API key."
+    assert (
+        blank_body["error"]["message"]
+        == "Resolve v2 policy endpoints require a valid governed API key."
+    )
     _mock_identity_store.verify_api_key_with_agent.assert_not_awaited()
 
     _mock_identity_store.verify_api_key_with_agent.reset_mock()
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-        padded_resp = await client.get("/v2/policy", headers={"X-Rhumb-Key": "  rhumb_test_key_v2  "})
+        padded_resp = await client.get(
+            "/v2/policy", headers={"X-Rhumb-Key": "  rhumb_test_key_v2  "}
+        )
 
     assert padded_resp.status_code == 200
     _mock_identity_store.verify_api_key_with_agent.assert_awaited_once_with("rhumb_test_key_v2")
@@ -3111,8 +3428,13 @@ async def test_v2_policy_put_and_get_canonicalize_runtime_alias_inputs_to_public
 
     with (
         patch("routes.resolve_v2.get_resolve_policy_store", return_value=store),
-        patch("services.resolve_policy_store.supabase_fetch", new=AsyncMock(side_effect=_mock_fetch)),
-        patch("services.resolve_policy_store.supabase_insert_returning", new=AsyncMock(side_effect=_mock_insert_returning)),
+        patch(
+            "services.resolve_policy_store.supabase_fetch", new=AsyncMock(side_effect=_mock_fetch)
+        ),
+        patch(
+            "services.resolve_policy_store.supabase_insert_returning",
+            new=AsyncMock(side_effect=_mock_insert_returning),
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             put_resp = await client.put(
@@ -3167,11 +3489,24 @@ async def test_v2_execute_merges_account_policy_with_inline_override(app, _mock_
     )
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -3200,7 +3535,9 @@ async def test_v2_execute_merges_account_policy_with_inline_override(app, _mock_
 
 
 @pytest.mark.anyio
-async def test_v2_execute_applies_stored_alias_pin_and_reports_policy_source(app, _mock_policy_store):
+async def test_v2_execute_applies_stored_alias_pin_and_reports_policy_source(
+    app, _mock_policy_store
+):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
@@ -3213,11 +3550,24 @@ async def test_v2_execute_applies_stored_alias_pin_and_reports_policy_source(app
     )
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_alias_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -3246,7 +3596,9 @@ async def test_v2_execute_applies_stored_alias_pin_and_reports_policy_source(app
 
 
 @pytest.mark.anyio
-async def test_v2_execute_keeps_canonical_provider_identity_in_attribution_for_alias_backed_execution(app, _mock_policy_store):
+async def test_v2_execute_keeps_canonical_provider_identity_in_attribution_for_alias_backed_execution(
+    app, _mock_policy_store
+):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
@@ -3260,27 +3612,49 @@ async def test_v2_execute_keeps_canonical_provider_identity_in_attribution_for_a
 
     async def _mock_provider_detail_fetch(path: str):
         if path.startswith("services?slug=eq.brave-search-api"):
-            return [{
-                "slug": "brave-search-api",
-                "name": "Brave Search",
-                "category": "search",
-                "official_docs": "https://api.search.brave.com/docs",
-                "aggregate_recommendation_score": 7.8,
-                "tier_label": "L3",
-            }]
+            return [
+                {
+                    "slug": "brave-search-api",
+                    "name": "Brave Search",
+                    "category": "search",
+                    "official_docs": "https://api.search.brave.com/docs",
+                    "aggregate_recommendation_score": 7.8,
+                    "tier_label": "L3",
+                }
+            ]
         return []
 
     clear_provider_cache()
     try:
         with (
-            patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
-            patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-            patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+            patch(
+                "routes.capability_execute.supabase_fetch",
+                new_callable=AsyncMock,
+                side_effect=_mock_search_alias_supabase,
+            ),
+            patch(
+                "routes.capability_execute.supabase_insert",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                "routes.capability_execute._inject_auth_request_parts",
+                side_effect=_passthrough_inject_auth_request_parts,
+            ),
             patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-            patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
-            patch("services.provider_attribution.supabase_fetch", new=AsyncMock(side_effect=_mock_provider_detail_fetch)),
+            patch(
+                "routes.capability_execute._budget_enforcer.get_budget",
+                new_callable=AsyncMock,
+                return_value=budget_state,
+            ),
+            patch(
+                "services.provider_attribution.supabase_fetch",
+                new=AsyncMock(side_effect=_mock_provider_detail_fetch),
+            ),
         ):
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as client:
                 resp = await client.post(
                     "/v2/capabilities/search.query/execute",
                     json={
@@ -3303,7 +3677,9 @@ async def test_v2_execute_keeps_canonical_provider_identity_in_attribution_for_a
 
 
 @pytest.mark.anyio
-async def test_v2_execute_keeps_canonical_provider_identity_in_receipts_and_billing_for_alias_backed_execution(app, _mock_policy_store):
+async def test_v2_execute_keeps_canonical_provider_identity_in_receipts_and_billing_for_alias_backed_execution(
+    app, _mock_policy_store
+):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
@@ -3320,33 +3696,60 @@ async def test_v2_execute_keeps_canonical_provider_identity_in_receipts_and_bill
 
     async def _mock_provider_detail_fetch(path: str):
         if path.startswith("services?slug=eq.brave-search-api"):
-            return [{
-                "slug": "brave-search-api",
-                "name": "Brave Search",
-                "category": "search",
-                "official_docs": "https://api.search.brave.com/docs",
-                "aggregate_recommendation_score": 7.8,
-                "tier_label": "L3",
-            }]
+            return [
+                {
+                    "slug": "brave-search-api",
+                    "name": "Brave Search",
+                    "category": "search",
+                    "official_docs": "https://api.search.brave.com/docs",
+                    "aggregate_recommendation_score": 7.8,
+                    "tier_label": "L3",
+                }
+            ]
         return []
 
     clear_provider_cache()
     try:
         with (
-            patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
-            patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-            patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+            patch(
+                "routes.capability_execute.supabase_fetch",
+                new_callable=AsyncMock,
+                side_effect=_mock_search_alias_supabase,
+            ),
+            patch(
+                "routes.capability_execute.supabase_insert",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                "routes.capability_execute._inject_auth_request_parts",
+                side_effect=_passthrough_inject_auth_request_parts,
+            ),
             patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-            patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+            patch(
+                "routes.capability_execute._budget_enforcer.get_budget",
+                new_callable=AsyncMock,
+                return_value=budget_state,
+            ),
             patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
-            patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_alias_truth")),
+            patch(
+                "routes.resolve_v2.build_explanation",
+                return_value=SimpleNamespace(explanation_id="rexp_alias_truth"),
+            ),
             patch("routes.resolve_v2.store_explanation"),
             patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
-            patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
-            patch("services.provider_attribution.supabase_fetch", new=AsyncMock(side_effect=_mock_provider_detail_fetch)),
+            patch(
+                "services.billing_events.get_billing_event_stream", return_value=mock_billing_stream
+            ),
+            patch(
+                "services.provider_attribution.supabase_fetch",
+                new=AsyncMock(side_effect=_mock_provider_detail_fetch),
+            ),
         ):
             mock_receipt_svc.return_value.create_receipt = AsyncMock(return_value=mock_receipt)
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as client:
                 resp = await client.post(
                     "/v2/capabilities/search.query/execute",
                     json={
@@ -3369,7 +3772,9 @@ async def test_v2_execute_keeps_canonical_provider_identity_in_receipts_and_bill
 
 
 @pytest.mark.anyio
-async def test_v2_execute_hardens_alias_backed_internal_provider_ids_before_public_v2_shaping(app, _mock_policy_store):
+async def test_v2_execute_hardens_alias_backed_internal_provider_ids_before_public_v2_shaping(
+    app, _mock_policy_store
+):
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
         pin="brave-search-api",
@@ -3450,13 +3855,23 @@ async def test_v2_execute_hardens_alias_backed_internal_provider_ids_before_publ
     mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])) as mock_forward,
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)
+        ),
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ) as mock_forward,
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
-        patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)) as mock_build_attribution,
+        patch(
+            "routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)
+        ) as mock_build_attribution,
         patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
         patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_alias_harden")) as mock_build_explanation,
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_v2_alias_harden"),
+        ) as mock_build_explanation,
         patch("routes.resolve_v2.store_explanation"),
         patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
         patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
@@ -3491,7 +3906,9 @@ async def test_v2_execute_hardens_alias_backed_internal_provider_ids_before_publ
 
 
 @pytest.mark.anyio
-async def test_v2_execute_canonicalizes_alias_backed_provider_fields_in_success_payload(app, _mock_policy_store):
+async def test_v2_execute_canonicalizes_alias_backed_provider_fields_in_success_payload(
+    app, _mock_policy_store
+):
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
         pin="brave-search-api",
@@ -3589,13 +4006,21 @@ async def test_v2_execute_canonicalizes_alias_backed_provider_fields_in_success_
     mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)
+        ),
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ),
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
         patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
         patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
         patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_alias_fields_success")),
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_v2_alias_fields_success"),
+        ),
         patch("routes.resolve_v2.store_explanation"),
         patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
         patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
@@ -3640,7 +4065,9 @@ async def test_v2_execute_canonicalizes_alias_backed_provider_fields_in_success_
 
 
 @pytest.mark.anyio
-async def test_v2_execute_canonicalizes_alias_backed_provider_fields_in_failure_payload(app, _mock_policy_store):
+async def test_v2_execute_canonicalizes_alias_backed_provider_fields_in_failure_payload(
+    app, _mock_policy_store
+):
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
         pin="brave-search-api",
@@ -3715,13 +4142,21 @@ async def test_v2_execute_canonicalizes_alias_backed_provider_fields_in_failure_
     mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)
+        ),
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ),
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
         patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
         patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
         patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_alias_fields_failure")),
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_v2_alias_fields_failure"),
+        ),
         patch("routes.resolve_v2.store_explanation"),
         patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
         patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
@@ -3752,7 +4187,9 @@ async def test_v2_execute_canonicalizes_alias_backed_provider_fields_in_failure_
 
 
 @pytest.mark.anyio
-async def test_v2_execute_canonicalizes_alternate_provider_alias_text_when_structured_fields_are_already_canonical(app, _mock_policy_store):
+async def test_v2_execute_canonicalizes_alternate_provider_alias_text_when_structured_fields_are_already_canonical(
+    app, _mock_policy_store
+):
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
         pin="brave-search-api",
@@ -3850,13 +4287,21 @@ async def test_v2_execute_canonicalizes_alternate_provider_alias_text_when_struc
     mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)
+        ),
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ),
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
         patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
         patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
         patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_alt_alias_text_success")),
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_v2_alt_alias_text_success"),
+        ),
         patch("routes.resolve_v2.store_explanation"),
         patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
         patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
@@ -3897,7 +4342,9 @@ async def test_v2_execute_canonicalizes_alternate_provider_alias_text_when_struc
 
 
 @pytest.mark.anyio
-async def test_v2_execute_failure_canonicalizes_alternate_provider_alias_text_when_structured_fields_are_already_canonical(app, _mock_policy_store):
+async def test_v2_execute_failure_canonicalizes_alternate_provider_alias_text_when_structured_fields_are_already_canonical(
+    app, _mock_policy_store
+):
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
         pin="brave-search-api",
@@ -3972,13 +4419,21 @@ async def test_v2_execute_failure_canonicalizes_alternate_provider_alias_text_wh
     mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)
+        ),
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ),
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
         patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
         patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
         patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_alt_alias_text_failure")),
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_v2_alt_alias_text_failure"),
+        ),
         patch("routes.resolve_v2.store_explanation"),
         patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
         patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
@@ -3997,7 +4452,9 @@ async def test_v2_execute_failure_canonicalizes_alternate_provider_alias_text_wh
 
     assert resp.status_code == 502
     error = resp.json()["error"]
-    assert error["message"] == "brave-search-api upstream exploded after people-data-labs comparison"
+    assert (
+        error["message"] == "brave-search-api upstream exploded after people-data-labs comparison"
+    )
     assert error["detail"] == "Retry brave-search-api or choose people-data-labs"
     assert error["requested_provider"] == "brave-search-api"
     assert error["available_providers"] == ["brave-search-api"]
@@ -4005,11 +4462,16 @@ async def test_v2_execute_failure_canonicalizes_alternate_provider_alias_text_wh
 
     receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
     assert receipt_input.provider_id == "brave-search-api"
-    assert receipt_input.error_message == "brave-search-api upstream exploded after people-data-labs comparison"
+    assert (
+        receipt_input.error_message
+        == "brave-search-api upstream exploded after people-data-labs comparison"
+    )
 
 
 @pytest.mark.anyio
-async def test_v2_execute_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(app, _mock_policy_store):
+async def test_v2_execute_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(
+    app, _mock_policy_store
+):
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
         pin="brave-search-api",
@@ -4107,13 +4569,21 @@ async def test_v2_execute_canonicalizes_same_provider_alias_text_when_structured
     mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)
+        ),
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ),
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
         patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
         patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
         patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_same_alias_text_success")),
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_v2_same_alias_text_success"),
+        ),
         patch("routes.resolve_v2.store_explanation"),
         patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
         patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
@@ -4155,7 +4625,9 @@ async def test_v2_execute_canonicalizes_same_provider_alias_text_when_structured
 
 
 @pytest.mark.anyio
-async def test_v2_execute_failure_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(app, _mock_policy_store):
+async def test_v2_execute_failure_canonicalizes_same_provider_alias_text_when_structured_fields_are_already_canonical(
+    app, _mock_policy_store
+):
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
         pin="brave-search-api",
@@ -4230,13 +4702,21 @@ async def test_v2_execute_failure_canonicalizes_same_provider_alias_text_when_st
     mock_score_cache = SimpleNamespace(scores_by_slug=lambda _slugs: {})
 
     with (
-        patch("routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)),
-        patch("routes.resolve_v2._forward_internal", new=AsyncMock(side_effect=[estimate_resp, execute_resp])),
+        patch(
+            "routes.resolve_v2._evaluate_provider_policy", new=AsyncMock(return_value=policy_eval)
+        ),
+        patch(
+            "routes.resolve_v2._forward_internal",
+            new=AsyncMock(side_effect=[estimate_resp, execute_resp]),
+        ),
         patch("routes.resolve_v2.get_receipt_service") as mock_receipt_svc,
         patch("routes.resolve_v2.build_attribution", new=AsyncMock(return_value=mock_attribution)),
         patch("services.score_cache.get_score_cache", return_value=mock_score_cache),
         patch("routes.proxy.get_breaker_registry", return_value=breaker_registry),
-        patch("routes.resolve_v2.build_explanation", return_value=SimpleNamespace(explanation_id="rexp_v2_same_alias_text_failure")),
+        patch(
+            "routes.resolve_v2.build_explanation",
+            return_value=SimpleNamespace(explanation_id="rexp_v2_same_alias_text_failure"),
+        ),
         patch("routes.resolve_v2.store_explanation"),
         patch("routes.resolve_v2.persist_explanation", new=AsyncMock(return_value=None)),
         patch("services.billing_events.get_billing_event_stream", return_value=mock_billing_stream),
@@ -4255,7 +4735,9 @@ async def test_v2_execute_failure_canonicalizes_same_provider_alias_text_when_st
 
     assert resp.status_code == 502
     error = resp.json()["error"]
-    assert error["message"] == "brave-search-api upstream exploded after brave-search-api comparison"
+    assert (
+        error["message"] == "brave-search-api upstream exploded after brave-search-api comparison"
+    )
     assert error["detail"] == "Retry brave-search-api later"
     assert error["requested_provider"] == "brave-search-api"
     assert error["available_providers"] == ["brave-search-api"]
@@ -4264,11 +4746,16 @@ async def test_v2_execute_failure_canonicalizes_same_provider_alias_text_when_st
 
     receipt_input = mock_receipt_svc.return_value.create_receipt.await_args.args[0]
     assert receipt_input.provider_id == "brave-search-api"
-    assert receipt_input.error_message == "brave-search-api upstream exploded after brave-search-api comparison"
+    assert (
+        receipt_input.error_message
+        == "brave-search-api upstream exploded after brave-search-api comparison"
+    )
 
 
 @pytest.mark.anyio
-async def test_v2_execute_applies_stored_alias_provider_preference_and_reports_policy_source(app, _mock_policy_store):
+async def test_v2_execute_applies_stored_alias_provider_preference_and_reports_policy_source(
+    app, _mock_policy_store
+):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
@@ -4281,11 +4768,24 @@ async def test_v2_execute_applies_stored_alias_provider_preference_and_reports_p
     )
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_alias_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -4315,7 +4815,9 @@ async def test_v2_execute_applies_stored_alias_provider_preference_and_reports_p
 
 
 @pytest.mark.anyio
-async def test_v2_execute_applies_stored_alias_allow_only_and_reports_policy_source(app, _mock_policy_store):
+async def test_v2_execute_applies_stored_alias_allow_only_and_reports_policy_source(
+    app, _mock_policy_store
+):
     _, mock_pool, budget_state = _build_patches()
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
@@ -4328,11 +4830,24 @@ async def test_v2_execute_applies_stored_alias_allow_only_and_reports_policy_sou
     )
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_alias_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
@@ -4362,7 +4877,9 @@ async def test_v2_execute_applies_stored_alias_allow_only_and_reports_policy_sou
 
 
 @pytest.mark.anyio
-async def test_v2_execute_rejects_stored_denied_alias_provider_and_surfaces_normalized_policy(app, _mock_policy_store):
+async def test_v2_execute_rejects_stored_denied_alias_provider_and_surfaces_normalized_policy(
+    app, _mock_policy_store
+):
     _mock_policy_store.get_policy.return_value = SimpleNamespace(
         org_id="org_v2_test",
         pin=None,
@@ -4374,7 +4891,11 @@ async def test_v2_execute_rejects_stored_denied_alias_provider_and_surfaces_norm
     )
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_search_alias_supabase),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_search_alias_supabase,
+        ),
         patch("routes.resolve_v2._forward_internal", new=AsyncMock()) as mock_forward,
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
@@ -4416,11 +4937,24 @@ async def test_v2_execute_inline_empty_list_clears_stored_preference(app, _mock_
     )
 
     with (
-        patch("routes.capability_execute.supabase_fetch", new_callable=AsyncMock, side_effect=_mock_supabase),
-        patch("routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True),
-        patch("routes.capability_execute._inject_auth_request_parts", side_effect=_passthrough_inject_auth_request_parts),
+        patch(
+            "routes.capability_execute.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase,
+        ),
+        patch(
+            "routes.capability_execute.supabase_insert", new_callable=AsyncMock, return_value=True
+        ),
+        patch(
+            "routes.capability_execute._inject_auth_request_parts",
+            side_effect=_passthrough_inject_auth_request_parts,
+        ),
         patch("routes.capability_execute.get_pool_manager", return_value=mock_pool),
-        patch("routes.capability_execute._budget_enforcer.get_budget", new_callable=AsyncMock, return_value=budget_state),
+        patch(
+            "routes.capability_execute._budget_enforcer.get_budget",
+            new_callable=AsyncMock,
+            return_value=budget_state,
+        ),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(

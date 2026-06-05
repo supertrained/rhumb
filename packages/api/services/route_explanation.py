@@ -19,7 +19,7 @@ import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import quote
 
 from routes._supabase import supabase_fetch, supabase_insert
@@ -47,6 +47,7 @@ DEFAULT_WEIGHTS = {
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class CandidateFactor:
@@ -155,6 +156,7 @@ class RouteExplanation:
 # ID generation
 # ---------------------------------------------------------------------------
 
+
 def _generate_explanation_id(capability_id: str, timestamp_ms: int) -> str:
     """Generate a deterministic explanation ID."""
     raw = f"{capability_id}:{timestamp_ms}"
@@ -165,6 +167,7 @@ def _generate_explanation_id(capability_id: str, timestamp_ms: int) -> str:
 # ---------------------------------------------------------------------------
 # Explanation builder
 # ---------------------------------------------------------------------------
+
 
 def _normalize_slug(slug: str | None) -> str | None:
     if slug is None:
@@ -305,9 +308,7 @@ def build_explanation(
 
     # Find max cost for normalization
     costs = [
-        float(m.get("cost_per_call") or 0)
-        for m in mappings
-        if m.get("cost_per_call") is not None
+        float(m.get("cost_per_call") or 0) for m in mappings if m.get("cost_per_call") is not None
     ]
     max_cost = max(costs) if costs else 1.0
     if max_cost == 0:
@@ -326,14 +327,10 @@ def build_explanation(
         checks: dict[str, bool] = {
             "pinned": normalized_policy_pin == slug if normalized_policy_pin else False,
             "denied": slug in deny_set,
-            "cost_ceiling_ok": (
-                cost <= max_cost_usd if max_cost_usd is not None else True
-            ),
+            "cost_ceiling_ok": (cost <= max_cost_usd if max_cost_usd is not None else True),
             "quality_floor_ok": an_score >= quality_floor,
             "circuit_healthy": circuit != "open",
-            "allow_list_ok": (
-                slug in allow_set if allow_set else True
-            ),
+            "allow_list_ok": (slug in allow_set if allow_set else True),
         }
 
         # Determine eligibility
@@ -443,9 +440,7 @@ def build_explanation(
         explanation_id=explanation_id,
         capability_id=capability_id,
         winner_provider_id=normalized_selected_provider,
-        winner_composite_score=(
-            winner_candidate.composite_score if winner_candidate else None
-        ),
+        winner_composite_score=(winner_candidate.composite_score if winner_candidate else None),
         selection_reason=selection_reason,
         candidates=candidates,
         human_summary=human_summary,
@@ -485,6 +480,7 @@ def build_layer1_explanation(
 # ---------------------------------------------------------------------------
 # Human summary
 # ---------------------------------------------------------------------------
+
 
 def _build_human_summary(
     *,
@@ -527,10 +523,7 @@ def _build_human_summary(
             winner.factors.values(),
             key=lambda f: -f.weighted_contribution,
         )[:2]
-        factor_strs = [
-            f"{f.name} ({f.weighted_contribution:.3f})"
-            for f in top_factors
-        ]
+        factor_strs = [f"{f.name} ({f.weighted_contribution:.3f})" for f in top_factors]
         parts.append(f"Strongest factors: {', '.join(factor_strs)}.")
 
     # Exclusions
@@ -569,7 +562,7 @@ def store_explanation(explanation: RouteExplanation) -> None:
             _explanation_store.keys(),
             key=lambda k: _explanation_store[k].created_at_ms,
         )
-        for k in sorted_keys[:_MAX_STORED // 2]:
+        for k in sorted_keys[: _MAX_STORED // 2]:
             del _explanation_store[k]
 
     _explanation_store[explanation.explanation_id] = explanation
@@ -620,8 +613,16 @@ def _row_to_explanation(row: dict[str, Any]) -> RouteExplanation:
                     eligible=bool(candidate.get("eligible", False)),
                     composite_score=float(candidate.get("composite_score") or 0.0),
                     factors=factor_objs,
-                    policy_checks=(candidate.get("policy_checks") if isinstance(candidate.get("policy_checks"), dict) else {}),
-                    route_facts=(candidate.get("route_facts") if isinstance(candidate.get("route_facts"), dict) else {}),
+                    policy_checks=(
+                        candidate.get("policy_checks")
+                        if isinstance(candidate.get("policy_checks"), dict)
+                        else {}
+                    ),
+                    route_facts=(
+                        candidate.get("route_facts")
+                        if isinstance(candidate.get("route_facts"), dict)
+                        else {}
+                    ),
                     ineligible_reason=candidate.get("ineligible_reason"),
                 )
             )
@@ -631,7 +632,11 @@ def _row_to_explanation(row: dict[str, Any]) -> RouteExplanation:
         explanation_id=str(row.get("explanation_id") or ""),
         capability_id=str(row.get("capability_id") or "unknown"),
         winner_provider_id=_public_provider_id(raw_winner_provider_id),
-        winner_composite_score=(float(row["winner_composite_score"]) if row.get("winner_composite_score") is not None else None),
+        winner_composite_score=(
+            float(row["winner_composite_score"])
+            if row.get("winner_composite_score") is not None
+            else None
+        ),
         selection_reason=str(row.get("winner_reason") or "persisted_route_explanation"),
         candidates=candidates,
         human_summary=_canonicalize_provider_text(

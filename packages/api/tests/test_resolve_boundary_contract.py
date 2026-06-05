@@ -108,4 +108,9 @@ def test_route_plan_checks_fail_closed_until_every_required_check_passes() -> No
     del checks["not_revoked"]
 
     assert missing_route_plan_enforcement_checks(checks) == {"principal_matches", "not_revoked"}
-    assert missing_route_plan_enforcement_checks({name: True for name in ROUTE_PLAN_ENFORCEMENT_CHECKS}) == set()
+    assert (
+        missing_route_plan_enforcement_checks(
+            {name: True for name in ROUTE_PLAN_ENFORCEMENT_CHECKS}
+        )
+        == set()
+    )

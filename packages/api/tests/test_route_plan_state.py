@@ -96,7 +96,11 @@ async def test_route_plan_state_existing_revoked_row_is_revoked() -> None:
     db.set_table(
         "route_plan_state",
         MockQueryBuilder(
-            {"state": "revoked", "revoked_at": "2026-06-04T00:00:00Z", "revocation_reason": "operator"}
+            {
+                "state": "revoked",
+                "revoked_at": "2026-06-04T00:00:00Z",
+                "revocation_reason": "operator",
+            }
         ),
     )
     store = RoutePlanStateStore(db, cleanup_interval_seconds=99999)

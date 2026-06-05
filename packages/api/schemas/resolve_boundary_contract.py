@@ -163,12 +163,25 @@ FIELD_OWNERSHIP_MATRIX: tuple[FieldOwnershipGroup, ...] = (
             "budget_impact",
             "policy_decision",
         ),
-        runtime_issued=("credential_handle_used", "actual_cost", "metering_event", "policy_snapshot_hash"),
+        runtime_issued=(
+            "credential_handle_used",
+            "actual_cost",
+            "metering_event",
+            "policy_snapshot_hash",
+        ),
     ),
     FieldOwnershipGroup(
         group="execution_controls",
-        index_stored=("required_sandbox_profile_class", "allowlist_references", "confirmation_policy_requirement"),
-        resolve_computed=("route_plan_expires_at", "confirmation_requirement", "selected_sandbox_profile_id"),
+        index_stored=(
+            "required_sandbox_profile_class",
+            "allowlist_references",
+            "confirmation_policy_requirement",
+        ),
+        resolve_computed=(
+            "route_plan_expires_at",
+            "confirmation_requirement",
+            "selected_sandbox_profile_id",
+        ),
         runtime_issued=(
             "route_plan_signature",
             "artifact_runtime_hashes",

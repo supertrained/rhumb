@@ -10,9 +10,8 @@ from __future__ import annotations
 
 import os
 import subprocess
-import time
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
 
@@ -154,14 +153,36 @@ class CredentialStore:
     """Manage provider credentials with 1Password integration and in-memory cache."""
 
     SUPPORTED_SERVICES: List[str] = [
-        "stripe", "slack", "github", "twilio", "sendgrid",
-        "firecrawl", "apify", "apollo", "pdl",
+        "stripe",
+        "slack",
+        "github",
+        "twilio",
+        "sendgrid",
+        "firecrawl",
+        "apify",
+        "apollo",
+        "pdl",
         # Stateless utility APIs (Rhumb-managed, free-tier)
-        "tavily", "exa", "brave-search", "replicate", "algolia", "e2b", "unstructured",
+        "tavily",
+        "exa",
+        "brave-search",
+        "replicate",
+        "algolia",
+        "e2b",
+        "unstructured",
         "google-ai",
-        "ipinfo", "scraperapi", "deepgram",
-        "openai", "groq", "cohere", "elevenlabs", "resend", "postmark",
-        "google-maps", "google-places", "perplexity",
+        "ipinfo",
+        "scraperapi",
+        "deepgram",
+        "openai",
+        "groq",
+        "cohere",
+        "elevenlabs",
+        "resend",
+        "postmark",
+        "google-maps",
+        "google-places",
+        "perplexity",
     ]
 
     def __init__(self, *, auto_load: bool = True) -> None:
@@ -331,9 +352,7 @@ class CredentialStore:
         result = []
         for service in self.SUPPORTED_SERVICES:
             provider = self._cache.get(service)
-            if provider and any(
-                not entry.is_expired() for entry in provider.credentials.values()
-            ):
+            if provider and any(not entry.is_expired() for entry in provider.credentials.values()):
                 result.append(service)
         return result
 

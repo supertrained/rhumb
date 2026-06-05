@@ -26,6 +26,7 @@ from services.route_explanation import (
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture(autouse=True)
 def _clear_store():
     """Clear the explanation store before each test."""
@@ -107,6 +108,7 @@ def _make_alias_circuits() -> dict[str, str]:
 # ---------------------------------------------------------------------------
 # Explanation building
 # ---------------------------------------------------------------------------
+
 
 class TestBuildExplanation:
     """Test the core explanation builder."""
@@ -233,7 +235,10 @@ class TestBuildExplanation:
         brave_facts = by_provider["brave-search-api"]["route_facts"]
         assert brave_facts["route_id"] == "route_search_query_brave_search_api_official_api_v1"
         assert brave_facts["manifest_digest"].startswith("sha256:")
-        assert brave_facts["evidence_packet_id"] == "evidence_search_query_brave_search_api_official_api_2026_05_19"
+        assert (
+            brave_facts["evidence_packet_id"]
+            == "evidence_search_query_brave_search_api_official_api_2026_05_19"
+        )
         assert brave_facts["source_risk"] == "verified_low"
         assert brave_facts["recommendation_policy"]["default_recommendable"] is True
 
@@ -242,7 +247,10 @@ class TestBuildExplanation:
         assert private_facts["source_risk"] == "anti_bot_or_tos_sensitive"
         assert private_facts["recommendation_policy"]["default_recommendable"] is False
         assert private_facts["recommendation_policy"]["blocked"] is True
-        assert "source_risk_anti_bot_or_tos_sensitive_not_default" in private_facts["recommendation_policy"]["reasons"]
+        assert (
+            "source_risk_anti_bot_or_tos_sensitive_not_default"
+            in private_facts["recommendation_policy"]["reasons"]
+        )
 
     def test_no_provider_available(self):
         exp = build_explanation(
@@ -260,6 +268,7 @@ class TestBuildExplanation:
 # ---------------------------------------------------------------------------
 # Policy filtering
 # ---------------------------------------------------------------------------
+
 
 class TestPolicyFiltering:
     """Test that policy controls show up in candidate explanations."""
@@ -361,6 +370,7 @@ class TestPolicyFiltering:
 # Human summary
 # ---------------------------------------------------------------------------
 
+
 class TestHumanSummary:
     """Test human-readable summary generation."""
 
@@ -402,6 +412,7 @@ class TestHumanSummary:
 # ---------------------------------------------------------------------------
 # Serialization
 # ---------------------------------------------------------------------------
+
 
 class TestSerialization:
     """Test dict and compact serialization."""
@@ -483,7 +494,9 @@ class TestSerialization:
 
         assert data["winner"]["provider_id"] == "brave-search-api"
         assert data["candidates"][0]["provider_id"] == "brave-search-api"
-        assert any(candidate["provider_id"] == "people-data-labs" for candidate in data["candidates"])
+        assert any(
+            candidate["provider_id"] == "people-data-labs" for candidate in data["candidates"]
+        )
         assert "brave-search-api" in data["human_summary"]
         assert "brave-search selected" not in data["human_summary"]
         assert compact["winner"] == "brave-search-api"
@@ -522,7 +535,9 @@ class TestSerialization:
         assert compact["human_summary"] == "brave-search-api selected over people-data-labs."
         assert "brave-search-api-api" not in data["human_summary"]
 
-    def test_to_dict_canonicalizes_same_provider_alias_text_when_provider_ids_are_already_public(self):
+    def test_to_dict_canonicalizes_same_provider_alias_text_when_provider_ids_are_already_public(
+        self,
+    ):
         exp = RouteExplanation(
             explanation_id="rexp_public_ids_same_alias",
             capability_id="search.query",
@@ -552,8 +567,14 @@ class TestSerialization:
         data = exp.to_dict()
         compact = exp.to_compact()
 
-        assert data["human_summary"] == "Brave Search (brave-search-api) selected over people-data-labs."
-        assert compact["human_summary"] == "Brave Search (brave-search-api) selected over people-data-labs."
+        assert (
+            data["human_summary"]
+            == "Brave Search (brave-search-api) selected over people-data-labs."
+        )
+        assert (
+            compact["human_summary"]
+            == "Brave Search (brave-search-api) selected over people-data-labs."
+        )
         assert "brave-search-api-api" not in data["human_summary"]
 
     def test_candidate_factor_dict(self):
@@ -577,6 +598,7 @@ class TestSerialization:
 # ---------------------------------------------------------------------------
 # Store / retrieve
 # ---------------------------------------------------------------------------
+
 
 class TestStore:
     """Test the in-memory explanation store."""
@@ -669,7 +691,9 @@ class TestStore:
         assert exp.human_summary == "brave-search-api selected over people-data-labs."
         assert "brave-search-api-api" not in exp.human_summary
 
-    def test_row_to_explanation_canonicalizes_alternate_alias_text_when_persisted_ids_are_already_public(self):
+    def test_row_to_explanation_canonicalizes_alternate_alias_text_when_persisted_ids_are_already_public(
+        self,
+    ):
         exp = _row_to_explanation(
             {
                 "explanation_id": "rexp_public_ids",
@@ -720,6 +744,7 @@ class TestStore:
 
         # Should not exceed max capacity (1000)
         from services.route_explanation import _explanation_store
+
         assert len(_explanation_store) <= 1000
 
 
@@ -847,6 +872,7 @@ async def test_persist_explanation_canonicalizes_alternate_alias_text_when_provi
 # ---------------------------------------------------------------------------
 # Layer 1 explanations
 # ---------------------------------------------------------------------------
+
 
 class TestLayer1:
     """Test Layer 1 (agent-pinned) explanations."""

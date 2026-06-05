@@ -320,9 +320,7 @@ def _list_agents_via_admin_with_retry(
     headers: dict[str, str],
     timeout: float,
 ) -> tuple[dict[str, Any], int]:
-    url = (
-        f"{root}/v1/admin/agents?organization_id={quote(org_id, safe='')}&status=active"
-    )
+    url = f"{root}/v1/admin/agents?organization_id={quote(org_id, safe='')}&status=active"
     delays = list(ADMIN_BOOTSTRAP_LIST_RETRY_DELAYS)
     attempts = len(delays) + 1
 
@@ -374,9 +372,7 @@ def provision_api_key_via_admin(
     agents = list_resp.get("json")
     if list_resp.get("status") != 200 or not isinstance(agents, list):
         detail = _extract_error_detail(list_resp)
-        raise RuntimeError(
-            f"Admin agent list failed ({list_resp.get('status')}): {detail}"
-        )
+        raise RuntimeError(f"Admin agent list failed ({list_resp.get('status')}): {detail}")
 
     existing_agent = next(
         (item for item in agents if item.get("name") == agent_name),
@@ -408,9 +404,7 @@ def provision_api_key_via_admin(
         api_key = create_payload.get("api_key")
         if create_resp.get("status") != 200 or not agent_id or not api_key:
             detail = _extract_error_detail(create_resp)
-            raise RuntimeError(
-                f"Admin agent create failed ({create_resp.get('status')}): {detail}"
-            )
+            raise RuntimeError(f"Admin agent create failed ({create_resp.get('status')}): {detail}")
         metadata.update({"mode": "created", "agent_id": agent_id})
     else:
         agent_id = existing_agent.get("agent_id")
@@ -425,9 +419,7 @@ def provision_api_key_via_admin(
         api_key = rotate_payload.get("new_api_key")
         if rotate_resp.get("status") != 200 or not api_key:
             detail = _extract_error_detail(rotate_resp)
-            raise RuntimeError(
-                f"Admin agent rotate failed ({rotate_resp.get('status')}): {detail}"
-            )
+            raise RuntimeError(f"Admin agent rotate failed ({rotate_resp.get('status')}): {detail}")
         metadata.update({"mode": "rotated", "agent_id": agent_id})
 
     if service:
@@ -443,7 +435,9 @@ def provision_api_key_via_admin(
             raise RuntimeError(
                 f"Admin agent grant-access failed ({grant_resp.get('status')}): {detail}"
             )
-        metadata["service_access"] = "already_granted" if grant_resp.get("status") == 409 else "granted"
+        metadata["service_access"] = (
+            "already_granted" if grant_resp.get("status") == 409 else "granted"
+        )
 
     return api_key, metadata
 
@@ -745,7 +739,9 @@ def _build_summary(state: dict[str, Any]) -> str:
     return "; ".join(parts)
 
 
-def _require_verified_receipt(label: str, verify_data: Any, state: dict[str, Any]) -> dict[str, Any]:
+def _require_verified_receipt(
+    label: str, verify_data: Any, state: dict[str, Any]
+) -> dict[str, Any]:
     if not isinstance(verify_data, dict):
         raise FlowError(f"{label} receipt verifier returned malformed payload", state)
     if verify_data.get("verifier_status") != "verified":
@@ -763,7 +759,7 @@ def _require_verified_receipt(label: str, verify_data: Any, state: dict[str, Any
 def _build_first_call_proof(state: dict[str, Any]) -> dict[str, Any]:
     config = state.get("config") or {}
     layer2 = state.get("layer2") or {}
-    execute_data = ((layer2.get("execute") or {}).get("data") or {})
+    execute_data = (layer2.get("execute") or {}).get("data") or {}
     receipt = layer2.get("receipt") or {}
     verify = layer2.get("verify") or {}
     compact = extract_compact_receipt(execute_data)
@@ -1251,7 +1247,12 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
 
     l2_receipt_resp = _expect_success(
         "v2 layer2 receipt",
-        _http_json("GET", f"{v2_root}/receipts/{quote(l2_receipt_id, safe='')}", headers=headers, timeout=args.timeout),
+        _http_json(
+            "GET",
+            f"{v2_root}/receipts/{quote(l2_receipt_id, safe='')}",
+            headers=headers,
+            timeout=args.timeout,
+        ),
         state,
     )
     state["layer2"]["receipt"] = _extract_data(l2_receipt_resp.get("json"))
@@ -1329,7 +1330,12 @@ def run_flow(args: argparse.Namespace) -> dict[str, Any]:
 
         l1_receipt_resp = _expect_success(
             "v2 layer1 receipt",
-            _http_json("GET", f"{v2_root}/receipts/{quote(l1_receipt_id, safe='')}", headers=headers, timeout=args.timeout),
+            _http_json(
+                "GET",
+                f"{v2_root}/receipts/{quote(l1_receipt_id, safe='')}",
+                headers=headers,
+                timeout=args.timeout,
+            ),
             state,
         )
         state["layer1"]["receipt"] = _extract_data(l1_receipt_resp.get("json"))
@@ -1599,7 +1605,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
             "status is not ok, write refreshed artifacts, then recompute the fleet summary"
         ),
     )
-    parser.add_argument("--base-url", default=DEFAULT_BASE_URL, help="Rhumb API root URL (without /v2)")
+    parser.add_argument(
+        "--base-url", default=DEFAULT_BASE_URL, help="Rhumb API root URL (without /v2)"
+    )
     parser.add_argument(
         "--api-key-env",
         default=DEFAULT_API_KEY_ENV,
@@ -1633,8 +1641,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--bootstrap-service",
         help="Optional service slug to grant during verifier bootstrap (defaults to --provider)",
     )
-    parser.add_argument("--timeout", type=float, default=DEFAULT_TIMEOUT, help="HTTP timeout in seconds")
-    parser.add_argument("--capability", default=DEFAULT_CAPABILITY, help="Capability ID for L1/L2 execute")
+    parser.add_argument(
+        "--timeout", type=float, default=DEFAULT_TIMEOUT, help="HTTP timeout in seconds"
+    )
+    parser.add_argument(
+        "--capability", default=DEFAULT_CAPABILITY, help="Capability ID for L1/L2 execute"
+    )
     parser.add_argument(
         "--provider",
         default=DEFAULT_PROVIDER,
@@ -1653,7 +1665,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         default=DEFAULT_PARAMETERS_JSON,
         help="JSON object for execute parameters",
     )
-    parser.add_argument("--interface", default=DEFAULT_INTERFACE, help="Interface label for analytics")
+    parser.add_argument(
+        "--interface", default=DEFAULT_INTERFACE, help="Interface label for analytics"
+    )
     parser.add_argument(
         "--max-cost-usd",
         type=float,
@@ -1674,11 +1688,19 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         type=float,
         help="Optional durable org policy smoke test: write max_cost_usd before executing",
     )
-    parser.add_argument("--skip-layer1", action="store_true", help="Skip exact-provider Layer 1 execute")
-    parser.add_argument("--audit-export", action="store_true", help="Also hit POST /v2/audit/export?format=json")
-    parser.add_argument("--read-limit", type=int, default=DEFAULT_MAX_READ_LIMIT, help="Limit for read endpoints")
+    parser.add_argument(
+        "--skip-layer1", action="store_true", help="Skip exact-provider Layer 1 execute"
+    )
+    parser.add_argument(
+        "--audit-export", action="store_true", help="Also hit POST /v2/audit/export?format=json"
+    )
+    parser.add_argument(
+        "--read-limit", type=int, default=DEFAULT_MAX_READ_LIMIT, help="Limit for read endpoints"
+    )
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON")
-    parser.add_argument("--summary-only", action="store_true", help="Print only the top-line summary")
+    parser.add_argument(
+        "--summary-only", action="store_true", help="Print only the top-line summary"
+    )
     parser.add_argument("--json-out", help="Write the result payload to a file")
     return parser.parse_args(argv)
 

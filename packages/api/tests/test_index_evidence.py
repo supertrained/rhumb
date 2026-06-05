@@ -136,7 +136,9 @@ def test_route_candidate_uses_index_fixture_for_search_query_brave_search_api() 
     assert candidate["manifest_digest"] == fixture["manifest"]["manifest_digest"]
     assert candidate["manifest_version"] == fixture["manifest"]["manifest_version"]
     assert candidate["evidence_packet_id"] == fixture["evidence_packet"]["evidence_packet_id"]
-    assert candidate["evidence_packet_digest"] == fixture["evidence_packet"]["evidence_packet_digest"]
+    assert (
+        candidate["evidence_packet_digest"] == fixture["evidence_packet"]["evidence_packet_digest"]
+    )
     assert candidate["evidence_expires_at"] == fixture["evidence_packet"]["evidence_expires_at"]
     assert candidate["review_status"] == "current"
     assert candidate["required_scopes"] == fixture["manifest"]["required_scopes"]

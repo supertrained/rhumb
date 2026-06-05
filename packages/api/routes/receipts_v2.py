@@ -38,7 +38,8 @@ def _compact_receipt_from_row(receipt: dict[str, Any]) -> dict[str, Any]:
         "stop_condition": receipt.get("stop_condition"),
         "retryable": retryable,
         "receipt_id": receipt.get("receipt_id"),
-        "route_explanation_id": receipt.get("route_explanation_id") or receipt.get("explanation_id"),
+        "route_explanation_id": receipt.get("route_explanation_id")
+        or receipt.get("explanation_id"),
         "route": {
             "capability_id": receipt.get("capability_id"),
             "service_id": receipt.get("service_id"),
@@ -58,7 +59,8 @@ def _compact_receipt_from_row(receipt: dict[str, Any]) -> dict[str, Any]:
             "total_cost_usd": receipt.get("total_cost_usd"),
             "credits_deducted": receipt.get("credits_deducted"),
         },
-        "next_recommended_action": receipt.get("next_recommended_action") or (
+        "next_recommended_action": receipt.get("next_recommended_action")
+        or (
             "fetch_or_verify_receipt" if status == "success" else "inspect_error_and_resolve_again"
         ),
     }
@@ -102,7 +104,9 @@ def _verify_single_receipt(receipt: dict[str, Any], explanation_available: bool)
             "signature_result": "not_signed_in_compact_mode",
         },
         "chain": {
-            "inclusion_status": "material_present" if checks["chain_material_present"] else "missing_chain_material",
+            "inclusion_status": (
+                "material_present" if checks["chain_material_present"] else "missing_chain_material"
+            ),
             "chain_sequence": chain_sequence,
             "receipt_hash": receipt_hash,
             "previous_receipt_hash": receipt.get("previous_receipt_hash"),
@@ -202,7 +206,9 @@ def _parsed_int_filter(value: str | int | None, *, field_name: str) -> int:
     return parsed
 
 
-def _validated_int_range(value: str | int | None, *, field_name: str, minimum: int, maximum: int) -> int:
+def _validated_int_range(
+    value: str | int | None, *, field_name: str, minimum: int, maximum: int
+) -> int:
     parsed = _parsed_int_filter(value, field_name=field_name)
     if minimum <= parsed <= maximum:
         return parsed
@@ -353,7 +359,9 @@ async def verify_receipt(receipt_id: str) -> dict[str, Any]:
     if exp_id_from_receipt:
         explanation_available = get_explanation(str(exp_id_from_receipt)) is not None
         if not explanation_available:
-            explanation_available = await get_persisted_explanation(str(exp_id_from_receipt)) is not None
+            explanation_available = (
+                await get_persisted_explanation(str(exp_id_from_receipt)) is not None
+            )
     if not explanation_available:
         explanation_available = await get_persisted_explanation_by_receipt(receipt_id) is not None
 
@@ -366,7 +374,9 @@ async def query_receipts(
     org_id: Optional[str] = Query(default=None, description="Filter by organization ID"),
     capability_id: Optional[str] = Query(default=None, description="Filter by capability ID"),
     provider_id: Optional[str] = Query(default=None, description="Filter by provider ID"),
-    status: Optional[str] = Query(default=None, description="Filter by status (success, failure, timeout, rejected)"),
+    status: Optional[str] = Query(
+        default=None, description="Filter by status (success, failure, timeout, rejected)"
+    ),
     limit: str = Query(default="50", description="Max results"),
     offset: str = Query(default="0", description="Pagination offset"),
 ) -> dict[str, Any]:
@@ -401,7 +411,9 @@ async def query_receipts(
 
 @router.get("/receipts/chain/verify")
 async def verify_chain(
-    start_sequence: Optional[str] = Query(default=None, description="Start chain sequence (inclusive)"),
+    start_sequence: Optional[str] = Query(
+        default=None, description="Start chain sequence (inclusive)"
+    ),
     end_sequence: Optional[str] = Query(default=None, description="End chain sequence (inclusive)"),
     limit: str = Query(default="100", description="Max receipts to check"),
 ) -> dict[str, Any]:

@@ -169,7 +169,9 @@ def validate_route_plan(
     checks["version_matches"] = payload.get("version") == ROUTE_PLAN_VERSION
     checks["route_plan_id_present"] = bool(payload.get("route_plan_id"))
     checks["nonce_present"] = bool(payload.get("nonce"))
-    if not (checks["version_matches"] and checks["route_plan_id_present"] and checks["nonce_present"]):
+    if not (
+        checks["version_matches"] and checks["route_plan_id_present"] and checks["nonce_present"]
+    ):
         return _result(False, "route_plan_mismatch", checks)
 
     try:
@@ -206,9 +208,7 @@ def validate_route_plan(
     checks["kill_switch_allows_execution"] = _kill_switch_allows_execution(expected)
 
     mismatch_checks = [
-        check_name
-        for _, check_name in EXPECTED_CHECK_FIELDS
-        if checks.get(check_name) is not True
+        check_name for _, check_name in EXPECTED_CHECK_FIELDS if checks.get(check_name) is not True
     ]
     if mismatch_checks or checks["kill_switch_allows_execution"] is not True:
         return _result(False, "route_plan_mismatch", checks)
@@ -262,7 +262,11 @@ def _missing_payload_fields(payload: dict[str, Any]) -> list[str]:
 
 
 def _field_matches(payload: dict[str, Any], expected: dict[str, Any], field: str) -> bool:
-    if field in OPTIONAL_MATCH_FIELDS and payload.get(field) is None and expected.get(field) is None:
+    if (
+        field in OPTIONAL_MATCH_FIELDS
+        and payload.get(field) is None
+        and expected.get(field) is None
+    ):
         return True
     if field == "policy_snapshot_digest":
         return _digest_matches(payload, expected, field, "allowed_policy_snapshot_digests")
@@ -276,7 +280,11 @@ def _field_matches(payload: dict[str, Any], expected: dict[str, Any], field: str
 def _digest_matches(
     payload: dict[str, Any], expected: dict[str, Any], field: str, allowed_field: str
 ) -> bool:
-    if field in OPTIONAL_MATCH_FIELDS and payload.get(field) is None and expected.get(field) is None:
+    if (
+        field in OPTIONAL_MATCH_FIELDS
+        and payload.get(field) is None
+        and expected.get(field) is None
+    ):
         return True
     if field in expected:
         return payload.get(field) == expected.get(field)
@@ -288,7 +296,9 @@ def _digest_matches(
 
 def _required_scopes_covered(payload: dict[str, Any], expected: dict[str, Any]) -> bool:
     required_scopes = payload.get("required_scopes")
-    if not isinstance(required_scopes, list) or not all(isinstance(scope, str) for scope in required_scopes):
+    if not isinstance(required_scopes, list) or not all(
+        isinstance(scope, str) for scope in required_scopes
+    ):
         return False
     required = set(required_scopes)
     if not required:
@@ -329,7 +339,9 @@ def _b64url_decode(data: str) -> bytes:
 
 
 def _signature_segment(payload_segment: str, secret: str | bytes) -> str:
-    digest = hmac.new(_secret_bytes(secret), payload_segment.encode("ascii"), hashlib.sha256).digest()
+    digest = hmac.new(
+        _secret_bytes(secret), payload_segment.encode("ascii"), hashlib.sha256
+    ).digest()
     return _b64url_encode(digest)
 
 

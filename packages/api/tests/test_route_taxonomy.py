@@ -20,8 +20,15 @@ def test_route_taxonomy_exposes_required_substrate_provenance_and_risk_dimension
         "generated_adapter",
         "browser_discovered_private_endpoint",
     }.issubset(SUBSTRATES)
-    assert {"vendor_official", "rhumb_managed", "browser_observed", "unknown"}.issubset(PROVENANCE_ORIGINS)
-    assert {"verified_low", "community_unverified", "anti_bot_or_tos_sensitive", "unsupported"}.issubset(SOURCE_RISKS)
+    assert {"vendor_official", "rhumb_managed", "browser_observed", "unknown"}.issubset(
+        PROVENANCE_ORIGINS
+    )
+    assert {
+        "verified_low",
+        "community_unverified",
+        "anti_bot_or_tos_sensitive",
+        "unsupported",
+    }.issubset(SOURCE_RISKS)
 
 
 def test_verified_official_api_route_is_default_recommendable() -> None:

@@ -107,7 +107,9 @@ def route_recommendation_policy(
     """
 
     substrate = normalize_taxonomy_value(route.get("substrate"), SUBSTRATES, "generated_adapter")
-    provenance_origin = normalize_taxonomy_value(route.get("provenance_origin"), PROVENANCE_ORIGINS, "unknown")
+    provenance_origin = normalize_taxonomy_value(
+        route.get("provenance_origin"), PROVENANCE_ORIGINS, "unknown"
+    )
     source_risk = normalize_taxonomy_value(route.get("source_risk"), SOURCE_RISKS, "unsupported")
     side_effect_class = str(route.get("side_effect_class") or "").strip()
 

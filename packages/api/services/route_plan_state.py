@@ -135,9 +135,13 @@ class RoutePlanStateStore:
             await self._cleanup_expired()
             self._last_cleanup = mono_now
 
-        existing = await self._db.table("route_plan_state").select(
-            "nonce_hash,state,revoked_at,revocation_reason"
-        ).eq("nonce_hash", nonce_hash).maybe_single().execute()
+        existing = (
+            await self._db.table("route_plan_state")
+            .select("nonce_hash,state,revoked_at,revocation_reason")
+            .eq("nonce_hash", nonce_hash)
+            .maybe_single()
+            .execute()
+        )
         if existing.data:
             state = str(existing.data.get("state") or "claimed")
             if state == "revoked" or existing.data.get("revoked_at") is not None:
@@ -186,9 +190,13 @@ class RoutePlanStateStore:
             self._fallback.pop(key, None)
 
         if nonce_hash in self._fallback_revoked:
-            return RoutePlanClaim(False, "route_plan_revoked", "memory_fallback", nonce_hash=nonce_hash)
+            return RoutePlanClaim(
+                False, "route_plan_revoked", "memory_fallback", nonce_hash=nonce_hash
+            )
         if nonce_hash in self._fallback:
-            return RoutePlanClaim(False, "route_plan_replay", "memory_fallback", nonce_hash=nonce_hash)
+            return RoutePlanClaim(
+                False, "route_plan_replay", "memory_fallback", nonce_hash=nonce_hash
+            )
 
         self._fallback[nonce_hash] = expires_at.timestamp()
         return RoutePlanClaim(True, None, "memory_fallback", nonce_hash=nonce_hash)

@@ -19,22 +19,47 @@ from schemas.resolve_route_candidate import (
     ("provider", "expected_state", "expected_stop"),
     [
         ({"endpoint_pattern": "GET /res/v1/web/search", "configured": True}, "executable", None),
-        ({"endpoint_pattern": "GET /res/v1/web/search", "configured": False}, "requires_credentials", "missing_credentials"),
-        ({"endpoint_pattern": "POST /danger", "requires_confirmation": True}, "requires_confirmation", "high_risk_requires_confirmation"),
-        ({"endpoint_pattern": "GET /x", "blocked_security": True}, "blocked_security", "unverified_artifact"),
+        (
+            {"endpoint_pattern": "GET /res/v1/web/search", "configured": False},
+            "requires_credentials",
+            "missing_credentials",
+        ),
+        (
+            {"endpoint_pattern": "POST /danger", "requires_confirmation": True},
+            "requires_confirmation",
+            "high_risk_requires_confirmation",
+        ),
+        (
+            {"endpoint_pattern": "GET /x", "blocked_security": True},
+            "blocked_security",
+            "unverified_artifact",
+        ),
         ({"endpoint_pattern": "GET /x", "blocked_policy": True}, "blocked_policy", "policy_denied"),
         ({"endpoint_pattern": None}, "unsupported", "missing_manifest"),
-        ({"endpoint_pattern": "GET /x", "promotion_state": "experimental_non_default"}, "experimental_non_default", None),
-        ({"endpoint_pattern": "GET /x", "kill_switch_state": "unavailable"}, "blocked_security", "kill_switch_state_unavailable"),
+        (
+            {"endpoint_pattern": "GET /x", "promotion_state": "experimental_non_default"},
+            "experimental_non_default",
+            None,
+        ),
+        (
+            {"endpoint_pattern": "GET /x", "kill_switch_state": "unavailable"},
+            "blocked_security",
+            "kill_switch_state_unavailable",
+        ),
         ({"safety_state": "requires_credentials"}, "requires_credentials", "missing_credentials"),
-        ({"safety_state": "requires_confirmation"}, "requires_confirmation", "high_risk_requires_confirmation"),
+        (
+            {"safety_state": "requires_confirmation"},
+            "requires_confirmation",
+            "high_risk_requires_confirmation",
+        ),
         ({"safety_state": "blocked_policy"}, "blocked_policy", "policy_denied"),
         ({"safety_state": "blocked_security"}, "blocked_security", "unverified_artifact"),
         ({"safety_state": "unsupported"}, "unsupported", "unsupported"),
     ],
 )
-
-def test_route_candidate_state_machine_covers_required_pp14_states(provider, expected_state, expected_stop) -> None:
+def test_route_candidate_state_machine_covers_required_pp14_states(
+    provider, expected_state, expected_stop
+) -> None:
     assert infer_safety_state_and_stop(provider) == (expected_state, expected_stop)
     assert expected_state in SAFETY_STATES
     if expected_stop is not None:
@@ -101,7 +126,9 @@ def test_estimate_payload_builds_single_route_candidate_with_auth_stop() -> None
 
 
 @pytest.mark.anyio
-async def test_v2_resolve_exposes_route_candidates_from_current_resolve_payload(monkeypatch) -> None:
+async def test_v2_resolve_exposes_route_candidates_from_current_resolve_payload(
+    monkeypatch,
+) -> None:
     async def mock_forward(*_args, **_kwargs):
         class Response:
             status_code = 200

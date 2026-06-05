@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -15,7 +14,6 @@ from services.receipt_service import (
     _hash_content,
     hash_caller_ip,
     hash_request_payload,
-    hash_response_payload,
 )
 
 
@@ -115,14 +113,18 @@ def test_compute_receipt_hash_covers_route_facts_and_route_plan_hash():
         "route_plan_id_hash": "sha256:plan",
     }
 
-    assert _compute_receipt_hash(data) != _compute_receipt_hash({
-        **data,
-        "route_id": "route_search_query_other_official_api_v1",
-    })
-    assert _compute_receipt_hash(data) != _compute_receipt_hash({
-        **data,
-        "route_plan_id_hash": "sha256:other-plan",
-    })
+    assert _compute_receipt_hash(data) != _compute_receipt_hash(
+        {
+            **data,
+            "route_id": "route_search_query_other_official_api_v1",
+        }
+    )
+    assert _compute_receipt_hash(data) != _compute_receipt_hash(
+        {
+            **data,
+            "route_plan_id_hash": "sha256:other-plan",
+        }
+    )
 
 
 @pytest.mark.anyio
@@ -133,34 +135,40 @@ async def test_create_receipt_writes_to_supabase():
     mock_chain_state = [{"last_sequence": 0, "last_receipt_hash": None}]
 
     with (
-        patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)),
-        patch("services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)) as mock_insert,
+        patch(
+            "services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)
+        ),
+        patch(
+            "services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)
+        ) as mock_insert,
         patch("services.receipt_service.supabase_patch", new=AsyncMock(return_value=True)),
     ):
-        receipt = await service.create_receipt(ReceiptInput(
-            execution_id="exec_test_001",
-            capability_id="search.query",
-            status="success",
-            agent_id="agent_test_123",
-            provider_id="brave-search",
-            credential_mode="rhumb_managed",
-            layer=2,
-            route_id="route_search_query_brave_search_api_official_api_v1",
-            service_id="brave-search-api",
-            substrate="official_api",
-            provenance_origin="rhumb_managed",
-            source_risk="verified_low",
-            manifest_digest="sha256:manifest",
-            evidence_packet_digest="sha256:evidence",
-            route_plan_id_hash="sha256:plan",
-            route_explanation_id="rex_123",
-            stop_condition=None,
-            retryable=False,
-            next_recommended_action="fetch_or_verify_receipt",
-            total_latency_ms=342.5,
-            provider_latency_ms=290.0,
-            rhumb_overhead_ms=52.5,
-        ))
+        receipt = await service.create_receipt(
+            ReceiptInput(
+                execution_id="exec_test_001",
+                capability_id="search.query",
+                status="success",
+                agent_id="agent_test_123",
+                provider_id="brave-search",
+                credential_mode="rhumb_managed",
+                layer=2,
+                route_id="route_search_query_brave_search_api_official_api_v1",
+                service_id="brave-search-api",
+                substrate="official_api",
+                provenance_origin="rhumb_managed",
+                source_risk="verified_low",
+                manifest_digest="sha256:manifest",
+                evidence_packet_digest="sha256:evidence",
+                route_plan_id_hash="sha256:plan",
+                route_explanation_id="rex_123",
+                stop_condition=None,
+                retryable=False,
+                next_recommended_action="fetch_or_verify_receipt",
+                total_latency_ms=342.5,
+                provider_latency_ms=290.0,
+                rhumb_overhead_ms=52.5,
+            )
+        )
 
     assert receipt.receipt_id.startswith("rcpt_")
     assert receipt.execution_id == "exec_test_001"
@@ -192,18 +200,22 @@ async def test_create_receipt_chains_correctly():
     mock_chain_state = [{"last_sequence": 5, "last_receipt_hash": first_hash}]
 
     with (
-        patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)),
+        patch(
+            "services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)
+        ),
         patch("services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)),
         patch("services.receipt_service.supabase_patch", new=AsyncMock(return_value=True)),
     ):
-        receipt = await service.create_receipt(ReceiptInput(
-            execution_id="exec_test_002",
-            capability_id="person.enrich",
-            status="success",
-            agent_id="agent_test_456",
-            provider_id="apollo",
-            credential_mode="rhumb_managed",
-        ))
+        receipt = await service.create_receipt(
+            ReceiptInput(
+                execution_id="exec_test_002",
+                capability_id="person.enrich",
+                status="success",
+                agent_id="agent_test_456",
+                provider_id="apollo",
+                credential_mode="rhumb_managed",
+            )
+        )
 
     assert receipt.chain_sequence == 6
     assert receipt.previous_receipt_hash == first_hash
@@ -225,19 +237,25 @@ async def test_create_receipt_canonicalizes_alias_backed_provider_id_before_hash
     mock_chain_state = [{"last_sequence": 0, "last_receipt_hash": None}]
 
     with (
-        patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)),
-        patch("services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)) as mock_insert,
+        patch(
+            "services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)
+        ),
+        patch(
+            "services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)
+        ) as mock_insert,
         patch("services.receipt_service.supabase_patch", new=AsyncMock(return_value=True)),
     ):
-        receipt = await service.create_receipt(ReceiptInput(
-            execution_id="exec_test_alias_001",
-            capability_id="search.query",
-            status="success",
-            agent_id="agent_test_alias",
-            provider_id="brave-search",
-            credential_mode="rhumb_managed",
-            layer=2,
-        ))
+        receipt = await service.create_receipt(
+            ReceiptInput(
+                execution_id="exec_test_alias_001",
+                capability_id="search.query",
+                status="success",
+                agent_id="agent_test_alias",
+                provider_id="brave-search",
+                credential_mode="rhumb_managed",
+                layer=2,
+            )
+        )
 
     inserted_data = mock_insert.call_args[0][1]
     hashed_payload = {k: v for k, v in inserted_data.items() if k != "receipt_hash"}
@@ -245,10 +263,12 @@ async def test_create_receipt_canonicalizes_alias_backed_provider_id_before_hash
     assert inserted_data["provider_id"] == "brave-search-api"
     assert receipt.provider_id == "brave-search-api"
     assert inserted_data["receipt_hash"] == _compute_receipt_hash(hashed_payload)
-    assert inserted_data["receipt_hash"] != _compute_receipt_hash({
-        **hashed_payload,
-        "provider_id": "brave-search",
-    })
+    assert inserted_data["receipt_hash"] != _compute_receipt_hash(
+        {
+            **hashed_payload,
+            "provider_id": "brave-search",
+        }
+    )
 
 
 @pytest.mark.anyio
@@ -257,23 +277,29 @@ async def test_create_receipt_canonicalizes_alias_backed_provider_text_before_ha
     mock_chain_state = [{"last_sequence": 0, "last_receipt_hash": None}]
 
     with (
-        patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)),
-        patch("services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)) as mock_insert,
+        patch(
+            "services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)
+        ),
+        patch(
+            "services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)
+        ) as mock_insert,
         patch("services.receipt_service.supabase_patch", new=AsyncMock(return_value=True)),
     ):
-        receipt = await service.create_receipt(ReceiptInput(
-            execution_id="exec_test_alias_text_001",
-            capability_id="search.query",
-            status="failure",
-            agent_id="agent_test_alias_text",
-            provider_id="brave-search",
-            credential_mode="rhumb_managed",
-            layer=2,
-            provider_name="Brave Search (brave-search)",
-            winner_reason="brave-search won on freshness",
-            error_message="brave-search upstream exploded",
-            error_code="upstream_error",
-        ))
+        receipt = await service.create_receipt(
+            ReceiptInput(
+                execution_id="exec_test_alias_text_001",
+                capability_id="search.query",
+                status="failure",
+                agent_id="agent_test_alias_text",
+                provider_id="brave-search",
+                credential_mode="rhumb_managed",
+                layer=2,
+                provider_name="Brave Search (brave-search)",
+                winner_reason="brave-search won on freshness",
+                error_message="brave-search upstream exploded",
+                error_code="upstream_error",
+            )
+        )
 
     inserted_data = mock_insert.call_args[0][1]
     hashed_payload = {k: v for k, v in inserted_data.items() if k != "receipt_hash"}
@@ -284,12 +310,14 @@ async def test_create_receipt_canonicalizes_alias_backed_provider_text_before_ha
     assert inserted_data["winner_reason"] == "brave-search-api won on freshness"
     assert inserted_data["error_message"] == "brave-search-api upstream exploded"
     assert inserted_data["receipt_hash"] == _compute_receipt_hash(hashed_payload)
-    assert inserted_data["receipt_hash"] != _compute_receipt_hash({
-        **hashed_payload,
-        "provider_name": "Brave Search (brave-search)",
-        "winner_reason": "brave-search won on freshness",
-        "error_message": "brave-search upstream exploded",
-    })
+    assert inserted_data["receipt_hash"] != _compute_receipt_hash(
+        {
+            **hashed_payload,
+            "provider_name": "Brave Search (brave-search)",
+            "winner_reason": "brave-search won on freshness",
+            "error_message": "brave-search upstream exploded",
+        }
+    )
 
 
 @pytest.mark.anyio
@@ -298,36 +326,50 @@ async def test_create_receipt_canonicalizes_alternate_provider_alias_text_before
     mock_chain_state = [{"last_sequence": 0, "last_receipt_hash": None}]
 
     with (
-        patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)),
-        patch("services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)) as mock_insert,
+        patch(
+            "services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)
+        ),
+        patch(
+            "services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)
+        ) as mock_insert,
         patch("services.receipt_service.supabase_patch", new=AsyncMock(return_value=True)),
     ):
-        await service.create_receipt(ReceiptInput(
-            execution_id="exec_test_alias_text_002",
-            capability_id="search.query",
-            status="failure",
-            agent_id="agent_test_alias_text",
-            provider_id="brave-search",
-            credential_mode="rhumb_managed",
-            layer=2,
-            winner_reason="brave-search fell back to pdl on contact coverage",
-            error_message="brave-search failed after pdl credential lookup",
-            error_code="upstream_error",
-            error_provider_raw="pdl",
-        ))
+        await service.create_receipt(
+            ReceiptInput(
+                execution_id="exec_test_alias_text_002",
+                capability_id="search.query",
+                status="failure",
+                agent_id="agent_test_alias_text",
+                provider_id="brave-search",
+                credential_mode="rhumb_managed",
+                layer=2,
+                winner_reason="brave-search fell back to pdl on contact coverage",
+                error_message="brave-search failed after pdl credential lookup",
+                error_code="upstream_error",
+                error_provider_raw="pdl",
+            )
+        )
 
     inserted_data = mock_insert.call_args[0][1]
     hashed_payload = {k: v for k, v in inserted_data.items() if k != "receipt_hash"}
 
     assert inserted_data["provider_id"] == "brave-search-api"
-    assert inserted_data["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
-    assert inserted_data["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
+    assert (
+        inserted_data["winner_reason"]
+        == "brave-search-api fell back to people-data-labs on contact coverage"
+    )
+    assert (
+        inserted_data["error_message"]
+        == "brave-search-api failed after people-data-labs credential lookup"
+    )
     assert inserted_data["receipt_hash"] == _compute_receipt_hash(hashed_payload)
-    assert inserted_data["receipt_hash"] != _compute_receipt_hash({
-        **hashed_payload,
-        "winner_reason": "brave-search fell back to pdl on contact coverage",
-        "error_message": "brave-search failed after pdl credential lookup",
-    })
+    assert inserted_data["receipt_hash"] != _compute_receipt_hash(
+        {
+            **hashed_payload,
+            "winner_reason": "brave-search fell back to pdl on contact coverage",
+            "error_message": "brave-search failed after pdl credential lookup",
+        }
+    )
 
 
 @pytest.mark.anyio
@@ -336,35 +378,49 @@ async def test_create_receipt_canonicalizes_known_alternate_provider_alias_text_
     mock_chain_state = [{"last_sequence": 0, "last_receipt_hash": None}]
 
     with (
-        patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)),
-        patch("services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)) as mock_insert,
+        patch(
+            "services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)
+        ),
+        patch(
+            "services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)
+        ) as mock_insert,
         patch("services.receipt_service.supabase_patch", new=AsyncMock(return_value=True)),
     ):
-        await service.create_receipt(ReceiptInput(
-            execution_id="exec_test_alias_text_003",
-            capability_id="search.query",
-            status="failure",
-            agent_id="agent_test_alias_text",
-            provider_id="brave-search-api",
-            credential_mode="rhumb_managed",
-            layer=2,
-            winner_reason="brave-search-api fell back to pdl on contact coverage",
-            error_message="brave-search-api failed after pdl credential lookup",
-            error_code="upstream_error",
-        ))
+        await service.create_receipt(
+            ReceiptInput(
+                execution_id="exec_test_alias_text_003",
+                capability_id="search.query",
+                status="failure",
+                agent_id="agent_test_alias_text",
+                provider_id="brave-search-api",
+                credential_mode="rhumb_managed",
+                layer=2,
+                winner_reason="brave-search-api fell back to pdl on contact coverage",
+                error_message="brave-search-api failed after pdl credential lookup",
+                error_code="upstream_error",
+            )
+        )
 
     inserted_data = mock_insert.call_args[0][1]
     hashed_payload = {k: v for k, v in inserted_data.items() if k != "receipt_hash"}
 
     assert inserted_data["provider_id"] == "brave-search-api"
-    assert inserted_data["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
-    assert inserted_data["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
+    assert (
+        inserted_data["winner_reason"]
+        == "brave-search-api fell back to people-data-labs on contact coverage"
+    )
+    assert (
+        inserted_data["error_message"]
+        == "brave-search-api failed after people-data-labs credential lookup"
+    )
     assert inserted_data["receipt_hash"] == _compute_receipt_hash(hashed_payload)
-    assert inserted_data["receipt_hash"] != _compute_receipt_hash({
-        **hashed_payload,
-        "winner_reason": "brave-search-api fell back to pdl on contact coverage",
-        "error_message": "brave-search-api failed after pdl credential lookup",
-    })
+    assert inserted_data["receipt_hash"] != _compute_receipt_hash(
+        {
+            **hashed_payload,
+            "winner_reason": "brave-search-api fell back to pdl on contact coverage",
+            "error_message": "brave-search-api failed after pdl credential lookup",
+        }
+    )
 
 
 @pytest.mark.anyio
@@ -373,23 +429,29 @@ async def test_create_receipt_canonicalizes_same_provider_alias_text_when_struct
     mock_chain_state = [{"last_sequence": 0, "last_receipt_hash": None}]
 
     with (
-        patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)),
-        patch("services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)) as mock_insert,
+        patch(
+            "services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_chain_state)
+        ),
+        patch(
+            "services.receipt_service.supabase_insert", new=AsyncMock(return_value=True)
+        ) as mock_insert,
         patch("services.receipt_service.supabase_patch", new=AsyncMock(return_value=True)),
     ):
-        await service.create_receipt(ReceiptInput(
-            execution_id="exec_test_alias_text_004",
-            capability_id="search.query",
-            status="failure",
-            agent_id="agent_test_alias_text",
-            provider_id="brave-search-api",
-            credential_mode="rhumb_managed",
-            layer=2,
-            provider_name="Brave Search (brave-search)",
-            winner_reason="brave-search won on freshness",
-            error_message="brave-search upstream exploded",
-            error_code="upstream_error",
-        ))
+        await service.create_receipt(
+            ReceiptInput(
+                execution_id="exec_test_alias_text_004",
+                capability_id="search.query",
+                status="failure",
+                agent_id="agent_test_alias_text",
+                provider_id="brave-search-api",
+                credential_mode="rhumb_managed",
+                layer=2,
+                provider_name="Brave Search (brave-search)",
+                winner_reason="brave-search won on freshness",
+                error_message="brave-search upstream exploded",
+                error_code="upstream_error",
+            )
+        )
 
     inserted_data = mock_insert.call_args[0][1]
     hashed_payload = {k: v for k, v in inserted_data.items() if k != "receipt_hash"}
@@ -402,12 +464,14 @@ async def test_create_receipt_canonicalizes_same_provider_alias_text_when_struct
     assert "brave-search-api-api" not in inserted_data["winner_reason"]
     assert "brave-search-api-api" not in inserted_data["error_message"]
     assert inserted_data["receipt_hash"] == _compute_receipt_hash(hashed_payload)
-    assert inserted_data["receipt_hash"] != _compute_receipt_hash({
-        **hashed_payload,
-        "provider_name": "Brave Search (brave-search)",
-        "winner_reason": "brave-search won on freshness",
-        "error_message": "brave-search upstream exploded",
-    })
+    assert inserted_data["receipt_hash"] != _compute_receipt_hash(
+        {
+            **hashed_payload,
+            "provider_name": "Brave Search (brave-search)",
+            "winner_reason": "brave-search won on freshness",
+            "error_message": "brave-search upstream exploded",
+        }
+    )
 
 
 @pytest.mark.anyio
@@ -475,8 +539,14 @@ async def test_get_receipt_canonicalizes_alternate_provider_alias_text_on_public
 
     assert result is not None
     assert result["provider_id"] == "brave-search-api"
-    assert result["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
-    assert result["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
+    assert (
+        result["error_message"]
+        == "brave-search-api failed after people-data-labs credential lookup"
+    )
+    assert (
+        result["winner_reason"]
+        == "brave-search-api fell back to people-data-labs on contact coverage"
+    )
     assert "error_provider_raw" not in result
 
 
@@ -501,8 +571,14 @@ async def test_get_receipt_canonicalizes_known_alternate_provider_alias_text_wit
 
     assert result is not None
     assert result["provider_id"] == "brave-search-api"
-    assert result["error_message"] == "brave-search-api failed after people-data-labs credential lookup"
-    assert result["winner_reason"] == "brave-search-api fell back to people-data-labs on contact coverage"
+    assert (
+        result["error_message"]
+        == "brave-search-api failed after people-data-labs credential lookup"
+    )
+    assert (
+        result["winner_reason"]
+        == "brave-search-api fell back to people-data-labs on contact coverage"
+    )
 
 
 @pytest.mark.anyio
@@ -575,9 +651,24 @@ async def test_verify_chain_intact():
     service = ReceiptService()
 
     mock_rows = [
-        {"receipt_id": "r1", "receipt_hash": "h1", "previous_receipt_hash": None, "chain_sequence": 1},
-        {"receipt_id": "r2", "receipt_hash": "h2", "previous_receipt_hash": "h1", "chain_sequence": 2},
-        {"receipt_id": "r3", "receipt_hash": "h3", "previous_receipt_hash": "h2", "chain_sequence": 3},
+        {
+            "receipt_id": "r1",
+            "receipt_hash": "h1",
+            "previous_receipt_hash": None,
+            "chain_sequence": 1,
+        },
+        {
+            "receipt_id": "r2",
+            "receipt_hash": "h2",
+            "previous_receipt_hash": "h1",
+            "chain_sequence": 2,
+        },
+        {
+            "receipt_id": "r3",
+            "receipt_hash": "h3",
+            "previous_receipt_hash": "h2",
+            "chain_sequence": 3,
+        },
     ]
 
     with patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_rows)):
@@ -593,8 +684,18 @@ async def test_verify_chain_detects_broken_link():
     service = ReceiptService()
 
     mock_rows = [
-        {"receipt_id": "r1", "receipt_hash": "h1", "previous_receipt_hash": None, "chain_sequence": 1},
-        {"receipt_id": "r2", "receipt_hash": "h2", "previous_receipt_hash": "WRONG", "chain_sequence": 2},
+        {
+            "receipt_id": "r1",
+            "receipt_hash": "h1",
+            "previous_receipt_hash": None,
+            "chain_sequence": 1,
+        },
+        {
+            "receipt_id": "r2",
+            "receipt_hash": "h2",
+            "previous_receipt_hash": "WRONG",
+            "chain_sequence": 2,
+        },
     ]
 
     with patch("services.receipt_service.supabase_fetch", new=AsyncMock(return_value=mock_rows)):

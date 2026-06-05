@@ -48,7 +48,9 @@ _TIMESTAMPTZ_COLUMNS = frozenset({"evidence_expires_at", "expires_at"})
 
 
 def _evidence_packet_for_manifest(manifest: dict[str, Any]) -> dict[str, Any] | None:
-    fixture = route_fixture_for(str(manifest.get("capability_id") or ""), str(manifest.get("provider_id") or ""))
+    fixture = route_fixture_for(
+        str(manifest.get("capability_id") or ""), str(manifest.get("provider_id") or "")
+    )
     if not isinstance(fixture, dict):
         return None
 
@@ -84,9 +86,15 @@ def index_command_manifest_seed_rows() -> list[dict[str, Any]]:
                 "side_effect_class": manifest_json["side_effect_class"],
                 "promotion_state": manifest_json.get("promotion_state"),
                 "review_status": evidence_packet.get("review_status") if evidence_packet else None,
-                "evidence_packet_id": evidence_packet.get("evidence_packet_id") if evidence_packet else None,
-                "evidence_packet_digest": evidence_packet.get("evidence_packet_digest") if evidence_packet else None,
-                "evidence_expires_at": evidence_packet.get("evidence_expires_at") if evidence_packet else None,
+                "evidence_packet_id": (
+                    evidence_packet.get("evidence_packet_id") if evidence_packet else None
+                ),
+                "evidence_packet_digest": (
+                    evidence_packet.get("evidence_packet_digest") if evidence_packet else None
+                ),
+                "evidence_expires_at": (
+                    evidence_packet.get("evidence_expires_at") if evidence_packet else None
+                ),
                 "public_claim_boundary": manifest_json["public_claim_boundary"],
                 "manifest_json": manifest_json,
                 "evidence_packet_json": evidence_packet,

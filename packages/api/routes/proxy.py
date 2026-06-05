@@ -61,6 +61,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["proxy"])
 admin_router = APIRouter(tags=["schema-admin"])
 
+
 # Back-compat shim for existing imports in capability execution routes.
 def normalize_slug(slug: str) -> str:
     """Resolve a canonical/public slug to its proxy-layer equivalent."""
@@ -462,10 +463,7 @@ def _public_proxy_service_name(service: str | None) -> str | None:
 
 def _valid_public_proxy_service_names() -> list[str]:
     """Return public proxy service ids accepted by proxy/admin path surfaces."""
-    public_names = {
-        _public_proxy_service_name(service) or service
-        for service in SERVICE_REGISTRY
-    }
+    public_names = {_public_proxy_service_name(service) or service for service in SERVICE_REGISTRY}
     return sorted(name for name in public_names if name)
 
 
@@ -620,9 +618,7 @@ def _validated_proxy_request_service(service: str) -> str:
     )
 
 
-_VALID_PROXY_METHODS = frozenset(
-    {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
-)
+_VALID_PROXY_METHODS = frozenset({"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"})
 
 
 def _validated_proxy_request_method(method: str) -> str:
@@ -689,15 +685,9 @@ def _validated_proxy_request_payload(payload: Any) -> ProxyRequest:
             detail="Provide a JSON object with service, method, and path fields.",
         )
 
-    service = _validated_proxy_request_service(
-        _required_proxy_string_field(payload, "service")
-    )
-    method = _validated_proxy_request_method(
-        _required_proxy_string_field(payload, "method")
-    )
-    path = _validated_proxy_request_path(
-        _required_proxy_string_field(payload, "path")
-    )
+    service = _validated_proxy_request_service(_required_proxy_string_field(payload, "service"))
+    method = _validated_proxy_request_method(_required_proxy_string_field(payload, "method"))
+    path = _validated_proxy_request_path(_required_proxy_string_field(payload, "path"))
     body = _validated_proxy_mapping_field(payload, "body")
     params = _validated_proxy_mapping_field(payload, "params")
     headers = _validated_proxy_mapping_field(payload, "headers")
@@ -920,7 +910,9 @@ async def proxy_request(
 
     try:
         request = _validated_proxy_request_payload(body)
-        public_request_service = _public_proxy_service_name(request.service) or str(request.service).strip()
+        public_request_service = (
+            _public_proxy_service_name(request.service) or str(request.service).strip()
+        )
 
         normalized_rhumb_key = str(x_rhumb_key or "").strip()
         if not normalized_rhumb_key:
@@ -1036,9 +1028,7 @@ async def proxy_request(
                 detail=f"Credential unavailable for '{public_request_service}'",
             ) from e
         finally:
-            timings["credential_inject_ms"] = (
-                time.perf_counter() - credential_start
-            ) * 1000
+            timings["credential_inject_ms"] = (time.perf_counter() - credential_start) * 1000
 
         pool_start = time.perf_counter()
         client = await pool.acquire(
@@ -1464,14 +1454,16 @@ async def list_schema_alerts(
                     "service": _public_proxy_service_name(alert.service),
                     "endpoint": alert.endpoint,
                     "severity": alert.severity,
-                    "change_detail": {
-                        **alert.change_detail,
-                        "service": _public_proxy_service_name(
-                            alert.change_detail.get("service")
-                        ),
-                    }
-                    if isinstance(alert.change_detail, dict)
-                    else alert.change_detail,
+                    "change_detail": (
+                        {
+                            **alert.change_detail,
+                            "service": _public_proxy_service_name(
+                                alert.change_detail.get("service")
+                            ),
+                        }
+                        if isinstance(alert.change_detail, dict)
+                        else alert.change_detail
+                    ),
                     "alert_sent_at": (
                         alert.alert_sent_at.isoformat() if alert.alert_sent_at else None
                     ),

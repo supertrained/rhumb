@@ -23,12 +23,15 @@ import hashlib
 import json
 import logging
 import re
-import time
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 from routes._supabase import supabase_fetch, supabase_insert, supabase_patch
-from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
+from services.service_slugs import (
+    CANONICAL_TO_PROXY,
+    public_service_slug,
+    public_service_slug_candidates,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +100,6 @@ def _canonicalize_provider_text_from_contexts(
     return canonicalized
 
 
-
 def _canonicalize_provider_message_text_from_contexts(
     text: Any,
     provider_slugs: list[Any],
@@ -137,6 +139,7 @@ def _public_receipt_row(row: dict[str, Any] | None) -> dict[str, Any] | None:
 def _generate_receipt_id() -> str:
     """Generate a receipt ID with the rcpt_ prefix."""
     import uuid
+
     return f"rcpt_{uuid.uuid4().hex[:24]}"
 
 
@@ -406,9 +409,9 @@ class ReceiptService:
         receipt_data["receipt_hash"] = receipt_hash
 
         # Persist (append-only: INSERT only, never UPDATE)
-        await supabase_insert("execution_receipts", {
-            k: v for k, v in receipt_data.items() if v is not None
-        })
+        await supabase_insert(
+            "execution_receipts", {k: v for k, v in receipt_data.items() if v is not None}
+        )
 
         # Update chain state with the new receipt hash
         await self._update_chain_hash(chain_sequence, receipt_hash)
@@ -461,9 +464,7 @@ class ReceiptService:
 
     async def get_receipt(self, receipt_id: str) -> dict[str, Any] | None:
         """Fetch a receipt by ID."""
-        rows = await supabase_fetch(
-            f"execution_receipts?receipt_id=eq.{receipt_id}&limit=1"
-        )
+        rows = await supabase_fetch(f"execution_receipts?receipt_id=eq.{receipt_id}&limit=1")
         if not rows:
             return None
         return _public_receipt_row(rows[0])
@@ -551,12 +552,14 @@ class ReceiptService:
             expected_prev_hash = prev_row.get("receipt_hash")
             actual_prev_hash = row.get("previous_receipt_hash")
             if expected_prev_hash != actual_prev_hash:
-                broken_links.append({
-                    "receipt_id": row["receipt_id"],
-                    "chain_sequence": row["chain_sequence"],
-                    "expected_previous_hash": expected_prev_hash,
-                    "actual_previous_hash": actual_prev_hash,
-                })
+                broken_links.append(
+                    {
+                        "receipt_id": row["receipt_id"],
+                        "chain_sequence": row["chain_sequence"],
+                        "expected_previous_hash": expected_prev_hash,
+                        "actual_previous_hash": actual_prev_hash,
+                    }
+                )
             else:
                 verified += 1
 
@@ -583,11 +586,14 @@ class ReceiptService:
             )
             if not rows:
                 # Seed the chain state
-                await supabase_insert("receipt_chain_state", {
-                    "id": 1,
-                    "last_sequence": 0,
-                    "last_receipt_hash": None,
-                })
+                await supabase_insert(
+                    "receipt_chain_state",
+                    {
+                        "id": 1,
+                        "last_sequence": 0,
+                        "last_receipt_hash": None,
+                    },
+                )
                 current_sequence = 0
                 current_hash = None
             else:
@@ -635,6 +641,7 @@ class ReceiptService:
     @staticmethod
     def _now_iso() -> str:
         from datetime import datetime, timezone
+
         return datetime.now(timezone.utc).isoformat()
 
 

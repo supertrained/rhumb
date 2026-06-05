@@ -286,8 +286,7 @@ class AuthInjector:
 
         if service not in self.AUTH_PATTERNS:
             error = ValueError(
-                f"Service '{service}' not supported. "
-                f"Available: {', '.join(self.AUTH_PATTERNS)}"
+                f"Service '{service}' not supported. " f"Available: {', '.join(self.AUTH_PATTERNS)}"
             )
             self._emit_credential_lifecycle(
                 request,
@@ -327,9 +326,7 @@ class AuthInjector:
             )
             raise
         if credential is None:
-            error = RuntimeError(
-                f"Credential not found for {service}/{auth_method.value}"
-            )
+            error = RuntimeError(f"Credential not found for {service}/{auth_method.value}")
             self._emit_credential_lifecycle(
                 request,
                 event_type="credential_missing",

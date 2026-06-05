@@ -26,7 +26,9 @@ from schemas.route_taxonomy import (
 SIDE_EFFECT_CLASSES = frozenset({"read", "write", "admin", "payment", "destructive"})
 AUTH_MODES = frozenset({"none", "byok", "rhumb_managed", "agent_vault", "oauth", "user_session"})
 CONFIRMATION_POLICIES = frozenset({"none", "required", "dry_run_then_confirm", "blocked"})
-CACHE_BEHAVIORS = frozenset({"none", "read_through", "write_through", "ephemeral", "provider_controlled"})
+CACHE_BEHAVIORS = frozenset(
+    {"none", "read_through", "write_through", "ephemeral", "provider_controlled"}
+)
 
 REQUIRED_MANIFEST_FIELDS = (
     "manifest_id",
@@ -93,7 +95,11 @@ def _non_empty_string(value: Any) -> bool:
 
 
 def _valid_string_list(value: Any, *, allow_empty: bool = True) -> bool:
-    return isinstance(value, list) and (allow_empty or bool(value)) and all(_non_empty_string(item) for item in value)
+    return (
+        isinstance(value, list)
+        and (allow_empty or bool(value))
+        and all(_non_empty_string(item) for item in value)
+    )
 
 
 def lint_capability_manifest(manifest: dict[str, Any]) -> list[str]:
@@ -101,7 +107,16 @@ def lint_capability_manifest(manifest: dict[str, Any]) -> list[str]:
     for field in REQUIRED_MANIFEST_FIELDS:
         value = manifest.get(field)
         if field in _LIST_FIELDS:
-            if not _valid_string_list(value, allow_empty=field in {"required_scopes", "required_credentials", "filesystem_allowlist", "process_allowlist"}):
+            if not _valid_string_list(
+                value,
+                allow_empty=field
+                in {
+                    "required_scopes",
+                    "required_credentials",
+                    "filesystem_allowlist",
+                    "process_allowlist",
+                },
+            ):
                 errors.append(f"invalid_{field}")
         elif value in (None, ""):
             errors.append(f"missing_{field}")
@@ -124,7 +139,9 @@ def lint_capability_manifest(manifest: dict[str, Any]) -> list[str]:
         errors.append("invalid_dry_run_supported")
     if not isinstance(manifest.get("cost_model"), dict) or not manifest.get("cost_model"):
         errors.append("invalid_cost_model")
-    if not isinstance(manifest.get("rate_limit_model"), dict) or not manifest.get("rate_limit_model"):
+    if not isinstance(manifest.get("rate_limit_model"), dict) or not manifest.get(
+        "rate_limit_model"
+    ):
         errors.append("invalid_rate_limit_model")
     if _parse_time(manifest.get("expires_at")) is None:
         errors.append("invalid_expires_at")
@@ -136,14 +153,26 @@ def lint_capability_manifest(manifest: dict[str, Any]) -> list[str]:
             errors.append("invalid_artifact_allowlist")
 
     if manifest.get("side_effect_class") in {"write", "admin", "payment", "destructive"}:
-        if manifest.get("confirmation_policy") not in {"required", "dry_run_then_confirm", "blocked"}:
+        if manifest.get("confirmation_policy") not in {
+            "required",
+            "dry_run_then_confirm",
+            "blocked",
+        }:
             errors.append("high_risk_requires_confirmation_policy")
 
-    if manifest.get("source_risk") == "anti_bot_or_tos_sensitive" and manifest.get("confirmation_policy") != "blocked":
+    if (
+        manifest.get("source_risk") == "anti_bot_or_tos_sensitive"
+        and manifest.get("confirmation_policy") != "blocked"
+    ):
         errors.append("anti_bot_routes_must_be_blocked")
 
     policy = route_recommendation_policy(manifest)
-    if policy["default_recommendable"] and manifest.get("promotion_state") in {"fixture_only", "experimental_non_default", "blocked", "deprecated"}:
+    if policy["default_recommendable"] and manifest.get("promotion_state") in {
+        "fixture_only",
+        "experimental_non_default",
+        "blocked",
+        "deprecated",
+    }:
         errors.append("promotion_state_not_default_executable")
     errors.extend(lint_public_claim_boundary(manifest))
 
@@ -256,7 +285,9 @@ def command_manifest_fixtures() -> list[dict[str, Any]]:
                 side_effect_class="read" if capability_id != "support.ticket.create" else "write",
                 required_credentials=[f"{provider_id}:api_key"],
                 network_allowlist=[f"api.{service_id}.example.com"],
-                confirmation_policy="dry_run_then_confirm" if capability_id == "support.ticket.create" else "none",
+                confirmation_policy=(
+                    "dry_run_then_confirm" if capability_id == "support.ticket.create" else "none"
+                ),
                 dry_run_supported=capability_id == "support.ticket.create",
                 public_claim_boundary=f"Rhumb can represent the {capability_id} managed official API route when governed auth, budget, and policy allow it.",
             )
