@@ -20,7 +20,7 @@ const ARTICLE_JSON_LD = {
   datePublished: "2026-03-18T00:00:00Z",
   author: { "@type": "Person", name: "Pedro Nunes" },
   description:
-    "A side-by-side comparison of Twilio, Vonage, and Plivo for AI agent messaging workflows using Rhumb's live AN Score data.",
+    "Current Rhumb messaging API scorecard for AI agents: Twilio 9.0, Vonage 8.2, and Plivo 6.4, with delivery evidence, channel consent, and cost-boundary tradeoffs.",
   url: "https://rhumb.dev/blog/twilio-vs-vonage-vs-plivo",
   publisher: { "@type": "Organization", name: "Rhumb", url: "https://rhumb.dev" },
 };
@@ -50,7 +50,7 @@ const compared: ComparedService[] = [
     avoidWhen: "Budget is the primary constraint and message volume is high. Twilio's per-message pricing with carrier surcharges can be significantly more expensive than Plivo for bulk operations.",
     friction: "A2P 10DLC registration for US messaging takes 1-7 business days. Carrier-level rate limits (1 SMS/s per long code) require agent-side throttling. Per-destination pricing requires lookups for cost prediction.",
     decision: "Pick Twilio unless a cost constraint or specific carrier relationship pushes you elsewhere.",
-    support: "Highest execution score. Idempotency on message creation, self-describing error codes with documentation URLs, and status callbacks on every message. The benchmark other messaging APIs are measured against.",
+    support: "Current Rhumb score leader: aggregate 9.0, execution 9.0, access readiness 9.1. Twilio is still the cleanest default for agent-driven messaging because idempotent message creation, self-describing error codes, and status callbacks make the delivery loop easier to verify. The authority issue is not message creation; it is consent, channel fallback, spend ceilings, and proof that a carrier actually delivered the message.",
     data: scoreMap.twilio,
   },
   {
@@ -63,7 +63,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You only need SMS and want the simplest possible integration. Vonage's API surface is broader than Twilio's but less polished at the edges — documentation has more gaps, and error messages are less self-describing.",
     friction: "API key + secret auth is straightforward but less ergonomic than Twilio's Basic Auth. The Messages API (v2) coexists with the older SMS API (v1), creating confusion about which to use. Webhook configuration requires specifying separate URLs for inbound and status, where Twilio uses a single StatusCallback.",
     decision: "Pick Vonage when you need a multi-channel platform (voice + video + messaging) or when WhatsApp Business is a primary channel.",
-    support: "Good execution score with a broader platform surface than Twilio. The API v1/v2 split is the main friction point — agents must choose the right API version and handle different response formats depending on which they use.",
+    support: "Current Rhumb snapshot: aggregate 8.2, execution 8.4, access readiness 7.9. Vonage remains the platform play when SMS, WhatsApp, voice, video, and verification need to sit behind one provider relationship. The score gap versus Twilio reflects API-version and response-shape complexity, not lack of channel breadth.",
     data: scoreMap.vonage,
   },
   {
@@ -76,7 +76,7 @@ const compared: ComparedService[] = [
     avoidWhen: "You need the most polished developer experience or extensive third-party integration support. Plivo's ecosystem is smaller — fewer SDKs, fewer community examples, and less third-party tooling.",
     friction: "Auth ID + Auth Token authentication is similar to Twilio's SID + token but with a smaller community and less documentation. Error messages are functional but less detailed than Twilio's self-describing codes. Webhook reliability is good but lacks the retry depth of Twilio's 48-hour retry window.",
     decision: "Pick Plivo when message volume makes cost the deciding factor and the engineering team can absorb slightly more integration effort.",
-    support: "Lowest cost per message of the three. Clean REST API with predictable patterns. The score gap reflects smaller ecosystem, less detailed error handling, and less mature webhook infrastructure — not fundamental API quality issues.",
+    support: "Current Rhumb snapshot: aggregate 6.4, execution 6.8, access readiness 5.8. Plivo is now a clear cost-constrained route rather than a close second: useful for high-volume bulk SMS when unit economics dominate, but the lower access readiness and smaller ecosystem mean agents need more defensive delivery-state handling.",
     data: scoreMap.plivo,
   },
 ];
@@ -163,14 +163,14 @@ const deliveryTestRules = [
 
 <Layout
   title="Twilio vs Vonage vs Plivo for AI Agents | Rhumb"
-  description="Side-by-side comparison of Twilio, Vonage, and Plivo for AI agent messaging. Twilio leads on execution; Vonage on platform breadth; Plivo on cost."
+  description="Compare Twilio, Vonage, and Plivo messaging APIs for AI agent workflows using current Rhumb scores: Twilio 9.0, Vonage 8.2, Plivo 6.4."
   canonical="/blog/twilio-vs-vonage-vs-plivo"
   ogTitle="Twilio vs Vonage vs Plivo for AI Agents"
-  ogDescription="Twilio is the default. Vonage is the platform play. Plivo is the cost optimizer. Live AN Score data."
+  ogDescription="Current Rhumb messaging API scorecard: Twilio 9.0, Vonage 8.2, Plivo 6.4 — delivery evidence matters more than API acceptance."
   ogUrl="https://rhumb.dev/blog/twilio-vs-vonage-vs-plivo"
   ogType="article"
   twitterTitle="Twilio vs Vonage vs Plivo for AI Agents"
-  twitterDescription="Twilio leads. Vonage broadens. Plivo saves. Which messaging API should your agent use?"
+  twitterDescription="Twilio leads at 9.0. Vonage broadens at 8.2. Plivo is the cost route at 6.4. Which messaging rail should your agent use?"
   jsonLd={ARTICLE_JSON_LD}
 >
   <div class="bg-navy min-h-screen overflow-hidden">
@@ -196,19 +196,17 @@ const deliveryTestRules = [
 
           <p class="mt-6 text-lg sm:text-xl text-slate-300 leading-relaxed max-w-3xl">
             <span class="text-slate-100 font-semibold">Short answer:</span>
-            Twilio is the default — highest execution score, simplest auth, most reliable webhooks.
-            Vonage is the platform play when you need voice + video + messaging in one SDK.
-            Plivo is the cost optimizer for high-volume operations where per-message pricing dominates.
+            Twilio is still the default at 9.0 — strongest execution and access readiness for agent messaging loops.
+            Vonage is the 8.2 platform play when you need voice, video, WhatsApp, and messaging under one provider.
+            Plivo is the 6.4 cost route for high-volume SMS when unit economics beat developer experience.
           </p>
 
           <div class="mt-8 inline-flex max-w-3xl items-start gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/8 px-5 py-4">
             <div class="mt-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0"></div>
             <p class="text-sm leading-6 text-slate-300">
-              <span class="font-semibold text-slate-100">Clear winner.</span>
-              Unlike CRM where no tool scores above 6.0, messaging has a genuine leader. Twilio scores
-              {formatScore(scoreMap.twilio?.aggregateRecommendationScore)} — over a full point ahead of Vonage ({formatScore(scoreMap.vonage?.aggregateRecommendationScore)})
-              and 1.6 points ahead of Plivo ({formatScore(scoreMap.plivo?.aggregateRecommendationScore)}).
-              The choice is constraint-driven, not pain-minimizing.
+              <span class="font-semibold text-slate-100">Clear winner, wider tail risk.</span>
+              Current scores: Twilio {formatScore(scoreMap.twilio?.aggregateRecommendationScore)}, Vonage {formatScore(scoreMap.vonage?.aggregateRecommendationScore)}, Plivo {formatScore(scoreMap.plivo?.aggregateRecommendationScore)}.
+              Twilio is the score-backed default, Vonage is the multi-channel platform route, and Plivo is a cost-sensitive exception that needs more delivery-state defense.
               Scores reflect published Rhumb data as of {updatedAt}.
             </p>
           </div>
