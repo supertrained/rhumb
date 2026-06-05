@@ -65,6 +65,15 @@ def credential_store() -> CredentialStore:
     store.set_credential("ipinfo", "bearer_token", "ipinfo_test_token_123")
     store.set_credential("scraperapi", "api_key", "scraperapi_test_key_123")
     store.set_credential("deepgram", "api_key", "deepgram_test_key_123")
+    store.set_credential("openai", "api_key", "openai_test_key_123")
+    store.set_credential("groq", "api_key", "groq_test_key_123")
+    store.set_credential("cohere", "api_key", "cohere_test_key_123")
+    store.set_credential("elevenlabs", "api_key", "elevenlabs_test_key_123")
+    store.set_credential("resend", "api_key", "resend_test_key_123")
+    store.set_credential("postmark", "api_key", "postmark_test_key_123")
+    store.set_credential("google-maps", "api_key", "google_places_test_key_123")
+    store.set_credential("google-places", "api_key", "google_places_test_key_123")
+    store.set_credential("perplexity", "api_key", "perplexity_test_key_123")
     return store
 
 
@@ -510,6 +519,68 @@ class TestAuthInjector:
         headers = auth_injector.inject(req)
         assert headers["Authorization"] == "Token deepgram_test_key_123"
 
+    def test_inject_openai_compatible_bearer_headers(self, auth_injector: AuthInjector) -> None:
+        """OpenAI-compatible managed providers use Authorization Bearer."""
+        for service, expected in (
+            ("openai", "Bearer openai_test_key_123"),
+            ("groq", "Bearer groq_test_key_123"),
+            ("cohere", "Bearer cohere_test_key_123"),
+            ("perplexity", "Bearer perplexity_test_key_123"),
+        ):
+            req = AuthInjectionRequest(
+                service=service,
+                agent_id="rhumb-lead",
+                auth_method=AuthMethod.API_KEY,
+            )
+            headers = auth_injector.inject(req)
+            assert headers["Authorization"] == expected
+
+    def test_inject_email_provider_headers(self, auth_injector: AuthInjector) -> None:
+        """Resend/Postmark/ElevenLabs each require provider-specific headers."""
+        resend = auth_injector.inject(
+            AuthInjectionRequest(
+                service="resend",
+                agent_id="rhumb-lead",
+                auth_method=AuthMethod.API_KEY,
+            )
+        )
+        assert resend["Authorization"] == "Bearer resend_test_key_123"
+
+        postmark = auth_injector.inject(
+            AuthInjectionRequest(
+                service="postmark",
+                agent_id="rhumb-lead",
+                auth_method=AuthMethod.API_KEY,
+            )
+        )
+        assert postmark["X-Postmark-Server-Token"] == "postmark_test_key_123"
+        assert "Authorization" not in postmark
+
+        elevenlabs = auth_injector.inject(
+            AuthInjectionRequest(
+                service="elevenlabs",
+                agent_id="rhumb-lead",
+                auth_method=AuthMethod.API_KEY,
+            )
+        )
+        assert elevenlabs["xi-api-key"] == "elevenlabs_test_key_123"
+
+    def test_inject_google_maps_key_query_param(self, auth_injector: AuthInjector) -> None:
+        """Google Maps/Places use key= query auth, not Bearer headers."""
+        for service in ("google-maps", "google-places"):
+            req = AuthInjectionRequest(
+                service=service,
+                agent_id="rhumb-lead",
+                auth_method=AuthMethod.API_KEY,
+                existing_params={"address": "Los Angeles"},
+            )
+            injected = auth_injector.inject_request_parts(req)
+            assert injected.params == {
+                "address": "Los Angeles",
+                "key": "google_places_test_key_123",
+            }
+            assert injected.headers == {}
+
     def test_inject_writes_audit_entry(
         self, credential_store: CredentialStore, auth_injector: AuthInjector
     ) -> None:
@@ -543,6 +614,15 @@ class TestAuthInjector:
         assert AuthInjector.default_method_for("ipinfo") == AuthMethod.BEARER_TOKEN
         assert AuthInjector.default_method_for("scraperapi") == AuthMethod.API_KEY
         assert AuthInjector.default_method_for("deepgram") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("openai") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("groq") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("cohere") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("elevenlabs") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("resend") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("postmark") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("google-maps") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("google-places") == AuthMethod.API_KEY
+        assert AuthInjector.default_method_for("perplexity") == AuthMethod.API_KEY
         assert AuthInjector.default_method_for("nonexistent") is None
 
 

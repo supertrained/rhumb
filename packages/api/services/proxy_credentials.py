@@ -84,6 +84,7 @@ _1PASSWORD_MAP: Dict[str, tuple[str, str]] = {
     "brave_search_api_key": ("brave-search", "api_key"),
     "Replicate API Token": ("replicate", "api_token"),
     "replicate_api_token": ("replicate", "api_token"),
+    "Tester - Algolia": ("algolia", "api_key"),
     "algolia_api_key": ("algolia", "api_key"),
     "E2B API Key": ("e2b", "api_key"),
     "e2b_api_key": ("e2b", "api_key"),
@@ -94,6 +95,15 @@ _1PASSWORD_MAP: Dict[str, tuple[str, str]] = {
     "IPinfo API Token": ("ipinfo", "bearer_token"),
     "ScraperAPI API Key": ("scraperapi", "api_key"),
     "Deepgram API Key": ("deepgram", "api_key"),
+    "OpenAI API Key": ("openai", "api_key"),
+    "Groq API Key": ("groq", "api_key"),
+    "Cohere API Key": ("cohere", "api_key"),
+    "Tester - Cohere": ("cohere", "api_key"),
+    "ElevenLabs API Key": ("elevenlabs", "api_key"),
+    "Tester - Resend": ("resend", "api_key"),
+    "Postmark API Key": ("postmark", "api_key"),
+    "Google Places API Key": ("google-places", "api_key"),
+    "Perplexity API Key": ("perplexity", "api_key"),
 }
 
 # Environment variable fallback: RHUMB_CREDENTIAL_<SERVICE>_<KEY>=<value>
@@ -117,9 +127,26 @@ _ENV_FALLBACK: Dict[str, tuple[str, str]] = {
     "e2b": ("RHUMB_CREDENTIAL_E2B_API_KEY", "api_key"),
     "unstructured": ("RHUMB_CREDENTIAL_UNSTRUCTURED_API_KEY", "api_key"),
     "google-ai": ("RHUMB_CREDENTIAL_GOOGLE_AI_API_KEY", "api_key"),
-    "ipinfo": ("RHUMB_CREDENTIAL_IPINFO_API_TOKEN", "bearer_token"),
+    "ipinfo": ("RHUMB_CREDENTIAL_IPINFO_TOKEN", "bearer_token"),
     "scraperapi": ("RHUMB_CREDENTIAL_SCRAPERAPI_API_KEY", "api_key"),
     "deepgram": ("RHUMB_CREDENTIAL_DEEPGRAM_API_KEY", "api_key"),
+    "openai": ("RHUMB_CREDENTIAL_OPENAI_API_KEY", "api_key"),
+    "groq": ("RHUMB_CREDENTIAL_GROQ_API_KEY", "api_key"),
+    "cohere": ("RHUMB_CREDENTIAL_COHERE_API_KEY", "api_key"),
+    "elevenlabs": ("RHUMB_CREDENTIAL_ELEVENLABS_API_KEY", "api_key"),
+    "resend": ("RHUMB_CREDENTIAL_RESEND_API_KEY", "api_key"),
+    "postmark": ("RHUMB_CREDENTIAL_POSTMARK_API_KEY", "api_key"),
+    "google-maps": ("RHUMB_CREDENTIAL_GOOGLE_PLACES_API_KEY", "api_key"),
+    "google-places": ("RHUMB_CREDENTIAL_GOOGLE_PLACES_API_KEY", "api_key"),
+    "perplexity": ("RHUMB_CREDENTIAL_PERPLEXITY_API_KEY", "api_key"),
+}
+
+# Backward/forward-compatible aliases for env names that shipped in migrations
+# or Railway before the proxy credential loader settled on one convention.
+_ENV_FALLBACK_ALIASES: Dict[str, list[tuple[str, str]]] = {
+    # Keep the older loader convention working after migration 0083 standardized
+    # the hosted key name as RHUMB_CREDENTIAL_IPINFO_TOKEN.
+    "ipinfo": [("RHUMB_CREDENTIAL_IPINFO_API_TOKEN", "bearer_token")],
 }
 
 
@@ -133,6 +160,8 @@ class CredentialStore:
         "tavily", "exa", "brave-search", "replicate", "algolia", "e2b", "unstructured",
         "google-ai",
         "ipinfo", "scraperapi", "deepgram",
+        "openai", "groq", "cohere", "elevenlabs", "resend", "postmark",
+        "google-maps", "google-places", "perplexity",
     ]
 
     def __init__(self, *, auto_load: bool = True) -> None:
@@ -206,12 +235,21 @@ class CredentialStore:
 
     def _load_from_env(self, service: str) -> None:
         """Fallback: load credentials from environment variables."""
-        fallback = _ENV_FALLBACK.get(service)
-        if fallback is None:
+        fallbacks = []
+        primary = _ENV_FALLBACK.get(service)
+        if primary is not None:
+            fallbacks.append(primary)
+        fallbacks.extend(_ENV_FALLBACK_ALIASES.get(service, []))
+        if not fallbacks:
             return
 
-        env_var, cred_key = fallback
-        value = os.environ.get(env_var, "").strip()
+        value = ""
+        cred_key = ""
+        for env_var, candidate_key in fallbacks:
+            value = os.environ.get(env_var, "").strip()
+            if value:
+                cred_key = candidate_key
+                break
         if not value:
             return
 
@@ -229,6 +267,8 @@ class CredentialStore:
     @staticmethod
     def _item_names_for(service: str) -> list[str]:
         """Return candidate 1Password item names for a service, in priority order."""
+        if service == "google-maps":
+            service = "google-places"
         return [item for item, (svc, _) in _1PASSWORD_MAP.items() if svc == service]
 
     # ------------------------------------------------------------------
@@ -263,6 +303,19 @@ class CredentialStore:
             # Cache it so we don't re-read env every call
             self.set_credential(service, key, value)
             return value
+
+        fallback_candidates = []
+        primary_fallback = _ENV_FALLBACK.get(service)
+        if primary_fallback is not None:
+            fallback_candidates.append(primary_fallback)
+        fallback_candidates.extend(_ENV_FALLBACK_ALIASES.get(service, []))
+        for fallback_env_var, fallback_key in fallback_candidates:
+            if fallback_key != key:
+                continue
+            value = os.environ.get(fallback_env_var, "").strip()
+            if value:
+                self.set_credential(service, key, value)
+                return value
 
         return None
 
