@@ -175,6 +175,60 @@ class AuthInjector:
             "name": "Authorization",
             "format": "Token {credential}",
         },
+        "openai": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "Authorization",
+            "format": "Bearer {credential}",
+        },
+        "groq": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "Authorization",
+            "format": "Bearer {credential}",
+        },
+        "cohere": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "Authorization",
+            "format": "Bearer {credential}",
+        },
+        "elevenlabs": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "xi-api-key",
+            "format": "{credential}",
+        },
+        "resend": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "Authorization",
+            "format": "Bearer {credential}",
+        },
+        "postmark": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "X-Postmark-Server-Token",
+            "format": "{credential}",
+        },
+        "google-maps": {
+            "methods": ["api_key"],
+            "target": "query",
+            "name": "key",
+            "format": "{credential}",
+        },
+        "google-places": {
+            "methods": ["api_key"],
+            "target": "query",
+            "name": "key",
+            "format": "{credential}",
+        },
+        "perplexity": {
+            "methods": ["api_key"],
+            "target": "header",
+            "name": "Authorization",
+            "format": "Bearer {credential}",
+        },
     }
 
     def __init__(

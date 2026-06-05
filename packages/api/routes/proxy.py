@@ -211,6 +211,69 @@ SERVICE_REGISTRY = {
         "schema_alert_mode": "breaking_only",
         "timeout_threshold_ms": 30000,  # Audio processing can be slow
     },
+    "openai": {
+        "domain": "api.openai.com",
+        "auth_type": "api_key",
+        "rate_limit": "500/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": 30000,
+    },
+    "groq": {
+        "domain": "api.groq.com",
+        "auth_type": "api_key",
+        "rate_limit": "500/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": 30000,
+    },
+    "cohere": {
+        "domain": "api.cohere.com",
+        "auth_type": "api_key",
+        "rate_limit": "500/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": 30000,
+    },
+    "elevenlabs": {
+        "domain": "api.elevenlabs.io",
+        "auth_type": "api_key",
+        "rate_limit": "120/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": 30000,
+    },
+    "resend": {
+        "domain": "api.resend.com",
+        "auth_type": "api_key",
+        "rate_limit": "120/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "postmark": {
+        "domain": "api.postmarkapp.com",
+        "auth_type": "api_key",
+        "rate_limit": "500/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "google-maps": {
+        "domain": "maps.googleapis.com",
+        "auth_type": "api_key",
+        "rate_limit": "300/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "google-places": {
+        "domain": "maps.googleapis.com",
+        "auth_type": "api_key",
+        "rate_limit": "300/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": DEFAULT_TIMEOUT_THRESHOLD_MS,
+    },
+    "perplexity": {
+        "domain": "api.perplexity.ai",
+        "auth_type": "api_key",
+        "rate_limit": "120/min",
+        "schema_alert_mode": "breaking_only",
+        "timeout_threshold_ms": 30000,
+    },
 }
 
 
