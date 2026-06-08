@@ -518,7 +518,7 @@ def _route_plan_boundary_facts(
     raw_request: Request,
     agent: Any | None,
     policy_summary: dict[str, Any] | None,
-    policy_source: str,
+    policy_source: dict[str, Any],
     budget_summary: dict[str, Any] | None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     route_candidate = _selected_route_candidate(
@@ -852,6 +852,7 @@ async def _validate_route_plan_or_reject(
         ),
         extra={"mode": source},
     )
+    raise AssertionError("unreachable: route-plan rejection should raise")
 
 
 def _route_plan_enforcement_meta(
@@ -1101,7 +1102,7 @@ def _normalized_idempotency_key(value: str | None) -> str | None:
     return normalized or None
 
 
-async def _resolve_policy_agent(raw_request: Request):
+async def _resolve_policy_agent(raw_request: Request) -> Any:
     x_rhumb_key = _normalized_governed_key(raw_request)
     if not x_rhumb_key:
         raise RhumbError(
@@ -1605,6 +1606,7 @@ async def get_index_manifest_v2(route_id: str) -> dict[str, Any]:
     """Return one command-level route manifest by stable route ID."""
 
     parsed_route_id = _validated_index_text_filter(route_id, field_name="route_id")
+    assert parsed_route_id is not None
     store = get_durable_index_manifest_store()
     manifest = await store.get_manifest(parsed_route_id)
     if manifest is None:

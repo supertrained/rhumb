@@ -514,7 +514,7 @@ class ReceiptService:
             f"&limit={limit}&offset={offset}"
         )
         rows = await supabase_fetch(query) or []
-        return [_public_receipt_row(row) for row in rows]
+        return [_public_receipt_row(row) for row in rows if isinstance(row, dict)]
 
     async def verify_chain(
         self,

@@ -607,22 +607,24 @@ def _row_to_explanation(row: dict[str, Any]) -> RouteExplanation:
                         normalized_score=float(factor.get("normalized_score") or 0.0),
                         weight=float(factor.get("weight") or 0.0),
                     )
+            policy_checks: dict[str, bool] = (
+                candidate.get("policy_checks")
+                if isinstance(candidate.get("policy_checks"), dict)
+                else {}
+            )
+            route_facts: dict[str, Any] = (
+                candidate.get("route_facts")
+                if isinstance(candidate.get("route_facts"), dict)
+                else {}
+            )
             candidates.append(
                 CandidateExplanation(
                     provider_id=_public_provider_id(raw_provider_id) or "unknown",
                     eligible=bool(candidate.get("eligible", False)),
                     composite_score=float(candidate.get("composite_score") or 0.0),
                     factors=factor_objs,
-                    policy_checks=(
-                        candidate.get("policy_checks")
-                        if isinstance(candidate.get("policy_checks"), dict)
-                        else {}
-                    ),
-                    route_facts=(
-                        candidate.get("route_facts")
-                        if isinstance(candidate.get("route_facts"), dict)
-                        else {}
-                    ),
+                    policy_checks=policy_checks,
+                    route_facts=route_facts,
                     ineligible_reason=candidate.get("ineligible_reason"),
                 )
             )

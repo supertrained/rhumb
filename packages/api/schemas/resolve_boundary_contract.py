@@ -282,4 +282,4 @@ def runtime_decision_mutations(runtime_payload: dict[str, Any]) -> set[str]:
 def missing_route_plan_enforcement_checks(checks: dict[str, bool]) -> set[str]:
     """Return required route-plan checks that are missing or false."""
 
-    return {name for name in ROUTE_PLAN_ENFORCEMENT_CHECKS if checks.get(name) is not True}
+    return set(name for name in ROUTE_PLAN_ENFORCEMENT_CHECKS if checks.get(name) is not True)

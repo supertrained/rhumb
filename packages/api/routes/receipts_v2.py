@@ -386,8 +386,8 @@ async def query_receipts(
     capability_id = _validated_optional_filter(capability_id, field_name="capability_id")
     provider_id = _validated_optional_filter(provider_id, field_name="provider_id")
     status = _validated_receipt_status(status)
-    limit = _validated_int_range(limit, field_name="limit", minimum=1, maximum=200)
-    offset = _validated_non_negative_int(offset, field_name="offset")
+    limit_value = _validated_int_range(limit, field_name="limit", minimum=1, maximum=200)
+    offset_value = _validated_non_negative_int(offset, field_name="offset")
     service = get_receipt_service()
     receipts = await service.query_receipts(
         agent_id=agent_id,
@@ -395,15 +395,15 @@ async def query_receipts(
         capability_id=capability_id,
         provider_id=provider_id,
         status=status,
-        limit=limit,
-        offset=offset,
+        limit=limit_value,
+        offset=offset_value,
     )
     return {
         "data": {
             "receipts": receipts,
             "count": len(receipts),
-            "limit": limit,
-            "offset": offset,
+            "limit": limit_value,
+            "offset": offset_value,
         },
         "error": None,
     }
@@ -423,14 +423,16 @@ async def verify_chain(
     preceding receipt's receipt_hash. Returns verification results
     including any broken chain links detected.
     """
-    start_sequence = _validated_optional_positive_int(start_sequence, field_name="start_sequence")
-    end_sequence = _validated_optional_positive_int(end_sequence, field_name="end_sequence")
-    _validate_chain_range(start_sequence, end_sequence)
-    limit = _validated_int_range(limit, field_name="limit", minimum=1, maximum=1000)
+    start_sequence_value = _validated_optional_positive_int(
+        start_sequence, field_name="start_sequence"
+    )
+    end_sequence_value = _validated_optional_positive_int(end_sequence, field_name="end_sequence")
+    _validate_chain_range(start_sequence_value, end_sequence_value)
+    limit_value = _validated_int_range(limit, field_name="limit", minimum=1, maximum=1000)
     service = get_receipt_service()
     result = await service.verify_chain(
-        start_sequence=start_sequence,
-        end_sequence=end_sequence,
-        limit=limit,
+        start_sequence=start_sequence_value,
+        end_sequence=end_sequence_value,
+        limit=limit_value,
     )
     return {"data": result, "error": None}

@@ -413,7 +413,7 @@ def route_candidates_from_resolve_data(data: dict[str, Any]) -> list[dict[str, A
     capability_id = str(data.get("capability") or data.get("capability_id") or "unknown")
     providers = data.get("providers")
     if (not isinstance(providers, list) or not providers) and data.get("provider"):
-        readiness = (
+        readiness: dict[str, Any] = (
             data.get("execute_readiness") if isinstance(data.get("execute_readiness"), dict) else {}
         )
         provider: dict[str, Any] = {
@@ -451,7 +451,7 @@ def route_candidates_from_resolve_data(data: dict[str, Any]) -> list[dict[str, A
             )
         ]
     if not isinstance(providers, list) or not providers:
-        recovery_hint = (
+        recovery_hint: dict[str, Any] = (
             data.get("recovery_hint") if isinstance(data.get("recovery_hint"), dict) else {}
         )
         return [

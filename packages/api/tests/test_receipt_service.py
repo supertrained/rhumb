@@ -624,6 +624,29 @@ async def test_query_receipts_canonicalizes_legacy_provider_text_on_public_reads
 
 
 @pytest.mark.anyio
+async def test_query_receipts_drops_malformed_supabase_rows_without_changing_public_receipt_count():
+    service = ReceiptService()
+    mock_fetch = AsyncMock(
+        return_value=[
+            {"receipt_id": "rcpt_valid_1", "provider_id": "brave-search"},
+            None,
+            ["not", "a", "receipt", "row"],
+            "malformed receipt row",
+            {"receipt_id": "rcpt_valid_2", "provider_id": "people-data-labs"},
+        ]
+    )
+
+    with patch("services.receipt_service.supabase_fetch", new=mock_fetch):
+        result = await service.query_receipts(limit=10)
+
+    assert result == [
+        {"receipt_id": "rcpt_valid_1", "provider_id": "brave-search-api"},
+        {"receipt_id": "rcpt_valid_2", "provider_id": "people-data-labs"},
+    ]
+    assert len(result) == 2
+
+
+@pytest.mark.anyio
 async def test_public_receipt_row_preserves_human_provider_names_when_row_is_already_canonical():
     service = ReceiptService()
     mock_fetch = AsyncMock(

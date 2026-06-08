@@ -220,10 +220,10 @@ def lint_evidence_packet(
 
 
 def lint_index_route_fixture(route_fixture: dict[str, Any]) -> list[str]:
-    manifest = (
+    manifest: dict[str, Any] = (
         route_fixture.get("manifest") if isinstance(route_fixture.get("manifest"), dict) else {}
     )
-    evidence_packet = (
+    evidence_packet: dict[str, Any] = (
         route_fixture.get("evidence_packet")
         if isinstance(route_fixture.get("evidence_packet"), dict)
         else {}

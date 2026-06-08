@@ -300,7 +300,7 @@ class AuthInjector:
         allowed_methods: list[str] = pattern["methods"]  # type: ignore[assignment]
         injection_name = pattern["name"]  # type: ignore[assignment]
         if auth_method.value not in allowed_methods:
-            error = ValueError(
+            auth_error = ValueError(
                 f"Auth method '{auth_method.value}' not supported for '{service}'. "
                 f"Supported: {allowed_methods}"
             )
@@ -309,9 +309,9 @@ class AuthInjector:
                 event_type="credential_lookup_failed",
                 outcome="error",
                 header_name=injection_name,
-                error=error,
+                error=auth_error,
             )
-            raise error
+            raise auth_error
 
         # Retrieve credential
         try:
@@ -326,15 +326,15 @@ class AuthInjector:
             )
             raise
         if credential is None:
-            error = RuntimeError(f"Credential not found for {service}/{auth_method.value}")
+            missing_error = RuntimeError(f"Credential not found for {service}/{auth_method.value}")
             self._emit_credential_lifecycle(
                 request,
                 event_type="credential_missing",
                 outcome="missing",
                 header_name=injection_name,
-                error=error,
+                error=missing_error,
             )
-            raise error
+            raise missing_error
 
         # For Twilio basic-auth the credential value is "account_sid:auth_token".
         # We must base64-encode it before injection.
@@ -359,15 +359,17 @@ class AuthInjector:
                 body = {}
             body[injection_name] = formatted
         else:
-            error = ValueError(f"Unsupported auth injection target '{target}' for '{service}'")
+            target_error = ValueError(
+                f"Unsupported auth injection target '{target}' for '{service}'"
+            )
             self._emit_credential_lifecycle(
                 request,
                 event_type="credential_lookup_failed",
                 outcome="error",
                 header_name=injection_name,
-                error=error,
+                error=target_error,
             )
-            raise error
+            raise target_error
 
         # Audit
         self.credentials.audit_log(service, request.agent_id, "auth_injected")
