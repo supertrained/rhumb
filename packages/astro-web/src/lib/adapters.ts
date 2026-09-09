@@ -230,6 +230,16 @@ export function parseServiceScoreResponse(payload: unknown): ServiceScoreViewMod
     calculatedAt: asString(payload.calculated_at),
     evidenceFreshness: parseEvidenceFreshness(snapshot, payload),
     activeFailures,
+    failureCoverage:
+      payload.failure_coverage === "reported" || activeFailures.length > 0
+        ? "reported"
+        : "unresearched",
+    failureHonesty:
+      typeof payload.failure_honesty === "string"
+        ? payload.failure_honesty
+        : activeFailures.length > 0
+          ? "These are active captured failure modes, not a complete incident history."
+          : "No failure modes have been captured for this service yet. An empty list is a coverage gap, not a clean bill of health.",
     alternatives,
     p1Score: firstNumber(payload.p1_score, payload.payment_autonomy),
     g1Score: firstNumber(payload.g1_score, payload.governance_readiness),

@@ -21,6 +21,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
   redirects: {
+    '/agent-capabilities.json': '/.well-known/agent-capabilities.json',
     '/services': '/leaderboard',
     '/services/[slug]': '/service/[slug]',
     '/services/[slug]/failures': '/service/[slug]',

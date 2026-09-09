@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, "feat/**", "chore/**"]
+    branches: [main, "feat/**", "chore/**", "cursor/**"]
   pull_request:
 
 jobs:
@@ -48,26 +48,26 @@ jobs:
       - name: Type check
         run: mypy .
 
-  web-test:
+  public-truth:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: packages/web
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check generated public-truth surfaces
+        run: python3 scripts/generate_agent_capabilities.py --check
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: packages/web/package-lock.json
-      - name: Install dependencies
+      - name: Install contract-test dependencies
+        working-directory: packages/web
         run: npm ci
-      - name: Type check
-        run: npm run type-check
-      - name: Lint
-        run: npm run lint
-      - name: Test
-        run: npm run test
+      - name: Run public-truth contract tests
+        working-directory: packages/web
+        run: npx vitest run tests/public-authority.contract.test.ts tests/astro-authority.contract.test.mjs tests/llms.contract.test.ts
 
   astro-web-build:
     runs-on: ubuntu-latest

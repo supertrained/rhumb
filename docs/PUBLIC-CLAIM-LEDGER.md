@@ -6,6 +6,16 @@ Purpose: keep Rhumb's public authority copy aligned with live product truth befo
 - **qualified** — allowed only with explicit scope/condition in the public claim.
 - **removed** — stale or unsupported wording removed from public surfaces.
 
+## 2026-09-09 — Phase A public-truth + Index honesty
+
+| Claim area | Verdict | Public action | Evidence / source |
+| --- | --- | --- | --- |
+| Catalog counts | verified | Replaced stale `1,038` / `415` / `16` / `92` marketing counts with live API totals `999` / `435` / `28` / `87` from a generated counts file. | Live `GET /v1/services?limit=1`, `/v1/capabilities?limit=1`, `/v1/proxy/stats`, `/v1/leaderboard`; `packages/astro-web/src/lib/public-truth-counts.ts`; `scripts/generate_agent_capabilities.py --from-live`. |
+| Agent-capabilities path | verified | Serve `/agent-capabilities.json` from the Astro public root and redirect it to `/.well-known/agent-capabilities.json`. Coverage numbers come from the same counts file. | `packages/astro-web/public/agent-capabilities.json`; `packages/astro-web/astro.config.mjs`. |
+| Email discovery #40 | verified | Tokenized search so `email sending` / `send email` / `email API for agents` recall multiple email providers instead of a single phrase hit. | `packages/api/routes/search.py`; `test_search_email_sending_recalls_multiple_email_providers`. |
+| Failure-mode empty state #42 | verified | Empty lists now declare `coverage: unresearched`. Twilio uses the published research catalog (and migration 0165) so the surface is not blank. | `packages/shared/failure-mode-catalog.json`; `packages/api/services/failure_mode_catalog.py`; service page honesty copy. |
+| Billing outbox health | verified | `/v1/billing/health` is `degraded` above pending-count 25 or oldest-pending 6h. Exact settlement ETH balance removed from the public payload. | `packages/api/services/payment_health.py`; `test_get_payment_health_degrades_when_outbox_exceeds_published_slo`. |
+
 ## 2026-04-25 — DC90 schema / agent-context anti-cloaking pass
 
 | Claim area | Verdict | Public action | Evidence / source |

@@ -19,6 +19,28 @@ from services.service_slugs import (
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
 _MAX_SEARCH_QUERY_CHARS = 200
+_SEARCH_STOPWORDS = frozenset(
+    {
+        "a",
+        "an",
+        "and",
+        "as",
+        "at",
+        "be",
+        "by",
+        "for",
+        "from",
+        "in",
+        "is",
+        "of",
+        "on",
+        "or",
+        "the",
+        "to",
+        "via",
+        "with",
+    }
+)
 
 
 async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS):
@@ -32,7 +54,6 @@ def _score_query_slugs(service_slugs: list[str]) -> list[str]:
             if candidate not in query_slugs:
                 query_slugs.append(candidate)
     return query_slugs
-
 
 
 def _canonicalize_known_service_aliases(
@@ -62,7 +83,6 @@ def _canonicalize_known_service_aliases(
         re.IGNORECASE,
     )
     return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
-
 
 
 def _canonicalize_service_text(
@@ -105,7 +125,6 @@ def _canonicalize_service_text(
     )
 
 
-
 def _merge_service_row_fields(
     preferred: dict[str, Any], fallback: dict[str, Any]
 ) -> dict[str, Any]:
@@ -117,7 +136,6 @@ def _merge_service_row_fields(
         if merged.get(key) in (None, "") and value not in (None, ""):
             merged[key] = value
     return merged
-
 
 
 def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
@@ -198,6 +216,52 @@ def _validated_search_limit(limit: Any) -> int:
     )
 
 
+def _search_tokens(query: str) -> list[str]:
+    parts = re.findall(r"[a-z0-9]+", query.lower())
+    tokens = [part for part in parts if part not in _SEARCH_STOPWORDS and len(part) > 1]
+    return tokens or parts
+
+
+def _ilike_or_clause(term: str) -> str:
+    encoded = quote(f"*{term}*")
+    return (
+        f"slug.ilike.{encoded},"
+        f"name.ilike.{encoded},"
+        f"category.ilike.{encoded},"
+        f"description.ilike.{encoded}"
+    )
+
+
+def _search_services_path(query: str) -> str:
+    terms: list[str] = []
+    seen: set[str] = set()
+    for term in [query.lower(), *_search_tokens(query)]:
+        if term and term not in seen:
+            terms.append(term)
+            seen.add(term)
+    or_body = ",".join(_ilike_or_clause(term) for term in terms)
+    return f"services?or=({or_body})" f"&select=slug,name,category,description" f"&order=name.asc"
+
+
+def _result_haystack(result: dict[str, Any]) -> str:
+    return " ".join(
+        str(result.get(key) or "") for key in ("service_slug", "name", "category", "description")
+    ).lower()
+
+
+def _search_rank_key(result: dict[str, Any], query: str, tokens: list[str]) -> tuple:
+    name = (result.get("name") or "").lower()
+    haystack = _result_haystack(result)
+    query_lower = query.lower()
+    return (
+        name != query_lower,
+        query_lower not in haystack,
+        -sum(1 for token in tokens if token in haystack),
+        (result.get("category") or "").lower() not in tokens,
+        -(result.get("an_score") or 0),
+    )
+
+
 @router.get("/search")
 async def search_services(
     q: str | None = Query(default=None),
@@ -213,17 +277,8 @@ async def search_services(
     """
     limit = _validated_search_limit(limit)
     query_lower = _validated_search_query(q)
-
-    # Use Supabase PostgREST ilike filter for text search
-    encoded = quote(f"*{query_lower}*")
-    path = (
-        f"services?or=(slug.ilike.{encoded},"
-        f"name.ilike.{encoded},"
-        f"category.ilike.{encoded},"
-        f"description.ilike.{encoded})"
-        f"&select=slug,name,category,description"
-        f"&order=name.asc"
-    )
+    tokens = _search_tokens(query_lower)
+    path = _search_services_path(query_lower)
 
     services = await _cached_fetch("services", path)
     if services is None:
@@ -249,7 +304,7 @@ async def search_services(
     scores_data = await _cached_fetch(
         "scores",
         f"scores?service_slug=in.({slug_filter})"
-        f"&order=aggregate_recommendation_score.desc.nullslast"
+        f"&order=aggregate_recommendation_score.desc.nullslast",
     )
 
     # Index scores by slug (keep best per canonical/public slug)
@@ -273,31 +328,26 @@ async def search_services(
         if isinstance(probe_metadata, dict):
             freshness = probe_metadata.get("freshness")
 
-        results.append({
-            "service_slug": slug,
-            "name": svc.get("name"),
-            "category": svc.get("category"),
-            "description": svc.get("description"),
-            "an_score": an_score,
-            "execution_score": sc.get("execution_score"),
-            "access_readiness_score": sc.get("access_readiness_score"),
-            "tier": sc.get("tier"),
-            "tier_label": sc.get("tier_label"),
-            "confidence": sc.get("confidence"),
-            "freshness": freshness,
-        })
+        results.append(
+            {
+                "service_slug": slug,
+                "name": svc.get("name"),
+                "category": svc.get("category"),
+                "description": svc.get("description"),
+                "an_score": an_score,
+                "execution_score": sc.get("execution_score"),
+                "access_readiness_score": sc.get("access_readiness_score"),
+                "tier": sc.get("tier"),
+                "tier_label": sc.get("tier_label"),
+                "confidence": sc.get("confidence"),
+                "freshness": freshness,
+            }
+        )
 
     # Exclude scoreless ghost services (no score = no front-end page = 404)
     results = [r for r in results if r.get("an_score") is not None]
 
-    # Sort: exact name match first, then by score descending
-    ql = query_lower.lower()
-    results.sort(
-        key=lambda x: (
-            (x.get("name") or "").lower() != ql,  # exact match first
-            -(x.get("an_score") or 0),  # then by score
-        )
-    )
+    results.sort(key=lambda item: _search_rank_key(item, query_lower, tokens))
 
     # Apply limit
     results = results[:limit]

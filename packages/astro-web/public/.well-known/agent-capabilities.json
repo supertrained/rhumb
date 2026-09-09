@@ -4,7 +4,7 @@
   "description": "Agent gateway for research, extraction, generation, and narrow enrichment: Rhumb Index scores and compares services; Rhumb Resolve routes supported capability calls through governed execution rails with receipts.",
   "homepage": "https://rhumb.dev",
   "api_base": "https://api.rhumb.dev/v1",
-  "mcp_install": "npx -y --package rhumb-mcp@latest rhumb-mcp",
+  "mcp_install": "npx rhumb-mcp@latest",
   "npm_package": "rhumb-mcp",
   "auth": {
     "discovery": "none",
@@ -16,7 +16,7 @@
   },
   "capabilities": {
     "discovery": {
-      "description": "Search, score, and evaluate 1,038 services across 50+ domains",
+      "description": "Search, score, and evaluate 999 services across 50+ domains",
       "auth_required": false,
       "tools": [
         {
@@ -43,58 +43,6 @@
           "name": "resolve_capability",
           "description": "Given a Capability ID, and optionally a credential mode, returns ranked providers with health status, cost per call, auth methods, endpoint patterns, execute guidance, and machine-readable recovery fields like recovery_hint.resolve_url, recovery_hint.credential_modes_url, and, when applicable, recovery_hint.alternate_execute_hint or recovery_hint.setup_handoff, plus typo recovery when the capability ID is wrong"
         }
-      ]
-    },
-    "route_review": {
-      "description": "Submit one MCP route card for review before promoting a tool call into repeated execution. The useful unit is a route-sized fixture, not a vague security audit: allowed lane, denied neighbor, caller or tenant, credential owner, budget owner, retry ceiling, and receipt or typed-denial proof.",
-      "auth_required": false,
-      "url": "https://rhumb.dev/mcp-route-review",
-      "public_thread_template": "https://rhumb.dev/mcp-route-review#public-thread-template",
-      "public_thread_source": "e009-mcp-route-review-public-thread",
-      "accepted_contexts": [
-        "email",
-        "github_issue",
-        "github_pull_request",
-        "public_spec_thread"
-      ],
-      "route_card_schema": {
-        "version": "route-card.v1",
-        "required_fields": [
-          "mcp_server_or_repo",
-          "route_or_tool_call",
-          "allowed_lane",
-          "denied_neighbor",
-          "caller_tenant_or_workspace",
-          "credential_owner",
-          "budget_or_quota_owner",
-          "repeat_or_retry_ceiling",
-          "receipt_or_typed_denial_proof"
-        ],
-        "public_safety_rule": "Do not paste secrets, private credentials, tokens, customer data, proprietary logs, or exploit payloads into a public thread. Share fixture shape and redacted fields instead."
-      },
-      "useful_closure_outcomes": [
-        "positive_negative_fixture_pair",
-        "typed_denial_or_receipt_fields",
-        "docs_or_warning_boundary_with_regression_test",
-        "explicit_non_fit_boundary"
-      ],
-      "useful_reply_shapes": [
-        "route_fixture_pair",
-        "maintainer_owned_acceptance_criteria",
-        "documented_boundary_closure",
-        "implementation_help_pull"
-      ],
-      "governance_control_points": [
-        "startup_visibility_gate",
-        "per_call_policy_gate",
-        "output_boundary_gate",
-        "audit_metric_receipt"
-      ],
-      "minimum_public_proof_packet": [
-        "allowed_fixture",
-        "closest_denied_neighbor",
-        "authority_and_budget_owner",
-        "receipt_or_typed_denial_fields"
       ]
     },
     "execution": {
@@ -177,11 +125,11 @@
     }
   },
   "coverage": {
-    "services": 1038,
-    "capabilities": 415,
+    "services": 999,
+    "capabilities": 435,
     "domains": 50,
-    "categories": 92,
-    "providers_with_execution": 16,
+    "categories": 87,
+    "providers_with_execution": 28,
     "credential_modes": [
       "byok",
       "rhumb_managed",
@@ -215,7 +163,6 @@
     "provider_guide": "https://rhumb.dev/providers",
     "machine_readable_docs": "https://rhumb.dev/llms.txt",
     "agent_capabilities": "https://rhumb.dev/.well-known/agent-capabilities.json",
-    "mcp_route_review": "https://rhumb.dev/mcp-route-review",
     "current_self_assessment": "https://rhumb.dev/blog/we-scored-ourselves",
     "historical_self_assessment": "https://rhumb.dev/blog/self-score",
     "public_dispute_template": "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md",
@@ -235,7 +182,6 @@
     "trust": "https://rhumb.dev/trust",
     "methodology": "https://rhumb.dev/methodology",
     "providers": "https://rhumb.dev/providers",
-    "mcp_route_review": "https://rhumb.dev/mcp-route-review",
     "blog": "https://rhumb.dev/blog",
     "github": "https://github.com/supertrained/rhumb",
     "disputes": "https://rhumb.dev/providers"

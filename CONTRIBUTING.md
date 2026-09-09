@@ -26,7 +26,7 @@ For bugs in the web UI, API, or MCP server:
 1. Fork the repo
 2. Create a feature branch (`git checkout -b feature/your-feature`)
 3. Make your changes
-4. Run tests: `cd packages/api && python -m pytest` / `cd packages/web && npm test`
+4. Run tests: `cd packages/api && python -m pytest` / `python3 scripts/generate_agent_capabilities.py --check` / `cd packages/astro-web && npm run build`
 5. Open a PR with a clear description
 
 ## Dispute a Score

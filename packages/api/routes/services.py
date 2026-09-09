@@ -11,7 +11,12 @@ from fastapi.responses import JSONResponse
 
 from routes._supabase import cached_query, supabase_count, supabase_fetch
 from services.error_envelope import RhumbError
-from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
+from services.failure_mode_catalog import resolve_failure_modes
+from services.service_slugs import (
+    CANONICAL_TO_PROXY,
+    public_service_slug,
+    public_service_slug_candidates,
+)
 
 router = APIRouter()
 _READ_CACHE_TTL_SECONDS = 60.0
@@ -206,7 +211,6 @@ def _canonicalize_known_service_aliases(
     return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
 
 
-
 def _canonicalize_service_text(
     text: Any,
     response_service_slug: str | None,
@@ -287,7 +291,6 @@ def _merge_service_row_fields(
         if merged.get(key) in (None, "") and value not in (None, ""):
             merged[key] = value
     return merged
-
 
 
 def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
@@ -515,11 +518,7 @@ async def list_services(
         available_categories={
             normalized_category
             for item in items
-            if (
-                normalized_category := _canonicalize_service_list_category(
-                    item.get("category")
-                )
-            )
+            if (normalized_category := _canonicalize_service_list_category(item.get("category")))
         },
     )
     if normalized_category:
@@ -561,7 +560,7 @@ async def get_service(slug: str, raw_request: Request):
         await _cached_fetch(
             "services",
             f"services?slug=in.({_build_in_filter(set(public_service_slug_candidates(slug)))})"
-            "&select=slug,name,category,description"
+            "&select=slug,name,category,description",
         )
     )
     service = next((row for row in services if row.get("slug") == canonical_slug), None)
@@ -578,13 +577,15 @@ async def get_service(slug: str, raw_request: Request):
     scores = await _cached_fetch(
         "scores",
         f"scores?service_slug=in.({_build_in_filter(set(score_query_slugs))})"
-        "&order=calculated_at.desc&limit=1"
+        "&order=calculated_at.desc&limit=1",
     )
     score: dict[str, Any] = {}
     if scores:
         sc = scores[0]
         dimension_snapshot = _score_dimension_snapshot(sc, canonical_slug)
-        autonomy = dimension_snapshot.get("autonomy") if isinstance(dimension_snapshot, dict) else None
+        autonomy = (
+            dimension_snapshot.get("autonomy") if isinstance(dimension_snapshot, dict) else None
+        )
         autonomy_score = _coerce_float(sc.get("autonomy_score"))
         if autonomy_score is None and isinstance(autonomy, dict):
             autonomy_score = _coerce_float(autonomy.get("avg"))
@@ -616,55 +617,96 @@ async def get_service(slug: str, raw_request: Request):
             "dimension_snapshot": dimension_snapshot,
         }
 
-    # Get alternatives (same category, different slug, ranked by score)
-    alternatives: list[dict] = []
-    if service.get("category"):
-        # First get same-category services
-        alt_services = _canonicalize_service_rows(
-            await _cached_fetch(
-                "services",
-                f"services?category=eq.{quote(service['category'])}&select=slug,name"
-            )
-        )
-        if alt_services:
-            alt_names = {
-                str(s.get("slug") or ""): str(s.get("name") or s.get("slug") or "")
-                for s in alt_services
-                if s.get("slug") and s.get("slug") != canonical_slug
-            }
-            alt_slugs = set(alt_names)
-            if alt_slugs:
-                alt_score_query_slugs = _score_query_slugs(sorted(alt_slugs))
-                alt_scores = await _cached_fetch(
-                    "scores",
-                    f"scores?service_slug=in.({_build_in_filter(set(alt_score_query_slugs))})"
-                    "&order=aggregate_recommendation_score.desc.nullslast"
-                    f"&limit={max(5, len(alt_score_query_slugs))}"
-                )
-            else:
-                alt_scores = []
-            if alt_scores:
-                seen_alternatives: set[str] = set()
-                for asc in alt_scores:
-                    raw_alt_slug = str(asc.get("service_slug") or "").strip()
-                    alt_slug = public_service_slug(raw_alt_slug) or raw_alt_slug
-                    if not alt_slug or alt_slug in seen_alternatives or alt_slug not in alt_names:
-                        continue
-                    seen_alternatives.add(alt_slug)
-                    alternatives.append({
-                        "slug": alt_slug,
-                        "name": alt_names.get(alt_slug, alt_slug),
-                        "an_score": asc.get("aggregate_recommendation_score"),
-                        "score": asc.get("aggregate_recommendation_score"),
-                        "tier": asc.get("tier"),
-                    })
-                    if len(alternatives) >= 5:
-                        break
+    alternatives = await _alternatives_for_service(canonical_slug, service.get("category"))
 
     return {
         "data": {
             **service,
             **score,
+            "alternatives": alternatives,
+        },
+        "error": None,
+    }
+
+
+async def _alternatives_for_service(canonical_slug: str, category: Any) -> list[dict[str, Any]]:
+    """Same-category peers ranked by AN Score. Empty only when no scored peers exist."""
+    if not category:
+        return []
+
+    alt_services = _canonicalize_service_rows(
+        await _cached_fetch(
+            "services", f"services?category=eq.{quote(str(category))}&select=slug,name"
+        )
+    )
+    if not alt_services:
+        return []
+
+    alt_names = {
+        str(s.get("slug") or ""): str(s.get("name") or s.get("slug") or "")
+        for s in alt_services
+        if s.get("slug") and s.get("slug") != canonical_slug
+    }
+    alt_slugs = set(alt_names)
+    if not alt_slugs:
+        return []
+
+    alt_score_query_slugs = _score_query_slugs(sorted(alt_slugs))
+    alt_scores = await _cached_fetch(
+        "scores",
+        f"scores?service_slug=in.({_build_in_filter(set(alt_score_query_slugs))})"
+        "&order=aggregate_recommendation_score.desc.nullslast"
+        f"&limit={max(5, len(alt_score_query_slugs))}",
+    )
+    if not alt_scores:
+        return []
+
+    alternatives: list[dict[str, Any]] = []
+    seen_alternatives: set[str] = set()
+    for asc in alt_scores:
+        raw_alt_slug = str(asc.get("service_slug") or "").strip()
+        alt_slug = public_service_slug(raw_alt_slug) or raw_alt_slug
+        if not alt_slug or alt_slug in seen_alternatives or alt_slug not in alt_names:
+            continue
+        seen_alternatives.add(alt_slug)
+        alternatives.append(
+            {
+                "slug": alt_slug,
+                "name": alt_names.get(alt_slug, alt_slug),
+                "an_score": asc.get("aggregate_recommendation_score"),
+                "score": asc.get("aggregate_recommendation_score"),
+                "tier": asc.get("tier"),
+            }
+        )
+        if len(alternatives) >= 5:
+            break
+    return alternatives
+
+
+@router.get("/services/{slug}/alternatives")
+async def get_service_alternatives(slug: str, raw_request: Request):
+    """Return scored same-category alternatives. 404 only when the service is unknown."""
+    canonical_slug = _validated_service_path_slug(slug)
+    services = _canonicalize_service_rows(
+        await _cached_fetch(
+            "services",
+            f"services?slug=in.({_build_in_filter(set(public_service_slug_candidates(slug)))})"
+            "&select=slug,name,category",
+        )
+    )
+    service = next((row for row in services if row.get("slug") == canonical_slug), None)
+    if service is None:
+        return _not_found_response(
+            raw_request,
+            error="service_not_found",
+            message=f"No service found with slug '{canonical_slug}'",
+            resolution="Check available services at GET /v1/services or /v1/search?q=...",
+        )
+
+    alternatives = await _alternatives_for_service(canonical_slug, service.get("category"))
+    return {
+        "data": {
+            "slug": canonical_slug,
             "alternatives": alternatives,
         },
         "error": None,
@@ -679,7 +721,7 @@ async def get_service_score(slug: str, raw_request: Request):
         await _cached_fetch(
             "services",
             f"services?slug=in.({_build_in_filter(set(public_service_slug_candidates(slug)))})"
-            "&select=slug,official_docs"
+            "&select=slug,official_docs",
         )
     )
     service = next((row for row in service_rows if row.get("slug") == canonical_slug), None)
@@ -700,7 +742,7 @@ async def get_service_score(slug: str, raw_request: Request):
     scores = await _cached_fetch(
         "scores",
         f"scores?service_slug=in.({_build_in_filter(set(score_query_slugs))})"
-        "&order=calculated_at.desc&limit=1"
+        "&order=calculated_at.desc&limit=1",
     )
     if not scores:
         return {
@@ -760,30 +802,36 @@ async def get_service_score(slug: str, raw_request: Request):
         f"failure_modes?service_slug=in.({_build_in_filter(set(failure_query_slugs))})"
         f"&resolved_at=is.null"
         f"&order=severity.asc"
-        f"&select=service_slug,title,description,severity,frequency,agent_impact,workaround"
+        f"&select=service_slug,title,description,severity,frequency,agent_impact,workaround",
+    )
+    stored_failures, failure_coverage, failure_honesty = resolve_failure_modes(
+        canonical_slug, failures or []
     )
     failure_modes = []
-    if failures:
-        failure_modes = []
-        for f in failures:
-            description = _canonicalize_service_text(
+    for f in stored_failures:
+        description = (
+            _canonicalize_service_text(
                 f.get("description", ""), canonical_slug, f.get("service_slug")
-            ) or ""
-            impact = _canonicalize_service_text(
-                f.get("agent_impact"), canonical_slug, f.get("service_slug")
             )
-            failure_modes.append(
-                {
-                    "pattern": _canonicalize_service_text(
-                        f.get("title", ""), canonical_slug, f.get("service_slug")
-                    ) or "",
-                    "impact": impact or description,
-                    "frequency": f.get("frequency", "unknown"),
-                    "workaround": _canonicalize_service_text(
-                        f.get("workaround", ""), canonical_slug, f.get("service_slug")
-                    ) or "",
-                }
-            )
+            or ""
+        )
+        impact = _canonicalize_service_text(
+            f.get("agent_impact"), canonical_slug, f.get("service_slug")
+        )
+        failure_modes.append(
+            {
+                "pattern": _canonicalize_service_text(
+                    f.get("title", ""), canonical_slug, f.get("service_slug")
+                )
+                or "",
+                "impact": impact or description,
+                "frequency": f.get("frequency", "unknown"),
+                "workaround": _canonicalize_service_text(
+                    f.get("workaround", ""), canonical_slug, f.get("service_slug")
+                )
+                or "",
+            }
+        )
 
     return {
         "service_slug": public_service_slug(sc.get("service_slug")) or canonical_slug,
@@ -804,6 +852,8 @@ async def get_service_score(slug: str, raw_request: Request):
         "governance_readiness": sc.get("governance_readiness"),
         "web_accessibility": sc.get("web_accessibility"),
         "failure_modes": failure_modes,
+        "failure_coverage": failure_coverage,
+        "failure_honesty": failure_honesty,
         "base_url": None,
         "docs_url": service.get("official_docs"),
         "openapi_url": None,
@@ -821,16 +871,21 @@ async def get_failures(slug: str, raw_request: Request):
         f"failure_modes?service_slug=in.({_build_in_filter(set(failure_query_slugs))})"
         f"&resolved_at=is.null"
         f"&order=severity.asc,frequency.asc"
-        f"&select=id,service_slug,category,title,description,severity,frequency,agent_impact,workaround,first_detected,last_verified,evidence_count"
+        f"&select=id,service_slug,category,title,description,severity,frequency,agent_impact,workaround,first_detected,last_verified,evidence_count",
     )
     if failures is None:
-        return {"data": {"slug": canonical_slug, "failures": []}, "error": "Unable to load failure modes."}
+        return {
+            "data": {"slug": canonical_slug, "failures": []},
+            "error": "Unable to load failure modes.",
+        }
 
+    stored_failures, coverage, honesty = resolve_failure_modes(canonical_slug, failures or [])
     failure_modes = [
         {
             "pattern": _canonicalize_service_text(
                 f.get("title", ""), canonical_slug, f.get("service_slug")
-            ) or "",
+            )
+            or "",
             "impact": _canonicalize_service_text(
                 f.get("agent_impact"), canonical_slug, f.get("service_slug")
             )
@@ -841,16 +896,18 @@ async def get_failures(slug: str, raw_request: Request):
             "frequency": f.get("frequency", "unknown"),
             "workaround": _canonicalize_service_text(
                 f.get("workaround", ""), canonical_slug, f.get("service_slug")
-            ) or "",
+            )
+            or "",
             "category": f.get("category", ""),
             "severity": f.get("severity", ""),
             "description": _canonicalize_service_text(
                 f.get("description", ""), canonical_slug, f.get("service_slug")
-            ) or "",
+            )
+            or "",
             "last_verified": f.get("last_verified"),
             "evidence_count": f.get("evidence_count", 0),
         }
-        for f in failures
+        for f in stored_failures
     ]
     if not failure_modes and not await _service_exists(canonical_slug):
         return _not_found_response(
@@ -864,6 +921,8 @@ async def get_failures(slug: str, raw_request: Request):
         "data": {
             "slug": canonical_slug,
             "failure_modes": failure_modes,
+            "coverage": coverage,
+            "honesty": honesty,
         },
         "error": None,
     }
@@ -880,7 +939,7 @@ async def get_history(slug: str, raw_request: Request, limit: Any = Query(defaul
         f"scores?service_slug=in.({_build_in_filter(set(score_query_slugs))})"
         f"&order=calculated_at.desc&limit={effective_limit}"
         f"&select=aggregate_recommendation_score,execution_score,access_readiness_score,"
-        f"confidence,tier,tier_label,calculated_at"
+        f"confidence,tier,tier_label,calculated_at",
     )
     if scores is None:
         return {"data": {"slug": canonical_slug, "history": []}, "error": "Unable to load history."}

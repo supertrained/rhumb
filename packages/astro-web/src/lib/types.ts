@@ -87,6 +87,8 @@ export type ServiceScoreViewModel = {
   calculatedAt: string | null;
   evidenceFreshness: string | null;
   activeFailures: ServiceFailureMode[];
+  failureCoverage: "reported" | "unresearched";
+  failureHonesty: string;
   alternatives: ServiceAlternative[];
   p1Score: number | null;
   g1Score: number | null;

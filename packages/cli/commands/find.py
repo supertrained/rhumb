@@ -57,12 +57,7 @@ def _render_human(payload: dict[str, Any], fallback_query: str) -> str:
         confidence_raw = result.get("confidence")
         confidence = float(confidence_raw) if confidence_raw is not None else None
 
-        rationale = (
-            result.get("why")
-            or result.get("reason")
-            or result.get("explanation")
-            or ""
-        )
+        rationale = result.get("why") or result.get("reason") or result.get("explanation") or ""
 
         score_text = "N/A" if score is None else f"{score:.1f}"
         tier_text = str(tier) if tier else "N/A"

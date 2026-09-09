@@ -279,7 +279,7 @@ const highestFailureSeverity = severityPriority.find((severity) =>
   score.activeFailures.some((failure) => failure.severity === severity),
 );
 const failureSummary = score.activeFailures.length === 0
-  ? "No active failures listed"
+  ? (score.failureCoverage === "unresearched" ? "Coverage gap — not a clean bill of health" : "No active failures listed")
   : `${score.activeFailures.length} active failure mode${score.activeFailures.length === 1 ? "" : "s"}${highestFailureSeverity ? ` · highest ${highestFailureSeverity}` : ""}`;
 
 const heroStats = [
@@ -295,7 +295,7 @@ const heroStats = [
   },
   {
     label: "Failures",
-    value: score.activeFailures.length === 0 ? "Clear" : `${score.activeFailures.length}`,
+    value: score.activeFailures.length === 0 ? "Unresearched" : `${score.activeFailures.length}`,
     detail: failureSummary,
   },
 ];
@@ -564,7 +564,7 @@ const heroStats = [
               ))}
             </ul>
           ) : (
-            <p class="text-sm text-slate-500">No active failure modes reported.</p>
+            <p class="text-sm text-slate-500">{score.failureHonesty}</p>
           )}
         </section>
 
