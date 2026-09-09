@@ -36,7 +36,7 @@ Hard fences: no OpenClaw; do not merge/rebase/continue #59; propose-only deploys
 | Alternatives | Dedicated `/v1/services/{slug}/alternatives` returns the same scored peers as service detail. |
 | #42 | Twilio catalog (≥4 modes) + `coverage`/`honesty`. Stripe stays non-empty from live rows. Empty others become `coverage: unresearched` with an honesty string, not silent `[]`. |
 | Billing | Same live outbox (202 / ~97d) becomes `degraded`. Exact ETH balance removed. SLO: pending > 25 or age > 6h. |
-| CI | `public-truth` and `astro-web-build` green. `api-test` now installs; pytest **3093 passed / 58 failed** on `def7cc23` (Phase A files not in the fail list). `cli-test` black wrap on `find.py` fixed in the follow-up. |
+| CI | `public-truth` and `astro-web-build` green. `api-test` now installs; pytest **3093 passed / 58 failed** on `def7cc23` (Phase A files not in the fail list). `cli-test`: black-format `find.py`, then pin CLI black/ruff/mypy to the API versions so CI stops installing ruff 0.16 / mypy 2.x. |
 
 ## Curl used
 

@@ -84,7 +84,7 @@ Aligned to production web `packages/astro-web`:
 | `CI / public-truth` | **green** on `5e6d0dee` | `generate --check` + authority/llms contract tests |
 | `CI / astro-web-build` | **green** on `5e6d0dee` | Vercel-matching Astro build |
 | `CI / api-test` | install now **succeeds**; pytest **3093 passed / 58 failed / 4 skipped** on `def7cc23` | `main` never got past `pytest-httpx==0.36.0` vs `httpx==0.27.2`. This PR pins `pytest-httpx==0.32.0` + `pytest-asyncio==0.24.0`. Phase A files are not in the fail list. Query-logger service 404 is fixed. Remaining fails are mostly unauthenticated probe/score writes (`401`), execute KeyErrors, and stale mocks (`providers_v2`, proxy, query-logger leaderboard). Job stops at pytest, so black/ruff/mypy did not run. |
-| `CI / cli-test` | was red on `find.py` wrap | Mechanical `black` on `packages/cli/commands/find.py` only (one `or` chain). |
+| `CI / cli-test` | black on `find.py` now clean; was then red on latest ruff | CI was installing floating `ruff>=0.6.9` → **0.16.6** and `mypy>=1.11.2` → **2.3.1**. Local `ruff 0.6.9` is clean. This follow-up pins CLI dev tools to the API versions (`black==24.8.0`, `ruff==0.6.9`, `mypy==1.11.2`, `pytest==8.3.3`). |
 | `make test` | local | API pytest + CLI pytest + `generate --check` |
 | `make build` / `make public-truth` | local | Astro web build / live count refresh |
 
