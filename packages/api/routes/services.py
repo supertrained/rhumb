@@ -617,56 +617,96 @@ async def get_service(slug: str, raw_request: Request):
             "dimension_snapshot": dimension_snapshot,
         }
 
-    # Get alternatives (same category, different slug, ranked by score)
-    alternatives: list[dict] = []
-    if service.get("category"):
-        # First get same-category services
-        alt_services = _canonicalize_service_rows(
-            await _cached_fetch(
-                "services", f"services?category=eq.{quote(service['category'])}&select=slug,name"
-            )
-        )
-        if alt_services:
-            alt_names = {
-                str(s.get("slug") or ""): str(s.get("name") or s.get("slug") or "")
-                for s in alt_services
-                if s.get("slug") and s.get("slug") != canonical_slug
-            }
-            alt_slugs = set(alt_names)
-            if alt_slugs:
-                alt_score_query_slugs = _score_query_slugs(sorted(alt_slugs))
-                alt_scores = await _cached_fetch(
-                    "scores",
-                    f"scores?service_slug=in.({_build_in_filter(set(alt_score_query_slugs))})"
-                    "&order=aggregate_recommendation_score.desc.nullslast"
-                    f"&limit={max(5, len(alt_score_query_slugs))}",
-                )
-            else:
-                alt_scores = []
-            if alt_scores:
-                seen_alternatives: set[str] = set()
-                for asc in alt_scores:
-                    raw_alt_slug = str(asc.get("service_slug") or "").strip()
-                    alt_slug = public_service_slug(raw_alt_slug) or raw_alt_slug
-                    if not alt_slug or alt_slug in seen_alternatives or alt_slug not in alt_names:
-                        continue
-                    seen_alternatives.add(alt_slug)
-                    alternatives.append(
-                        {
-                            "slug": alt_slug,
-                            "name": alt_names.get(alt_slug, alt_slug),
-                            "an_score": asc.get("aggregate_recommendation_score"),
-                            "score": asc.get("aggregate_recommendation_score"),
-                            "tier": asc.get("tier"),
-                        }
-                    )
-                    if len(alternatives) >= 5:
-                        break
+    alternatives = await _alternatives_for_service(canonical_slug, service.get("category"))
 
     return {
         "data": {
             **service,
             **score,
+            "alternatives": alternatives,
+        },
+        "error": None,
+    }
+
+
+async def _alternatives_for_service(canonical_slug: str, category: Any) -> list[dict[str, Any]]:
+    """Same-category peers ranked by AN Score. Empty only when no scored peers exist."""
+    if not category:
+        return []
+
+    alt_services = _canonicalize_service_rows(
+        await _cached_fetch(
+            "services", f"services?category=eq.{quote(str(category))}&select=slug,name"
+        )
+    )
+    if not alt_services:
+        return []
+
+    alt_names = {
+        str(s.get("slug") or ""): str(s.get("name") or s.get("slug") or "")
+        for s in alt_services
+        if s.get("slug") and s.get("slug") != canonical_slug
+    }
+    alt_slugs = set(alt_names)
+    if not alt_slugs:
+        return []
+
+    alt_score_query_slugs = _score_query_slugs(sorted(alt_slugs))
+    alt_scores = await _cached_fetch(
+        "scores",
+        f"scores?service_slug=in.({_build_in_filter(set(alt_score_query_slugs))})"
+        "&order=aggregate_recommendation_score.desc.nullslast"
+        f"&limit={max(5, len(alt_score_query_slugs))}",
+    )
+    if not alt_scores:
+        return []
+
+    alternatives: list[dict[str, Any]] = []
+    seen_alternatives: set[str] = set()
+    for asc in alt_scores:
+        raw_alt_slug = str(asc.get("service_slug") or "").strip()
+        alt_slug = public_service_slug(raw_alt_slug) or raw_alt_slug
+        if not alt_slug or alt_slug in seen_alternatives or alt_slug not in alt_names:
+            continue
+        seen_alternatives.add(alt_slug)
+        alternatives.append(
+            {
+                "slug": alt_slug,
+                "name": alt_names.get(alt_slug, alt_slug),
+                "an_score": asc.get("aggregate_recommendation_score"),
+                "score": asc.get("aggregate_recommendation_score"),
+                "tier": asc.get("tier"),
+            }
+        )
+        if len(alternatives) >= 5:
+            break
+    return alternatives
+
+
+@router.get("/services/{slug}/alternatives")
+async def get_service_alternatives(slug: str, raw_request: Request):
+    """Return scored same-category alternatives. 404 only when the service is unknown."""
+    canonical_slug = _validated_service_path_slug(slug)
+    services = _canonicalize_service_rows(
+        await _cached_fetch(
+            "services",
+            f"services?slug=in.({_build_in_filter(set(public_service_slug_candidates(slug)))})"
+            "&select=slug,name,category",
+        )
+    )
+    service = next((row for row in services if row.get("slug") == canonical_slug), None)
+    if service is None:
+        return _not_found_response(
+            raw_request,
+            error="service_not_found",
+            message=f"No service found with slug '{canonical_slug}'",
+            resolution="Check available services at GET /v1/services or /v1/search?q=...",
+        )
+
+    alternatives = await _alternatives_for_service(canonical_slug, service.get("category"))
+    return {
+        "data": {
+            "slug": canonical_slug,
             "alternatives": alternatives,
         },
         "error": None,

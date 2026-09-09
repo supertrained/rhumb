@@ -282,18 +282,16 @@ async def _mock_alias_supabase_fetch(path: str):
     if decoded == "scores?select=service_slug":
         return [{"service_slug": row["service_slug"]} for row in ALIAS_SCORE_ROWS]
 
-    if (
-        decoded.startswith("services?slug=in.(")
-        and "&select=slug,name,category,description" in decoded
-    ):
+    if decoded.startswith("services?slug=in.(") and "&select=slug,name,category" in decoded:
         slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in ALIAS_SERVICES}
         filtered = [service for service in ALIAS_SERVICES if service["slug"] in slugs]
+        include_description = "&select=slug,name,category,description" in decoded
         return [
             {
                 "slug": service["slug"],
                 "name": service["name"],
                 "category": service["category"],
-                "description": service["description"],
+                **({"description": service["description"]} if include_description else {}),
             }
             for service in filtered
         ]
@@ -356,19 +354,17 @@ async def _mock_runtime_alias_service_supabase_fetch(path: str):
     if decoded == "scores?select=service_slug":
         return [{"service_slug": row["service_slug"]} for row in ALIAS_SCORE_ROWS]
 
-    if (
-        decoded.startswith("services?slug=in.(")
-        and "&select=slug,name,category,description" in decoded
-    ):
+    if decoded.startswith("services?slug=in.(") and "&select=slug,name,category" in decoded:
         slugs = _parse_in_filter(decoded, "slug") or {
             service["slug"] for service in RUNTIME_ALIAS_SERVICES
         }
+        include_description = "&select=slug,name,category,description" in decoded
         return [
             {
                 "slug": service["slug"],
                 "name": service["name"],
                 "category": service["category"],
-                "description": service["description"],
+                **({"description": service["description"]} if include_description else {}),
             }
             for service in RUNTIME_ALIAS_SERVICES
             if service["slug"] in slugs
@@ -1257,6 +1253,64 @@ def test_service_detail_accepts_mixed_case_alias_inputs(client) -> None:
     assert payload["error"] is None
     assert payload["data"]["slug"] == "brave-search-api"
     assert payload["data"]["an_score"] == 8.7
+
+
+def test_service_alternatives_endpoint_returns_scored_peers(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave-search-api/alternatives")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["alternatives"] == [
+        {
+            "slug": "people-data-labs",
+            "name": "People Data Labs",
+            "an_score": 7.9,
+            "score": 7.9,
+            "tier": "L3",
+        }
+    ]
+
+
+def test_service_alternatives_endpoint_accepts_alias_slug(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/Brave-Search/alternatives")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert [item["slug"] for item in payload["data"]["alternatives"]] == ["people-data-labs"]
+
+
+def test_service_alternatives_endpoint_404s_for_unknown_slug(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get(
+            "/v1/services/unknown-service/alternatives",
+            headers={"X-Request-ID": "req-service-alternatives-404"},
+        )
+
+    assert resp.status_code == 404
+    assert resp.json() == {
+        "error": "service_not_found",
+        "message": "No service found with slug 'unknown-service'",
+        "resolution": "Check available services at GET /v1/services or /v1/search?q=...",
+        "request_id": "req-service-alternatives-404",
+    }
 
 
 def test_service_detail_reads_runtime_alias_service_rows(client) -> None:

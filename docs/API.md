@@ -90,6 +90,18 @@ Calculates an AN Score from explicit dimension inputs. In the legacy engine line
 
 In v0.2, `score` remains a backward-compatible alias of `aggregate_recommendation_score`.
 
+### `GET /v1/services/{slug}`
+
+Service profile plus latest score and scored same-category `alternatives`. Alternatives are empty only when no scored peers exist.
+
+### `GET /v1/services/{slug}/alternatives`
+
+Same scored peers as the service profile. `404` only when the service is unknown.
+
+### `GET /v1/services/{slug}/failures`
+
+Known failure modes. An empty list is a coverage gap (`coverage: unresearched` plus an honesty string), not a clean bill of health. Some services (for example Twilio) fall back to the published research catalog until their seed migration is applied.
+
 ### `GET /v1/services/{slug}/score`
 
 Fetch the latest persisted score for a service from the current product-facing score surface. For the initial calibration set (`stripe`, `hubspot`, `sendgrid`, `resend`, `github`), this route can bootstrap from hand-scored fixtures when no DB row exists yet.

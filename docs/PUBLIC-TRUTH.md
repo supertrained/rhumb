@@ -2,7 +2,7 @@
 
 Single source for the public coverage counts that marketing, docs, MCP, and agent-caps must not invent.
 
-## Live counters used (2026-09-09 audit, re-fetched by this branch)
+## Live counters used (re-verified with curl 2026-09-09T21:17:04Z)
 
 | Counter | Endpoint | Live value |
 | --- | --- | --- |
@@ -57,10 +57,36 @@ Runtime pages (`index`, `about`, `docs`, `capabilities`, `resolve`, `search`, `l
 
 Those thresholds live in `packages/api/services/payment_health.py` as `OUTBOX_PENDING_COUNT_SLO` and `OUTBOX_OLDEST_PENDING_AGE_SLO_SECONDS`. The public payload no longer includes the settlement wallet ETH balance.
 
+### Public wallet / outbox exposure options (propose-only)
+
+Live `GET /v1/billing/health` currently exposes exact `settlement_wallet_eth_balance` plus outbox count/age while still saying `operational`. This PR does **not** expand that surface. Options for Tom:
+
+| Option | Public payload | Recommendation |
+| --- | --- | --- |
+| **A — current PR** | Keep outbox count/age + published SLO flags. Keep `settlement_wallet_configured` / `_eth_low` / `_eth_critical`. Drop the exact ETH balance. | **Ship this.** Dogfood can see the outbox is stale without publishing wallet funds. |
+| **B — tighter** | Drop every `settlement_wallet_*` field. Keep outbox SLO only. | Use if even low/critical flags feel like wallet telemetry. |
+| **C — internal-only** | Move wallet probe and raw outbox counts to an authenticated operator route. Public health returns `status` + `event_outbox_slo_ok` only. | Use if we later want a private ops dashboard. |
+
+Do not add wallet address, chain, or exact balances to any public route.
+
 ## Index honesty
 
 - Search tokenizes natural queries (`email sending`, `send email`, `email API for agents`) instead of requiring the whole phrase as a substring. See issue #40.
+- Scored alternatives already live on `GET /v1/services/{slug}`. This PR also serves `GET /v1/services/{slug}/alternatives` so that path is not a silent 404.
 - Empty `GET /v1/services/{slug}/failures` is a coverage gap (`coverage: unresearched`), not a clean bill of health. Twilio falls back to the published research catalog in `packages/shared/failure-mode-catalog.json` until migration `0165_twilio_failure_modes_seed.sql` is applied. See issue #42.
+
+## CI / Makefile baseline (2026-09-09)
+
+Aligned to production web `packages/astro-web`:
+
+| Job / target | Status on this branch | Notes |
+| --- | --- | --- |
+| `CI / public-truth` | green | `generate --check` + authority/llms contract tests |
+| `CI / astro-web-build` | green | Vercel-matching Astro build |
+| `CI / api-test` | install was red on `main` too | `pytest-httpx==0.36.0` requires `httpx==0.28.*` while runtime pins `httpx==0.27.2`. This PR pins `pytest-httpx==0.32.0` and adds `pytest-asyncio==0.24.0` so the job can install and run async tests. `mypy` still reports pre-existing errors in unrelated modules. |
+| `CI / cli-test` | red, unchanged | `black --check` wants to reformat `packages/cli/commands/find.py`. Not touched here. |
+| `make test` | local | API pytest + CLI pytest + `generate --check` |
+| `make build` / `make public-truth` | local | Astro web build / live count refresh |
 
 ## Deploy notes for Tom
 

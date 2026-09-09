@@ -419,8 +419,10 @@ Rhumb is an agent gateway: Rhumb Index scores and compares services; Rhumb Resol
 
 ## Discovery (no auth)
 - GET https://api.rhumb.dev/v1/search?q={{query}} — search services
+- GET https://api.rhumb.dev/v1/services/{{slug}} — service profile, including scored same-category alternatives
+- GET https://api.rhumb.dev/v1/services/{{slug}}/alternatives — scored same-category peers
 - GET https://api.rhumb.dev/v1/services/{{slug}}/score — AN Score breakdown
-- GET https://api.rhumb.dev/v1/services/{{slug}}/failures — known failure modes
+- GET https://api.rhumb.dev/v1/services/{{slug}}/failures — known failure modes (empty list is a coverage gap, not a clean bill of health)
 - GET https://api.rhumb.dev/v1/capabilities — browse capability registry
 - GET https://api.rhumb.dev/v1/capabilities/{{id}}/resolve — ranked providers
 - GET https://api.rhumb.dev/v1/leaderboard/{{category}} — category rankings
