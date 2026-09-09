@@ -56,7 +56,6 @@ def _score_query_slugs(service_slugs: list[str]) -> list[str]:
     return query_slugs
 
 
-
 def _canonicalize_known_service_aliases(
     text: Any,
     *,
@@ -84,7 +83,6 @@ def _canonicalize_known_service_aliases(
         re.IGNORECASE,
     )
     return pattern.sub(lambda match: replacements[match.group(0).lower()], str(text))
-
 
 
 def _canonicalize_service_text(
@@ -127,7 +125,6 @@ def _canonicalize_service_text(
     )
 
 
-
 def _merge_service_row_fields(
     preferred: dict[str, Any], fallback: dict[str, Any]
 ) -> dict[str, Any]:
@@ -139,7 +136,6 @@ def _merge_service_row_fields(
         if merged.get(key) in (None, "") and value not in (None, ""):
             merged[key] = value
     return merged
-
 
 
 def _canonicalize_service_rows(rows: list[dict[str, Any]] | None) -> list[dict[str, Any]]:
@@ -244,17 +240,12 @@ def _search_services_path(query: str) -> str:
             terms.append(term)
             seen.add(term)
     or_body = ",".join(_ilike_or_clause(term) for term in terms)
-    return (
-        f"services?or=({or_body})"
-        f"&select=slug,name,category,description"
-        f"&order=name.asc"
-    )
+    return f"services?or=({or_body})" f"&select=slug,name,category,description" f"&order=name.asc"
 
 
 def _result_haystack(result: dict[str, Any]) -> str:
     return " ".join(
-        str(result.get(key) or "")
-        for key in ("service_slug", "name", "category", "description")
+        str(result.get(key) or "") for key in ("service_slug", "name", "category", "description")
     ).lower()
 
 
@@ -313,7 +304,7 @@ async def search_services(
     scores_data = await _cached_fetch(
         "scores",
         f"scores?service_slug=in.({slug_filter})"
-        f"&order=aggregate_recommendation_score.desc.nullslast"
+        f"&order=aggregate_recommendation_score.desc.nullslast",
     )
 
     # Index scores by slug (keep best per canonical/public slug)
@@ -337,19 +328,21 @@ async def search_services(
         if isinstance(probe_metadata, dict):
             freshness = probe_metadata.get("freshness")
 
-        results.append({
-            "service_slug": slug,
-            "name": svc.get("name"),
-            "category": svc.get("category"),
-            "description": svc.get("description"),
-            "an_score": an_score,
-            "execution_score": sc.get("execution_score"),
-            "access_readiness_score": sc.get("access_readiness_score"),
-            "tier": sc.get("tier"),
-            "tier_label": sc.get("tier_label"),
-            "confidence": sc.get("confidence"),
-            "freshness": freshness,
-        })
+        results.append(
+            {
+                "service_slug": slug,
+                "name": svc.get("name"),
+                "category": svc.get("category"),
+                "description": svc.get("description"),
+                "an_score": an_score,
+                "execution_score": sc.get("execution_score"),
+                "access_readiness_score": sc.get("access_readiness_score"),
+                "tier": sc.get("tier"),
+                "tier_label": sc.get("tier_label"),
+                "confidence": sc.get("confidence"),
+                "freshness": freshness,
+            }
+        )
 
     # Exclude scoreless ghost services (no score = no front-end page = 404)
     results = [r for r in results if r.get("an_score") is not None]

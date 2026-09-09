@@ -136,11 +136,7 @@ def _parse_in_filter(path: str, key: str) -> set[str] | None:
     match = re.search(rf"{re.escape(key)}=in\.\(([^)]*)\)", decoded)
     if not match:
         return None
-    return {
-        part.strip().strip('"')
-        for part in match.group(1).split(",")
-        if part.strip()
-    }
+    return {part.strip().strip('"') for part in match.group(1).split(",") if part.strip()}
 
 
 def _filtered_services(path: str) -> list[dict[str, str]]:
@@ -158,17 +154,22 @@ async def _mock_supabase_fetch(path: str):
 
     decoded = unquote(path)
 
-    if decoded.startswith("services?slug=in.(") and "&select=slug,name,category,description" in decoded:
+    if (
+        decoded.startswith("services?slug=in.(")
+        and "&select=slug,name,category,description" in decoded
+    ):
         slugs = _parse_in_filter(decoded, "slug") or set()
         if "unknown-service" in slugs:
             return []
         if "stripe" in slugs:
-            return [{
-                "slug": "stripe",
-                "name": "Stripe",
-                "category": "payments",
-                "description": "Payment API",
-            }]
+            return [
+                {
+                    "slug": "stripe",
+                    "name": "Stripe",
+                    "category": "payments",
+                    "description": "Payment API",
+                }
+            ]
         return []
 
     if decoded.startswith("services?slug=in.(") and "&select=slug,official_docs" in decoded:
@@ -235,10 +236,12 @@ async def _mock_empty_alias_score_supabase_fetch(path: str):
     if decoded.startswith("services?slug=in.(") and "&select=slug,official_docs" in decoded:
         slugs = _parse_in_filter(decoded, "slug") or set()
         if {"brave-search", "brave-search-api"} & slugs:
-            return [{
-                "slug": "brave-search-api",
-                "official_docs": "https://api.search.brave.com/app/documentation",
-            }]
+            return [
+                {
+                    "slug": "brave-search-api",
+                    "official_docs": "https://api.search.brave.com/app/documentation",
+                }
+            ]
         return []
 
     if decoded.startswith("scores?service_slug=in.("):
@@ -250,7 +253,10 @@ async def _mock_empty_alias_score_supabase_fetch(path: str):
 async def _mock_known_service_without_history_supabase_fetch(path: str):
     decoded = unquote(path)
 
-    if decoded.startswith("services?slug=in.(") and "&select=slug,name,category,description" in decoded:
+    if (
+        decoded.startswith("services?slug=in.(")
+        and "&select=slug,name,category,description" in decoded
+    ):
         slugs = _parse_in_filter(decoded, "slug") or set()
         if "service-no-history" in slugs:
             return [
@@ -276,7 +282,10 @@ async def _mock_alias_supabase_fetch(path: str):
     if decoded == "scores?select=service_slug":
         return [{"service_slug": row["service_slug"]} for row in ALIAS_SCORE_ROWS]
 
-    if decoded.startswith("services?slug=in.(") and "&select=slug,name,category,description" in decoded:
+    if (
+        decoded.startswith("services?slug=in.(")
+        and "&select=slug,name,category,description" in decoded
+    ):
         slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in ALIAS_SERVICES}
         filtered = [service for service in ALIAS_SERVICES if service["slug"] in slugs]
         return [
@@ -347,8 +356,13 @@ async def _mock_runtime_alias_service_supabase_fetch(path: str):
     if decoded == "scores?select=service_slug":
         return [{"service_slug": row["service_slug"]} for row in ALIAS_SCORE_ROWS]
 
-    if decoded.startswith("services?slug=in.(") and "&select=slug,name,category,description" in decoded:
-        slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in RUNTIME_ALIAS_SERVICES}
+    if (
+        decoded.startswith("services?slug=in.(")
+        and "&select=slug,name,category,description" in decoded
+    ):
+        slugs = _parse_in_filter(decoded, "slug") or {
+            service["slug"] for service in RUNTIME_ALIAS_SERVICES
+        }
         return [
             {
                 "slug": service["slug"],
@@ -361,7 +375,9 @@ async def _mock_runtime_alias_service_supabase_fetch(path: str):
         ]
 
     if decoded.startswith("services?slug=in.(") and "&select=slug,official_docs" in decoded:
-        slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in RUNTIME_ALIAS_SERVICES}
+        slugs = _parse_in_filter(decoded, "slug") or {
+            service["slug"] for service in RUNTIME_ALIAS_SERVICES
+        }
         return [
             {
                 "slug": service["slug"],
@@ -373,12 +389,13 @@ async def _mock_runtime_alias_service_supabase_fetch(path: str):
 
     if decoded.startswith("services?category=eq.search&select=slug,name"):
         return [
-            {"slug": service["slug"], "name": service["name"]}
-            for service in RUNTIME_ALIAS_SERVICES
+            {"slug": service["slug"], "name": service["name"]} for service in RUNTIME_ALIAS_SERVICES
         ]
 
     if decoded.startswith("services?select=slug,name,category,description&slug=in.("):
-        slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in RUNTIME_ALIAS_SERVICES}
+        slugs = _parse_in_filter(decoded, "slug") or {
+            service["slug"] for service in RUNTIME_ALIAS_SERVICES
+        }
         return [
             {
                 "slug": service["slug"],
@@ -449,7 +466,10 @@ async def _mock_canonical_failure_text_supabase_fetch(path: str):
 
 async def _mock_alias_score_text_supabase_fetch(path: str):
     decoded = unquote(path)
-    if decoded.startswith("scores?service_slug=in.(") and "&order=calculated_at.desc&limit=1" in decoded:
+    if (
+        decoded.startswith("scores?service_slug=in.(")
+        and "&order=calculated_at.desc&limit=1" in decoded
+    ):
         slugs = _parse_in_filter(decoded, "service_slug") or set()
         if {"brave-search", "brave-search-api"} & slugs:
             return [
@@ -483,7 +503,10 @@ async def _mock_alias_score_text_supabase_fetch(path: str):
 
 async def _mock_canonical_score_text_supabase_fetch(path: str):
     decoded = unquote(path)
-    if decoded.startswith("scores?service_slug=in.(") and "&order=calculated_at.desc&limit=1" in decoded:
+    if (
+        decoded.startswith("scores?service_slug=in.(")
+        and "&order=calculated_at.desc&limit=1" in decoded
+    ):
         slugs = _parse_in_filter(decoded, "service_slug") or set()
         if {"people-data-labs", "pdl"} & slugs:
             return [
@@ -517,7 +540,10 @@ async def _mock_canonical_score_text_supabase_fetch(path: str):
 
 async def _mock_alias_score_alternate_text_supabase_fetch(path: str):
     decoded = unquote(path)
-    if decoded.startswith("scores?service_slug=in.(") and "&order=calculated_at.desc&limit=1" in decoded:
+    if (
+        decoded.startswith("scores?service_slug=in.(")
+        and "&order=calculated_at.desc&limit=1" in decoded
+    ):
         slugs = _parse_in_filter(decoded, "service_slug") or set()
         if {"brave-search", "brave-search-api"} & slugs:
             return [
@@ -553,7 +579,10 @@ async def _mock_alias_score_alternate_text_supabase_fetch(path: str):
 
 async def _mock_canonical_score_and_failure_alternate_text_supabase_fetch(path: str):
     decoded = unquote(path)
-    if decoded.startswith("scores?service_slug=in.(") and "&order=calculated_at.desc&limit=1" in decoded:
+    if (
+        decoded.startswith("scores?service_slug=in.(")
+        and "&order=calculated_at.desc&limit=1" in decoded
+    ):
         slugs = _parse_in_filter(decoded, "service_slug") or set()
         if {"brave-search", "brave-search-api"} & slugs:
             return [
@@ -639,7 +668,10 @@ async def _mock_preferred_canonical_service_row_supabase_fetch(path: str):
             {"service_slug": "pdl"},
         ]
 
-    if decoded.startswith("services?slug=in.(") and "&select=slug,name,category,description" in decoded:
+    if (
+        decoded.startswith("services?slug=in.(")
+        and "&select=slug,name,category,description" in decoded
+    ):
         slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in services}
         return [
             {
@@ -664,10 +696,7 @@ async def _mock_preferred_canonical_service_row_supabase_fetch(path: str):
         ]
 
     if decoded.startswith("services?category=eq.search&select=slug,name"):
-        return [
-            {"slug": service["slug"], "name": service["name"]}
-            for service in services
-        ]
+        return [{"slug": service["slug"], "name": service["name"]} for service in services]
 
     if decoded.startswith("services?select=slug,name,category,description"):
         slugs = _parse_in_filter(decoded, "slug") or {service["slug"] for service in services}
@@ -967,8 +996,7 @@ def test_services_limit_and_offset_params_work(client) -> None:
     assert payload["items"][0]["slug"] == "service-0020"
     assert payload["items"][-1]["slug"] == "service-0029"
     assert any(
-        path.startswith("services?select=slug,name,category,description")
-        for path in captured_paths
+        path.startswith("services?select=slug,name,category,description") for path in captured_paths
     )
 
 
@@ -1255,7 +1283,6 @@ def test_service_detail_reads_runtime_alias_service_rows(client) -> None:
     ]
 
 
-
 def test_services_list_prefers_canonical_service_row_copy_and_preserves_shorthand(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -1274,25 +1301,29 @@ def test_services_list_prefers_canonical_service_row_copy_and_preserves_shorthan
     assert pdl["description"] == "PDL data API."
 
 
-
-def test_canonicalize_service_rows_canonicalizes_same_service_alias_text_for_canonical_rows() -> None:
-    rows = _canonicalize_service_rows([
-        {
-            "slug": "brave-search-api",
-            "name": "Brave Search (brave-search)",
-            "category": "search",
-            "description": "Legacy brave-search docs.",
-            "official_docs": "https://api.search.brave.com/app/documentation",
-        }
-    ])
+def test_canonicalize_service_rows_canonicalizes_same_service_alias_text_for_canonical_rows() -> (
+    None
+):
+    rows = _canonicalize_service_rows(
+        [
+            {
+                "slug": "brave-search-api",
+                "name": "Brave Search (brave-search)",
+                "category": "search",
+                "description": "Legacy brave-search docs.",
+                "official_docs": "https://api.search.brave.com/app/documentation",
+            }
+        ]
+    )
 
     assert rows[0]["slug"] == "brave-search-api"
     assert rows[0]["name"] == "Brave Search (brave-search-api)"
     assert rows[0]["description"] == "Legacy brave-search-api docs."
 
 
-
-def test_service_detail_prefers_canonical_service_row_copy_when_alias_row_also_exists(client) -> None:
+def test_service_detail_prefers_canonical_service_row_copy_when_alias_row_also_exists(
+    client,
+) -> None:
     with patch(
         "routes.services.supabase_fetch",
         new_callable=AsyncMock,
@@ -1308,7 +1339,6 @@ def test_service_detail_prefers_canonical_service_row_copy_when_alias_row_also_e
     assert payload["data"]["description"] == "Canonical brave-search-api docs."
 
 
-
 def test_service_detail_canonicalizes_alias_backed_score_rationales(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -1321,10 +1351,17 @@ def test_service_detail_canonicalizes_alias_backed_score_rationales(client) -> N
     payload = resp.json()
     assert payload["error"] is None
     assert payload["data"]["slug"] == "brave-search-api"
-    assert payload["data"]["payment_autonomy_rationale"] == "brave-search-api supports direct billing."
-    assert payload["data"]["autonomy"]["dimensions"][0]["rationale"] == "brave-search-api supports direct billing."
-    assert payload["data"]["dimension_snapshot"]["notes"]["summary"] == "brave-search-api stays easy to script."
-
+    assert (
+        payload["data"]["payment_autonomy_rationale"] == "brave-search-api supports direct billing."
+    )
+    assert (
+        payload["data"]["autonomy"]["dimensions"][0]["rationale"]
+        == "brave-search-api supports direct billing."
+    )
+    assert (
+        payload["data"]["dimension_snapshot"]["notes"]["summary"]
+        == "brave-search-api stays easy to script."
+    )
 
 
 def test_service_detail_preserves_human_shorthand_on_canonical_score_rows(client) -> None:
@@ -1340,9 +1377,10 @@ def test_service_detail_preserves_human_shorthand_on_canonical_score_rows(client
     assert payload["error"] is None
     assert payload["data"]["slug"] == "people-data-labs"
     assert payload["data"]["payment_autonomy_rationale"] == "PDL supports direct billing."
-    assert payload["data"]["autonomy"]["dimensions"][0]["rationale"] == "PDL supports direct billing."
+    assert (
+        payload["data"]["autonomy"]["dimensions"][0]["rationale"] == "PDL supports direct billing."
+    )
     assert payload["data"]["dimension_snapshot"]["notes"]["summary"] == "PDL stays easy to script."
-
 
 
 def test_service_score_canonicalizes_alias_backed_score_rows(client) -> None:
@@ -1447,7 +1485,9 @@ def test_service_history_padded_numeric_limit_normalizes(client) -> None:
         captured_paths.append(path)
         return await _mock_alias_supabase_fetch(path)
 
-    with patch("routes.services.supabase_fetch", new_callable=AsyncMock, side_effect=_capturing_fetch):
+    with patch(
+        "routes.services.supabase_fetch", new_callable=AsyncMock, side_effect=_capturing_fetch
+    ):
         resp = client.get("/v1/services/brave-search-api/history", params={"limit": " 2 "})
 
     assert resp.status_code == 200
@@ -1503,9 +1543,14 @@ def test_service_score_canonicalizes_alias_backed_score_explanation_and_snapshot
     payload = resp.json()
     assert payload["service_slug"] == "brave-search-api"
     assert "Payment: brave-search-api supports direct billing" in payload["explanation"]
-    assert payload["autonomy"]["dimensions"][0]["rationale"] == "brave-search-api supports direct billing."
-    assert payload["dimension_snapshot"]["notes"]["summary"] == "brave-search-api stays easy to script."
-
+    assert (
+        payload["autonomy"]["dimensions"][0]["rationale"]
+        == "brave-search-api supports direct billing."
+    )
+    assert (
+        payload["dimension_snapshot"]["notes"]["summary"]
+        == "brave-search-api stays easy to script."
+    )
 
 
 def test_service_score_canonicalizes_alternate_provider_aliases_in_score_copy(client) -> None:
@@ -1531,8 +1576,9 @@ def test_service_score_canonicalizes_alternate_provider_aliases_in_score_copy(cl
     )
 
 
-
-def test_service_score_canonicalizes_alternate_provider_aliases_in_canonical_score_copy(client) -> None:
+def test_service_score_canonicalizes_alternate_provider_aliases_in_canonical_score_copy(
+    client,
+) -> None:
     with patch(
         "routes.services.supabase_fetch",
         new_callable=AsyncMock,
@@ -1553,7 +1599,6 @@ def test_service_score_canonicalizes_alternate_provider_aliases_in_canonical_sco
     assert payload["dimension_snapshot"]["notes"]["summary"] == (
         "brave-search-api stays easy to script and can replace people-data-labs for quick checks."
     )
-
 
 
 def test_service_score_canonicalizes_legacy_alias_mentions_in_failure_copy(client) -> None:
@@ -1618,7 +1663,6 @@ def test_service_score_accepts_mixed_case_alias_inputs(client) -> None:
     assert payload["an_score"] == 8.7
 
 
-
 def test_service_failures_preserve_human_shorthand_on_canonical_rows(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -1645,8 +1689,9 @@ def test_service_failures_preserve_human_shorthand_on_canonical_rows(client) -> 
     ]
 
 
-
-def test_service_detail_and_failures_canonicalize_alternate_provider_aliases_in_canonical_rows(client) -> None:
+def test_service_detail_and_failures_canonicalize_alternate_provider_aliases_in_canonical_rows(
+    client,
+) -> None:
     with patch(
         "routes.services.supabase_fetch",
         new_callable=AsyncMock,
@@ -1685,7 +1730,6 @@ def test_service_detail_and_failures_canonicalize_alternate_provider_aliases_in_
     ]
 
 
-
 def test_service_failures_accept_mixed_case_alias_inputs(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -1699,7 +1743,6 @@ def test_service_failures_accept_mixed_case_alias_inputs(client) -> None:
     assert payload["error"] is None
     assert payload["data"]["slug"] == "brave-search-api"
     assert payload["data"]["failure_modes"][0]["pattern"] == "Session tokens expire early"
-
 
 
 def test_service_failures_preserve_empty_state_for_known_services(client) -> None:
@@ -1738,7 +1781,6 @@ def test_service_failures_use_published_catalog_for_twilio(client) -> None:
     assert "Carrier send limits are not API rate-limit headers" in titles
 
 
-
 def test_service_schema_and_report_preserve_known_service_empty_states(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -1756,7 +1798,6 @@ def test_service_schema_and_report_preserve_known_service_empty_states(client) -
     assert report_resp.json()["data"] == {"slug": "stripe", "accepted": True}
 
 
-
 def test_service_schema_and_report_normalize_mixed_case_alias_inputs(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -1770,7 +1811,6 @@ def test_service_schema_and_report_normalize_mixed_case_alias_inputs(client) -> 
     assert schema_resp.json()["data"]["slug"] == "brave-search-api"
     assert report_resp.status_code == 200
     assert report_resp.json()["data"]["slug"] == "people-data-labs"
-
 
 
 def test_service_schema_and_report_return_not_found_for_unknown_services(client) -> None:

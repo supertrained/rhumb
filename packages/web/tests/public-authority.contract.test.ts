@@ -578,7 +578,7 @@ describe("public authority pricing contract", () => {
     expect(astroResolve).toContain('Use when the credential should stay encrypted in Rhumb custody, scoped to the agent, and be injected only at execution time.');
     expect(astroResolve).toContain('title="Resolve | Governed execution for AI agents"');
     expect(astroResolve).toContain('description="Rhumb Resolve lets agents ask for the job or pin the provider path directly, with best-fit-by-default routing using supported capability matching, AN Score, availability / circuit state, estimated cost, credential mode, latency proxy, and explicit constraints."');
-    expect(astroResolve).toContain('Your agent needs APIs. Stop managing the keys.');
+    expect(astroResolve).toContain('One governed surface, many managed capabilities.');
     expect(astroResolve).toContain('Task-aligned routing, not blind leaderboard routing.');
     expect(astroResolve).toContain('{PUBLIC_TRUTH.routingPrinciple}');
     expect(astroResolve).toContain('Resolve does not blindly pick the global top score.');
@@ -633,7 +633,7 @@ describe("public authority pricing contract", () => {
     expect(astroResolve).not.toContain('16 callable providers');
     expect(astroResolve.indexOf(resolveManagedCard)).toBeLessThan(astroResolve.indexOf(resolveByokCard));
     expect(astroResolve.indexOf(resolveByokCard)).toBeLessThan(astroResolve.indexOf(resolveVaultCard));
-    expect(astroResolve).toContain('data-rhumb-propagate href="/quickstart"');
+    expect(astroResolve).toContain('data-rhumb-propagate href="/quickstart#web-search-resolve"');
     expect(astroResolve).toContain('href="/start-managed-execution?');
     expect(astroResolve).toContain('data-rhumb-propagate href="/docs#resolve-mental-model"');
     expect(astroResolve).toContain('data-rhumb-propagate href="/capabilities"');

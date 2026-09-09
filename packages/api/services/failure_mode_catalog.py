@@ -18,9 +18,7 @@ UNRESEARCHED_HONESTY = (
     "No failure modes have been captured for this service yet. "
     "An empty list is a coverage gap, not a clean bill of health."
 )
-REPORTED_HONESTY = (
-    "These are active captured failure modes, not a complete incident history."
-)
+REPORTED_HONESTY = "These are active captured failure modes, not a complete incident history."
 CATALOG_HONESTY = (
     "These failure modes come from Rhumb's published research catalog "
     "because the live failure_modes table has no rows for this service yet. "
