@@ -37,6 +37,24 @@ _SERVICES = [
         "description": "Email delivery for apps",
     },
     {
+        "slug": "sendgrid",
+        "name": "SendGrid",
+        "category": "email",
+        "description": "Email delivery platform and transactional email API",
+    },
+    {
+        "slug": "mailgun",
+        "name": "Mailgun",
+        "category": "email",
+        "description": "Email API for developers",
+    },
+    {
+        "slug": "aws-ses-v3",
+        "name": "AWS SES",
+        "category": "email",
+        "description": "AWS cloud email sending service",
+    },
+    {
         "slug": "stripe",
         "name": "Stripe",
         "category": "payments",
@@ -68,6 +86,33 @@ _SCORE_ROWS = [
         "tier": "L3",
         "tier_label": "Ready",
         "confidence": 0.88,
+    },
+    {
+        "service_slug": "sendgrid",
+        "aggregate_recommendation_score": 8.4,
+        "execution_score": 8.2,
+        "access_readiness_score": 8.3,
+        "tier": "L4",
+        "tier_label": "Native",
+        "confidence": 0.9,
+    },
+    {
+        "service_slug": "mailgun",
+        "aggregate_recommendation_score": 8.5,
+        "execution_score": 8.3,
+        "access_readiness_score": 8.4,
+        "tier": "L4",
+        "tier_label": "Native",
+        "confidence": 0.89,
+    },
+    {
+        "service_slug": "aws-ses-v3",
+        "aggregate_recommendation_score": 8.6,
+        "execution_score": 8.6,
+        "access_readiness_score": 8.7,
+        "tier": "L4",
+        "tier_label": "Native",
+        "confidence": 0.58,
     },
     {
         "service_slug": "stripe",
@@ -194,6 +239,10 @@ def _extract_search_query(path: str) -> str | None:
     return match.group(1).lower() if match else None
 
 
+def _extract_search_queries(path: str) -> list[str]:
+    return [match.lower() for match in re.findall(r"\.ilike\.\*([^*]+)\*", unquote(path))]
+
+
 def _service_matches_query(service: dict, query: str) -> bool:
     haystacks = [
         service["slug"],
@@ -230,10 +279,14 @@ def _mock_catalog_supabase(path: str):
         return [service for service in _SERVICES if service["slug"] in slugs]
 
     if decoded.startswith("services?or=("):
-        query = _extract_search_query(decoded)
-        if not query:
+        queries = _extract_search_queries(decoded)
+        if not queries:
             return []
-        return [service for service in _SERVICES if _service_matches_query(service, query)]
+        return [
+            service
+            for service in _SERVICES
+            if any(_service_matches_query(service, query) for query in queries)
+        ]
 
     if decoded.startswith("scores?select=service_slug"):
         return [{"service_slug": row["service_slug"]} for row in _SCORE_ROWS]
@@ -502,7 +555,13 @@ async def test_get_leaderboard_email(mock_catalog_supabase):
     assert result["data"]["category"] == "email"
     assert isinstance(result["data"]["items"], list)
     assert result["data"]["count"] <= 5
-    assert {item["service_slug"] for item in result["data"]["items"]} == {"resend", "postmark"}
+    assert {item["service_slug"] for item in result["data"]["items"]} == {
+        "resend",
+        "postmark",
+        "sendgrid",
+        "mailgun",
+        "aws-ses-v3",
+    }
 
     item = result["data"]["items"][0]
     assert "service_slug" in item
@@ -770,8 +829,31 @@ async def test_search_by_category(mock_catalog_supabase):
     result = await search_services("email")
     assert result["error"] is None
     results = result["data"]["results"]
-    assert len(results) == 2
+    assert len(results) == 5
     assert all(item["category"] == "email" for item in results)
+
+
+@pytest.mark.asyncio
+async def test_search_email_sending_recalls_multiple_email_providers(mock_catalog_supabase):
+    """Natural email queries must not collapse to a single phrase-match hit (issue #40)."""
+    result = await search_services("email sending", limit=10)
+    slugs = [item["service_slug"] for item in result["data"]["results"]]
+
+    assert result["error"] is None
+    assert slugs[0] == "aws-ses-v3"
+    assert {"sendgrid", "resend", "postmark", "mailgun"}.issubset(set(slugs))
+
+
+@pytest.mark.asyncio
+async def test_search_send_email_and_agent_phrasing_recall_email_providers(mock_catalog_supabase):
+    send_email = await search_services("send email", limit=10)
+    agent_phrasing = await search_services("email API for agents", limit=10)
+
+    send_slugs = {item["service_slug"] for item in send_email["data"]["results"]}
+    agent_slugs = {item["service_slug"] for item in agent_phrasing["data"]["results"]}
+
+    assert {"sendgrid", "resend", "postmark", "mailgun", "aws-ses-v3"}.issubset(send_slugs)
+    assert {"sendgrid", "resend", "mailgun"}.issubset(agent_slugs)
 
 
 @pytest.mark.asyncio
