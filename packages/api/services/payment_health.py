@@ -16,6 +16,12 @@ _BILLING_HEALTH_PATH = "org_credits?select=org_id&limit=1"
 
 BASE_MAINNET_RPC = "https://mainnet.base.org"
 
+# Published billing outbox SLO. Health must not stay `operational` when the
+# durable outbox is months behind. Write-kill remains a separate, looser cap
+# on EventOutboxHealth.allows_risky_writes.
+OUTBOX_PENDING_COUNT_SLO = 25
+OUTBOX_OLDEST_PENDING_AGE_SLO_SECONDS = 6 * 60 * 60
+
 
 def _billing_headers(supabase_key: str) -> dict[str, str]:
     return {
@@ -59,7 +65,6 @@ async def _probe_settlement_wallet_balance() -> dict:
     if not pk:
         return {
             "settlement_wallet_configured": False,
-            "settlement_wallet_eth_balance": "0",
             "settlement_wallet_eth_low": False,
             "settlement_wallet_eth_critical": False,
         }
@@ -72,7 +77,6 @@ async def _probe_settlement_wallet_balance() -> dict:
     except Exception:
         return {
             "settlement_wallet_configured": True,
-            "settlement_wallet_eth_balance": "unknown",
             "settlement_wallet_eth_low": False,
             "settlement_wallet_eth_critical": False,
         }
@@ -97,17 +101,29 @@ async def _probe_settlement_wallet_balance() -> dict:
         logger.warning("Failed to check settlement wallet ETH balance: %s", exc)
         return {
             "settlement_wallet_configured": True,
-            "settlement_wallet_eth_balance": "unknown",
             "settlement_wallet_eth_low": False,
             "settlement_wallet_eth_critical": False,
         }
 
     return {
         "settlement_wallet_configured": True,
-        "settlement_wallet_eth_balance": f"{balance_eth:.6f}",
         "settlement_wallet_eth_low": balance_eth < 0.001,
         "settlement_wallet_eth_critical": balance_eth < 0.0005,
     }
+
+
+def outbox_slo_breach_reason(pending_count: int, oldest_pending_age_seconds: float | None) -> str:
+    reasons: list[str] = []
+    if pending_count > OUTBOX_PENDING_COUNT_SLO:
+        reasons.append(
+            f"pending_count {pending_count} exceeds SLO {OUTBOX_PENDING_COUNT_SLO}"
+        )
+    age = oldest_pending_age_seconds
+    if age is not None and age > OUTBOX_OLDEST_PENDING_AGE_SLO_SECONDS:
+        reasons.append(
+            f"oldest_pending_age_seconds {int(age)} exceeds SLO {OUTBOX_OLDEST_PENDING_AGE_SLO_SECONDS}"
+        )
+    return "; ".join(reasons)
 
 
 async def check_billing_health() -> tuple[bool, str]:
@@ -149,7 +165,17 @@ async def get_payment_health(supabase_url: str, supabase_key: str) -> dict:
     wallet_health = await _probe_settlement_wallet_balance()
     health.update(wallet_health)
 
-    if billing_healthy and outbox_health.allows_risky_writes:
+    slo_reason = outbox_slo_breach_reason(
+        outbox_health.pending_count,
+        outbox_health.oldest_pending_age_seconds,
+    )
+    health["event_outbox_slo_pending_count"] = OUTBOX_PENDING_COUNT_SLO
+    health["event_outbox_slo_oldest_pending_age_seconds"] = OUTBOX_OLDEST_PENDING_AGE_SLO_SECONDS
+    health["event_outbox_slo_ok"] = not slo_reason
+    if slo_reason:
+        health["event_outbox_reason"] = slo_reason
+
+    if billing_healthy and outbox_health.allows_risky_writes and not slo_reason:
         # Degrade if settlement wallet is configured but critically low on ETH
         if wallet_health.get("settlement_wallet_configured") and wallet_health.get("settlement_wallet_eth_critical"):
             health["status"] = "degraded"
