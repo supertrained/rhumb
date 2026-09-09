@@ -12,8 +12,10 @@ from formatting import render_output
 
 
 def _render_human(payload: dict[str, Any], service: str) -> str:
-    run = payload.get("run") if isinstance(payload.get("run"), dict) else {}
-    summary = run.get("summary") if isinstance(run.get("summary"), dict) else {}
+    raw_run = payload.get("run")
+    run: dict[str, Any] = raw_run if isinstance(raw_run, dict) else {}
+    raw_summary = run.get("summary")
+    summary: dict[str, Any] = raw_summary if isinstance(raw_summary, dict) else {}
 
     display_service = str(payload.get("service_slug") or service)
     status = str(run.get("status") or "unknown")
