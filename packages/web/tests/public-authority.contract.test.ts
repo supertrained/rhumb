@@ -22,6 +22,12 @@ const astroPrivacy = readFileSync(new URL("../../astro-web/src/pages/privacy.ast
 const astroPublicTruth = readFileSync(new URL("../../astro-web/src/lib/public-truth.ts", import.meta.url), "utf8");
 const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/blog/getting-started-mcp.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
+const astroStatsStrip = readFileSync(new URL("../../astro-web/src/components/StatsStrip.astro", import.meta.url), "utf8");
+const astroPublicTruthCounts = readFileSync(new URL("../../astro-web/src/lib/public-truth-counts.ts", import.meta.url), "utf8");
+const astroPublicAgentCapabilities = readFileSync(
+  new URL("../../astro-web/public/agent-capabilities.json", import.meta.url),
+  "utf8",
+);
 const astroResolve = readFileSync(new URL("../../astro-web/src/pages/resolve.astro", import.meta.url), "utf8");
 const astroResolveRouting = readFileSync(new URL("../../astro-web/src/pages/resolve/routing.astro", import.meta.url), "utf8");
 const astroResolveWhatIs = readFileSync(new URL("../../astro-web/src/pages/resolve/what-is-resolve.astro", import.meta.url), "utf8");
@@ -133,16 +139,28 @@ describe("public authority pricing contract", () => {
   });
 
   it("keeps the astro homepage authority surface pinned to canonical public truth", () => {
-    expect(astroHome).toContain('const servicesLabel = PUBLIC_TRUTH.servicesLabel;');
-    expect(astroHome).toContain('Discover the right service. Execute what’s ready.');
-    expect(astroHome).toContain('Search ${servicesLabel} scored services');
-    expect(astroHome).toContain('Index ranks. Resolve routes.');
-    expect(astroHome).not.toContain('getServiceCount');
+    expect(astroHome).toContain('import { PUBLIC_TRUTH } from "../lib/public-truth";');
+    expect(astroHome).toContain("current_public_truth: ${PUBLIC_TRUTH.catalogRealitySummary}");
+    expect(astroHome).toContain("/agent-capabilities.json");
+    expect(astroHome).toContain("From task to trusted tool call");
+    expect(astroHome).not.toContain("getServiceCount");
+    expect(astroHome).not.toContain("1,038");
+    expect(astroHome).not.toContain("16 callable");
+
+    expect(astroStatsStrip).toContain("PUBLIC_TRUTH.servicesLabel");
+    expect(astroStatsStrip).toContain("PUBLIC_TRUTH.capabilitiesLabel");
+    expect(astroStatsStrip).toContain("PUBLIC_TRUTH.callableProvidersLabel");
+
+    expect(astroPublicTruth).toContain('import { PUBLIC_TRUTH_COUNTS } from "./public-truth-counts";');
+    expect(astroPublicTruthCounts).toContain("services: 999");
+    expect(astroPublicTruthCounts).toContain("capabilities: 435");
+    expect(astroPublicTruthCounts).toContain("categories: 87");
+    expect(astroPublicTruthCounts).toContain("callableProviders: 28");
   });
 
   it("keeps the web homepage, about, and search authority surfaces pinned to public truth labels", () => {
     expect(webPublicTruth).toContain('servicesLabel: "999"');
-    expect(webPublicTruth).toContain('categoriesLabel: "92"');
+    expect(webPublicTruth).toContain('categoriesLabel: "87"');
 
     expect(webHome).toContain('PUBLIC_TRUTH.servicesLabel');
     expect(webHome).toContain('PUBLIC_TRUTH.categoriesLabel');
@@ -287,29 +305,20 @@ describe("public authority pricing contract", () => {
     expect(astroSecurity).not.toContain('API key authentication (X-Rhumb-Key header) for managed billing. x402 payment-as-auth for autonomous agents.');
   });
 
-  it("keeps the astro homepage x402 callout aligned with the live execution rails", () => {
-    expect(astroHome).toContain('<h3 class="font-display font-semibold text-slate-100 text-lg">Governed API key</h3>');
-    expect(astroHome).toContain('Use governed API key when you want account-funded routing, fallback where a supported alternate is configured, and billing on the default repeat-traffic rail.');
-    expect(astroHome).toContain('Use BYOK or Agent Vault with your existing stack');
-    expect(astroHome).toContain('Bring BYOK or Agent Vault when provider control is the point.');
-    expect(astroHome).toContain('BYOK / Agent Vault');
-    expect(astroHome).toContain('Use BYOK for direct pass-through, or Agent Vault when you need encrypted provider credential injection at call time, enterprise boundaries, or existing vendor accounts.');
-    expect(astroHome).toContain('Start with the path that matches your job.');
-    expect(astroHome).toContain('Guide &middot; Credential paths and storage');
-    expect(astroHome).toContain('See secure credential paths &rarr;');
-    expect(astroHome).toContain('zero-signup, request-level payment authorization is the point');
-    expect(astroHome).toContain('governed API key or wallet-prefund on X-Rhumb-Key');
-    expect(astroHome).toContain('use BYOK or Agent Vault when provider control is the point');
-    expect(astroHome).not.toContain('Start with the mode that matches your job.');
-    expect(astroHome).not.toContain('Guide &middot; Three credential modes');
-    expect(astroHome).not.toContain('See credential modes &rarr;');
-    expect(astroHome).not.toContain('Bring your own provider credentials directly');
+  it("keeps the astro homepage free of stale rail and catalog copy", () => {
+    expect(astroHome).toContain("PUBLIC_TRUTH.catalogRealitySummary");
+    expect(astroHome).not.toContain("Start with the mode that matches your job.");
+    expect(astroHome).not.toContain("Guide &middot; Three credential modes");
+    expect(astroHome).not.toContain("See credential modes &rarr;");
+    expect(astroHome).not.toContain("Bring your own provider credentials directly");
     expect(astroHome).not.toContain('<h3 class="font-display font-semibold text-slate-100 text-lg">API key</h3>');
-    expect(astroHome).not.toContain('Use BYOK, Agent Vault, or your existing stack');
-    expect(astroHome).not.toContain('use BYOK when provider control is the point');
-    expect(astroHome).not.toContain('For repeat traffic, the default path is still API key or wallet-prefund.');
-    expect(astroHome).not.toContain('Use Rhumb-managed execution when you want routing, failover, and billing under one key.');
-    expect(astroHome).not.toContain('Use governed API key when you want routing, failover, and billing under one key.');
+    expect(astroHome).not.toContain("Use BYOK, Agent Vault, or your existing stack");
+    expect(astroHome).not.toContain("use BYOK when provider control is the point");
+    expect(astroHome).not.toContain("For repeat traffic, the default path is still API key or wallet-prefund.");
+    expect(astroHome).not.toContain("Use Rhumb-managed execution when you want routing, failover, and billing under one key.");
+    expect(astroHome).not.toContain("Use governed API key when you want routing, failover, and billing under one key.");
+    expect(astroHome).not.toContain("1,038");
+    expect(astroHome).not.toContain("16 callable providers");
   });
 
   it("keeps the astro quickstart default auth rail aligned with the live execution rails", () => {
@@ -714,7 +723,7 @@ describe("public authority pricing contract", () => {
     expect(astroResolveWhatIs).toContain('Resolve first matches the supported capability path, then routes supported calls using AN Score');
     expect(astroResolve).toContain('"Explainable supported-capability provider routing"');
     expect(astroResolve).toContain('When supported routing beats raw rank');
-    expect(astroHome).toContain('description: PUBLIC_TRUTH.rhumbEntityShort');
+    expect(astroHome).toContain("current_public_truth: ${PUBLIC_TRUTH.catalogRealitySummary}");
     expect(astroAbout).toContain('description: PUBLIC_TRUTH.rhumbEntityShort');
     expect(astroAbout).toContain('${PUBLIC_TRUTH.rhumbEntityShort}');
     expect(astroTrust).not.toContain('PUBLIC_TRUTH.rhumbEntityExpanded');
@@ -843,6 +852,7 @@ describe("public authority pricing contract", () => {
     }
 
     expect(rootCaps).toEqual(wellKnownCaps);
+    expect(JSON.parse(astroPublicAgentCapabilities)).toEqual(rootCaps);
     expect(rootAgentCapabilities).not.toContain("1000_calls_per_month");
     expect(wellKnownAgentCapabilities).not.toContain("1000_calls_per_month");
     expect(rootAgentCapabilities).not.toContain("api_key_or_x402");

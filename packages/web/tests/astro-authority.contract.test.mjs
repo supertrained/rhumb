@@ -8,6 +8,9 @@ const ROOT_MANIFEST = JSON.parse(
 const ASTRO_PUBLIC_MANIFEST = JSON.parse(
   readFileSync(new URL("../../astro-web/public/.well-known/agent-capabilities.json", import.meta.url), "utf8")
 );
+const ASTRO_ROOT_MANIFEST = JSON.parse(
+  readFileSync(new URL("../../astro-web/public/agent-capabilities.json", import.meta.url), "utf8")
+);
 
 vi.mock("../../astro-web/src/lib/api.ts", () => ({
   getServices: vi.fn(async () => [
@@ -57,6 +60,7 @@ describe("astro authority contract", () => {
     );
 
     expect(ASTRO_PUBLIC_MANIFEST).toEqual(ROOT_MANIFEST);
+    expect(ASTRO_ROOT_MANIFEST).toEqual(ROOT_MANIFEST);
     expect(resolveTool?.description).toContain("recovery_hint.resolve_url");
     expect(resolveTool?.description).toContain("recovery_hint.credential_modes_url");
     expect(resolveTool?.description).toContain("recovery_hint.alternate_execute_hint");

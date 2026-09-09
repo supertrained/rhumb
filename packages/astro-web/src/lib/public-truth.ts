@@ -1,14 +1,22 @@
+import { PUBLIC_TRUTH_COUNTS } from "./public-truth-counts";
+
+function countLabel(value: number): string {
+  return value.toLocaleString("en-US");
+}
+
 export const PUBLIC_TRUTH = {
-  services: 1038,
-  servicesLabel: "1,038",
-  capabilities: 415,
-  capabilitiesLabel: "415",
-  categories: 92,
-  categoriesLabel: "92",
-  callableProviders: 16,
-  callableProvidersLabel: "16",
-  mcpTools: 21,
-  mcpToolsLabel: "21",
+  services: PUBLIC_TRUTH_COUNTS.services,
+  servicesLabel: countLabel(PUBLIC_TRUTH_COUNTS.services),
+  capabilities: PUBLIC_TRUTH_COUNTS.capabilities,
+  capabilitiesLabel: countLabel(PUBLIC_TRUTH_COUNTS.capabilities),
+  categories: PUBLIC_TRUTH_COUNTS.categories,
+  categoriesLabel: countLabel(PUBLIC_TRUTH_COUNTS.categories),
+  callableProviders: PUBLIC_TRUTH_COUNTS.callableProviders,
+  callableProvidersLabel: countLabel(PUBLIC_TRUTH_COUNTS.callableProviders),
+  registeredProviders: PUBLIC_TRUTH_COUNTS.registeredProviders,
+  registeredProvidersLabel: countLabel(PUBLIC_TRUTH_COUNTS.registeredProviders),
+  mcpTools: PUBLIC_TRUTH_COUNTS.mcpTools,
+  mcpToolsLabel: countLabel(PUBLIC_TRUTH_COUNTS.mcpTools),
   domainsLabel: "50+",
   beachheadLabel: "research, extraction, generation, and narrow enrichment",
   beachheadSummary:
@@ -33,7 +41,7 @@ export const PUBLIC_TRUTH = {
   privateDisputeMailto: "mailto:providers@supertrained.ai?subject=Score%20Dispute",
   disputeResponseSlaBusinessDays: 5,
   catalogRealitySummary:
-    "Discovery breadth: 1,038 scored services and 415 capability definitions. Current runtime-callable surface: 16 callable providers, strongest today for research, extraction, generation, and narrow enrichment.",
+    `Discovery breadth: ${countLabel(PUBLIC_TRUTH_COUNTS.services)} scored services and ${countLabel(PUBLIC_TRUTH_COUNTS.capabilities)} capability definitions. Current runtime-callable surface: ${countLabel(PUBLIC_TRUTH_COUNTS.callableProviders)} callable providers, strongest today for research, extraction, generation, and narrow enrichment.`,
   callableRealitySummary:
     "Not every service or capability in the index is executable through Rhumb today. Discovery breadth is wider than current callable coverage.",
   routingPrinciple: "Route by supported capability, runtime factors, and explicit constraints — not leaderboard purity.",

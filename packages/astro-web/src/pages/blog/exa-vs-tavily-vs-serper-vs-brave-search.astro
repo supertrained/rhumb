@@ -305,7 +305,7 @@ const htmlContent = markdownToHtml(content);
           Exa leads the web-search scorecard at {fmt(score(webSearchWinner))}, but Tavily is a near-tie for agent-first loops
         </h2>
         <p class="text-slate-300 leading-relaxed mb-5">
-          Rhumb's current web-search comparison uses the 1,038-service index as the evidence layer. Exa scores {fmt(score(WEB_SEARCH_SCORES[0]))} overall with {fmt(execution(WEB_SEARCH_SCORES[0]))} execution and {fmt(access(WEB_SEARCH_SCORES[0]))} access readiness. Tavily follows at {fmt(score(WEB_SEARCH_SCORES[1]))}. Brave Search is still useful when index independence matters, but its {fmt(access(WEB_SEARCH_SCORES[2]))} access-readiness score makes it less automatic for unattended agent loops.
+          Rhumb's current web-search comparison uses the {PUBLIC_TRUTH.servicesLabel}-service index as the evidence layer. Exa scores {fmt(score(WEB_SEARCH_SCORES[0]))} overall with {fmt(execution(WEB_SEARCH_SCORES[0]))} execution and {fmt(access(WEB_SEARCH_SCORES[0]))} access readiness. Tavily follows at {fmt(score(WEB_SEARCH_SCORES[1]))}. Brave Search is still useful when index independence matters, but its {fmt(access(WEB_SEARCH_SCORES[2]))} access-readiness score makes it less automatic for unattended agent loops.
         </p>
         <div class="overflow-x-auto rounded-2xl border border-slate-800">
           <table class="min-w-full divide-y divide-slate-800 text-left">

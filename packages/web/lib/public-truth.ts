@@ -1,6 +1,6 @@
 export const PUBLIC_TRUTH = {
   servicesLabel: "999",
-  categoriesLabel: "92",
+  categoriesLabel: "87",
   providersUrl: "https://rhumb.dev/providers",
   publicDisputeTemplateUrl:
     "https://github.com/supertrained/rhumb/issues/new?template=score-dispute.md",
