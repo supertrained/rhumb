@@ -6,7 +6,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy application code, including failure-mode-catalog.json at the image root.
+# Railway builds this package as the Docker context, so ../shared is not available.
 COPY . .
 
 # Expose port

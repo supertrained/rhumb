@@ -170,6 +170,17 @@ async def _mock_supabase_fetch(path: str):
                     "description": "Payment API",
                 }
             ]
+        email_slugs = {"sendgrid", "mailgun", "postmark"} & slugs
+        if email_slugs:
+            slug = sorted(email_slugs)[0]
+            return [
+                {
+                    "slug": slug,
+                    "name": slug.title(),
+                    "category": "email",
+                    "description": f"{slug} email API",
+                }
+            ]
         return []
 
     if decoded.startswith("services?slug=in.(") and "&select=slug,official_docs" in decoded:
@@ -217,7 +228,7 @@ async def _mock_supabase_fetch(path: str):
 
     if path.startswith("failure_modes?service_slug=in.("):
         slugs = _parse_in_filter(path, "service_slug") or set()
-        if "stripe" in slugs:
+        if slugs & {"stripe", "sendgrid", "mailgun", "postmark"}:
             return []
         return []
 
@@ -1797,6 +1808,37 @@ def test_service_failures_accept_mixed_case_alias_inputs(client) -> None:
     assert payload["error"] is None
     assert payload["data"]["slug"] == "brave-search-api"
     assert payload["data"]["failure_modes"][0]["pattern"] == "Session tokens expire early"
+
+
+@pytest.mark.parametrize("slug", ["sendgrid", "mailgun", "postmark"])
+def test_service_failures_email_providers_stay_unresearched_not_500(
+    client, slug: str, monkeypatch, tmp_path
+) -> None:
+    """Regression: empty live rows plus a missing Railway catalog must not 500."""
+    from services.failure_mode_catalog import load_failure_mode_catalog
+
+    monkeypatch.setattr(
+        "services.failure_mode_catalog.CATALOG_CANDIDATES",
+        (tmp_path / "missing-failure-mode-catalog.json",),
+    )
+    load_failure_mode_catalog.cache_clear()
+    try:
+        with patch(
+            "routes.services.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_fetch,
+        ):
+            resp = client.get(f"/v1/services/{slug}/failures")
+    finally:
+        load_failure_mode_catalog.cache_clear()
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == slug
+    assert payload["data"]["failure_modes"] == []
+    assert payload["data"]["coverage"] == "unresearched"
+    assert "coverage gap" in payload["data"]["honesty"]
 
 
 def test_service_failures_preserve_empty_state_for_known_services(client) -> None:

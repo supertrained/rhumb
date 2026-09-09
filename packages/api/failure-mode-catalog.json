@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "note": "Curated fallback when the live failure_modes table has no rows for a major service. Empty API lists are coverage gaps, not a clean bill of health. Source: published Rhumb research (Twilio API autopsy, 2026-03-18).",
+  "services": {
+    "twilio": [
+      {
+        "category": "auth",
+        "title": "Phone number and 10DLC verification wall",
+        "description": "Before an agent can send messages, Twilio requires a provisioned number plus country-specific registration. US long-code traffic needs A2P 10DLC campaign approval, which is a human-reviewed carrier process that typically takes 1-7 business days. Agents can start the workflow via API but cannot complete it autonomously.",
+        "severity": "high",
+        "frequency": "common",
+        "agent_impact": "First-message latency of days, not seconds. Agents that treat number purchase as sufficient send-authority will queue messages that carriers later reject.",
+        "workaround": "Complete 10DLC or local registration before granting send authority. Separate 'number purchased' from 'allowed to send'. Surface needs-human-review when carrier approval is still pending."
+      },
+      {
+        "category": "cost",
+        "title": "Per-message pricing varies by country, carrier, and segment",
+        "description": "Twilio prices per message with rates that change by destination country, originating number type, SMS vs MMS, carrier surcharges, and segment count for messages over 160 characters. There is no single price an agent can cache.",
+        "severity": "high",
+        "frequency": "common",
+        "agent_impact": "Budget enforcement silently undercounts. A US SMS at ~$0.0079 can become several times that for international, MMS, or multi-segment bodies.",
+        "workaround": "Call the Twilio pricing API for the destination before send, or maintain a surcharge table. Fail closed when the estimated cost is unknown instead of guessing."
+      },
+      {
+        "category": "rate-limiting",
+        "title": "Carrier send limits are not API rate-limit headers",
+        "description": "The Twilio API will accept large queues quickly, but carrier networks throttle delivery: about 1 SMS/second for US long codes, 3/second for toll-free, and higher for short codes. Those limits are not returned as standard rate-limit headers.",
+        "severity": "high",
+        "frequency": "common",
+        "agent_impact": "API 200/queued does not mean delivered. Agents that fire a burst after 'accepted' responses can trigger carrier filtering or delayed delivery without a 429.",
+        "workaround": "Throttle by number type, not by API acceptance. Treat queued vs delivered as different states. Watch status callbacks before retrying."
+      },
+      {
+        "category": "error-handling",
+        "title": "Accepted-but-undelivered and opaque carrier filtering",
+        "description": "Messages can be accepted by Twilio and still end undelivered or filtered by the destination carrier. Carrier filtering is often opaque: the create-message call succeeds, and only a later status callback (or never) reveals failure.",
+        "severity": "high",
+        "frequency": "occasional",
+        "agent_impact": "Agents report success to users after create-message succeeds, then never learn the SMS failed. Retry logic may send duplicates if idempotency keys are not reused.",
+        "workaround": "Join create-message, status callback, provider message id, and idempotency key in one trace. Require typed outcomes for sent, queued, delivered, failed, undelivered, and needs-human-review before claiming success."
+      }
+    ]
+  }
+}
