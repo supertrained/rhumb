@@ -4,9 +4,56 @@ import type {
   LaunchDashboardViewModel,
   LeaderboardViewModel,
   Service,
+  ServiceFailureMode,
   ServiceReview,
   ServiceScoreViewModel,
 } from "./types";
+
+const UNRESEARCHED_FAILURE_HONESTY =
+  "No failure modes have been captured for this service yet. An empty list is a coverage gap, not a clean bill of health.";
+
+async function loadFailuresFromApi(slug: string): Promise<{
+  activeFailures: ServiceFailureMode[];
+  failureCoverage: ServiceScoreViewModel["failureCoverage"];
+  failureHonesty: string;
+} | null> {
+  try {
+    const response = await fetch(`${API_BASE}/services/${encodeURIComponent(slug)}/failures`, {
+      cache: "no-store",
+      headers: { "X-Rhumb-Client": "web" },
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as {
+      data?: {
+        failure_modes?: Array<Record<string, unknown>>;
+        coverage?: string;
+        honesty?: string;
+      };
+    };
+    const rows = Array.isArray(payload?.data?.failure_modes) ? payload.data.failure_modes : [];
+    const activeFailures = rows.map((row, index) => ({
+      id: typeof row.id === "string" ? row.id : `catalog-${slug}-${index}`,
+      summary: String(row.pattern || row.title || "Unknown failure"),
+      description: typeof row.description === "string" ? row.description : undefined,
+      severity: typeof row.severity === "string" ? row.severity : undefined,
+      frequency: typeof row.frequency === "string" ? row.frequency : undefined,
+      agentImpact: typeof row.impact === "string" ? row.impact : null,
+      workaround: typeof row.workaround === "string" ? row.workaround : null,
+      category: typeof row.category === "string" ? row.category : undefined,
+    }));
+    const coverage = payload?.data?.coverage === "reported" ? "reported" : "unresearched";
+    return {
+      activeFailures,
+      failureCoverage: activeFailures.length > 0 ? "reported" : coverage,
+      failureHonesty:
+        typeof payload?.data?.honesty === "string"
+          ? payload.data.honesty
+          : UNRESEARCHED_FAILURE_HONESTY,
+    };
+  } catch {
+    return null;
+  }
+}
 
 // Supabase direct mode (production) vs Python API mode (fallback / local dev)
 // Support both Astro (PUBLIC_*) and legacy Next.js (NEXT_PUBLIC_*) env vars.
@@ -260,7 +307,7 @@ async function getServiceScoreFromSupabase(
     `failure_modes?service_slug=eq.${encodeURIComponent(slug)}&resolved_at=is.null&order=severity.asc`
   );
 
-  const activeFailures = (failures ?? []).map(f => ({
+  let activeFailures = (failures ?? []).map(f => ({
     id: f.id,
     summary: f.title,
     description: f.description,
@@ -270,6 +317,21 @@ async function getServiceScoreFromSupabase(
     workaround: f.workaround,
     category: f.category,
   }));
+  let failureCoverage: ServiceScoreViewModel["failureCoverage"] =
+    activeFailures.length > 0 ? "reported" : "unresearched";
+  let failureHonesty =
+    activeFailures.length > 0
+      ? "These are active captured failure modes, not a complete incident history."
+      : "No failure modes have been captured for this service yet. An empty list is a coverage gap, not a clean bill of health.";
+
+  if (activeFailures.length === 0) {
+    const catalogued = await loadFailuresFromApi(slug);
+    if (catalogued) {
+      activeFailures = catalogued.activeFailures;
+      failureCoverage = catalogued.failureCoverage;
+      failureHonesty = catalogued.failureHonesty;
+    }
+  }
 
   // Fetch evidence stats for tier computation
   const evidence = await getEvidenceStats(slug);
@@ -288,6 +350,8 @@ async function getServiceScoreFromSupabase(
     evidenceFreshness:
       (sc.probe_metadata as Record<string, string> | null)?.freshness ?? null,
     activeFailures,
+    failureCoverage,
+    failureHonesty,
     alternatives: [],
     p1Score: sc.payment_autonomy ?? null,
     g1Score: sc.governance_readiness ?? null,

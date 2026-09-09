@@ -1713,7 +1713,29 @@ def test_service_failures_preserve_empty_state_for_known_services(client) -> Non
     assert resp.status_code == 200
     payload = resp.json()
     assert payload["error"] is None
-    assert payload["data"] == {"slug": "stripe", "failure_modes": []}
+    assert payload["data"]["slug"] == "stripe"
+    assert payload["data"]["failure_modes"] == []
+    assert payload["data"]["coverage"] == "unresearched"
+    assert "coverage gap" in payload["data"]["honesty"]
+
+
+def test_service_failures_use_published_catalog_for_twilio(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/twilio/failures")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    titles = {item["pattern"] for item in payload["data"]["failure_modes"]}
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "twilio"
+    assert payload["data"]["coverage"] == "reported"
+    assert "published research catalog" in payload["data"]["honesty"]
+    assert "Phone number and 10DLC verification wall" in titles
+    assert "Carrier send limits are not API rate-limit headers" in titles
 
 
 

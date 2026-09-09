@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 
 from routes._supabase import cached_query, supabase_count, supabase_fetch
 from services.error_envelope import RhumbError
+from services.failure_mode_catalog import resolve_failure_modes
 from services.service_slugs import CANONICAL_TO_PROXY, public_service_slug, public_service_slug_candidates
 
 router = APIRouter()
@@ -762,28 +763,29 @@ async def get_service_score(slug: str, raw_request: Request):
         f"&order=severity.asc"
         f"&select=service_slug,title,description,severity,frequency,agent_impact,workaround"
     )
+    stored_failures, failure_coverage, failure_honesty = resolve_failure_modes(
+        canonical_slug, failures or []
+    )
     failure_modes = []
-    if failures:
-        failure_modes = []
-        for f in failures:
-            description = _canonicalize_service_text(
-                f.get("description", ""), canonical_slug, f.get("service_slug")
-            ) or ""
-            impact = _canonicalize_service_text(
-                f.get("agent_impact"), canonical_slug, f.get("service_slug")
-            )
-            failure_modes.append(
-                {
-                    "pattern": _canonicalize_service_text(
-                        f.get("title", ""), canonical_slug, f.get("service_slug")
-                    ) or "",
-                    "impact": impact or description,
-                    "frequency": f.get("frequency", "unknown"),
-                    "workaround": _canonicalize_service_text(
-                        f.get("workaround", ""), canonical_slug, f.get("service_slug")
-                    ) or "",
-                }
-            )
+    for f in stored_failures:
+        description = _canonicalize_service_text(
+            f.get("description", ""), canonical_slug, f.get("service_slug")
+        ) or ""
+        impact = _canonicalize_service_text(
+            f.get("agent_impact"), canonical_slug, f.get("service_slug")
+        )
+        failure_modes.append(
+            {
+                "pattern": _canonicalize_service_text(
+                    f.get("title", ""), canonical_slug, f.get("service_slug")
+                ) or "",
+                "impact": impact or description,
+                "frequency": f.get("frequency", "unknown"),
+                "workaround": _canonicalize_service_text(
+                    f.get("workaround", ""), canonical_slug, f.get("service_slug")
+                ) or "",
+            }
+        )
 
     return {
         "service_slug": public_service_slug(sc.get("service_slug")) or canonical_slug,
@@ -804,6 +806,8 @@ async def get_service_score(slug: str, raw_request: Request):
         "governance_readiness": sc.get("governance_readiness"),
         "web_accessibility": sc.get("web_accessibility"),
         "failure_modes": failure_modes,
+        "failure_coverage": failure_coverage,
+        "failure_honesty": failure_honesty,
         "base_url": None,
         "docs_url": service.get("official_docs"),
         "openapi_url": None,
@@ -826,6 +830,7 @@ async def get_failures(slug: str, raw_request: Request):
     if failures is None:
         return {"data": {"slug": canonical_slug, "failures": []}, "error": "Unable to load failure modes."}
 
+    stored_failures, coverage, honesty = resolve_failure_modes(canonical_slug, failures or [])
     failure_modes = [
         {
             "pattern": _canonicalize_service_text(
@@ -850,7 +855,7 @@ async def get_failures(slug: str, raw_request: Request):
             "last_verified": f.get("last_verified"),
             "evidence_count": f.get("evidence_count", 0),
         }
-        for f in failures
+        for f in stored_failures
     ]
     if not failure_modes and not await _service_exists(canonical_slug):
         return _not_found_response(
@@ -864,6 +869,8 @@ async def get_failures(slug: str, raw_request: Request):
         "data": {
             "slug": canonical_slug,
             "failure_modes": failure_modes,
+            "coverage": coverage,
+            "honesty": honesty,
         },
         "error": None,
     }
