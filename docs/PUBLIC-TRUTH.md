@@ -81,9 +81,9 @@ Aligned to production web `packages/astro-web`:
 
 | Job / target | Status on this branch | Notes |
 | --- | --- | --- |
-| `CI / public-truth` | green | `generate --check` + authority/llms contract tests |
-| `CI / astro-web-build` | green | Vercel-matching Astro build |
-| `CI / api-test` | install was red on `main` too | `pytest-httpx==0.36.0` requires `httpx==0.28.*` while runtime pins `httpx==0.27.2`. This PR pins `pytest-httpx==0.32.0` and adds `pytest-asyncio==0.24.0` so the job can install and run async tests. `mypy` still reports pre-existing errors in unrelated modules. |
+| `CI / public-truth` | **green** on `5e6d0dee` | `generate --check` + authority/llms contract tests |
+| `CI / astro-web-build` | **green** on `5e6d0dee` | Vercel-matching Astro build |
+| `CI / api-test` | install now **succeeds**; pytest **3092 passed / 59 failed / 4 skipped** | `main` never got past `pytest-httpx==0.36.0` vs `httpx==0.27.2`. This PR pins `pytest-httpx==0.32.0` + `pytest-asyncio==0.24.0`. Phase A files (`test_services_api`, `test_leaderboard_search`, `test_failure_mode_catalog`, `test_payment_health`) are not in the fail list. Remaining fails are mostly unauthenticated probe/score writes (`401`), execute KeyErrors, and stale mocks (`providers_v2`, proxy, query-logger leaderboard). This follow-up updates the query-logger service mock for `slug=in.(...)`. Job stops at pytest, so black/ruff/mypy did not run. `mypy` still has pre-existing errors locally. |
 | `CI / cli-test` | red, unchanged | `black --check` wants to reformat `packages/cli/commands/find.py`. Not touched here. |
 | `make test` | local | API pytest + CLI pytest + `generate --check` |
 | `make build` / `make public-truth` | local | Astro web build / live count refresh |

@@ -44,79 +44,53 @@ def capture_client(monkeypatch):
     query_logger._supabase = capture
 
     async def fake_supabase_fetch(path: str):
+        stripe_service = {
+            "slug": "stripe",
+            "name": "Stripe",
+            "category": "payments",
+            "description": "Payments API",
+            "official_docs": "https://docs.stripe.com",
+        }
+        stripe_score = {
+            "service_slug": "stripe",
+            "aggregate_recommendation_score": 8.9,
+            "execution_score": 9.1,
+            "access_readiness_score": 8.4,
+            "tier": "L4",
+            "tier_label": "Agent Native",
+            "confidence": 0.98,
+            "probe_metadata": {"freshness": "12 minutes ago"},
+            "calculated_at": "2026-03-13T00:00:00Z",
+        }
+
         if path.startswith("services?or=("):
-            return [
-                {
-                    "slug": "stripe",
-                    "name": "Stripe",
-                    "category": "payments",
-                    "description": "Payments API",
-                }
-            ]
-        if path.startswith('scores?service_slug=in.("stripe")'):
-            return [
-                {
-                    "service_slug": "stripe",
-                    "aggregate_recommendation_score": 8.9,
-                    "execution_score": 9.1,
-                    "access_readiness_score": 8.4,
-                    "tier": "L4",
-                    "tier_label": "Agent Native",
-                    "confidence": 0.98,
-                    "probe_metadata": {"freshness": "12 minutes ago"},
-                    "calculated_at": "2026-03-13T00:00:00Z",
-                }
-            ]
+            return [stripe_service]
+        if "stripe" in path and path.startswith("scores?service_slug="):
+            return [stripe_score]
         if path.startswith("services?category=eq.payments&select=slug,name"):
             return [{"slug": "stripe", "name": "Stripe"}]
         if path == "services?select=category":
             return [{"category": "payments"}, {"category": "auth"}]
-        if path.startswith("scores?service_slug=in.(\"stripe\")"):
-            return [
-                {
-                    "service_slug": "stripe",
-                    "aggregate_recommendation_score": 8.9,
-                    "execution_score": 9.1,
-                    "access_readiness_score": 8.4,
-                    "tier": "L4",
-                    "tier_label": "Agent Native",
-                    "confidence": 0.98,
-                    "probe_metadata": {"freshness": "12 minutes ago"},
-                    "calculated_at": "2026-03-13T00:00:00Z",
-                }
-            ]
-        if path.startswith("services?slug=eq.stripe&select=slug,name,category,description&limit=1"):
-            return [
-                {
-                    "slug": "stripe",
-                    "name": "Stripe",
-                    "category": "payments",
-                    "description": "Payments API",
-                }
-            ]
-        if path.startswith("scores?service_slug=eq.stripe&order=calculated_at.desc&limit=1"):
-            return [
-                {
-                    "service_slug": "stripe",
-                    "aggregate_recommendation_score": 8.9,
-                    "execution_score": 9.1,
-                    "access_readiness_score": 8.4,
-                    "confidence": 0.98,
-                    "tier": "L4",
-                    "tier_label": "Agent Native",
-                    "probe_metadata": {"freshness": "12 minutes ago"},
-                    "calculated_at": "2026-03-13T00:00:00Z",
-                }
-            ]
-        if path.startswith("failure_modes?service_slug=eq.stripe"):
+        if "stripe" in path and path.startswith("services?slug="):
+            if "official_docs" in path:
+                return [
+                    {
+                        "slug": "stripe",
+                        "official_docs": stripe_service["official_docs"],
+                    }
+                ]
+            if "description" in path:
+                return [
+                    {
+                        "slug": "stripe",
+                        "name": "Stripe",
+                        "category": "payments",
+                        "description": "Payments API",
+                    }
+                ]
+            return [{"slug": "stripe", "name": "Stripe", "category": "payments"}]
+        if "stripe" in path and path.startswith("failure_modes?service_slug="):
             return []
-        if path.startswith("services?slug=eq.stripe&select=slug,official_docs&limit=1"):
-            return [
-                {
-                    "slug": "stripe",
-                    "official_docs": "https://docs.stripe.com",
-                }
-            ]
         return []
 
     monkeypatch.setattr("routes.search.supabase_fetch", fake_supabase_fetch)
@@ -136,6 +110,7 @@ def _flush_sync() -> None:
         loop = asyncio.get_event_loop()
         if loop.is_running():
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor() as pool:
                 pool.submit(lambda: asyncio.run(query_logger.flush())).result()
         else:
