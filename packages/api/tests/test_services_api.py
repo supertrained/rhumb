@@ -241,6 +241,45 @@ async def _mock_supabase_count(path: str) -> int:
     raise AssertionError(f"Unexpected Supabase count path: {path}")
 
 
+async def _mock_string_score_supabase_fetch(path: str):
+    decoded = unquote(path)
+
+    if decoded.startswith("services?slug=in.(") and "&select=slug,official_docs" in decoded:
+        slugs = _parse_in_filter(decoded, "slug") or set()
+        if "stripe" in slugs:
+            return [{"slug": "stripe", "official_docs": "https://docs.stripe.com"}]
+        return []
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        if "stripe" in slugs:
+            return [
+                {
+                    "service_slug": "stripe",
+                    "aggregate_recommendation_score": "8.1",
+                    "execution_score": "9.0",
+                    "access_readiness_score": "6.6",
+                    "autonomy_score": "9.5",
+                    "confidence": "0.9",
+                    "tier": "L4",
+                    "tier_label": "Native",
+                    "calculated_at": "2026-03-13T00:00:00Z",
+                    "payment_autonomy": "10.0",
+                    "payment_autonomy_rationale": "x402 / API-native payments",
+                    "governance_readiness": "10.0",
+                    "governance_readiness_rationale": "RBAC + audit logs",
+                    "web_accessibility": "8.0",
+                    "web_accessibility_rationale": "AAG AA/AAA structure",
+                }
+            ]
+        return []
+
+    if decoded.startswith("failure_modes?service_slug=in.("):
+        return []
+
+    return await _mock_supabase_fetch(path)
+
+
 async def _mock_empty_alias_score_supabase_fetch(path: str):
     decoded = unquote(path)
 
@@ -929,6 +968,52 @@ def test_service_score_exposes_autonomy_contract_fields(client) -> None:
     assert len(payload["autonomy"]["dimensions"]) == 3
     assert payload["autonomy"]["dimensions"][0]["code"] == "P1"
     assert payload["dimension_snapshot"]["autonomy"]["avg"] == 9.0
+
+
+def test_service_score_string_numeric_fields_do_not_500(client) -> None:
+    """GET /v1/services/{slug}/score returns 200 when score numerics are strings."""
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_string_score_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/stripe/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "stripe"
+    assert payload["an_score"] == 8.1
+    assert payload["score"] == 8.1
+    assert payload["execution_score"] == 9.0
+    assert payload["access_readiness_score"] == 6.6
+    assert payload["explanation"].startswith("Scores 8.1/10 overall")
+
+
+def test_service_score_missing_catalog_does_not_500(client, monkeypatch, tmp_path) -> None:
+    """GET /v1/services/{slug}/score returns 200 when the failure catalog is missing."""
+    from services.failure_mode_catalog import load_failure_mode_catalog
+
+    monkeypatch.setattr(
+        "services.failure_mode_catalog.CATALOG_CANDIDATES",
+        (tmp_path / "missing-failure-mode-catalog.json",),
+    )
+    load_failure_mode_catalog.cache_clear()
+    try:
+        with patch(
+            "routes.services.supabase_fetch",
+            new_callable=AsyncMock,
+            side_effect=_mock_supabase_fetch,
+        ):
+            resp = client.get("/v1/services/stripe/score")
+    finally:
+        load_failure_mode_catalog.cache_clear()
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "stripe"
+    assert payload["an_score"] == 8.9
+    assert payload["failure_modes"] == []
+    assert payload["failure_coverage"] == "unresearched"
 
 
 def test_service_score_empty_state_canonicalizes_alias_input(client) -> None:
