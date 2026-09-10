@@ -174,11 +174,19 @@ curl "https://api.rhumb.dev/v1/capabilities/search.query/execute/estimate?creden
 - `not_execute_ready_provider_slugs`: optional subset of skipped higher-ranked providers that still rank but cannot back execute in the current context
 - `auth_method`: the request-side credential handle (`api_key`, `connection_ref`, `crm_ref`, etc.)
 - `configured`: whether that path is already ready on the current deployment in the current context; when `credential_mode` is supplied, this is evaluated against that requested mode rather than some other supported mode
+- `schema_ready`: whether the provider has a non-empty `endpoint_pattern`. This is catalog shape, not tenant credentials
+- `tenant_configured`: the same fact as `configured`, named so operators do not read `available_for_execute` as "this tenant can call it"
+- `callable`: `schema_ready` and `tenant_configured` and `available_for_execute`. Index `callable` stays credential-store inventory from `GET /v1/proxy/services` and does not use this conjunction
+- `available_for_execute`: circuit-breaker allowance only. A closed breaker with `configured=false` stays `available_for_execute=true` and `callable=false`
 - `credential_modes_url`: machine-readable handoff to the full per-mode setup matrix for this capability
 - `preferred_credential_mode`: the lowest-heroics credential mode for that provider in the current context
 - `fallback_providers`: optional ordered alternates that can also back execute right now when the preferred path is not the only viable choice
 - `setup_hint`: present when `configured=false`, with the exact next setup action Rhumb expects before execute
 - `setup_url`: present when Rhumb has a first-class setup surface for that mode, for example a provider ceremony route
+
+`GET /v1/capabilities/{capability_id}/execute/estimate` repeats `schema_ready`, `tenant_configured`, and `callable` for the chosen rail. A 200 estimate with an `endpoint_pattern` is not a tenant-callable promise.
+
+Index `GET /v1/services/{slug}`, `GET /v1/services/{slug}/score`, and `GET /v1/search` keep H7 `callable` plus `tenant_configured` as the same credential-store fact. Those routes have no `endpoint_pattern`, so they do not invent `schema_ready`.
 
 `fallback_chain` stays as the ordered ranked shortlist, but now only includes providers that can actually back execute right now in the current context.
 Use `GET /v1/capabilities/{capability_id}/credential-modes` when you need the full per-mode matrix. Use `execute_hint` when you want the default next step plus any machine-readable alternates.
