@@ -21,7 +21,9 @@ def index_callable_fields(
 ) -> dict[str, bool | str]:
     slug = public_service_slug(service_slug) or str(service_slug or "").strip().lower()
     known = public_callable_slugs() if callable_slugs is None else callable_slugs
+    is_callable = bool(slug) and slug in known
     return {
-        "callable": bool(slug) and slug in known,
+        "callable": is_callable,
         "callable_url": CALLABLE_URL,
+        "tenant_configured": is_callable,
     }

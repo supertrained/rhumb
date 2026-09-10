@@ -19,6 +19,7 @@ from services.crm_connection_registry import has_any_crm_bundle_configured
 from services.db_connection_registry import has_any_db_bundle_configured
 from services.warehouse_connection_registry import has_any_warehouse_bundle_configured
 from services.proxy_auth import AuthInjector
+from services.provider_honesty import rail_honesty_fields, stamp_rail_honesty
 from services.search_query_resolve_rank import sort_resolve_providers
 from services.service_slugs import (
     CANONICAL_TO_PROXY,
@@ -912,6 +913,7 @@ def _db_direct_resolve_payload(capability_id: str) -> dict[str, object]:
             configured_by_mode,
         ),
     }
+    stamp_rail_honesty(provider)
     return {
         "capability": capability_id,
         "providers": [provider],
@@ -953,6 +955,7 @@ def _warehouse_direct_resolve_payload(capability_id: str) -> dict[str, object]:
             configured_by_mode,
         ),
     }
+    stamp_rail_honesty(provider)
     return {
         "capability": capability_id,
         "providers": [provider],
@@ -994,6 +997,7 @@ def _object_storage_direct_resolve_payload(capability_id: str) -> dict[str, obje
             configured_by_mode,
         ),
     }
+    stamp_rail_honesty(provider)
     return {
         "capability": capability_id,
         "providers": [provider],
@@ -1035,6 +1039,7 @@ def _deployment_direct_resolve_payload(capability_id: str) -> dict[str, object]:
             configured_by_mode,
         ),
     }
+    stamp_rail_honesty(provider)
     return {
         "capability": capability_id,
         "providers": [provider],
@@ -1076,6 +1081,7 @@ def _actions_direct_resolve_payload(capability_id: str) -> dict[str, object]:
             configured_by_mode,
         ),
     }
+    stamp_rail_honesty(provider)
     return {
         "capability": capability_id,
         "providers": [provider],
@@ -1123,6 +1129,7 @@ def _crm_direct_resolve_payload(capability_id: str) -> dict[str, object]:
                 configured_by_mode,
             ),
         })
+        stamp_rail_honesty(providers[-1])
     preferred_provider = providers[0]
     return {
         "capability": capability_id,
@@ -1166,6 +1173,7 @@ def _support_direct_resolve_payload(capability_id: str) -> dict[str, object]:
             configured_by_mode,
         ),
     }
+    stamp_rail_honesty(provider)
     return {
         "capability": capability_id,
         "providers": [provider],
@@ -1533,11 +1541,9 @@ def _provider_with_requested_mode_configuration(
         provider,
         requested_credential_mode=requested_credential_mode,
     )
-    if provider.get("configured") == configured:
-        return provider
     updated_provider = dict(provider)
     updated_provider["configured"] = configured
-    return updated_provider
+    return stamp_rail_honesty(updated_provider)
 
 
 def _preferred_credential_mode_for_execute_hint(
@@ -1611,6 +1617,13 @@ def _execute_hint_from_provider(
             )
             if setup_url is not None:
                 execute_hint["setup_url"] = setup_url
+    execute_hint.update(
+        rail_honesty_fields(
+            endpoint_pattern=execute_hint.get("endpoint_pattern"),
+            configured=configured,
+            available_for_execute=provider.get("available_for_execute"),
+        )
+    )
     return execute_hint
 
 
@@ -3660,21 +3673,29 @@ async def resolve_capability(
             "circuit_state": circuit_state,
             "available_for_execute": available_for_execute,
         }
-        all_providers.append({
-            **provider_base,
-            "configured": _mapped_provider_is_configured(
-                credential_modes,
-                byok_configured=byok_configured,
-                requested_credential_mode=credential_mode,
-            ),
-        })
-        recovery_providers.append({
-            **provider_base,
-            "configured": _mapped_provider_is_configured(
-                credential_modes,
-                byok_configured=byok_configured,
-            ),
-        })
+        all_providers.append(
+            stamp_rail_honesty(
+                {
+                    **provider_base,
+                    "configured": _mapped_provider_is_configured(
+                        credential_modes,
+                        byok_configured=byok_configured,
+                        requested_credential_mode=credential_mode,
+                    ),
+                }
+            )
+        )
+        recovery_providers.append(
+            stamp_rail_honesty(
+                {
+                    **provider_base,
+                    "configured": _mapped_provider_is_configured(
+                        credential_modes,
+                        byok_configured=byok_configured,
+                    ),
+                }
+            )
+        )
 
     sort_resolve_providers(capability_id, all_providers)
     sort_resolve_providers(capability_id, recovery_providers)

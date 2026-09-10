@@ -96,9 +96,17 @@ def test_public_callable_slugs_canonicalize_proxy_names() -> None:
 
 def test_index_callable_fields_are_distinct_from_score() -> None:
     fields = index_callable_fields("firecrawl", callable_slugs={"firecrawl"})
-    assert fields == {"callable": True, "callable_url": CALLABLE_URL}
+    assert fields == {
+        "callable": True,
+        "callable_url": CALLABLE_URL,
+        "tenant_configured": True,
+    }
     scored_not_callable = index_callable_fields("firecrawl-v3", callable_slugs={"firecrawl"})
-    assert scored_not_callable == {"callable": False, "callable_url": CALLABLE_URL}
+    assert scored_not_callable == {
+        "callable": False,
+        "callable_url": CALLABLE_URL,
+        "tenant_configured": False,
+    }
 
 
 @pytest.mark.anyio
@@ -123,20 +131,26 @@ async def test_service_and_score_separate_index_score_from_callable(app):
     assert firecrawl_data["execution_score"] == 8.8
     assert firecrawl_data["callable"] is True
     assert firecrawl_data["callable_url"] == CALLABLE_URL
+    assert firecrawl_data["tenant_configured"] is True
+    assert "schema_ready" not in firecrawl_data
 
     assert firecrawl_score.status_code == 200
     assert firecrawl_score.json()["an_score"] == 8.8
     assert firecrawl_score.json()["execution_score"] == 8.8
     assert firecrawl_score.json()["callable"] is True
     assert firecrawl_score.json()["callable_url"] == CALLABLE_URL
+    assert firecrawl_score.json()["tenant_configured"] is True
+    assert "schema_ready" not in firecrawl_score.json()
 
     assert ghost.json()["data"]["an_score"] == 8.8
     assert ghost.json()["data"]["callable"] is False
     assert ghost.json()["data"]["callable_url"] == CALLABLE_URL
+    assert ghost.json()["data"]["tenant_configured"] is False
     assert ghost_score.json()["an_score"] == 8.8
     assert ghost_score.json()["callable"] is False
     assert sendgrid.json()["an_score"] == 8.5
     assert sendgrid.json()["callable"] is False
+    assert sendgrid.json()["tenant_configured"] is False
 
 
 @pytest.mark.anyio
@@ -157,6 +171,9 @@ async def test_index_search_marks_callable_without_changing_hits(app):
     assert by_slug["firecrawl"]["execution_score"] == 8.8
     assert by_slug["firecrawl"]["callable"] is True
     assert by_slug["firecrawl"]["callable_url"] == CALLABLE_URL
+    assert by_slug["firecrawl"]["tenant_configured"] is True
+    assert "schema_ready" not in by_slug["firecrawl"]
     assert by_slug["firecrawl-v3"]["an_score"] == 8.8
     assert by_slug["firecrawl-v3"]["callable"] is False
     assert by_slug["firecrawl-v3"]["callable_url"] == CALLABLE_URL
+    assert by_slug["firecrawl-v3"]["tenant_configured"] is False

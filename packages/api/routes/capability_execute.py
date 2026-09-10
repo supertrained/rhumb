@@ -85,6 +85,7 @@ from services.receipt_service import (
     hash_response_payload,
 )
 from services.provider_attribution import build_attribution
+from services.provider_honesty import rail_honesty_fields
 from services.search_query_resolve_rank import (
     SEARCH_QUERY_CAPABILITY_ID,
     preferred_mapped_provider_slug,
@@ -4172,6 +4173,46 @@ async def execute_capability(
     return {"data": response_data, "error": None}
 
 
+def _estimate_chosen_configured(
+    capability_id: str,
+    chosen: dict[str, Any],
+    credential_mode: str,
+) -> bool:
+    from routes import capabilities as capability_routes
+
+    if capability_id in DIRECT_EXECUTE_CAPABILITY_IDS:
+        payload = capability_routes._synthetic_direct_resolve_payload(capability_id)
+        providers = payload.get("providers") if isinstance(payload, dict) else None
+        if isinstance(providers, list):
+            for provider in providers:
+                if isinstance(provider, dict) and _service_slug_matches(
+                    str(provider.get("service_slug") or ""),
+                    str(chosen.get("service_slug") or ""),
+                ):
+                    return capability_routes._provider_configured_for_requested_mode(
+                        provider,
+                        requested_credential_mode=credential_mode,
+                    )
+        return False
+
+    runtime_slug = normalize_proxy_slug(str(chosen.get("service_slug") or ""))
+    auth_method = capability_routes._effective_auth_method(
+        runtime_slug, chosen.get("auth_method") or "api_key"
+    )
+    credential_modes = chosen.get("credential_modes")
+    byok_configured = False
+    if "byok" in capability_routes._canonicalize_credential_modes(credential_modes):
+        byok_configured = capability_routes._has_proxy_credential_configured(
+            runtime_slug, auth_method
+        )
+    requested = None if credential_mode == "auto" else credential_mode
+    return capability_routes._mapped_provider_is_configured(
+        credential_modes,
+        byok_configured=byok_configured,
+        requested_credential_mode=requested,
+    )
+
+
 @router.get("/capabilities/{capability_id}/execute/estimate")
 async def estimate_capability(
     capability_id: str,
@@ -4292,6 +4333,15 @@ async def estimate_capability(
         "circuit_state": circuit_state,
         "endpoint_pattern": chosen.get("endpoint_pattern"),
     }
+    estimate_data.update(
+        rail_honesty_fields(
+            endpoint_pattern=estimate_data.get("endpoint_pattern"),
+            configured=_estimate_chosen_configured(
+                capability_id, chosen, credential_mode
+            ),
+            available_for_execute=breaker.allow_request(),
+        )
+    )
 
     if is_anonymous_estimate and capability_id in DIRECT_EXECUTE_CAPABILITY_IDS:
         execute_readiness = _direct_execute_estimate_readiness(capability_id)
