@@ -1,5 +1,8 @@
-#!/usr/bin/env bash
 set -euo pipefail
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  exit 2
+fi
 
 VERIFY_RHUMB_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERIFY_RHUMB_SKILL_DIR="$(cd "$VERIFY_RHUMB_BIN_DIR/.." && pwd)"

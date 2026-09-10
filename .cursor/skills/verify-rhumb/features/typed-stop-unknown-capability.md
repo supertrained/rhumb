@@ -30,7 +30,7 @@ Preconditions:
 
 ## Gotchas
 
-- Tests in `packages/api/tests/test_capabilities.py` use `nonexistent` as the unknown id. This map uses `time.travel` as the live invented id. Do not swap them in the recorded proof.
+- Tests in `packages/api/tests/test_capabilities.py` use `nonexistent`. `docs/API.md` uses the typo `email.sned` for suggestion recovery. This map uses `time.travel` as a fully invented id. Keep the recorded proof on `time.travel`.
 - A 200 with an empty provider list is the wrong failure. That envelope is for a known capability with no execute-ready providers.
 - Suggestions must not be treated as proof that the invented id works.
 - MCP resolve maps the same 404 fields. An MCP empty-object fallback is not this proof.
