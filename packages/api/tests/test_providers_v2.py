@@ -1029,6 +1029,19 @@ class TestGetProvider:
         assert data["tier"] == "Native"
         assert data["capabilities"][0]["capability_id"] == "search.query"
 
+    def test_get_provider_accepts_bare_brave_alias(self, client):
+        with patch("routes.providers_v2.supabase_fetch", side_effect=_mock_supabase_fetch_with_alias_backed_callable_provider):
+            resp = client.get("/v2/providers/brave")
+
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["id"] == "brave-search-api"
+        assert data["name"] == "Brave Search"
+        assert data["an_score"] == 8.6
+        assert data["tier"] == "Native"
+        assert data["callable"] is True
+        assert data["capabilities"][0]["capability_id"] == "search.query"
+
     def test_get_provider_backfills_sparse_canonical_metadata_from_alias_row(self, client):
         with patch(
             "routes.providers_v2.supabase_fetch",

@@ -1031,6 +1031,21 @@ def test_service_score_empty_state_canonicalizes_alias_input(client) -> None:
     assert payload["docs_url"] == "https://api.search.brave.com/app/documentation"
 
 
+def test_service_score_empty_state_canonicalizes_bare_brave_alias(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_empty_alias_score_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["explanation"] == "No score found for 'brave-search-api'"
+    assert payload["docs_url"] == "https://api.search.brave.com/app/documentation"
+
+
 def test_services_endpoint_returns_paginated_results_with_total_count(client) -> None:
     """GET /v1/services returns the new paginated envelope with total count."""
     with (
@@ -1351,6 +1366,22 @@ def test_service_detail_accepts_mixed_case_alias_inputs(client) -> None:
     assert payload["data"]["an_score"] == 8.7
 
 
+def test_service_detail_accepts_bare_brave_alias(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["an_score"] == 8.7
+    assert payload["data"]["access_readiness_score"] == 8.6
+
+
 def test_service_alternatives_endpoint_returns_scored_peers(client) -> None:
     with patch(
         "routes.services.supabase_fetch",
@@ -1372,6 +1403,21 @@ def test_service_alternatives_endpoint_returns_scored_peers(client) -> None:
             "tier": "L3",
         }
     ]
+
+
+def test_service_alternatives_accept_bare_brave_alias(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave/alternatives")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["alternatives"][0]["slug"] == "people-data-labs"
 
 
 def test_service_alternatives_endpoint_accepts_alias_slug(client) -> None:
@@ -1545,6 +1591,22 @@ def test_service_score_canonicalizes_alias_backed_score_rows(client) -> None:
     payload = resp.json()
     assert payload["service_slug"] == "brave-search-api"
     assert payload["an_score"] == 8.7
+    assert payload["docs_url"] == "https://api.search.brave.com/app/documentation"
+
+
+def test_service_score_accepts_bare_brave_alias(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave/score")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["service_slug"] == "brave-search-api"
+    assert payload["an_score"] == 8.7
+    assert payload["access_readiness_score"] == 8.6
     assert payload["docs_url"] == "https://api.search.brave.com/app/documentation"
 
 
@@ -1887,6 +1949,21 @@ def test_service_failures_accept_mixed_case_alias_inputs(client) -> None:
         side_effect=_mock_alias_supabase_fetch,
     ):
         resp = client.get("/v1/services/Brave-Search/failures")
+
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert payload["error"] is None
+    assert payload["data"]["slug"] == "brave-search-api"
+    assert payload["data"]["failure_modes"][0]["pattern"] == "Session tokens expire early"
+
+
+def test_service_failures_accept_bare_brave_alias(client) -> None:
+    with patch(
+        "routes.services.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_alias_supabase_fetch,
+    ):
+        resp = client.get("/v1/services/brave/failures")
 
     assert resp.status_code == 200
     payload = resp.json()
