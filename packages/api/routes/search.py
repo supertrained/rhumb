@@ -41,6 +41,10 @@ _SEARCH_STOPWORDS = frozenset(
         "with",
     }
 )
+_BEACHHEAD_VERB_CATEGORIES = {
+    "search": frozenset({"search", "browser-automation", "web-scraping"}),
+    "scrape": frozenset({"search", "browser-automation", "web-scraping"}),
+}
 
 
 async def _cached_fetch(table: str, path: str, ttl: float = _READ_CACHE_TTL_SECONDS):
@@ -249,6 +253,15 @@ def _result_haystack(result: dict[str, Any]) -> str:
     ).lower()
 
 
+def _category_fits_query(category: str, tokens: list[str]) -> bool:
+    normalized = (category or "").lower()
+    if not normalized:
+        return False
+    if normalized in tokens:
+        return True
+    return any(normalized in _BEACHHEAD_VERB_CATEGORIES.get(token, ()) for token in tokens)
+
+
 def _search_rank_key(result: dict[str, Any], query: str, tokens: list[str]) -> tuple:
     name = (result.get("name") or "").lower()
     haystack = _result_haystack(result)
@@ -256,8 +269,8 @@ def _search_rank_key(result: dict[str, Any], query: str, tokens: list[str]) -> t
     return (
         name != query_lower,
         query_lower not in haystack,
+        not _category_fits_query(result.get("category") or "", tokens),
         -sum(1 for token in tokens if token in haystack),
-        (result.get("category") or "").lower() not in tokens,
         -(result.get("an_score") or 0),
     )
 
