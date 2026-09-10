@@ -1,0 +1,16 @@
+{
+  "run_id": "20260910T014200Z",
+  "feature": "index-search",
+  "ok": true,
+  "request": {
+    "method": "GET",
+    "url": "https://api.rhumb.dev/v1/search?q=email&limit=5"
+  },
+  "http_code": 200,
+  "query": "email",
+  "result_count": 5,
+  "first_service_slug": "postmark",
+  "first_an_score": 8.9,
+  "reasons": [],
+  "response_path": "http/search-email.json"
+}

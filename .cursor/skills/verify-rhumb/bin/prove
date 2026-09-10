@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# shellcheck source=common.sh
+source "$(cd "$(dirname "$0")" && pwd)/common.sh"
+
+FEATURE="${1:-index-search}"
+export VERIFY_RHUMB_RUN_ID VERIFY_RHUMB_BASE VERIFY_RHUMB_SITE VERIFY_RHUMB_EVIDENCE_DIR
+export VERIFY_RHUMB_STATE_DIR
+
+"$VERIFY_RHUMB_BIN_DIR/launch"
+"$VERIFY_RHUMB_BIN_DIR/doctor"
+"$VERIFY_RHUMB_BIN_DIR/drive" "$FEATURE"
+"$VERIFY_RHUMB_BIN_DIR/cleanup"
+
+SUMMARY="$VERIFY_RHUMB_EVIDENCE_DIR/drive-$FEATURE.json"
+if [[ ! -f "$SUMMARY" ]]; then
+  echo "prove failed: missing $SUMMARY after cleanup" >&2
+  exit 1
+fi
+
+verify_rhumb_python "$SUMMARY" "$VERIFY_RHUMB_EVIDENCE_DIR" <<'PY'
+import json, sys
+from pathlib import Path
+summary_path, evidence_dir = sys.argv[1], Path(sys.argv[2])
+summary = json.load(open(summary_path, encoding="utf-8"))
+if not summary.get("ok"):
+    raise SystemExit(f"prove failed: {summary_path} ok=false")
+required = [
+    evidence_dir / "launch.json",
+    evidence_dir / "doctor.json",
+    Path(summary_path),
+]
+missing = [str(path) for path in required if not path.is_file()]
+if missing:
+    raise SystemExit("prove failed: evidence missing after cleanup: " + ", ".join(missing))
+print(f"prove ok feature={summary['feature']} evidence={evidence_dir}")
+PY

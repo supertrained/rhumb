@@ -1,0 +1,15 @@
+{
+  "run_id": "20260910T014200Z",
+  "mode": "live",
+  "ok": true,
+  "base": "https://api.rhumb.dev",
+  "site": "https://rhumb.dev",
+  "process": null,
+  "ready": {
+    "url": "https://api.rhumb.dev/v1/healthz",
+    "http_code": 200,
+    "body": {
+      "status": "ok"
+    }
+  }
+}

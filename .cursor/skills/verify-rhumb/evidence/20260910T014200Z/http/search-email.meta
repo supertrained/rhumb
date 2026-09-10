@@ -1,0 +1,21 @@
+url=https://api.rhumb.dev/v1/search?q=email&limit=5
+method=GET
+http_code=200
+HTTP/2 200 
+content-type: application/json
+date: Thu, 10 Sep 2026 01:42:58 GMT
+permissions-policy: camera=(), microphone=(), geolocation=()
+referrer-policy: strict-origin-when-cross-origin
+server: railway-hikari
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-railway-request-id: Awmu1pfpRUSu_nwW55So4g
+x-ratelimit-limit: 120
+x-ratelimit-remaining: 119
+x-ratelimit-reset: 1789004638
+x-request-id: ba591426-eb85-45a1-beb2-0676b6998aee
+content-length: 2573
+x-hikari-trace: jfk1.48ys
+x-railway-edge: jfk1
+vary: accept-encoding
+
