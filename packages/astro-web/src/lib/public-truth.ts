@@ -17,10 +17,11 @@ export const PUBLIC_TRUTH = {
   registeredProvidersLabel: countLabel(PUBLIC_TRUTH_COUNTS.registeredProviders),
   mcpTools: PUBLIC_TRUTH_COUNTS.mcpTools,
   mcpToolsLabel: countLabel(PUBLIC_TRUTH_COUNTS.mcpTools),
-  domainsLabel: "50+",
+  capabilityDomains: PUBLIC_TRUTH_COUNTS.capabilityDomains,
+  domainsLabel: countLabel(PUBLIC_TRUTH_COUNTS.capabilityDomains),
   beachheadLabel: "research, extraction, generation, and narrow enrichment",
   beachheadSummary:
-    "Current launchable scope: research, extraction, generation, and narrow enrichment — not general business-agent automation.",
+    "Current callable scope: research, extraction, generation, and narrow enrichment — not general business-agent automation.",
   trustOverviewUrl: "https://rhumb.dev/trust",
   methodologyUrl: "https://rhumb.dev/methodology",
   providersUrl: "https://rhumb.dev/providers",

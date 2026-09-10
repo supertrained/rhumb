@@ -35,7 +35,7 @@ Ask your agent:
 - *"What's the AN Score for Stripe?"*
 - *"Check whether any Rhumb recipes are published yet"*
 
-## Current launchable scope
+## Current callable scope
 
 Rhumb is strongest today for **research, extraction, generation, and narrow enrichment**.
 

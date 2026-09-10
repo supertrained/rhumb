@@ -66,7 +66,7 @@ Treat broader multi-system business automation as future scope, not the current 
 <!-- GENERATED:README_PRODUCT_SURFACE_START -->
 ### Rhumb Index — Discover & Evaluate
 
-**999 scored services** across 50+ domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
+**999 scored services** across 149 capability domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
 
 - `find_services` — Search indexed Services by what you need them to do
 - `get_score` — Get the full AN Score breakdown for a Service: execution quality, access readiness, autonomy level, tier label, and freshness

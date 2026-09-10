@@ -868,7 +868,8 @@ describe("public authority pricing contract", () => {
       expect(caps.coverage.services).toBe(999);
       expect(caps.coverage.capabilities).toBe(435);
       expect(caps.coverage.providers_with_execution).toBe(28);
-      expect(caps.capabilities.discovery.description).toBe("Search, score, and evaluate 999 services across 50+ domains");
+      expect(caps.coverage.domains).toBe(149);
+      expect(caps.capabilities.discovery.description).toBe("Search, score, and evaluate 999 services across 149 capability domains");
       expect(caps.capabilities.execution.description).toContain("governed API key, wallet-prefund, or x402 per-call, with BYOK or Agent Vault where supported");
       expect(checkCredentialsTool?.description).toBe(
         "Inspect live credential-mode readiness, globally or for a specific Capability",

@@ -16,7 +16,7 @@
   },
   "capabilities": {
     "discovery": {
-      "description": "Search, score, and evaluate 999 services across 50+ domains",
+      "description": "Search, score, and evaluate 999 services across 149 capability domains",
       "auth_required": false,
       "tools": [
         {
@@ -127,7 +127,7 @@
   "coverage": {
     "services": 999,
     "capabilities": 435,
-    "domains": 50,
+    "domains": 149,
     "categories": 87,
     "providers_with_execution": 28,
     "credential_modes": [

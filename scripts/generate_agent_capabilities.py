@@ -39,7 +39,7 @@ MCP_README_COVERAGE_END = "<!-- GENERATED:MCP_README_COVERAGE_END -->"
 GROUPS: list[tuple[str, str, bool, list[str]]] = [
     (
         "discovery",
-        "Search, score, and evaluate {services_label} services across 50+ domains",
+        "Search, score, and evaluate {services_label} services across {domains_label} capability domains",
         False,
         [
             "find_services",
@@ -99,6 +99,7 @@ def load_public_truth_counts() -> dict[str, int | str]:
         "services",
         "capabilities",
         "categories",
+        "capabilityDomains",
         "callableProviders",
         "registeredProviders",
         "mcpTools",
@@ -120,12 +121,14 @@ def render_public_truth_counts(counts: dict[str, int | str]) -> str:
         "  endpoints: {\n"
         '    services: "/v1/services?limit=1",\n'
         '    capabilities: "/v1/capabilities?limit=1",\n'
+        '    capabilityDomains: "/v1/capabilities/domains",\n'
         '    proxyStats: "/v1/proxy/stats",\n'
         '    leaderboard: "/v1/leaderboard",\n'
         "  },\n"
         f"  services: {int(counts['services'])},\n"
         f"  capabilities: {int(counts['capabilities'])},\n"
         f"  categories: {int(counts['categories'])},\n"
+        f"  capabilityDomains: {int(counts['capabilityDomains'])},\n"
         f"  callableProviders: {int(counts['callableProviders'])},\n"
         f"  registeredProviders: {int(counts['registeredProviders'])},\n"
         f"  mcpTools: {int(counts['mcpTools'])},\n"
@@ -150,8 +153,18 @@ def fetch_live_public_truth_counts(api_base: str) -> dict[str, int | str]:
 
     services = get("/services?limit=1")
     capabilities = get("/capabilities?limit=1")
+    capability_domains = get("/capabilities/domains")
     proxy = get("/proxy/stats")
     leaderboard = get("/leaderboard")
+
+    domain_rows = capability_domains.get("domains")
+    if not isinstance(domain_rows, list):
+        raise RuntimeError("Live /capabilities/domains did not return a domains list")
+    distinct_domains = {
+        row["domain"]
+        for row in domain_rows
+        if isinstance(row, dict) and isinstance(row.get("domain"), str) and row["domain"]
+    }
 
     counts = {
         "source": api_base.rstrip("/"),
@@ -159,11 +172,12 @@ def fetch_live_public_truth_counts(api_base: str) -> dict[str, int | str]:
         "services": int(services["total"]),
         "capabilities": int(capabilities["total"]),
         "categories": int(leaderboard["total"]),
+        "capabilityDomains": len(distinct_domains),
         "callableProviders": int(proxy["services_callable"]),
         "registeredProviders": int(proxy["services_registered"]),
         "mcpTools": 21,
     }
-    for key in ("services", "capabilities", "categories", "callableProviders", "registeredProviders"):
+    for key in ("services", "capabilities", "categories", "capabilityDomains", "callableProviders", "registeredProviders"):
         if int(counts[key]) <= 0:
             raise RuntimeError(f"Live public-truth counter {key} was {counts[key]}")
     return counts
@@ -179,6 +193,8 @@ def load_public_truth() -> dict[str, int | str]:
         "capabilitiesLabel": _count_label(int(counts["capabilities"])),
         "categories": int(counts["categories"]),
         "categoriesLabel": _count_label(int(counts["categories"])),
+        "capabilityDomains": int(counts["capabilityDomains"]),
+        "domainsLabel": _count_label(int(counts["capabilityDomains"])),
         "callableProviders": int(counts["callableProviders"]),
         "callableProvidersLabel": _count_label(int(counts["callableProviders"])),
         "registeredProviders": int(counts["registeredProviders"]),
@@ -189,7 +205,6 @@ def load_public_truth() -> dict[str, int | str]:
         "source": str(counts["source"]),
     }
     for key in [
-        "domainsLabel",
         "beachheadLabel",
         "beachheadSummary",
         "trustOverviewUrl",
@@ -235,7 +250,10 @@ def build_agent_capabilities() -> dict:
     capabilities: dict[str, dict] = {}
     for group_name, description_template, auth_required, tool_names in GROUPS:
         capabilities[group_name] = {
-            "description": description_template.format(services_label=public_truth["servicesLabel"]),
+            "description": description_template.format(
+                services_label=public_truth["servicesLabel"],
+                domains_label=public_truth["domainsLabel"],
+            ),
             "auth_required": auth_required,
             "tools": [
                 {"name": tool_name, "description": tools[tool_name]}
@@ -263,7 +281,7 @@ def build_agent_capabilities() -> dict:
         "coverage": {
             "services": public_truth["services"],
             "capabilities": public_truth["capabilities"],
-            "domains": 50,
+            "domains": public_truth["capabilityDomains"],
             "categories": public_truth["categories"],
             "providers_with_execution": public_truth["callableProviders"],
             "credential_modes": ["byok", "rhumb_managed", "agent_vault"],
@@ -331,7 +349,7 @@ def render_tool_table(tool_names: list[str], tools: dict[str, str]) -> str:
 def render_root_product_surface(public_truth: dict[str, int | str], tools: dict[str, str]) -> str:
     return f"""### Rhumb Index — Discover & Evaluate
 
-**{public_truth['servicesLabel']} scored services** across {public_truth['domainsLabel']} domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
+**{public_truth['servicesLabel']} scored services** across {public_truth['domainsLabel']} capability domains. Each gets an [AN Score](https://rhumb.dev/methodology) (0–10) measuring execution quality, access readiness, and agent autonomy support.
 
 {render_tool_bullets(GROUPS[0][3], tools)}
 
@@ -392,7 +410,7 @@ def render_llms_txt(public_truth: dict[str, int | str], tools: dict[str, str]) -
 ## What is Rhumb?
 Rhumb is an agent gateway: Rhumb Index scores and compares services; Rhumb Resolve routes supported capability calls through governed execution rails with receipts.
 
-## Current launchable scope
+## Current callable scope
 - Best current fit: {public_truth['beachheadLabel']}
 - Not the current promise: general business-agent automation or broad multi-system workflow orchestration
 
@@ -403,7 +421,7 @@ Rhumb is an agent gateway: Rhumb Index scores and compares services; Rhumb Resol
 - npm: https://www.npmjs.com/package/rhumb-mcp
 
 ## Current coverage
-- {public_truth['servicesLabel']} scored services across {public_truth['domainsLabel']} domains
+- {public_truth['servicesLabel']} scored services across {public_truth['domainsLabel']} capability domains
 - {public_truth['capabilitiesLabel']} capability definitions
 - {public_truth['categoriesLabel']} categories
 - {public_truth['callableProvidersLabel']} callable providers

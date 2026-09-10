@@ -6,6 +6,15 @@ Purpose: keep Rhumb's public authority copy aligned with live product truth befo
 - **qualified** — allowed only with explicit scope/condition in the public claim.
 - **removed** — stale or unsupported wording removed from public surfaces.
 
+## 2026-09-10 — Claim-diff residuals after Phase B
+
+| Claim area | Verdict | Public action | Evidence / source |
+| --- | --- | --- | --- |
+| Generated `/llms.txt` scored-service list | verified | Runtime llms routes now paginate live `GET /v1/services` (scored set) instead of the Vercel Supabase dump, which capped at 1000 rows and drifted slugs. | `getPublicApiServices` / `getPublicApiCategories`; live compare `scripts/compare_public_llms_catalog.py`. |
+| Generated `/llms.txt` category leaderboard | verified | Category rows now come from live `GET /v1/leaderboard` (87), including `web-scraping`, `web3`, `webhooks`, `workflow-automation`, and `workflow-orchestration`. | Same helpers; live `data.total` 87. |
+| `coverage.domains` / "50+ domains" | verified | Public-truth now fetches distinct capability domains from `GET /v1/capabilities/domains` (149) and labels them as capability domains. | `scripts/generate_agent_capabilities.py --from-live`; `PUBLIC_TRUTH_COUNTS.capabilityDomains`. |
+| Launch language | removed | Homepage journey and generated llms copy now say callable, not launch. Counts stay 999 / 435 / 28. | `JourneySection.astro`; `llms.txt.ts`; `beachheadSummary`; generator `render_llms_txt`. |
+
 ## 2026-09-09 — Phase A public-truth + Index honesty
 
 | Claim area | Verdict | Public action | Evidence / source |
