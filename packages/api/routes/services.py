@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 from routes._supabase import cached_query, supabase_count, supabase_fetch
 from services.error_envelope import RhumbError
 from services.failure_mode_catalog import resolve_failure_modes
+from services.index_callable import index_callable_fields
 from services.service_slugs import (
     CANONICAL_TO_PROXY,
     public_service_slug,
@@ -653,6 +654,7 @@ async def get_service(slug: str, raw_request: Request):
         "data": {
             **service,
             **score,
+            **index_callable_fields(canonical_slug),
             "alternatives": alternatives,
         },
         "error": None,
@@ -794,6 +796,7 @@ async def get_service_score(slug: str, raw_request: Request):
             "docs_url": service.get("official_docs"),
             "openapi_url": None,
             "mcp_server_url": None,
+            **index_callable_fields(canonical_slug),
         }
 
     sc = scores[0]
@@ -857,6 +860,7 @@ async def get_service_score(slug: str, raw_request: Request):
         "tier": sc.get("tier", "unknown"),
         "tier_label": sc.get("tier_label", "Unknown"),
         "explanation": explanation,
+        **index_callable_fields(canonical_slug),
         "dimension_snapshot": dimension_snapshot,
         "calculated_at": sc.get("calculated_at"),
         "payment_autonomy": sc.get("payment_autonomy"),

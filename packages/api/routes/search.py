@@ -10,6 +10,7 @@ from fastapi import APIRouter, Query
 
 from routes._supabase import cached_query, supabase_fetch
 from services.error_envelope import RhumbError
+from services.index_callable import index_callable_fields, public_callable_slugs
 from services.service_slugs import (
     CANONICAL_TO_PROXY,
     public_service_slug,
@@ -359,6 +360,11 @@ async def search_services(
 
     # Exclude scoreless ghost services (no score = no front-end page = 404)
     results = [r for r in results if r.get("an_score") is not None]
+    callable_slugs = public_callable_slugs()
+    results = [
+        {**result, **index_callable_fields(result.get("service_slug"), callable_slugs)}
+        for result in results
+    ]
 
     results.sort(key=lambda item: _search_rank_key(item, query_lower, tokens))
 
