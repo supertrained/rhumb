@@ -19,6 +19,7 @@ from services.crm_connection_registry import has_any_crm_bundle_configured
 from services.db_connection_registry import has_any_db_bundle_configured
 from services.warehouse_connection_registry import has_any_warehouse_bundle_configured
 from services.proxy_auth import AuthInjector
+from services.search_query_resolve_rank import sort_resolve_providers
 from services.service_slugs import (
     CANONICAL_TO_PROXY,
     normalize_proxy_slug,
@@ -3675,16 +3676,8 @@ async def resolve_capability(
             ),
         })
 
-    # Sort: preferred first, then by AN score descending
-    rank_order = {"preferred": 0, "available": 1, "caution": 2, "unscored": 3}
-    all_providers.sort(key=lambda p: (
-        rank_order.get(p["recommendation"], 4),
-        -(p.get("an_score") or 0),
-    ))
-    recovery_providers.sort(key=lambda p: (
-        rank_order.get(p["recommendation"], 4),
-        -(p.get("an_score") or 0),
-    ))
+    sort_resolve_providers(capability_id, all_providers)
+    sort_resolve_providers(capability_id, recovery_providers)
 
     providers = all_providers
     if credential_mode:
