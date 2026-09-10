@@ -1516,6 +1516,42 @@ def _mapped_provider_is_configured(
     return False
 
 
+def _mapped_configured_by_mode(
+    credential_modes: object,
+    *,
+    byok_configured: bool,
+) -> dict[str, bool]:
+    normalized_modes = _canonicalize_credential_modes(credential_modes)
+    return {
+        mode: _mapped_provider_is_configured(
+            normalized_modes,
+            byok_configured=byok_configured,
+            requested_credential_mode=mode,
+        )
+        for mode in normalized_modes
+    }
+
+
+def _credential_mode_map_fields(
+    credential_modes: object,
+    *,
+    byok_configured: bool,
+) -> dict[str, object]:
+    normalized_modes = _canonicalize_credential_modes(credential_modes)
+    configured_by_mode = _mapped_configured_by_mode(
+        normalized_modes,
+        byok_configured=byok_configured,
+    )
+    return {
+        "credential_modes": normalized_modes,
+        "configured_by_mode": configured_by_mode,
+        "configured_credential_modes": _configured_credential_modes(
+            normalized_modes,
+            configured_by_mode,
+        ),
+    }
+
+
 def _provider_can_back_execute_hint(provider: dict[str, object]) -> bool:
     return bool(provider.get("available_for_execute") and provider.get("endpoint_pattern"))
 
@@ -3652,6 +3688,10 @@ async def resolve_capability(
         byok_configured = False
         if "byok" in credential_modes:
             byok_configured = _has_proxy_credential_configured(runtime_slug, auth_method)
+        mode_fields = _credential_mode_map_fields(
+            credential_modes,
+            byok_configured=byok_configured,
+        )
 
         provider_base = {
             "service_slug": slug,
@@ -3665,7 +3705,7 @@ async def resolve_capability(
             "cost_per_call": float(cost) if cost is not None else None,
             "cost_currency": m.get("cost_currency", "USD"),
             "free_tier_calls": free_tier,
-            "credential_modes": credential_modes,
+            **mode_fields,
             "auth_method": auth_method,
             "endpoint_pattern": m.get("endpoint_pattern"),
             "recommendation": recommendation,
