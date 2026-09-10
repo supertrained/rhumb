@@ -12,6 +12,7 @@ test:
 	cd packages/api && pytest
 	cd packages/cli && pytest
 	python3 scripts/generate_agent_capabilities.py --check
+	python3 scripts/callable_contract.py --check
 
 lint:
 	cd packages/api && black --check . && ruff check .
@@ -26,6 +27,7 @@ build:
 
 public-truth:
 	python3 scripts/generate_agent_capabilities.py --from-live --write
+	python3 scripts/callable_contract.py --from-live
 
 db-migrate:
 	psql postgresql://postgres:postgres@localhost:54322/postgres -f supabase/migrations/0001_init.sql

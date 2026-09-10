@@ -38,6 +38,22 @@ python3 scripts/generate_agent_capabilities.py --check
 
 `--from-live` reads `RHUMB_API_BASE` or `--api-base` (default `https://api.rhumb.dev/v1`).
 
+## Callable contract
+
+The counts above are totals only. The dated slug lock is `docs/callable-contract.json`, rendered as `docs/CALLABLE-CONTRACT.md`.
+
+Live `GET /v1/proxy/stats` slug lists are the source of truth. `circuits` is not the source of truth. Operators must not invent slugs.
+
+```bash
+# Refresh the slug snapshot from live stats
+python3 scripts/callable_contract.py --from-live
+
+# CI / local drift check (does not hit the live API)
+python3 scripts/callable_contract.py --check
+```
+
+`make public-truth` also runs `--from-live`. `make test` and the CI `public-truth` job run `--check`.
+
 ## Surfaces the generator writes
 
 - `README.md` managed product + MCP tool blocks, plus the visibility-map callable count
