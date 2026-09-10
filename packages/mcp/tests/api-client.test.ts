@@ -678,3 +678,47 @@ describe("Rhumb MCP API client error formatting", () => {
     ).rejects.toThrow(/retry_header=X-Rhumb-Key/);
   });
 });
+
+describe("Rhumb MCP API client getServiceScore", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("GETs /services/{slug}/score and maps an_score", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        service_slug: "exa",
+        an_score: 8.7,
+        execution_score: 8.8,
+        access_readiness_score: 8.5,
+        confidence: 0.9,
+        tier: "L4",
+        explanation: "Scores 8.7/10 overall.",
+        dimension_snapshot: { probe_freshness: "12 minutes ago" },
+        failure_modes: []
+      })
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = createApiClient("https://api.rhumb.dev/v1");
+    const score = await client.getServiceScore("exa");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.rhumb.dev/v1/services/exa/score");
+    expect(score).toEqual({
+      slug: "exa",
+      aggregateScore: 8.7,
+      executionScore: 8.8,
+      accessScore: 8.5,
+      confidence: 0.9,
+      tier: "L4",
+      explanation: "Scores 8.7/10 overall.",
+      freshness: "12 minutes ago",
+      failureModes: [],
+      tags: []
+    });
+  });
+});
