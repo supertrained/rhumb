@@ -85,6 +85,10 @@ from services.receipt_service import (
     hash_response_payload,
 )
 from services.provider_attribution import build_attribution
+from services.search_query_resolve_rank import (
+    SEARCH_QUERY_CAPABILITY_ID,
+    preferred_mapped_provider_slug,
+)
 from services.service_slugs import (
     canonicalize_service_slug,
     normalize_proxy_slug,
@@ -1767,6 +1771,44 @@ async def _select_provider_mapping(
     return chosen
 
 
+async def _search_query_preferred_provider_slug(mappings: list[dict]) -> str | None:
+    slugs: list[str] = []
+    seen: set[str] = set()
+    for mapping in mappings:
+        slug = _public_provider_slug(mapping.get("service_slug"))
+        if slug and slug not in seen:
+            seen.add(slug)
+            slugs.append(slug)
+    if not slugs:
+        return None
+
+    lookup_slugs: list[str] = []
+    for slug in slugs:
+        for candidate in public_service_slug_candidates(slug):
+            if candidate not in lookup_slugs:
+                lookup_slugs.append(candidate)
+
+    slug_filter = ",".join(f'"{slug}"' for slug in lookup_slugs)
+    scores = await supabase_fetch(
+        f"scores?service_slug=in.({slug_filter})"
+        f"&select=service_slug,aggregate_recommendation_score"
+        f"&order=aggregate_recommendation_score.desc.nullslast"
+    )
+    scores_by_slug: dict[str, float] = {}
+    if scores:
+        for score_row in scores:
+            slug = _public_provider_slug(score_row.get("service_slug"))
+            aggregate = score_row.get("aggregate_recommendation_score")
+            if slug and aggregate is not None and slug not in scores_by_slug:
+                scores_by_slug[slug] = float(aggregate)
+
+    return preferred_mapped_provider_slug(
+        SEARCH_QUERY_CAPABILITY_ID,
+        mappings,
+        scores_by_slug,
+    )
+
+
 async def _resolve_managed_provider_mapping(
     capability_id: str,
     mappings: list[dict],
@@ -1776,10 +1818,20 @@ async def _resolve_managed_provider_mapping(
     from services.rhumb_managed import get_managed_executor
 
     executor = get_managed_executor()
+    lookup_slug = requested_provider
+    if lookup_slug is None and capability_id == SEARCH_QUERY_CAPABILITY_ID:
+        lookup_slug = await _search_query_preferred_provider_slug(mappings)
+
     managed_config = await executor.get_managed_config(
         capability_id,
-        requested_provider,
+        lookup_slug,
     )
+    if (
+        managed_config is None
+        and requested_provider is None
+        and lookup_slug is not None
+    ):
+        managed_config = await executor.get_managed_config(capability_id, None)
     if managed_config is None:
         return None
 

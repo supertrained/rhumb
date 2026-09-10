@@ -31,7 +31,7 @@ Preconditions:
 
 ## Gotchas
 
-- Resolve is the ranked recommendation. Estimate can pick a different active rail. That difference is the contract. This skill does not call estimate.
+- Resolve is the ranked recommendation. For `search.query`, default estimate should use the same provider as `execute_hint.preferred_provider` when that provider has a managed row. This skill does not call estimate.
 - `scripts/dc90_search_query_pilot_smoke.py` resolves, estimates, then executes with a funded dogfood key. Do not run it.
 - `examples/resolve-and-execute.py` stops after resolve when `RHUMB_API_KEY` is unset. Prefer `bin/drive` so estimate cannot start by accident.
 - Provider objects use `service_slug` and `service_name`, not `name`.
