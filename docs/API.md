@@ -179,12 +179,14 @@ curl "https://api.rhumb.dev/v1/capabilities/search.query/execute/estimate?creden
 - `callable`: `schema_ready` and `tenant_configured` and `available_for_execute`. Index `callable` stays credential-store inventory from `GET /v1/proxy/services` and does not use this conjunction
 - `available_for_execute`: circuit-breaker allowance only. A closed breaker with `configured=false` stays `available_for_execute=true` and `callable=false`
 - `credential_modes_url`: machine-readable handoff to the full per-mode setup matrix for this capability
+- `configured_by_mode`: per-mode configured map on resolve providers. Catalog resolve adds the same map direct rails already expose. Circuit identity scopes (`anonymous`, `x402_anonymous`) are breaker keys, not credential-mode names
+- `configured_credential_modes`: the modes from that map that are configured right now
 - `preferred_credential_mode`: the lowest-heroics credential mode for that provider in the current context
 - `fallback_providers`: optional ordered alternates that can also back execute right now when the preferred path is not the only viable choice
 - `setup_hint`: present when `configured=false`, with the exact next setup action Rhumb expects before execute
 - `setup_url`: present when Rhumb has a first-class setup surface for that mode, for example a provider ceremony route
 
-`GET /v1/capabilities/{capability_id}/execute/estimate` repeats `schema_ready`, `tenant_configured`, and `callable` for the chosen rail. A 200 estimate with an `endpoint_pattern` is not a tenant-callable promise.
+`GET /v1/capabilities/{capability_id}/execute/estimate` repeats `schema_ready`, `tenant_configured`, and `callable` for the chosen rail. A 200 estimate with an `endpoint_pattern` is not a tenant-callable promise. Estimate also repeats `credential_modes`, `configured_by_mode`, `configured_credential_modes`, and `credential_modes_url`. `credential_mode` stays the resolved auto or requested pick.
 
 Index `GET /v1/services/{slug}`, `GET /v1/services/{slug}/score`, and `GET /v1/search` keep H7 `callable` plus `tenant_configured` as the same credential-store fact. Those routes have no `endpoint_pattern`, so they do not invent `schema_ready`.
 
