@@ -61,7 +61,7 @@ Rhumb makes those constraints visible before you commit.
 
 Rhumb is strongest today for **research, extraction, generation, and narrow enrichment**.
 
-Treat broader multi-system business automation as future scope, not the current launch promise. Use Layer 2 capabilities for real work now, and treat Layer 3 as beta with an intentionally sparse public catalog.
+Treat broader multi-system business automation as future scope, not the current callable promise. Use Layer 2 capabilities for real work now, and treat Layer 3 as beta with an intentionally sparse public catalog.
 
 <!-- GENERATED:README_PRODUCT_SURFACE_START -->
 ### Rhumb Index — Discover & Evaluate
@@ -87,7 +87,7 @@ Treat broader multi-system business automation as future scope, not the current 
 - `get_receipt` — Retrieve an execution receipt by ID
 - Budget enforcement, credential management, and execution telemetry included
 
-> Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation and broad multi-system orchestration as future scope, not the current launch promise.
+> Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation and broad multi-system orchestration as future scope, not the current callable promise.
 <!-- GENERATED:README_PRODUCT_SURFACE_END -->
 
 ### Repository visibility map
@@ -165,7 +165,7 @@ Canonical onboarding map: <https://rhumb.dev/docs#resolve-mental-model>
 
 > Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists.
 
-> Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation as future scope, not the current launch promise.
+> Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation as future scope, not the current callable promise.
 <!-- GENERATED:README_MCP_TOOLS_END -->
 
 ---

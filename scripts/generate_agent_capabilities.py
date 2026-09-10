@@ -365,7 +365,7 @@ def render_root_product_surface(public_truth: dict[str, int | str], tools: dict[
 - `get_receipt` — {tools['get_receipt']}
 - Budget enforcement, credential management, and execution telemetry included
 
-> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation and broad multi-system orchestration as future scope, not the current launch promise."""
+> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation and broad multi-system orchestration as future scope, not the current callable promise."""
 
 
 def render_root_mcp_tools(public_truth: dict[str, int | str], tools: dict[str, str]) -> str:
@@ -380,7 +380,7 @@ def render_root_mcp_tools(public_truth: dict[str, int | str], tools: dict[str, s
         "\n> Note: Layer 3 recipe tooling is live, but the public catalog can still be empty. Use `rhumb_list_recipes` or visit `/recipes` before assuming a workflow exists."
     )
     sections.append(
-        f"\n> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation as future scope, not the current launch promise."
+        f"\n> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation as future scope, not the current callable promise."
     )
     return "\n".join(sections)
 
@@ -398,7 +398,7 @@ def render_mcp_readme_tool_surface(public_truth: dict[str, int | str], tools: di
         f"**Financial (auth):** {', '.join(f'`{name}`' for name in GROUPS[2][3])}\n\n"
         f"**Operations (auth):** {', '.join(f'`{name}`' for name in GROUPS[3][3])}\n\n"
         f"> Discovery spans {public_truth['servicesLabel']} scored services, but current governed execution spans {public_truth['callableProvidersLabel']} callable providers.\n\n"
-        f"> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation as future scope, not the current launch promise."
+        f"> Best current fit: {public_truth['beachheadLabel']}. Treat general business-agent automation as future scope, not the current callable promise."
     )
     return "\n\n".join(sections)
 

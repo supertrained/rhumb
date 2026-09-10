@@ -155,7 +155,7 @@ Get a governed API key at https://rhumb.dev/auth/login (GitHub, Google, or email
 
 > Discovery spans 999 scored services, but current governed execution spans 28 callable providers.
 
-> Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation as future scope, not the current launch promise.
+> Best current fit: research, extraction, generation, and narrow enrichment. Treat general business-agent automation as future scope, not the current callable promise.
 <!-- GENERATED:MCP_README_TOOL_SURFACE_END -->
 
 ## Common workflows

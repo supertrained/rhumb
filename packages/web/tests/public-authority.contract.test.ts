@@ -24,6 +24,10 @@ const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/b
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroStatsStrip = readFileSync(new URL("../../astro-web/src/components/StatsStrip.astro", import.meta.url), "utf8");
 const astroJourneySection = readFileSync(new URL("../../astro-web/src/components/JourneySection.astro", import.meta.url), "utf8");
+const astroResolveComparisonCta = readFileSync(
+  new URL("../../astro-web/src/components/ResolveComparisonCta.astro", import.meta.url),
+  "utf8",
+);
 const astroPublicTruthCounts = readFileSync(new URL("../../astro-web/src/lib/public-truth-counts.ts", import.meta.url), "utf8");
 const astroPublicAgentCapabilities = readFileSync(
   new URL("../../astro-web/public/agent-capabilities.json", import.meta.url),
@@ -176,10 +180,34 @@ describe("public authority pricing contract", () => {
     expect(astroJourneySection).not.toContain("I launch my agent with Index or Resolve.");
     expect(astroJourneySection).toContain("I discover with Index, then use Resolve only when a route is callable.");
     expect(astroPublicTruth).not.toContain("Current launchable scope:");
-    expect(astroPublicTruthCounts).toContain("capabilityDomains:");
+    expect(astroPublicTruthCounts).toContain('capabilityDomains: "/v1/capabilities/domains"');
+    expect(astroPublicTruthCounts).toContain("capabilityDomains: 149");
     expect(astroPublicTruthCounts).not.toContain("capabilityDomains: 50");
     expect(rootLlms).not.toContain("## Current launchable scope");
     expect(rootLlms).not.toContain("across 50+ domains");
+    expect(rootReadme).not.toContain("launch promise");
+    expect(rootReadme).toContain("callable promise");
+    for (const surface of [
+      astroHome,
+      astroJourneySection,
+      astroStatsStrip,
+      astroLlmsRoute,
+      astroLlmsFullRoute,
+      astroResolve,
+      astroAbout,
+      astroDocs,
+      astroStartManagedExecution,
+      astroResolveComparisonCta,
+      astroPublicTruth,
+      rootLlms,
+      rootReadme,
+    ]) {
+      expect(surface).not.toContain("launchable");
+      expect(surface).not.toContain("I launch my agent");
+      expect(surface).not.toContain("launch promise");
+      expect(surface).not.toContain("1,038");
+      expect(surface).not.toContain("16 callable");
+    }
   });
 
   it("keeps the web homepage, about, and search authority surfaces pinned to public truth labels", () => {

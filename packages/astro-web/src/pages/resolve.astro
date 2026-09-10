@@ -16,7 +16,7 @@ const heroCards = [
   {
     title: "Honest execution boundary",
     body:
-      `Resolve is launchable today for ${PUBLIC_TRUTH.beachheadLabel} across ${PUBLIC_TRUTH.callableProvidersLabel} callable providers. It does not pretend every scored service is executable.`,
+      `Resolve is callable today for ${PUBLIC_TRUTH.beachheadLabel} across ${PUBLIC_TRUTH.callableProvidersLabel} callable providers. It does not pretend every scored service is executable.`,
   },
 ];
 
@@ -203,7 +203,7 @@ const readinessCurl = `curl -sS \
   "https://api.rhumb.dev/v1/capabilities/email.send/resolve"`;
 
 const agentContext =
-  `Rhumb Resolve is Rhumb’s governed execution layer for AI agents. Agents can tell Resolve the job they want done or explicitly pin the supported provider path they want. By default, Resolve first matches the supported capability path, then routes supported calls to the best-fit provider using AN Score as a major input alongside provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints. Current launchable scope is ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}.`;
+  `Rhumb Resolve is Rhumb’s governed execution layer for AI agents. Agents can tell Resolve the job they want done or explicitly pin the supported provider path they want. By default, Resolve first matches the supported capability path, then routes supported calls to the best-fit provider using AN Score as a major input alongside provider availability / circuit state, estimated cost, credential mode, latency proxy, and explicit policy constraints. Current callable scope is ${PUBLIC_TRUTH.callableProvidersLabel} callable providers, strongest in ${PUBLIC_TRUTH.beachheadLabel}.`;
 ---
 
 <Layout
@@ -381,7 +381,7 @@ const agentContext =
     <section class="max-w-6xl mx-auto px-6 py-16">
       <div class="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
         <div class="rounded-3xl border border-amber/20 bg-surface p-7 sm:p-8">
-          <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">Current launchable surface</p>
+          <p class="text-xs font-mono text-amber uppercase tracking-[0.25em] mb-3">Current callable surface</p>
           <h2 class="font-display font-bold text-3xl text-slate-100 tracking-tight">Broad enough to matter. Narrow enough to stay honest.</h2>
           <p class="mt-4 text-sm leading-6 text-slate-300">
             {PUBLIC_TRUTH.beachheadSummary}
