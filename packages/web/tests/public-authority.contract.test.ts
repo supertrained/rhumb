@@ -23,6 +23,7 @@ const astroPublicTruth = readFileSync(new URL("../../astro-web/src/lib/public-tr
 const astroGettingStartedMcp = readFileSync(new URL("../../astro-web/src/pages/blog/getting-started-mcp.astro", import.meta.url), "utf8");
 const astroHome = readFileSync(new URL("../../astro-web/src/pages/index.astro", import.meta.url), "utf8");
 const astroStatsStrip = readFileSync(new URL("../../astro-web/src/components/StatsStrip.astro", import.meta.url), "utf8");
+const astroJourneySection = readFileSync(new URL("../../astro-web/src/components/JourneySection.astro", import.meta.url), "utf8");
 const astroPublicTruthCounts = readFileSync(new URL("../../astro-web/src/lib/public-truth-counts.ts", import.meta.url), "utf8");
 const astroPublicAgentCapabilities = readFileSync(
   new URL("../../astro-web/public/agent-capabilities.json", import.meta.url),
@@ -156,6 +157,29 @@ describe("public authority pricing contract", () => {
     expect(astroPublicTruthCounts).toContain("capabilities: 435");
     expect(astroPublicTruthCounts).toContain("categories: 87");
     expect(astroPublicTruthCounts).toContain("callableProviders: 28");
+    expect(astroStatsStrip).not.toContain("1,038");
+    expect(astroStatsStrip).not.toContain("415");
+    expect(astroStatsStrip).not.toContain("16 callable");
+  });
+
+  it("keeps generated llms catalogs on the live scored API, not the Supabase dump", () => {
+    for (const route of [astroLlmsRoute, astroLlmsFullRoute]) {
+      expect(route).toContain("getPublicApiServices");
+      expect(route).toContain("getPublicApiCategories");
+      expect(route).not.toContain("getServices()");
+      expect(route).not.toContain("getCategories()");
+      expect(route).not.toContain("Current launchable scope");
+    }
+  });
+
+  it("scrubs homepage launch language and keeps capability-domain coverage honest", () => {
+    expect(astroJourneySection).not.toContain("I launch my agent with Index or Resolve.");
+    expect(astroJourneySection).toContain("I discover with Index, then use Resolve only when a route is callable.");
+    expect(astroPublicTruth).not.toContain("Current launchable scope:");
+    expect(astroPublicTruthCounts).toContain("capabilityDomains:");
+    expect(astroPublicTruthCounts).not.toContain("capabilityDomains: 50");
+    expect(rootLlms).not.toContain("## Current launchable scope");
+    expect(rootLlms).not.toContain("across 50+ domains");
   });
 
   it("keeps the web homepage, about, and search authority surfaces pinned to public truth labels", () => {
