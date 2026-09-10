@@ -1276,7 +1276,14 @@ async def list_services() -> dict:
 
 @router.get("/stats")
 async def proxy_stats() -> dict:
-    """Get proxy statistics: latency, circuit breaker states, pool utilization."""
+    """Return proxy inventory counts, observed breaker state, and pool stats.
+
+    ``services_registered_slugs`` and ``services_callable_slugs`` are the
+    public ids behind ``services_registered`` and ``services_callable``.
+    ``GET /v1/proxy/services`` returns the same inventory with per-service
+    flags. ``circuits`` is the breaker window for this process. It is not
+    the callable inventory.
+    """
     tracker = get_latency_tracker()
     breaker_reg = get_breaker_registry()
     pool = get_pool_manager()
@@ -1290,6 +1297,9 @@ async def proxy_stats() -> dict:
     callable_public_svcs = {
         _public_proxy_service_name(service) or service for service in callable_svcs
     }
+    registered_public_slugs = sorted(
+        canonicalize_service_slug(service_name) for service_name in SERVICE_REGISTRY
+    )
 
     circuits: dict[str, str] = {}
     for key, state in breaker_reg.get_all_states().items():
@@ -1313,10 +1323,10 @@ async def proxy_stats() -> dict:
 
     return {
         "data": {
-            # services_registered: total entries in SERVICE_REGISTRY (may lack credentials)
-            # services_callable: subset that have a live credential — actually reachable
             "services_registered": len(SERVICE_REGISTRY),
             "services_callable": len(callable_public_svcs),
+            "services_registered_slugs": registered_public_slugs,
+            "services_callable_slugs": sorted(callable_public_svcs),
             "circuits": circuits,
             "latency": {
                 "p50_ms": round(global_snapshot.p50_ms, 3),
