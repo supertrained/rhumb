@@ -57,6 +57,8 @@ jobs:
           python-version: "3.12"
       - name: Check generated public-truth surfaces
         run: python3 scripts/generate_agent_capabilities.py --check
+      - name: Check callable-contract snapshot
+        run: python3 scripts/callable_contract.py --check
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
