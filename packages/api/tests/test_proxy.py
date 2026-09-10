@@ -536,6 +536,26 @@ class TestProxyRouter:
         circuit_slugs = {key.split(":", 1)[0] for key in stats["circuits"]}
         assert circuit_slugs != set(stats["services_callable_slugs"]) or not flagged_callable
 
+    def test_proxy_stats_empty_per_service_and_pools_are_unobserved_not_inventory(self, client):
+        proxy_module._latency_tracker = None
+        proxy_module._pool_manager = None
+
+        stats = client.get("/proxy/stats").json()["data"]
+
+        assert stats["per_service"] == {}
+        assert stats["pools"] == {}
+        assert stats["per_service_coverage"] == "unobserved"
+        assert stats["pools_coverage"] == "unobserved"
+        assert "callable depth is zero" in stats["per_service_honesty"]
+        assert "services_callable_slugs" in stats["per_service_honesty"]
+        assert "callable depth is zero" in stats["pools_honesty"]
+        assert "services_callable_slugs" in stats["pools_honesty"]
+        assert stats["services_registered"] == len(stats["services_registered_slugs"])
+        assert stats["services_callable"] == len(stats["services_callable_slugs"])
+        assert stats["services_registered_slugs"]
+        assert set(stats["per_service"]) != set(stats["services_registered_slugs"])
+        assert "bright-data" not in stats["services_registered_slugs"]
+
     def test_proxy_stats_canonicalize_alias_backed_service_keys(self, client, httpx_mock):
         """Proxy stats should expose canonical public ids for alias-backed services."""
         agent = _run(proxy_module._identity_store.verify_api_key_with_agent(_BYPASS_KEY))
@@ -575,6 +595,11 @@ class TestProxyRouter:
         assert scoped_key in payload["pools"]
         assert f"pdl:{agent.agent_id}" not in payload["per_service"]
         assert payload["per_service"][scoped_key]["service"] == "people-data-labs"
+        assert payload["per_service_coverage"] == "observed"
+        assert payload["pools_coverage"] == "observed"
+        assert "callable inventory" in payload["per_service_honesty"]
+        assert "services_callable_slugs" in payload["per_service_honesty"]
+        assert "callable inventory" in payload["pools_honesty"]
 
     def test_proxy_stats_canonicalize_same_service_alias_backed_keys(self, client, httpx_mock):
         """Proxy stats should keep canonical public ids for self-alias-backed services too."""
@@ -616,6 +641,9 @@ class TestProxyRouter:
         assert scoped_key in payload["pools"]
         assert f"brave-search:{agent.agent_id}" not in payload["per_service"]
         assert payload["per_service"][scoped_key]["service"] == "brave-search-api"
+        assert payload["per_service_coverage"] == "observed"
+        assert payload["pools_coverage"] == "observed"
+        assert "callable inventory" in payload["per_service_honesty"]
 
 
 class TestProxyRequest:

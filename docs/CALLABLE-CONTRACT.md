@@ -2,7 +2,7 @@
 
 Snapshot dated `2026-09-10T07:57:12Z`.
 
-Live `GET /v1/proxy/stats` slug lists are the source of truth for registered and callable provider slugs. `circuits` is not inventory. Operators must not invent slugs.
+Live `GET /v1/proxy/stats` slug lists are the source of truth for registered and callable provider slugs. `circuits` is not inventory. `per_service` and `pools` are this worker's observed windows. They are not inventory. Operators must not invent slugs.
 
 Source: `https://api.rhumb.dev/v1/proxy/stats`
 

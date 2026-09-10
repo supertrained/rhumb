@@ -42,6 +42,10 @@ def test_extract_returns_exact_stats_slugs_and_ignores_circuits() -> None:
             },
             "per_service": {"bright-data": {"count": 1}},
             "pools": {"bright-data": {"pool_size": 1}},
+            "per_service_coverage": "observed",
+            "pools_coverage": "observed",
+            "per_service_honesty": "not inventory",
+            "pools_honesty": "not inventory",
         }
     }
 

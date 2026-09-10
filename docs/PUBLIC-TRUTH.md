@@ -42,7 +42,7 @@ python3 scripts/generate_agent_capabilities.py --check
 
 The counts above are totals only. The dated slug lock is `docs/callable-contract.json`, rendered as `docs/CALLABLE-CONTRACT.md`.
 
-Live `GET /v1/proxy/stats` slug lists are the source of truth. `circuits` is not the source of truth. Operators must not invent slugs.
+Live `GET /v1/proxy/stats` slug lists are the source of truth. `circuits`, `per_service`, and `pools` are not the source of truth. Operators must not invent slugs.
 
 ```bash
 # Refresh the slug snapshot from live stats

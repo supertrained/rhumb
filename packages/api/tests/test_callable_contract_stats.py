@@ -25,3 +25,12 @@ def test_proxy_stats_registered_slugs_match_committed_contract(client):
     assert "sendgrid" not in callable_slugs
     assert "bright-data" not in registered
     assert "bright-data" not in callable_slugs
+    assert stats["per_service"] == {}
+    assert stats["pools"] == {}
+    assert stats["per_service_coverage"] == "unobserved"
+    assert stats["pools_coverage"] == "unobserved"
+    assert "callable depth is zero" in stats["per_service_honesty"]
+    assert "services_callable_slugs" in stats["per_service_honesty"]
+    assert "callable depth is zero" in stats["pools_honesty"]
+    assert stats["services_registered"] == len(registered)
+    assert stats["services_callable"] == len(stats["services_callable_slugs"])
