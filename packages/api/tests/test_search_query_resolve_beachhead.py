@@ -162,13 +162,29 @@ async def test_search_query_resolve_prefers_beachhead_web_over_index_engines(app
     assert resp.status_code == 200
     data = resp.json()["data"]
     slugs = [provider["service_slug"] for provider in data["providers"]]
-    assert slugs[:3] == BEACHHEAD_FIRST
-    assert slugs[3:] == INDEX_ENGINES
+    beachhead = ("exa", "tavily", "brave-search-api")
+    index_engines = ("algolia", "elasticsearch", "meilisearch", "typesense")
+    for beachhead_slug in beachhead:
+        assert beachhead_slug in slugs
+        for index_slug in index_engines:
+            assert slugs.index(beachhead_slug) < slugs.index(
+                index_slug
+            ), f"{beachhead_slug} must outrank {index_slug} on search.query"
+    assert slugs[:3] == ["exa", "tavily", "brave-search-api"]
+    assert slugs[3:] == [
+        "algolia",
+        "elasticsearch",
+        "meilisearch",
+        "typesense",
+    ]
     assert "brave-search" not in slugs
     assert "firecrawl" not in slugs
     assert data["capability"] == "search.query"
-    assert data["fallback_chain"] == BEACHHEAD_FIRST
+    assert data["fallback_chain"] == ["exa", "tavily", "brave-search-api"]
+    for index_slug in index_engines:
+        assert index_slug not in data["fallback_chain"]
     assert data["execute_hint"]["preferred_provider"] == "exa"
+    assert data["execute_hint"]["preferred_provider"] in beachhead
     assert data["execute_hint"]["selection_reason"] == "highest_ranked_provider"
     assert data["execute_hint"]["fallback_providers"] == [
         "tavily",
