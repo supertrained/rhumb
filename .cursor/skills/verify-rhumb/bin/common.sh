@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Shared paths and HTTP helpers for verify-rhumb. Source this file. Do not execute it.
-
 set -euo pipefail
 
 VERIFY_RHUMB_BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
