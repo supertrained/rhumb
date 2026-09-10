@@ -341,6 +341,16 @@ class TestScoresV2Endpoints:
         assert body["data"]["service_slug"] == "brave-search-api"
         assert body["data"]["an_score"] == 8.9
 
+    def test_get_score_from_bare_brave_alias_uses_runtime_cache_key(self, client):
+        cache = get_score_cache()
+        cache._populate([_make_score("brave-search", 8.9, tier="L4")])
+
+        resp = client.get("/v2/scores/brave")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["data"]["service_slug"] == "brave-search-api"
+        assert body["data"]["an_score"] == 8.9
+
     def test_get_score_history_empty(self, client):
         resp = client.get("/v2/scores/stripe/history")
         assert resp.status_code == 200
