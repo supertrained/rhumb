@@ -516,6 +516,26 @@ class TestProxyRouter:
         # In tests, credentials are seeded so at least one service should be callable.
         assert data["data"]["services_callable"] >= 0
 
+    def test_proxy_stats_lists_inventory_slugs_from_services_endpoint(self, client):
+        services = client.get("/proxy/services").json()["data"]
+        stats = client.get("/proxy/stats").json()["data"]
+
+        registered = sorted(service["canonical_slug"] for service in services["services"])
+        flagged_callable = sorted(
+            service["canonical_slug"]
+            for service in services["services"]
+            if service["callable"]
+        )
+
+        assert stats["services_registered_slugs"] == registered
+        assert stats["services_registered"] == len(registered)
+        assert stats["services_callable_slugs"] == sorted(stats["services_callable_slugs"])
+        assert len(stats["services_callable_slugs"]) == stats["services_callable"]
+        for slug in flagged_callable:
+            assert slug in stats["services_callable_slugs"]
+        circuit_slugs = {key.split(":", 1)[0] for key in stats["circuits"]}
+        assert circuit_slugs != set(stats["services_callable_slugs"]) or not flagged_callable
+
     def test_proxy_stats_canonicalize_alias_backed_service_keys(self, client, httpx_mock):
         """Proxy stats should expose canonical public ids for alias-backed services."""
         agent = _run(proxy_module._identity_store.verify_api_key_with_agent(_BYPASS_KEY))
