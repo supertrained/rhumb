@@ -453,42 +453,30 @@ async function getServicesFromAPI(): Promise<Service[]> {
   return parseServicesResponse(payload);
 }
 
-async function getServiceCountFromAPI(): Promise<number> {
-  const payload = await fetchPayload("/services?limit=1");
+function readListTotal(payload: unknown): number {
   if (!payload || typeof payload !== "object" || !("data" in payload)) {
     return 0;
   }
-
   const data = (payload as { data?: unknown }).data;
   if (!data || typeof data !== "object") {
     return 0;
   }
-
   const total = (data as { total?: unknown }).total;
-  if (typeof total === "number" && Number.isFinite(total)) {
-    return total;
-  }
-
-  const items = (data as { items?: unknown }).items;
-  return Array.isArray(items) ? items.length : 0;
+  return typeof total === "number" && Number.isFinite(total) ? total : 0;
 }
 
-async function getCategoriesFromAPI(): Promise<CategorySummary[]> {
-  const payload = await fetchPayload("/leaderboard?limit=1");
+function parseLeaderboardCategories(payload: unknown): CategorySummary[] {
   if (!payload || typeof payload !== "object" || !("data" in payload)) {
     return [];
   }
-
   const data = (payload as { data?: unknown }).data;
   if (!data || typeof data !== "object" || !("categories" in data)) {
     return [];
   }
-
   const categories = (data as { categories?: unknown }).categories;
   if (!Array.isArray(categories)) {
     return [];
   }
-
   return categories
     .filter((row): row is Record<string, unknown> => typeof row === "object" && row !== null)
     .map((row) => {
@@ -499,6 +487,55 @@ async function getCategoriesFromAPI(): Promise<CategorySummary[]> {
       return { slug, serviceCount };
     })
     .filter((row): row is CategorySummary => row !== null);
+}
+
+export async function getPublicApiServices(): Promise<Service[]> {
+  const pageSize = 500;
+  const collected: Service[] = [];
+  let offset = 0;
+  let total = Number.POSITIVE_INFINITY;
+  while (collected.length < total) {
+    const payload = await fetchPayload(`/services?limit=${pageSize}&offset=${offset}`);
+    const page = parseServicesResponse(payload);
+    const nextTotal = readListTotal(payload);
+    if (nextTotal > 0) {
+      total = nextTotal;
+    }
+    collected.push(...page);
+    if (page.length === 0) {
+      break;
+    }
+    offset += page.length;
+    if (offset > 10_000) {
+      break;
+    }
+  }
+  return collected;
+}
+
+export async function getPublicApiCategories(): Promise<CategorySummary[]> {
+  return parseLeaderboardCategories(await fetchPayload("/leaderboard"));
+}
+
+async function getServiceCountFromAPI(): Promise<number> {
+  const payload = await fetchPayload("/services?limit=1");
+  const total = readListTotal(payload);
+  if (total > 0) {
+    return total;
+  }
+  if (!payload || typeof payload !== "object" || !("data" in payload)) {
+    return 0;
+  }
+  const data = (payload as { data?: unknown }).data;
+  if (!data || typeof data !== "object") {
+    return 0;
+  }
+  const items = (data as { items?: unknown }).items;
+  return Array.isArray(items) ? items.length : 0;
+}
+
+async function getCategoriesFromAPI(): Promise<CategorySummary[]> {
+  return parseLeaderboardCategories(await fetchPayload("/leaderboard?limit=1"));
 }
 
 async function getLeaderboardFromAPI(

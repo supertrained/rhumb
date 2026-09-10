@@ -2,7 +2,7 @@
 
 Single source for the public coverage counts that marketing, docs, MCP, and agent-caps must not invent.
 
-## Live counters used (re-verified with curl 2026-09-09T21:17:04Z)
+## Live counters used (re-verified with curl 2026-09-10T04:23:24Z)
 
 | Counter | Endpoint | Live value |
 | --- | --- | --- |
@@ -11,6 +11,9 @@ Single source for the public coverage counts that marketing, docs, MCP, and agen
 | Callable providers | `GET https://api.rhumb.dev/v1/proxy/stats` → `data.services_callable` | 28 |
 | Registered providers | `GET https://api.rhumb.dev/v1/proxy/stats` → `data.services_registered` | 29 |
 | Leaderboard categories | `GET https://api.rhumb.dev/v1/leaderboard` → `data.total` | 87 |
+| Capability domains | `GET https://api.rhumb.dev/v1/capabilities/domains` → distinct `data.domains[].domain` | 149 |
+
+`coverage.domains` in `agent-capabilities.json` is that capability-domain count. It is not service categories (87) and not a marketing "50+" floor.
 
 Do not hand-edit those numbers in copy. Refresh them from the live API.
 

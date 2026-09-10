@@ -24,6 +24,7 @@ def test_load_public_truth_counts_uses_top_level_numbers_not_endpoint_paths():
     assert isinstance(counts["capabilities"], int)
     assert counts["capabilities"] > 0
     assert counts["categories"] == 87
+    assert counts["capabilityDomains"] == 149
     assert counts["callableProviders"] == 28
     assert counts["registeredProviders"] == 29
     assert "services?limit" not in str(counts["services"])
