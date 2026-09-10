@@ -215,6 +215,114 @@ _CANONICAL_ROW_SHORTHAND_SCORES = [
     },
 ]
 
+_BEACHHEAD_WEB_SEARCH_SERVICES = [
+    {
+        "slug": "brave-search-api",
+        "name": "Brave Search",
+        "category": "search",
+        "description": "Independent web search API with web, news, image, and video results.",
+    },
+    {
+        "slug": "exa",
+        "name": "Exa",
+        "category": "search",
+        "description": "AI-native search API providing neural search over the web for LLM agents.",
+    },
+    {
+        "slug": "tavily",
+        "name": "Tavily",
+        "category": "search",
+        "description": "Search API that searches the web, scrapes relevant content, and returns LLM-ready results.",
+    },
+    {
+        "slug": "algolia",
+        "name": "Algolia",
+        "category": "search",
+        "description": "Hosted search API for in-product indexes.",
+    },
+    {
+        "slug": "firecrawl",
+        "name": "Firecrawl",
+        "category": "browser-automation",
+        "description": "Web crawling and content extraction API with scrape endpoints and search-ready content.",
+    },
+    {
+        "slug": "crawl4ai",
+        "name": "Crawl4AI",
+        "category": "web-scraping",
+        "description": "Open-source async web crawling and scraping library for LLM workflows.",
+    },
+    {
+        "slug": "hyperdx",
+        "name": "HyperDX",
+        "category": "monitoring",
+        "description": "Observability platform with correlated search across telemetry and a web dashboard.",
+    },
+    {
+        "slug": "datasette",
+        "name": "Datasette",
+        "category": "analytics",
+        "description": "Publish SQLite databases as browsable web APIs with faceting and search.",
+    },
+    {
+        "slug": "perplexity-api",
+        "name": "Perplexity API",
+        "category": "ai",
+        "description": "Answer-generation API with search-grounded responses and web-aware reasoning.",
+    },
+    {
+        "slug": "elasticsearch",
+        "name": "Elasticsearch",
+        "category": "search",
+        "description": "Distributed search and analytics engine for private indexes.",
+    },
+    {
+        "slug": "meilisearch",
+        "name": "Meilisearch",
+        "category": "search",
+        "description": "Typo-tolerant search engine for application indexes.",
+    },
+    {
+        "slug": "typesense",
+        "name": "Typesense",
+        "category": "search",
+        "description": "Open-source search engine for instant in-product search.",
+    },
+    {
+        "slug": "opensearch",
+        "name": "OpenSearch",
+        "category": "search",
+        "description": "Community search and analytics suite for private indexes.",
+    },
+]
+
+_BEACHHEAD_WEB_SEARCH_SCORES = [
+    {
+        "service_slug": slug,
+        "aggregate_recommendation_score": score,
+        "execution_score": score,
+        "access_readiness_score": score,
+        "tier": "L3",
+        "tier_label": "Ready",
+        "confidence": 0.9,
+    }
+    for slug, score in {
+        "brave-search-api": 7.1,
+        "exa": 8.7,
+        "tavily": 8.6,
+        "algolia": 9.0,
+        "firecrawl": 8.8,
+        "crawl4ai": 8.5,
+        "hyperdx": 8.2,
+        "datasette": 8.1,
+        "perplexity-api": 8.2,
+        "elasticsearch": 8.9,
+        "meilisearch": 8.7,
+        "typesense": 8.6,
+        "opensearch": 8.5,
+    }.items()
+]
+
 
 def _parse_in_filter(path: str, key: str) -> set[str] | None:
     match = re.search(rf"{re.escape(key)}=in\.\(([^)]*)\)", unquote(path))
@@ -530,6 +638,29 @@ def _mock_canonical_row_shorthand_catalog_supabase(path: str):
 
     if decoded.startswith("scores?"):
         return list(_CANONICAL_ROW_SHORTHAND_SCORES)
+
+    return []
+
+
+def _mock_beachhead_web_search_catalog(path: str):
+    decoded = unquote(path)
+
+    if decoded.startswith("services?or=("):
+        queries = _extract_search_queries(decoded)
+        if not queries:
+            return []
+        return [
+            service
+            for service in _BEACHHEAD_WEB_SEARCH_SERVICES
+            if any(_service_matches_query(service, query) for query in queries)
+        ]
+
+    if decoded.startswith("scores?service_slug=in.("):
+        slugs = _parse_in_filter(decoded, "service_slug") or set()
+        return [row for row in _BEACHHEAD_WEB_SEARCH_SCORES if row["service_slug"] in slugs]
+
+    if decoded.startswith("scores?"):
+        return list(_BEACHHEAD_WEB_SEARCH_SCORES)
 
     return []
 
@@ -890,6 +1021,43 @@ async def test_search_send_email_and_agent_phrasing_recall_email_providers(mock_
 
     assert {"sendgrid", "resend", "postmark", "mailgun", "aws-ses-v3"}.issubset(send_slugs)
     assert {"sendgrid", "resend", "mailgun"}.issubset(agent_slugs)
+
+
+def test_search_http_web_search_excludes_unrelated_category_noise():
+    from app import create_app
+
+    with patch(
+        "routes.search.supabase_fetch",
+        new_callable=AsyncMock,
+        side_effect=_mock_beachhead_web_search_catalog,
+    ):
+        client = TestClient(create_app())
+        response = client.get("/v1/search", params={"q": "web search", "limit": 10})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["error"] is None
+    assert payload["data"]["query"] == "web search"
+    results = payload["data"]["results"]
+    slugs = [item["service_slug"] for item in results]
+    categories = {item["category"] for item in results}
+
+    assert slugs == [
+        "brave-search-api",
+        "firecrawl",
+        "exa",
+        "tavily",
+        "algolia",
+        "elasticsearch",
+        "meilisearch",
+        "typesense",
+        "crawl4ai",
+        "opensearch",
+    ]
+    assert "hyperdx" not in slugs
+    assert "datasette" not in slugs
+    assert "perplexity-api" not in slugs
+    assert categories <= {"search", "browser-automation", "web-scraping"}
 
 
 @pytest.mark.asyncio
