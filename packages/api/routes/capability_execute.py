@@ -4213,6 +4213,54 @@ def _estimate_chosen_configured(
     )
 
 
+def _mode_fields_from_stamped_provider(
+    provider: dict[str, Any],
+    *,
+    credential_modes_url: str,
+) -> dict[str, Any]:
+    from routes import capabilities as capability_routes
+
+    modes = capability_routes._canonicalize_credential_modes(
+        provider.get("credential_modes")
+    )
+    raw_map = provider.get("configured_by_mode")
+    mode_map = (
+        {str(mode): bool(flag) for mode, flag in raw_map.items()}
+        if isinstance(raw_map, dict)
+        else {}
+    )
+    return {
+        "credential_modes": modes,
+        "configured_by_mode": mode_map,
+        "configured_credential_modes": capability_routes._configured_credential_modes(
+            modes,
+            mode_map,
+        ),
+        "credential_modes_url": credential_modes_url,
+    }
+
+
+def _matching_direct_resolve_provider(
+    capability_id: str,
+    chosen: dict[str, Any],
+) -> dict[str, Any] | None:
+    from routes import capabilities as capability_routes
+
+    if capability_id not in DIRECT_EXECUTE_CAPABILITY_IDS:
+        return None
+    payload = capability_routes._synthetic_direct_resolve_payload(capability_id)
+    providers = payload.get("providers") if isinstance(payload, dict) else None
+    if not isinstance(providers, list):
+        return None
+    for provider in providers:
+        if isinstance(provider, dict) and _service_slug_matches(
+            str(provider.get("service_slug") or ""),
+            str(chosen.get("service_slug") or ""),
+        ):
+            return provider
+    return None
+
+
 def _estimate_chosen_mode_fields(
     capability_id: str,
     chosen: dict[str, Any],
@@ -4220,41 +4268,12 @@ def _estimate_chosen_mode_fields(
     from routes import capabilities as capability_routes
 
     url = capability_routes._capability_credential_modes_url(capability_id)
-    if capability_id in DIRECT_EXECUTE_CAPABILITY_IDS:
-        payload = capability_routes._synthetic_direct_resolve_payload(capability_id)
-        providers = payload.get("providers") if isinstance(payload, dict) else None
-        if isinstance(providers, list):
-            for provider in providers:
-                if isinstance(provider, dict) and _service_slug_matches(
-                    str(provider.get("service_slug") or ""),
-                    str(chosen.get("service_slug") or ""),
-                ):
-                    configured_by_mode = provider.get("configured_by_mode")
-                    if isinstance(configured_by_mode, dict):
-                        modes = capability_routes._canonicalize_credential_modes(
-                            provider.get("credential_modes")
-                        )
-                        mode_map = {
-                            str(mode): bool(flag)
-                            for mode, flag in configured_by_mode.items()
-                        }
-                        return {
-                            "credential_modes": modes,
-                            "configured_by_mode": mode_map,
-                            "configured_credential_modes": (
-                                capability_routes._configured_credential_modes(
-                                    modes,
-                                    mode_map,
-                                )
-                            ),
-                            "credential_modes_url": url,
-                        }
-                    fields = capability_routes._credential_mode_map_fields(
-                        provider.get("credential_modes"),
-                        byok_configured=bool(provider.get("configured")),
-                    )
-                    fields["credential_modes_url"] = url
-                    return fields
+    stamped_provider = _matching_direct_resolve_provider(capability_id, chosen)
+    if stamped_provider is not None:
+        return _mode_fields_from_stamped_provider(
+            stamped_provider,
+            credential_modes_url=url,
+        )
 
     runtime_slug = normalize_proxy_slug(str(chosen.get("service_slug") or ""))
     auth_method = capability_routes._effective_auth_method(
