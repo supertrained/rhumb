@@ -1,5 +1,3 @@
-"""search.query resolve ranks beachhead web search above index engines."""
-
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch

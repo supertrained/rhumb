@@ -1,5 +1,3 @@
-"""search.query resolve ranking: beachhead web search above index engines."""
-
 from __future__ import annotations
 
 from enum import IntEnum
