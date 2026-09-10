@@ -1,0 +1,21 @@
+url=https://api.rhumb.dev/v1/status
+method=GET
+http_code=200
+HTTP/2 200 
+content-type: application/json
+date: Thu, 10 Sep 2026 01:42:57 GMT
+permissions-policy: camera=(), microphone=(), geolocation=()
+referrer-policy: strict-origin-when-cross-origin
+server: railway-hikari
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-railway-request-id: y6TYGvcKTsiy-SM321mRUA
+x-ratelimit-limit: 300
+x-ratelimit-remaining: 299
+x-ratelimit-reset: 1789004637
+x-request-id: ee0a32f0-9621-4934-b23e-4e59add471d7
+content-length: 1061
+x-hikari-trace: jfk1.pqzh
+x-railway-edge: jfk1
+vary: accept-encoding
+

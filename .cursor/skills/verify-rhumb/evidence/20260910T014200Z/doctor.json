@@ -1,0 +1,91 @@
+{
+  "run_id": "20260910T014200Z",
+  "ok": true,
+  "base": "https://api.rhumb.dev",
+  "healthz": {
+    "http_code": 200,
+    "body": {
+      "status": "ok"
+    }
+  },
+  "status": {
+    "http_code": 200,
+    "overall": "operational",
+    "environment": "production",
+    "components": [
+      {
+        "component": "database",
+        "status": "operational",
+        "latency_ms": 192,
+        "details": {
+          "service_count": 1048
+        }
+      },
+      {
+        "component": "proxy",
+        "status": "operational",
+        "latency_ms": 0,
+        "details": {
+          "callable_services": 28,
+          "services": [
+            "algolia",
+            "apify",
+            "apollo",
+            "brave-search-api",
+            "cohere",
+            "deepgram",
+            "e2b",
+            "elevenlabs",
+            "exa",
+            "firecrawl",
+            "github",
+            "google-ai",
+            "google-maps",
+            "google-places",
+            "groq",
+            "ipinfo",
+            "openai",
+            "people-data-labs",
+            "perplexity",
+            "postmark",
+            "replicate",
+            "resend",
+            "scraperapi",
+            "slack",
+            "stripe",
+            "tavily",
+            "twilio",
+            "unstructured"
+          ]
+        }
+      },
+      {
+        "component": "payments",
+        "status": "operational",
+        "latency_ms": 0,
+        "details": {
+          "note": "health check module unavailable"
+        }
+      },
+      {
+        "component": "billing",
+        "status": "operational",
+        "latency_ms": 198,
+        "details": {
+          "reason": "ok"
+        }
+      },
+      {
+        "component": "scoring",
+        "status": "operational",
+        "latency_ms": 214,
+        "details": {
+          "has_scores": true,
+          "row_count_sampled": 1
+        }
+      }
+    ]
+  },
+  "reasons": [],
+  "execute_forbidden": true
+}

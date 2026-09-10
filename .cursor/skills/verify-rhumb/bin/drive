@@ -60,7 +60,7 @@ summary = {
     "first_service_slug": (results[0].get("service_slug") if isinstance(results, list) and results else None),
     "first_an_score": (results[0].get("an_score") if isinstance(results, list) and results else None),
     "reasons": reasons,
-    "response_path": body_path,
+    "response_path": "http/search-email.json",
 }
 json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
 open(out, "a", encoding="utf-8").write("\n")
@@ -105,7 +105,7 @@ summary = {
     "preferred_provider": hint.get("preferred_provider"),
     "selection_reason": hint.get("selection_reason"),
     "reasons": reasons,
-    "response_path": body_path,
+    "response_path": "http/resolve-search-query.json",
 }
 json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
 open(out, "a", encoding="utf-8").write("\n")
@@ -148,7 +148,7 @@ summary = {
     "search_url": payload.get("search_url"),
     "suggested_ids": [item.get("id") for item in suggestions if isinstance(item, dict)],
     "reasons": reasons,
-    "response_path": body_path,
+    "response_path": "http/resolve-time-travel.json",
 }
 json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
 open(out, "a", encoding="utf-8").write("\n")
@@ -184,7 +184,7 @@ summary = {
     "tier": payload.get("tier"),
     "tier_label": payload.get("tier_label"),
     "reasons": reasons,
-    "response_path": body_path,
+    "response_path": "http/stripe-score.json",
 }
 json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
 open(out, "a", encoding="utf-8").write("\n")
@@ -224,7 +224,7 @@ summary = {
     "first_id": (items[0].get("id") if isinstance(items, list) and items else None),
     "ids": [item.get("id") for item in items] if isinstance(items, list) else [],
     "reasons": reasons,
-    "response_path": body_path,
+    "response_path": "http/capabilities-web-research.json",
 }
 json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
 open(out, "a", encoding="utf-8").write("\n")

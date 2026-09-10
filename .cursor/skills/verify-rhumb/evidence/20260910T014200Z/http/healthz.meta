@@ -1,0 +1,20 @@
+url=https://api.rhumb.dev/v1/healthz
+method=GET
+http_code=200
+HTTP/2 200 
+content-type: application/json
+date: Thu, 10 Sep 2026 01:42:56 GMT
+permissions-policy: camera=(), microphone=(), geolocation=()
+referrer-policy: strict-origin-when-cross-origin
+server: railway-hikari
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-railway-request-id: PQwnJCeYQOWVhfbTWVMv1w
+x-ratelimit-limit: 120
+x-ratelimit-remaining: 119
+x-ratelimit-reset: 1789004636
+x-request-id: 5305c4ec-09b0-4549-baa6-f3a197329b05
+content-length: 15
+x-hikari-trace: jfk1.48ys
+x-railway-edge: jfk1
+
