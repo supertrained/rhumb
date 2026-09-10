@@ -194,6 +194,8 @@ describe("public authority pricing contract", () => {
       astroLlmsRoute,
       astroLlmsFullRoute,
       astroResolve,
+      astroResolveWhatIs,
+      astroResolveRouting,
       astroAbout,
       astroDocs,
       astroStartManagedExecution,
@@ -202,7 +204,7 @@ describe("public authority pricing contract", () => {
       rootLlms,
       rootReadme,
     ]) {
-      expect(surface).not.toContain("launchable");
+      expect(surface.toLowerCase()).not.toContain("launchable");
       expect(surface).not.toContain("I launch my agent");
       expect(surface).not.toContain("launch promise");
       expect(surface).not.toContain("1,038");
