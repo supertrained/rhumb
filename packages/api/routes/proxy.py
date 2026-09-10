@@ -1274,6 +1274,30 @@ async def list_services() -> dict:
     }
 
 
+_OBSERVED_WINDOW = "observed"
+_UNOBSERVED_WINDOW = "unobserved"
+_PER_SERVICE_HONESTY_UNOBSERVED = (
+    "Empty per_service means this worker has no rolling latency samples. "
+    "It does not mean callable depth is zero. "
+    "Callable depth is services_callable and services_callable_slugs."
+)
+_PER_SERVICE_HONESTY_OBSERVED = (
+    "per_service lists this worker's rolling latency samples. "
+    "It is not the callable inventory. "
+    "Callable depth is services_callable and services_callable_slugs."
+)
+_POOLS_HONESTY_UNOBSERVED = (
+    "Empty pools means this worker has no acquired connection pools. "
+    "It does not mean callable depth is zero. "
+    "Callable depth is services_callable and services_callable_slugs."
+)
+_POOLS_HONESTY_OBSERVED = (
+    "pools lists this worker's acquired connection pools. "
+    "It is not the callable inventory. "
+    "Callable depth is services_callable and services_callable_slugs."
+)
+
+
 @router.get("/stats")
 async def proxy_stats() -> dict:
     """Return proxy inventory counts, observed breaker state, and pool stats.
@@ -1282,7 +1306,8 @@ async def proxy_stats() -> dict:
     public ids behind ``services_registered`` and ``services_callable``.
     ``GET /v1/proxy/services`` returns the same inventory with per-service
     flags. ``circuits`` is the breaker window for this process. It is not
-    the callable inventory.
+    the callable inventory. ``per_service`` and ``pools`` are this process's
+    observed windows. Empty objects are unobserved, not missing inventory.
     """
     tracker = get_latency_tracker()
     breaker_reg = get_breaker_registry()
@@ -1336,7 +1361,19 @@ async def proxy_stats() -> dict:
                 "total_calls": global_snapshot.count,
             },
             "per_service": per_service_payload,
+            "per_service_coverage": (
+                _OBSERVED_WINDOW if per_service_payload else _UNOBSERVED_WINDOW
+            ),
+            "per_service_honesty": (
+                _PER_SERVICE_HONESTY_OBSERVED
+                if per_service_payload
+                else _PER_SERVICE_HONESTY_UNOBSERVED
+            ),
             "pools": pool_payload,
+            "pools_coverage": _OBSERVED_WINDOW if pool_payload else _UNOBSERVED_WINDOW,
+            "pools_honesty": (
+                _POOLS_HONESTY_OBSERVED if pool_payload else _POOLS_HONESTY_UNOBSERVED
+            ),
             "operational_facts": emitter.get_stats(),
         },
         "error": None,
