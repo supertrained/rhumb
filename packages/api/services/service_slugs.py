@@ -18,6 +18,10 @@ PROXY_TO_CANONICAL: dict[str, str] = {
     proxy_slug: canonical_slug for canonical_slug, proxy_slug in CANONICAL_TO_PROXY.items()
 }
 
+PUBLIC_INPUT_ALIASES: dict[str, str] = {
+    "brave": "brave-search-api",
+}
+
 
 def normalize_proxy_slug(slug: str) -> str:
     """Resolve a canonical/public slug to its proxy-layer equivalent."""
@@ -25,8 +29,8 @@ def normalize_proxy_slug(slug: str) -> str:
 
 
 def canonicalize_service_slug(slug: str) -> str:
-    """Resolve a proxy-layer alias back to its canonical/public slug."""
-    return PROXY_TO_CANONICAL.get(slug, slug)
+    """Resolve a proxy-layer or operator shorthand alias to its public slug."""
+    return PUBLIC_INPUT_ALIASES.get(slug) or PROXY_TO_CANONICAL.get(slug, slug)
 
 
 def public_service_slug(slug: str | None) -> str | None:
