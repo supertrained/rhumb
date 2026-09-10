@@ -71,3 +71,35 @@ def sort_resolve_providers(
     providers: list[dict[str, object]],
 ) -> None:
     providers.sort(key=lambda provider: resolve_provider_sort_key(capability_id, provider))
+
+
+def preferred_mapped_provider_slug(
+    capability_id: str,
+    mappings: list[dict[str, object]],
+    scores_by_slug: dict[str, float],
+) -> str | None:
+    providers: list[dict[str, object]] = []
+    seen: set[str] = set()
+    for mapping in mappings:
+        slug = (
+            public_service_slug(mapping.get("service_slug"))
+            or str(mapping.get("service_slug") or "").strip()
+        )
+        if not slug or slug in seen:
+            continue
+        seen.add(slug)
+        providers.append(
+            {
+                "service_slug": slug,
+                "an_score": scores_by_slug.get(slug),
+                "recommendation": "available",
+            }
+        )
+    if not providers:
+        return None
+    sort_resolve_providers(capability_id, providers)
+    return (
+        public_service_slug(providers[0].get("service_slug"))
+        or str(providers[0].get("service_slug") or "")
+        or None
+    )

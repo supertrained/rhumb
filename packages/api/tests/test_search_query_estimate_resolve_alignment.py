@@ -31,7 +31,9 @@ ALIGNMENT_MAPPINGS = [
     _alignment_mapping("elasticsearch", endpoint="POST /{index}/_search", cost="0.0001"),
     _alignment_mapping("meilisearch", endpoint="POST /indexes/{uid}/search", cost="0.0001"),
     _alignment_mapping("exa", endpoint="POST /search", cost="0.001"),
-    _alignment_mapping("typesense", endpoint="GET /collections/{col}/documents/search", cost="0.0001"),
+    _alignment_mapping(
+        "typesense", endpoint="GET /collections/{col}/documents/search", cost="0.0001"
+    ),
     _alignment_mapping("tavily", endpoint="POST /search", cost="0.001"),
     _alignment_mapping("brave-search", endpoint="GET /res/v1/web/search", cost="0.003"),
 ]
@@ -52,9 +54,7 @@ def _managed_row(service_slug: str, *, method: str, path: str) -> dict[str, obje
 
 
 MANAGED_BY_SLUG = {
-    "brave-search-api": _managed_row(
-        "brave-search-api", method="GET", path="/res/v1/web/search"
-    ),
+    "brave-search-api": _managed_row("brave-search-api", method="GET", path="/res/v1/web/search"),
     "brave-search": _managed_row("brave-search", method="GET", path="/res/v1/web/search"),
     "exa": _managed_row("exa", method="POST", path="/search"),
     "tavily": _managed_row("tavily", method="POST", path="/search"),
