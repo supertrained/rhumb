@@ -1,11 +1,3 @@
-"""Index score is not an execute grant.
-
-``GET /v1/proxy/services`` already flags each registered slug with
-``callable``. Index service, score, and search payloads repeat that fact
-next to ``an_score`` / ``execution_score`` so operators do not treat a
-high Index score as Rhumb execute.
-"""
-
 from __future__ import annotations
 
 from services.proxy_credentials import get_credential_store
