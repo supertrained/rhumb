@@ -337,6 +337,36 @@ def _coerce_float(value: Any) -> float | None:
         return None
 
 
+def _format_score_tenth(value: Any) -> str | None:
+    number = _coerce_float(value)
+    if number is None:
+        return None
+    return f"{number:.1f}"
+
+
+def _score_explanation(score_row: dict[str, Any], canonical_slug: str) -> str:
+    parts: list[str] = []
+    agg = _format_score_tenth(score_row.get("aggregate_recommendation_score"))
+    exec_s = _format_score_tenth(score_row.get("execution_score"))
+    access_s = _format_score_tenth(score_row.get("access_readiness_score"))
+    if agg is not None:
+        parts.append(f"Scores {agg}/10 overall")
+    if exec_s is not None and access_s is not None:
+        parts.append(f"with execution at {exec_s} and access readiness at {access_s}")
+    for field, label in [
+        ("payment_autonomy_rationale", "Payment"),
+        ("governance_readiness_rationale", "Governance"),
+        ("web_accessibility_rationale", "Web accessibility"),
+    ]:
+        val = _canonicalize_service_text(
+            score_row.get(field), canonical_slug, score_row.get("service_slug")
+        )
+        if val:
+            first_sentence = val.split(". ")[0].rstrip(".")
+            parts.append(f"{label}: {first_sentence}")
+    return ". ".join(parts) + "." if parts else ""
+
+
 def _autonomy_section(
     score_row: dict[str, Any], response_service_slug: str | None = None
 ) -> dict[str, Any] | None:
@@ -744,7 +774,7 @@ async def get_service_score(slug: str, raw_request: Request):
         f"scores?service_slug=in.({_build_in_filter(set(score_query_slugs))})"
         "&order=calculated_at.desc&limit=1",
     )
-    if not scores:
+    if not isinstance(scores, list) or not scores or not isinstance(scores[0], dict):
         return {
             "service_slug": canonical_slug,
             "an_score": None,
@@ -773,27 +803,7 @@ async def get_service_score(slug: str, raw_request: Request):
     if autonomy_score is None and isinstance(autonomy, dict):
         autonomy_score = _coerce_float(autonomy.get("avg"))
 
-    # Synthesize explanation from available rationale fields
-    parts: list[str] = []
-    agg = sc.get("aggregate_recommendation_score")
-    exec_s = sc.get("execution_score")
-    access_s = sc.get("access_readiness_score")
-    if agg is not None:
-        parts.append(f"Scores {agg:.1f}/10 overall")
-    if exec_s is not None and access_s is not None:
-        parts.append(f"with execution at {exec_s:.1f} and access readiness at {access_s:.1f}")
-    # Add rationale snippets
-    for field, label in [
-        ("payment_autonomy_rationale", "Payment"),
-        ("governance_readiness_rationale", "Governance"),
-        ("web_accessibility_rationale", "Web accessibility"),
-    ]:
-        val = _canonicalize_service_text(sc.get(field), canonical_slug, sc.get("service_slug"))
-        if val:
-            # Take first sentence only
-            first_sentence = val.split(". ")[0].rstrip(".")
-            parts.append(f"{label}: {first_sentence}")
-    explanation = ". ".join(parts) + "." if parts else ""
+    explanation = _score_explanation(sc, canonical_slug)
 
     # Fetch active failure modes
     failure_query_slugs = _score_query_slugs([canonical_slug])
@@ -833,16 +843,17 @@ async def get_service_score(slug: str, raw_request: Request):
             }
         )
 
+    confidence = _coerce_float(sc.get("confidence"))
     return {
         "service_slug": public_service_slug(sc.get("service_slug")) or canonical_slug,
-        "an_score": sc.get("aggregate_recommendation_score"),
-        "score": sc.get("aggregate_recommendation_score"),
-        "execution_score": sc.get("execution_score"),
-        "access_readiness_score": sc.get("access_readiness_score"),
+        "an_score": _coerce_float(sc.get("aggregate_recommendation_score")),
+        "score": _coerce_float(sc.get("aggregate_recommendation_score")),
+        "execution_score": _coerce_float(sc.get("execution_score")),
+        "access_readiness_score": _coerce_float(sc.get("access_readiness_score")),
         "autonomy_score": autonomy_score,
         "autonomy": autonomy,
         "an_score_version": "0.3",
-        "confidence": sc.get("confidence", 0),
+        "confidence": 0 if confidence is None else confidence,
         "tier": sc.get("tier", "unknown"),
         "tier_label": sc.get("tier_label", "Unknown"),
         "explanation": explanation,
