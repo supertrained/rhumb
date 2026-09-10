@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# shellcheck source=common.sh
+source "$(cd "$(dirname "$0")" && pwd)/common.sh"
+verify_rhumb_prepare
+
+HEALTH_BODY="$VERIFY_RHUMB_EVIDENCE_DIR/http/doctor-healthz.json"
+HEALTH_META="$VERIFY_RHUMB_EVIDENCE_DIR/http/doctor-healthz.meta"
+STATUS_BODY="$VERIFY_RHUMB_EVIDENCE_DIR/http/doctor-status.json"
+STATUS_META="$VERIFY_RHUMB_EVIDENCE_DIR/http/doctor-status.meta"
+
+HEALTH_CODE="$(verify_rhumb_curl GET "$VERIFY_RHUMB_BASE/v1/healthz" "$HEALTH_BODY" "$HEALTH_META")"
+STATUS_CODE="$(verify_rhumb_curl GET "$VERIFY_RHUMB_BASE/v1/status" "$STATUS_BODY" "$STATUS_META")"
+
+verify_rhumb_python \
+  "$VERIFY_RHUMB_EVIDENCE_DIR/doctor.json" \
+  "$VERIFY_RHUMB_BASE" \
+  "$VERIFY_RHUMB_RUN_ID" \
+  "$HEALTH_CODE" \
+  "$HEALTH_BODY" \
+  "$STATUS_CODE" \
+  "$STATUS_BODY" <<'PY'
+import json, sys
+out, base, run_id, health_code, health_path, status_code, status_path = sys.argv[1:8]
+health = json.load(open(health_path, encoding="utf-8"))
+status = json.load(open(status_path, encoding="utf-8"))
+overall = status.get("status")
+env = (status.get("meta") or {}).get("environment")
+reasons = []
+if health_code != "200" or health.get("status") != "ok":
+    reasons.append(f"healthz HTTP {health_code} body={health!r}")
+if status_code != "200":
+    reasons.append(f"status HTTP {status_code}")
+if overall == "partial_outage":
+    reasons.append("status is partial_outage")
+if overall not in ("operational", "degraded"):
+    reasons.append(f"unexpected status {overall!r}")
+if base.rstrip("/") == "https://api.rhumb.dev" and env not in (None, "production"):
+    reasons.append(f"live host meta.environment is {env!r}, expected production")
+ok = not reasons
+payload = {
+    "run_id": run_id,
+    "ok": ok,
+    "base": base,
+    "healthz": {"http_code": int(health_code), "body": health},
+    "status": {
+        "http_code": int(status_code),
+        "overall": overall,
+        "environment": env,
+        "components": status.get("components"),
+    },
+    "reasons": reasons,
+    "execute_forbidden": True,
+}
+json.dump(payload, open(out, "w", encoding="utf-8"), indent=2)
+open(out, "a", encoding="utf-8").write("\n")
+raise SystemExit(0 if ok else "doctor failed: " + "; ".join(reasons))
+PY

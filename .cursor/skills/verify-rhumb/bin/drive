@@ -1,0 +1,241 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# shellcheck source=common.sh
+source "$(cd "$(dirname "$0")" && pwd)/common.sh"
+verify_rhumb_prepare
+
+FEATURE="${1:-}"
+if [[ -z "$FEATURE" ]]; then
+  echo "usage: drive <feature-id>" >&2
+  exit 2
+fi
+
+case "$FEATURE" in
+  index-search|resolve-search-query|typed-stop-unknown-capability|index-score|capability-discover) ;;
+  execute|estimate|search.query-execute)
+    echo "refusing paid or execute feature: $FEATURE" >&2
+    exit 2
+    ;;
+  *)
+    echo "unknown feature: $FEATURE" >&2
+    exit 2
+    ;;
+esac
+
+drive_index_search() {
+  local body="$VERIFY_RHUMB_EVIDENCE_DIR/http/search-email.json"
+  local meta="$VERIFY_RHUMB_EVIDENCE_DIR/http/search-email.meta"
+  local code
+  code="$(verify_rhumb_curl GET "$VERIFY_RHUMB_BASE/v1/search?q=email&limit=5" "$body" "$meta")"
+  verify_rhumb_python "$VERIFY_RHUMB_EVIDENCE_DIR/drive-index-search.json" "$VERIFY_RHUMB_RUN_ID" "$VERIFY_RHUMB_BASE" "$code" "$body" <<'PY'
+import json, sys
+out, run_id, base, code, body_path = sys.argv[1:6]
+payload = json.load(open(body_path, encoding="utf-8"))
+data = payload.get("data") or {}
+results = data.get("results")
+reasons = []
+if code != "200":
+    reasons.append(f"HTTP {code}")
+if payload.get("error") not in (None,):
+    reasons.append(f"error={payload.get('error')!r}")
+if data.get("query") != "email":
+    reasons.append(f"query={data.get('query')!r}")
+if not isinstance(results, list) or not results:
+    reasons.append("results missing or empty")
+else:
+    first = results[0]
+    if not first.get("service_slug"):
+        reasons.append("first result missing service_slug")
+    if not isinstance(first.get("an_score"), (int, float)):
+        reasons.append("first result missing numeric an_score")
+ok = not reasons
+summary = {
+    "run_id": run_id,
+    "feature": "index-search",
+    "ok": ok,
+    "request": {"method": "GET", "url": f"{base}/v1/search?q=email&limit=5"},
+    "http_code": int(code),
+    "query": data.get("query"),
+    "result_count": len(results) if isinstance(results, list) else 0,
+    "first_service_slug": (results[0].get("service_slug") if isinstance(results, list) and results else None),
+    "first_an_score": (results[0].get("an_score") if isinstance(results, list) and results else None),
+    "reasons": reasons,
+    "response_path": body_path,
+}
+json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
+open(out, "a", encoding="utf-8").write("\n")
+raise SystemExit(0 if ok else "drive index-search failed: " + "; ".join(reasons))
+PY
+}
+
+drive_resolve_search_query() {
+  local body="$VERIFY_RHUMB_EVIDENCE_DIR/http/resolve-search-query.json"
+  local meta="$VERIFY_RHUMB_EVIDENCE_DIR/http/resolve-search-query.meta"
+  local code
+  code="$(verify_rhumb_curl GET "$VERIFY_RHUMB_BASE/v1/capabilities/search.query/resolve" "$body" "$meta")"
+  verify_rhumb_python "$VERIFY_RHUMB_EVIDENCE_DIR/drive-resolve-search-query.json" "$VERIFY_RHUMB_RUN_ID" "$VERIFY_RHUMB_BASE" "$code" "$body" <<'PY'
+import json, sys
+out, run_id, base, code, body_path = sys.argv[1:6]
+payload = json.load(open(body_path, encoding="utf-8"))
+data = payload.get("data") or {}
+providers = data.get("providers")
+hint = data.get("execute_hint") or {}
+reasons = []
+if code != "200":
+    reasons.append(f"HTTP {code}")
+if payload.get("error") not in (None,):
+    reasons.append(f"error={payload.get('error')!r}")
+if data.get("capability") != "search.query":
+    reasons.append(f"capability={data.get('capability')!r}")
+if not isinstance(providers, list) or not providers:
+    reasons.append("providers missing or empty")
+elif not providers[0].get("service_slug"):
+    reasons.append("first provider missing service_slug")
+if not hint.get("preferred_provider"):
+    reasons.append("execute_hint.preferred_provider missing")
+ok = not reasons
+summary = {
+    "run_id": run_id,
+    "feature": "resolve-search-query",
+    "ok": ok,
+    "request": {"method": "GET", "url": f"{base}/v1/capabilities/search.query/resolve"},
+    "http_code": int(code),
+    "capability": data.get("capability"),
+    "provider_count": len(providers) if isinstance(providers, list) else 0,
+    "preferred_provider": hint.get("preferred_provider"),
+    "selection_reason": hint.get("selection_reason"),
+    "reasons": reasons,
+    "response_path": body_path,
+}
+json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
+open(out, "a", encoding="utf-8").write("\n")
+raise SystemExit(0 if ok else "drive resolve-search-query failed: " + "; ".join(reasons))
+PY
+}
+
+drive_typed_stop() {
+  local body="$VERIFY_RHUMB_EVIDENCE_DIR/http/resolve-time-travel.json"
+  local meta="$VERIFY_RHUMB_EVIDENCE_DIR/http/resolve-time-travel.meta"
+  local code
+  code="$(verify_rhumb_curl GET "$VERIFY_RHUMB_BASE/v1/capabilities/time.travel/resolve" "$body" "$meta")"
+  verify_rhumb_python "$VERIFY_RHUMB_EVIDENCE_DIR/drive-typed-stop-unknown-capability.json" "$VERIFY_RHUMB_RUN_ID" "$VERIFY_RHUMB_BASE" "$code" "$body" <<'PY'
+import json, sys
+out, run_id, base, code, body_path = sys.argv[1:6]
+payload = json.load(open(body_path, encoding="utf-8"))
+reasons = []
+if code != "404":
+    reasons.append(f"HTTP {code}, expected 404")
+if payload.get("error") != "capability_not_found":
+    reasons.append(f"error={payload.get('error')!r}")
+if "time.travel" not in str(payload.get("message") or ""):
+    reasons.append("message does not name time.travel")
+if payload.get("search_url") != "/v1/capabilities?search=time.travel":
+    reasons.append(f"search_url={payload.get('search_url')!r}")
+if "data" in payload and payload.get("data"):
+    reasons.append("404 body unexpectedly includes data")
+suggestions = payload.get("suggested_capabilities") or []
+bad = [item.get("id") for item in suggestions if isinstance(item, dict) and item.get("id") == "time.travel"]
+if bad:
+    reasons.append("suggested_capabilities invents time.travel")
+ok = not reasons
+summary = {
+    "run_id": run_id,
+    "feature": "typed-stop-unknown-capability",
+    "ok": ok,
+    "request": {"method": "GET", "url": f"{base}/v1/capabilities/time.travel/resolve"},
+    "http_code": int(code),
+    "error": payload.get("error"),
+    "search_url": payload.get("search_url"),
+    "suggested_ids": [item.get("id") for item in suggestions if isinstance(item, dict)],
+    "reasons": reasons,
+    "response_path": body_path,
+}
+json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
+open(out, "a", encoding="utf-8").write("\n")
+raise SystemExit(0 if ok else "drive typed-stop-unknown-capability failed: " + "; ".join(reasons))
+PY
+}
+
+drive_index_score() {
+  local body="$VERIFY_RHUMB_EVIDENCE_DIR/http/stripe-score.json"
+  local meta="$VERIFY_RHUMB_EVIDENCE_DIR/http/stripe-score.meta"
+  local code
+  code="$(verify_rhumb_curl GET "$VERIFY_RHUMB_BASE/v1/services/stripe/score" "$body" "$meta")"
+  verify_rhumb_python "$VERIFY_RHUMB_EVIDENCE_DIR/drive-index-score.json" "$VERIFY_RHUMB_RUN_ID" "$VERIFY_RHUMB_BASE" "$code" "$body" <<'PY'
+import json, sys
+out, run_id, base, code, body_path = sys.argv[1:6]
+payload = json.load(open(body_path, encoding="utf-8"))
+reasons = []
+if code != "200":
+    reasons.append(f"HTTP {code}")
+if payload.get("service_slug") != "stripe":
+    reasons.append(f"service_slug={payload.get('service_slug')!r}")
+if not isinstance(payload.get("an_score"), (int, float)):
+    reasons.append("an_score missing or not numeric")
+ok = not reasons
+summary = {
+    "run_id": run_id,
+    "feature": "index-score",
+    "ok": ok,
+    "request": {"method": "GET", "url": f"{base}/v1/services/stripe/score"},
+    "http_code": int(code),
+    "service_slug": payload.get("service_slug"),
+    "an_score": payload.get("an_score"),
+    "tier": payload.get("tier"),
+    "tier_label": payload.get("tier_label"),
+    "reasons": reasons,
+    "response_path": body_path,
+}
+json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
+open(out, "a", encoding="utf-8").write("\n")
+raise SystemExit(0 if ok else "drive index-score failed: " + "; ".join(reasons))
+PY
+}
+
+drive_capability_discover() {
+  local body="$VERIFY_RHUMB_EVIDENCE_DIR/http/capabilities-web-research.json"
+  local meta="$VERIFY_RHUMB_EVIDENCE_DIR/http/capabilities-web-research.meta"
+  local encoded
+  encoded="$(python3 -c 'from urllib.parse import urlencode; print(urlencode({"search": "web research", "limit": 5}))')"
+  local code
+  code="$(verify_rhumb_curl GET "$VERIFY_RHUMB_BASE/v1/capabilities?$encoded" "$body" "$meta")"
+  verify_rhumb_python "$VERIFY_RHUMB_EVIDENCE_DIR/drive-capability-discover.json" "$VERIFY_RHUMB_RUN_ID" "$VERIFY_RHUMB_BASE" "$code" "$body" <<'PY'
+import json, sys
+out, run_id, base, code, body_path = sys.argv[1:6]
+payload = json.load(open(body_path, encoding="utf-8"))
+data = payload.get("data") or {}
+items = data.get("items")
+reasons = []
+if code != "200":
+    reasons.append(f"HTTP {code}")
+if not isinstance(items, list) or not items:
+    reasons.append("data.items missing or empty")
+else:
+    if not items[0].get("id"):
+        reasons.append("first item missing id")
+ok = not reasons
+summary = {
+    "run_id": run_id,
+    "feature": "capability-discover",
+    "ok": ok,
+    "request": {"method": "GET", "url": f"{base}/v1/capabilities?search=web+research&limit=5"},
+    "http_code": int(code),
+    "item_count": len(items) if isinstance(items, list) else 0,
+    "first_id": (items[0].get("id") if isinstance(items, list) and items else None),
+    "ids": [item.get("id") for item in items] if isinstance(items, list) else [],
+    "reasons": reasons,
+    "response_path": body_path,
+}
+json.dump(summary, open(out, "w", encoding="utf-8"), indent=2)
+open(out, "a", encoding="utf-8").write("\n")
+raise SystemExit(0 if ok else "drive capability-discover failed: " + "; ".join(reasons))
+PY
+}
+
+case "$FEATURE" in
+  index-search) drive_index_search ;;
+  resolve-search-query) drive_resolve_search_query ;;
+  typed-stop-unknown-capability) drive_typed_stop ;;
+  index-score) drive_index_score ;;
+  capability-discover) drive_capability_discover ;;
+esac

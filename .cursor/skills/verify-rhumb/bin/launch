@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# shellcheck source=common.sh
+source "$(cd "$(dirname "$0")" && pwd)/common.sh"
+verify_rhumb_prepare
+
+MODE="live"
+if [[ "${VERIFY_RHUMB_MODE:-live}" == "local" ]]; then
+  MODE="local"
+fi
+
+if [[ "$MODE" == "local" ]]; then
+  if ! command -v docker >/dev/null 2>&1; then
+    verify_rhumb_python "$VERIFY_RHUMB_EVIDENCE_DIR/launch.json" "$VERIFY_RHUMB_BASE" "$VERIFY_RHUMB_RUN_ID" <<'PY'
+import json, sys
+path, base, run_id = sys.argv[1], sys.argv[2], sys.argv[3]
+payload = {
+    "run_id": run_id,
+    "mode": "local",
+    "ok": False,
+    "base": base,
+    "error": "docker is not available. make dev cannot start Postgres or Redis. Use https://api.rhumb.dev.",
+}
+path_write = open(path, "w", encoding="utf-8")
+json.dump(payload, path_write, indent=2)
+path_write.write("\n")
+raise SystemExit(payload["error"])
+PY
+  fi
+  echo "Local launch is not wired in this helper beyond the docker check. Start uvicorn yourself and set VERIFY_RHUMB_BASE." >&2
+  exit 1
+fi
+
+HEALTH_BODY="$VERIFY_RHUMB_EVIDENCE_DIR/http/healthz.json"
+HEALTH_META="$VERIFY_RHUMB_EVIDENCE_DIR/http/healthz.meta"
+CODE="$(verify_rhumb_curl GET "$VERIFY_RHUMB_BASE/v1/healthz" "$HEALTH_BODY" "$HEALTH_META")"
+
+verify_rhumb_python "$VERIFY_RHUMB_EVIDENCE_DIR/launch.json" "$VERIFY_RHUMB_BASE" "$VERIFY_RHUMB_SITE" "$VERIFY_RHUMB_RUN_ID" "$CODE" "$HEALTH_BODY" <<'PY'
+import json, sys
+out, base, site, run_id, code, body_path = sys.argv[1:7]
+body = json.load(open(body_path, encoding="utf-8"))
+ok = code == "200" and body.get("status") == "ok"
+payload = {
+    "run_id": run_id,
+    "mode": "live",
+    "ok": ok,
+    "base": base,
+    "site": site,
+    "process": None,
+    "ready": {"url": f"{base}/v1/healthz", "http_code": int(code), "body": body},
+}
+json.dump(payload, open(out, "w", encoding="utf-8"), indent=2)
+open(out, "a", encoding="utf-8").write("\n")
+raise SystemExit(0 if ok else f"launch failed: healthz HTTP {code} body={body!r}")
+PY
