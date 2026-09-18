@@ -13,7 +13,7 @@ An invented capability id must 404. Rhumb must not invent an executable route fo
 
 - Call `GET https://api.rhumb.dev/v1/capabilities/time.travel/resolve`.
 - Call `GET https://api.rhumb.dev/v1/capabilities/time.travel`.
-- Ask an MCP client to `resolve_capability` with `capability_id=time.travel`.
+- Ask an MCP client to `resolve_capability` with `capability=time.travel`.
 
 ## Driving it with curl
 

@@ -29,5 +29,7 @@ Preconditions:
 
 - Capability list uses `data.items`. Index search uses `data.results`.
 - `docs/API.md` cold-start flow is search services, search capabilities, then resolve. Do not skip to execute.
+- The website capabilities page prerenders `GET /v1/capabilities` without `search` in `capabilities.astro` and filters in the browser. It is not `GET /v1/capabilities?search=`. Do not treat a web HTML match as this API proof.
+- `search=web research&limit=5` can rank `browser.screenshot` first. `search.query` is in the broader match set but may fall past the first page. The harness only requires a non-empty `data.items` list.
 - Domain filter values are validated. An unknown `domain` query fails instead of returning a silent empty page.
 - Degraded catalog reads can add `_DEGRADED_DISCOVERY_ERROR` in `error` while still showing synthetic direct capabilities. If `error` is set, say so in the proof. Do not treat that as a healthy catalog.
