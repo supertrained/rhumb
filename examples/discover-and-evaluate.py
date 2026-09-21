@@ -19,7 +19,7 @@ def main():
     # Step 1: Search for email services
     print("🔍 Searching for email services...\n")
     resp = httpx.get(f"{BASE}/search", params={"q": "email"})
-    results = resp.json().get("data", {}).get("items", [])
+    results = resp.json().get("data", {}).get("results", [])
 
     if not results:
         print("No results found.")
