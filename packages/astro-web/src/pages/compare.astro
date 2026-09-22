@@ -47,7 +47,7 @@ const comparisons: Comparison[] = [
     services: ["Vercel 7.1 L3", "Render 6.5 L3", "Netlify 6.2 L3"],
     winner: "Vercel",
     winnerNote: "Highest execution reliability for frontend deployments.",
-    narrative: "Vercel leads on execution. Render on simplicity. Netlify on ecosystem features.",
+    narrative: "<a href='/service/vercel' class='text-slate-400 hover:text-amber underline underline-offset-2'>Vercel</a> leads on execution. Render on simplicity. Netlify on ecosystem features.",
     accent: "#FFFFFF",
     accentSoft: "rgba(255,255,255,0.10)",
   },
@@ -71,7 +71,7 @@ const comparisons: Comparison[] = [
     services: ["Stripe 8.1 L4", "Square 6.3 L3", "PayPal 4.9 L2"],
     winner: "Stripe",
     winnerNote: "Clear leader — highest execution, best API, most agent-native.",
-    narrative: "One clear winner. Stripe dominates on every axis except physical commerce.",
+    narrative: "One clear winner. <a href='/service/stripe' class='text-slate-400 hover:text-amber underline underline-offset-2'>Stripe</a> dominates on every axis except physical commerce.",
     accent: "#6366F1",
     accentSoft: "rgba(99,102,241,0.14)",
   },
@@ -256,13 +256,19 @@ const agentContext =
                   {c.winner === "None" ? (
                     <span class="inline-flex rounded-full border border-amber-500/25 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-mono text-amber-300">No clear winner</span>
                   ) : (
-                    <span class="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-mono text-emerald-300">Pick: {c.winner}</span>
+                    <span class="inline-flex rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-mono text-emerald-300">
+                      Pick: {["Stripe", "Vercel", "Resend"].includes(c.winner) ? (
+                        <a href={`/service/${c.winner.toLowerCase()}`} class="text-emerald-300 hover:text-emerald-200 underline underline-offset-2 ml-1">{c.winner}</a>
+                      ) : (
+                        <Fragment>{c.winner}</Fragment>
+                      )}
+                    </span>
                   )}
                 </div>
                 <p class="mt-2 text-sm leading-6 text-slate-400">{c.winnerNote}</p>
               </div>
 
-              <p class="mt-4 text-xs leading-5 text-slate-500 italic">{c.narrative}</p>
+              <p class="mt-4 text-xs leading-5 text-slate-500 italic" set:html={c.narrative}></p>
 
               <div class="mt-5 flex items-center gap-2 text-xs font-mono uppercase tracking-[0.2em] text-amber group-hover:text-amber-dark transition-colors">
                 Read comparison
