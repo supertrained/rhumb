@@ -608,11 +608,8 @@ export function createApiClient(baseUrl?: string): RhumbApiClient {
         return [];
       }
 
-      const items = Array.isArray(payload.data.results)
-        ? payload.data.results
-        : Array.isArray(payload.data.items)
-          ? payload.data.items
-          : [];
+      // Live /v1/search returns data.results (not data.items).
+      const items = Array.isArray(payload.data.results) ? payload.data.results : [];
 
       return items
         .filter((item: unknown): item is Record<string, unknown> => isRecord(item))
