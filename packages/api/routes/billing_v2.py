@@ -69,10 +69,6 @@ def _get_identity_store() -> AgentIdentityStore:
     return _identity_store
 
 
-async def _require_org(api_key: str | None) -> str:
-    raise NotImplementedError("_require_org now requires a Request; call _require_org_or_401")
-
-
 def _auth_handoff(*, reason: str, retry_url: str) -> dict[str, Any]:
     return {
         "reason": reason,

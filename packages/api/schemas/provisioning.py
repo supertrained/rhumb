@@ -378,18 +378,3 @@ class ProvisioningFlowStore:
                     results.append(flow)
 
         return results
-
-
-# ------------------------------------------------------------------
-# Singleton
-# ------------------------------------------------------------------
-
-_flow_store: Optional[ProvisioningFlowStore] = None
-
-
-def get_flow_store(supabase_client: Any = None) -> ProvisioningFlowStore:
-    """Return (or create) the global :class:`ProvisioningFlowStore` singleton."""
-    global _flow_store
-    if _flow_store is None:
-        _flow_store = ProvisioningFlowStore(supabase_client)
-    return _flow_store
