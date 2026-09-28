@@ -17,7 +17,7 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 strict_optional = true
-exclude = ["packages/web", "^build", "^dist"]
+exclude = ["^build", "^dist"]
 
 [tool.pytest.ini_options]
 addopts = "-q"

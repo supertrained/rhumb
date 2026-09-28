@@ -4,7 +4,7 @@
 The Python API routes in `routes/services.py`, `routes/leaderboard.py`, and `routes/search.py` are either stubs (returning empty arrays) or read from filesystem paths that don't exist in the Railway Docker container. This makes the MCP server return empty results.
 
 ## Solution
-Rewrite these three files to query Supabase REST API directly using `httpx` (async HTTP client). The web app (`packages/web/lib/api.ts`) already has working Supabase queries — port the same logic to Python.
+Rewrite these three files to query Supabase REST API directly using `httpx` (async HTTP client). Port the same Supabase query logic to Python.
 
 ## Architecture
 - Supabase URL and anon key come from `config.py` settings: `settings.supabase_url` and `settings.supabase_service_role_key`

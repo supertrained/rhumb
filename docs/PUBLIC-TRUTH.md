@@ -58,7 +58,7 @@ python3 scripts/callable_contract.py --check
 
 - `README.md` managed product + MCP tool blocks, plus the visibility-map callable count
 - `packages/mcp/README.md` coverage sentence + tool surface
-- `llms.txt` and `packages/web/public/llms.txt`
+- `llms.txt`
 - `agent-capabilities.json`
 - `packages/astro-web/public/agent-capabilities.json` (root path on Vercel)
 - `packages/astro-web/public/.well-known/agent-capabilities.json`

@@ -350,7 +350,7 @@ interface DatasetService {
 
 function readDataset(): DatasetService[] {
   const datasetPath = path.join(
-    __dirname, "..", "packages", "web", "public", "data", "initial-dataset.yaml",
+    __dirname, "..", "packages", "astro-web", "public", "data", "initial-dataset.yaml",
   );
   const content = fs.readFileSync(datasetPath, "utf-8");
   const parsed = YAML.parse(content);

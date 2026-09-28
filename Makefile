@@ -13,6 +13,7 @@ test:
 	cd packages/cli && pytest
 	python3 scripts/generate_agent_capabilities.py --check
 	python3 scripts/callable_contract.py --check
+	npm test
 
 lint:
 	cd packages/api && black --check . && ruff check .

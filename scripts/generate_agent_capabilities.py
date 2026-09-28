@@ -20,10 +20,8 @@ OUTPUT_JSON = ROOT / "agent-capabilities.json"
 WELL_KNOWN_OUTPUT_JSON = ROOT / "packages/astro-web/public/.well-known/agent-capabilities.json"
 ASTRO_PUBLIC_OUTPUT_JSON = ROOT / "packages/astro-web/public/agent-capabilities.json"
 LLMS_TXT = ROOT / "llms.txt"
-WEB_PUBLIC_LLMS_TXT = ROOT / "packages/web/public/llms.txt"
 ROOT_README = ROOT / "README.md"
 MCP_README = ROOT / "packages/mcp/README.md"
-WEB_PUBLIC_TRUTH_TS = ROOT / "packages/web/lib/public-truth.ts"
 DEFAULT_API_BASE = "https://api.rhumb.dev/v1"
 
 README_PRODUCT_START = "<!-- GENERATED:README_PRODUCT_SURFACE_START -->"
@@ -558,29 +556,13 @@ def build_readme_outputs(public_truth: dict[str, int | str], tools: dict[str, st
             1,
         )
 
-    web_public_truth = WEB_PUBLIC_TRUTH_TS.read_text()
-    web_public_truth = re.sub(
-        r'servicesLabel:\s*"[^"]+"',
-        f'servicesLabel: "{public_truth["servicesLabel"]}"',
-        web_public_truth,
-        count=1,
-    )
-    web_public_truth = re.sub(
-        r'categoriesLabel:\s*"[^"]+"',
-        f'categoriesLabel: "{public_truth["categoriesLabel"]}"',
-        web_public_truth,
-        count=1,
-    )
-
     return {
         OUTPUT_JSON: agent_contract,
         WELL_KNOWN_OUTPUT_JSON: agent_contract,
         ASTRO_PUBLIC_OUTPUT_JSON: agent_contract,
         LLMS_TXT: llms_txt,
-        WEB_PUBLIC_LLMS_TXT: llms_txt,
         ROOT_README: root_readme,
         MCP_README: mcp_readme,
-        WEB_PUBLIC_TRUTH_TS: web_public_truth,
     }
 
 
