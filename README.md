@@ -257,6 +257,11 @@ cd packages/mcp && npm ci && npm run dev
 
 # Web
 cd packages/astro-web && npm ci && npm run dev
+
+# Local Postgres bootstrap only (docker-compose Postgres on :54322).
+# Applies supabase/migrations/0001_init.sql. Live schema history is
+# supabase/migrations/ plus packages/api/migrations/.
+make db-migrate
 ```
 
 Node 24+ recommended (`.nvmrc` included).
