@@ -215,11 +215,6 @@ def resolve_crm_bundle(crm_ref: str) -> CrmBundle:
     )
 
 
-def object_type_is_allowed(bundle: CrmBundle, object_type: str | None) -> bool:
-    normalized = _normalize_object_type(object_type, provider=bundle.provider)
-    return normalized is not None and normalized in bundle.allowed_object_types
-
-
 def ensure_object_type_allowed(bundle: CrmBundle, object_type: str | None) -> str:
     normalized = _normalize_object_type(object_type, provider=bundle.provider)
     if normalized is None:

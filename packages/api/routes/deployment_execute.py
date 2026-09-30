@@ -32,12 +32,6 @@ from services.vercel_read_executor import (
 
 logger = logging.getLogger(__name__)
 
-DEPLOYMENT_CAPABILITY_IDS = frozenset({"deployment.list", "deployment.get"})
-
-
-def is_deployment_capability(capability_id: str) -> bool:
-    return capability_id in DEPLOYMENT_CAPABILITY_IDS
-
 
 def _client_ip(raw_request: Request) -> str | None:
     forwarded_for = raw_request.headers.get("x-forwarded-for")

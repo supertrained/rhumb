@@ -52,13 +52,6 @@ from services.receipt_service import (
 
 logger = logging.getLogger(__name__)
 
-DB_CAPABILITY_IDS = frozenset({"db.query.read", "db.schema.describe", "db.row.get"})
-
-
-def is_db_capability(capability_id: str) -> bool:
-    """Return True if capability_id is a DB-read capability."""
-    return capability_id in DB_CAPABILITY_IDS
-
 
 def _client_ip(raw_request: Request) -> str | None:
     forwarded_for = raw_request.headers.get("x-forwarded-for")

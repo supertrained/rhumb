@@ -96,13 +96,6 @@ def resolve_actions_bundle(actions_ref: str) -> GitHubActionsBundle:
     )
 
 
-def repository_is_allowed(bundle: GitHubActionsBundle, repository: str | None) -> bool:
-    normalized = _normalize_repository(repository)
-    if not normalized:
-        return False
-    return normalized in bundle.allowed_repositories
-
-
 def ensure_repository_allowed(bundle: GitHubActionsBundle, repository: str | None) -> str:
     normalized = _normalize_repository(repository)
     if not normalized:

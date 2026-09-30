@@ -34,12 +34,6 @@ from services.storage_receipt_summary import summarize_storage_execution
 
 logger = logging.getLogger(__name__)
 
-STORAGE_CAPABILITY_IDS = frozenset({"object.list", "object.head", "object.get"})
-
-
-def is_storage_capability(capability_id: str) -> bool:
-    return capability_id in STORAGE_CAPABILITY_IDS
-
 
 def _client_ip(raw_request: Request) -> str | None:
     forwarded_for = raw_request.headers.get("x-forwarded-for")

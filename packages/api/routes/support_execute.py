@@ -47,19 +47,6 @@ from services.zendesk_read_executor import (
 
 logger = logging.getLogger(__name__)
 
-SUPPORT_CAPABILITY_IDS = frozenset({
-    "ticket.search",
-    "ticket.get",
-    "ticket.list_comments",
-    "conversation.list",
-    "conversation.get",
-    "conversation.list_parts",
-})
-
-
-def is_support_capability(capability_id: str) -> bool:
-    return capability_id in SUPPORT_CAPABILITY_IDS
-
 
 def _provider_for_capability(capability_id: str) -> str:
     if capability_id.startswith("conversation."):
