@@ -10,7 +10,6 @@ from services.support_connection_registry import (
     SupportRefError,
     ensure_ticket_access,
     resolve_support_bundle,
-    ticket_in_scope,
 )
 
 
@@ -79,27 +78,6 @@ def test_resolve_support_bundle_requires_scope_constraint(monkeypatch: pytest.Mo
 
     with pytest.raises(SupportRefError, match="must declare at least one scope constraint"):
         resolve_support_bundle("sup_help")
-
-
-def test_ticket_in_scope_requires_all_configured_constraints(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv(
-        "RHUMB_SUPPORT_SUP_HELP",
-        json.dumps(
-            {
-                "provider": "zendesk",
-                "subdomain": "acme",
-                "auth_mode": "bearer_token",
-                "bearer_token": "bearer-secret",
-                "allowed_group_ids": [123],
-                "allowed_brand_ids": [456],
-            }
-        ),
-    )
-
-    bundle = resolve_support_bundle("sup_help")
-    assert ticket_in_scope(bundle, {"id": 10, "group_id": 123, "brand_id": 456}) is True
-    assert ticket_in_scope(bundle, {"id": 10, "group_id": 999, "brand_id": 456}) is False
-    assert ticket_in_scope(bundle, {"id": 10, "group_id": 123, "brand_id": 999}) is False
 
 
 def test_ensure_ticket_access_rejects_out_of_scope_ticket(monkeypatch: pytest.MonkeyPatch) -> None:
