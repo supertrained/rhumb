@@ -1,43 +1,35 @@
-# Astro Starter Kit: Minimal
+# Rhumb public website
 
-```sh
-npm create astro@latest -- --template minimal
-```
+The production Vercel project is `team-supertraineds-projects/rhumb` and builds
+this Astro application using the repository-root `vercel.json`. Root package
+scripts target the separate Next.js application; they do not validate this site.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+Run `npm ci` and `npm run build` from `packages/astro-web`. Keep
+`packages/shared/pricing.json` available when building an isolated source copy.
 
-## 🚀 Project Structure
+## GA4 production configuration
 
-Inside of your Astro project, you'll see the following folders and files:
+- Canonical build variable: `PUBLIC_GA_ID=G-ZSC1S01BJ5`.
+- GA4 property: `527907844`; web stream: `13884978146`.
+- `NEXT_PUBLIC_GA_ID` is a legacy fallback. Values must have no whitespace.
+- The shared layout emits the loader only when a measurement ID is available.
+- The root content security policy permits Google's documented GA4 collection
+  endpoints, including regional endpoints. Advertising endpoints are separate.
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+The measurement ID is public configuration, not a secret. Set the canonical
+variable in the Vercel project's production environment before building.
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+`PUBLIC_CLARITY_ID` is deliberately empty in production. Keep it empty until
+Clarity ownership and collection are verified; removing it activates the legacy
+`NEXT_PUBLIC_CLARITY_ID` fallback during a fresh build.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+Changing project environment variables does not repair existing prebuilt
+artifacts. Redeploying a deployment containing `.vercel/output` can reuse those
+artifacts without rebuilding the site. Build fresh source with the production
+configuration, or supply that configuration before creating new prebuilt output.
 
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+Validate the deployment before promoting it: confirm the loader uses the exact
+measurement ID, its normal page-view request succeeds, and GA4 receives the
+event. Confirm the custom domain points to the validated deployment. A successful
+build alone is not proof of collection. Keep any known collection-gap status in
+the analytics feed until end-to-end verification succeeds.
