@@ -1,10 +1,9 @@
-"""Tests for recipe safety controls — content firewalls, idempotency,
-nesting depth, fan-out rate limiting (WU-42.2)."""
+"""Tests for recipe safety controls — content firewalls, nesting depth,
+fan-out rate limiting (WU-42.2)."""
 
 from __future__ import annotations
 
 import re
-import time
 
 import pytest
 
@@ -14,7 +13,6 @@ from services.recipe_safety import (
     ContentViolationType,
     FanOutRateLimiter,
     FirewallResult,
-    IdempotencyStore,
     NestingDepthError,
     NestingTracker,
     RecipeSafetyGate,
@@ -151,56 +149,6 @@ class TestContentFirewall:
         assert result.passed is False
 
 
-# ── Idempotency Store ─────────────────────────────────────────────────
-
-
-class TestIdempotencyStore:
-    def test_empty_check_returns_none(self):
-        store = IdempotencyStore()
-        assert store.check("nonexistent_key") is None
-
-    def test_store_and_retrieve(self):
-        store = IdempotencyStore()
-        store.store(
-            key="test_key",
-            execution_id="exec_123",
-            recipe_id="recipe_abc",
-            status="completed",
-            result_hash="hash_xyz",
-        )
-        record = store.check("test_key")
-        assert record is not None
-        assert record.execution_id == "exec_123"
-        assert record.recipe_id == "recipe_abc"
-
-    def test_expired_key_returns_none(self):
-        store = IdempotencyStore(window_seconds=1)
-        store.store("key", "exec", "recipe", "completed", "hash")
-
-        # Hack: override the clock
-        original_clock = store._clock
-        store._clock = lambda: time.time() + 10
-        assert store.check("key") is None
-        store._clock = original_clock
-
-    def test_generate_key_deterministic(self):
-        k1 = IdempotencyStore.generate_key("recipe_1", {"a": 1}, "agent_1")
-        k2 = IdempotencyStore.generate_key("recipe_1", {"a": 1}, "agent_1")
-        assert k1 == k2
-        assert k1.startswith("idem_")
-
-    def test_generate_key_varies_by_input(self):
-        k1 = IdempotencyStore.generate_key("recipe_1", {"a": 1}, "agent_1")
-        k2 = IdempotencyStore.generate_key("recipe_1", {"a": 2}, "agent_1")
-        assert k1 != k2
-
-    def test_size_property(self):
-        store = IdempotencyStore()
-        assert store.size == 0
-        store.store("k1", "e1", "r1", "ok", "h1")
-        assert store.size == 1
-
-
 # ── Nesting Tracker ──────────────────────────────────────────────────
 
 
@@ -312,22 +260,6 @@ class TestRecipeSafetyGate:
         assert result.firewall_result is not None
         assert result.firewall_result.passed is True
 
-    def test_idempotency_hit_blocks_when_legacy_store_is_explicitly_injected(self):
-        store = IdempotencyStore()
-        gate = RecipeSafetyGate(idempotency=store)
-        # First: store an existing result
-        store.store("idem_test", "exec_old", "recipe_1", "completed", "hash")
-        result = gate.check_pre_execution(
-            recipe_id="recipe_1",
-            inputs={"q": "test"},
-            chain_id="chain_1",
-            execution_id="exec_new",
-            idempotency_key="idem_test",
-        )
-        assert result.passed is False
-        assert result.idempotency_hit is not None
-        assert result.idempotency_hit.execution_id == "exec_old"
-
     def test_nesting_depth_exceeded_blocks(self):
         nesting = NestingTracker(max_depth=1)
         gate = RecipeSafetyGate(nesting=nesting)
@@ -362,20 +294,21 @@ class TestRecipeSafetyGate:
         )
         assert result.passed is False
 
-    def test_finalize_stores_idempotency_only_when_legacy_store_is_explicitly_injected(self):
-        store = IdempotencyStore()
-        gate = RecipeSafetyGate(idempotency=store)
-        gate.finalize_execution(
+    def test_finalize_releases_nesting_and_rate_limit(self):
+        rate_limiter = FanOutRateLimiter(max_parallel_per_recipe=1)
+        gate = RecipeSafetyGate(rate_limiter=rate_limiter)
+        result = gate.check_pre_execution(
+            recipe_id="recipe_1",
+            inputs={"q": "test"},
             chain_id="chain_1",
             execution_id="exec_1",
-            idempotency_key="idem_final",
-            recipe_id="recipe_1",
-            status="completed",
-            result_hash="abc123",
         )
-        record = store.check("idem_final")
-        assert record is not None
-        assert record.execution_id == "exec_1"
+        assert result.passed is True
+        assert gate.nesting.depth("chain_1") == 1
+        assert rate_limiter.check("exec_1") is False
+        gate.finalize_execution(chain_id="chain_1", execution_id="exec_1")
+        assert gate.nesting.depth("chain_1") == 0
+        assert rate_limiter.check("exec_1") is True
 
     def test_rate_limited_blocks(self):
         rate_limiter = FanOutRateLimiter(max_parallel_per_recipe=1)
@@ -391,20 +324,17 @@ class TestRecipeSafetyGate:
         assert result.passed is False
         assert result.rate_limited is True
 
-    def test_default_gate_does_not_offer_in_memory_idempotency(self):
+    def test_gate_has_no_in_memory_idempotency_store(self):
         gate = RecipeSafetyGate()
-        assert gate.idempotency is None
-
+        assert not hasattr(gate, "idempotency")
         result = gate.check_pre_execution(
             recipe_id="recipe_1",
             inputs={"q": "test"},
             chain_id="chain_1",
-            execution_id="exec_new",
-            idempotency_key="idem_test",
+            execution_id="exec_1",
         )
-
         assert result.passed is True
-        assert result.idempotency_hit is None
+        assert not hasattr(result, "idempotency_hit")
 
 
 # ── Module singleton ─────────────────────────────────────────────────
@@ -415,6 +345,7 @@ class TestModuleSingleton:
         gate = get_safety_gate()
         assert isinstance(gate, RecipeSafetyGate)
         assert get_safety_gate() is gate
+        assert not hasattr(gate, "idempotency")
 
 
 # ── AUD-2: Unicode + Encoded Payload Hardening ───────────────────────

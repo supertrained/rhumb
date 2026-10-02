@@ -1,11 +1,13 @@
-"""Recipe safety controls — content firewalls, idempotency, nesting depth,
+"""Recipe safety controls — content firewalls, nesting depth,
 fan-out rate limiting (WU-42.2).
 
 Per Resolve spec §4 / Decision D11:
   - Content firewall at EVERY step transition (mandatory).
-  - Idempotency key system for retry-safe execution.
   - Nesting depth limit (3) for sub-recipe invocations.
   - Fan-out rate limiting at runtime (distinct from compile-time DAG validation).
+
+Live recipe and capability execute claim idempotency keys through
+DurableIdempotencyStore. This gate does not attach an in-memory store.
 
 Spec principle: "Deploy with aggressive defaults, measure false positive rate,
 tune down. Track blocked-but-legitimate content."
@@ -15,7 +17,6 @@ from __future__ import annotations
 
 import base64
 import binascii
-import hashlib
 import html
 import logging
 import re
@@ -24,7 +25,6 @@ import time
 import unicodedata
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 from urllib.parse import unquote_plus
@@ -512,116 +512,6 @@ class ContentFirewall:
             }
 
 
-# ── Idempotency Key System ───────────────────────────────────────────
-
-
-@dataclass(slots=True)
-class IdempotencyRecord:
-    """Stored result for a previous execution with this key."""
-
-    key: str
-    execution_id: str
-    recipe_id: str
-    status: str
-    result_hash: str
-    created_at: datetime
-    expires_at: datetime
-
-
-class IdempotencyStore:
-    """In-memory idempotency key store for recipe executions.
-
-    Ensures retry-safe execution: same key → same result.
-    Keys expire after a configurable window (default 1 hour).
-
-    Spec requirement: "Double-charge on retry" is a HIGH likelihood,
-    HIGH impact risk. Idempotency keys are required.
-    """
-
-    def __init__(
-        self,
-        *,
-        window_seconds: int = 3600,
-        max_entries: int = 10_000,
-    ) -> None:
-        self._window_seconds = window_seconds
-        self._max_entries = max_entries
-        self._store: dict[str, IdempotencyRecord] = {}
-        self._lock = threading.Lock()
-        self._clock = time.time
-
-    def check(self, key: str) -> IdempotencyRecord | None:
-        """Check if an idempotency key has a stored result.
-
-        Returns the stored record if found and not expired, else None.
-        """
-        with self._lock:
-            record = self._store.get(key)
-            if record is None:
-                return None
-            if self._clock() > record.expires_at.timestamp():
-                self._store.pop(key, None)
-                return None
-            return record
-
-    def store(
-        self,
-        key: str,
-        execution_id: str,
-        recipe_id: str,
-        status: str,
-        result_hash: str,
-    ) -> IdempotencyRecord:
-        """Store an execution result for an idempotency key."""
-        now = datetime.now(timezone.utc)
-        from datetime import timedelta
-        expires = now + timedelta(seconds=self._window_seconds)
-
-        record = IdempotencyRecord(
-            key=key,
-            execution_id=execution_id,
-            recipe_id=recipe_id,
-            status=status,
-            result_hash=result_hash,
-            created_at=now,
-            expires_at=expires,
-        )
-
-        with self._lock:
-            self._store[key] = record
-            # Evict expired entries if over capacity
-            if len(self._store) > self._max_entries:
-                self._prune_expired()
-        return record
-
-    def _prune_expired(self) -> None:
-        """Remove expired entries (call under lock)."""
-        now = self._clock()
-        expired = [k for k, v in self._store.items() if now > v.expires_at.timestamp()]
-        for k in expired:
-            self._store.pop(k, None)
-
-    @staticmethod
-    def generate_key(
-        recipe_id: str,
-        inputs: dict[str, Any],
-        agent_id: str = "",
-    ) -> str:
-        """Generate a deterministic idempotency key from recipe + inputs + agent."""
-        import json
-        payload = json.dumps(
-            {"recipe_id": recipe_id, "inputs": inputs, "agent_id": agent_id},
-            sort_keys=True,
-            separators=(",", ":"),
-        )
-        return f"idem_{hashlib.sha256(payload.encode()).hexdigest()[:32]}"
-
-    @property
-    def size(self) -> int:
-        with self._lock:
-            return len(self._store)
-
-
 # ── Nesting Depth Tracker ────────────────────────────────────────────
 
 MAX_NESTING_DEPTH = 3
@@ -779,7 +669,6 @@ class SafetyCheckResult:
 
     passed: bool
     firewall_result: FirewallResult | None = None
-    idempotency_hit: IdempotencyRecord | None = None
     nesting_depth: int = 0
     rate_limited: bool = False
     reason: str = ""
@@ -790,9 +679,11 @@ class RecipeSafetyGate:
 
     Integrates:
     1. Content firewall (step transitions)
-    2. Optional legacy in-memory idempotency check (disabled by default)
-    3. Nesting depth enforcement
-    4. Fan-out rate limiting
+    2. Nesting depth enforcement
+    3. Fan-out rate limiting
+
+    Live recipe and capability execute claim idempotency keys through
+    DurableIdempotencyStore. This gate does not consult an in-memory store.
 
     Use this as the single entry point for safety checks.
     """
@@ -801,12 +692,10 @@ class RecipeSafetyGate:
         self,
         *,
         firewall: ContentFirewall | None = None,
-        idempotency: IdempotencyStore | None = None,
         nesting: NestingTracker | None = None,
         rate_limiter: FanOutRateLimiter | None = None,
     ) -> None:
         self.firewall = firewall or ContentFirewall()
-        self.idempotency = idempotency
         self.nesting = nesting or NestingTracker()
         self.rate_limiter = rate_limiter or FanOutRateLimiter()
 
@@ -817,25 +706,13 @@ class RecipeSafetyGate:
         chain_id: str,
         execution_id: str,
         agent_id: str = "",
-        idempotency_key: str | None = None,
     ) -> SafetyCheckResult:
         """Run all pre-execution safety checks.
 
         Returns a SafetyCheckResult. If passed=False, execution must not proceed.
+        Idempotency is enforced by DurableIdempotencyStore at the route, not here.
         """
-        # 1. Optional legacy in-memory idempotency check.
-        # Live recipe execution now relies on route-level durable idempotency;
-        # keep this only when a caller explicitly injects an in-memory store.
-        if idempotency_key and self.idempotency is not None:
-            existing = self.idempotency.check(idempotency_key)
-            if existing is not None:
-                return SafetyCheckResult(
-                    passed=False,
-                    idempotency_hit=existing,
-                    reason=f"Idempotent replay: execution {existing.execution_id} already exists",
-                )
-
-        # 2. Nesting depth check
+        # 1. Nesting depth check
         try:
             depth = self.nesting.enter(chain_id)
         except NestingDepthError as e:
@@ -844,7 +721,7 @@ class RecipeSafetyGate:
                 reason=str(e),
             )
 
-        # 3. Fan-out rate check
+        # 2. Fan-out rate check
         if not self.rate_limiter.check(execution_id):
             self.nesting.exit(chain_id)  # Roll back nesting
             return SafetyCheckResult(
@@ -854,7 +731,7 @@ class RecipeSafetyGate:
                 reason="Fan-out rate limit exceeded for this execution",
             )
 
-        # 4. Content firewall on inputs
+        # 3. Content firewall on inputs
         fw_result = self.firewall.inspect(inputs, context="recipe_input")
         if not fw_result.passed:
             self.nesting.exit(chain_id)
@@ -884,23 +761,13 @@ class RecipeSafetyGate:
         self,
         chain_id: str,
         execution_id: str,
-        idempotency_key: str | None,
-        recipe_id: str,
-        status: str,
-        result_hash: str,
     ) -> None:
-        """Clean up after execution completes."""
+        """Release nesting and fan-out tracking after execution completes.
+
+        Idempotency results are stored by DurableIdempotencyStore at the route.
+        """
         self.nesting.exit(chain_id)
         self.rate_limiter.release(execution_id)
-
-        if idempotency_key and self.idempotency is not None:
-            self.idempotency.store(
-                key=idempotency_key,
-                execution_id=execution_id,
-                recipe_id=recipe_id,
-                status=status,
-                result_hash=result_hash,
-            )
 
 
 # ── Module-level singletons ──────────────────────────────────────────
