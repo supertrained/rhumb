@@ -91,9 +91,15 @@ describe("RH-10 homepage brand JSON-LD", () => {
     assert.deepEqual(organization.sameAs, ["https://github.com/supertrained/rhumb"]);
   });
 
-  it("leaves the homepage title, meta, and visible sections alone", () => {
-    assert.match(source, /title="Rhumb \| From task to trusted tool call"/);
+  it("uses the RH-09 document title and meta description without touching og or visible sections", () => {
+    assert.match(source, /title="Rhumb: Tool Discovery and Access for AI Agents"/);
+    assert.match(source, /description=\{metaDescription\}/);
+    assert.match(
+      source,
+      /const metaDescription =\n  "Rhumb is the tool discovery and access layer for AI agents\. Compare APIs by AN Score, evidence and failure modes, then run supported calls through Resolve\.";/,
+    );
     assert.match(source, /ogTitle="Rhumb \| From task to trusted tool call"/);
+    assert.match(source, /ogDescription=\{description\}/);
     assert.match(source, /canonical="https:\/\/rhumb\.dev\/"/);
     const body = source.split("---").at(-1) ?? "";
     for (const section of [

@@ -13,6 +13,10 @@ import { PUBLIC_TRUTH } from "../lib/public-truth";
 const description =
   "Rhumb is the tool discovery and governed access layer for AI agents: use Index to compare capabilities and evidence, then use Resolve for supported execution routes.";
 
+// Document title and meta description only. Organization JSON-LD and og/twitter stay on `description`.
+const metaDescription =
+  "Rhumb is the tool discovery and access layer for AI agents. Compare APIs by AN Score, evidence and failure modes, then run supported calls through Resolve.";
+
 // RH-10: Google picks the site name from WebSite markup on the homepage, not from Organization.
 // Both blocks share @id values so Google can join them. URLs match the canonical (trailing slash).
 const WEBSITE_JSON_LD = {
@@ -81,8 +85,8 @@ current_public_truth: ${PUBLIC_TRUTH.catalogRealitySummary}`;
 ---
 
 <Layout
-  title="Rhumb | From task to trusted tool call"
-  description={description}
+  title="Rhumb: Tool Discovery and Access for AI Agents"
+  description={metaDescription}
   canonical="https://rhumb.dev/"
   ogTitle="Rhumb | From task to trusted tool call"
   ogDescription={description}
