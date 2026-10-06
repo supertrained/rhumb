@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "test": "node --experimental-strip-types --test tests/public-catalog.test.ts",
+    "test": "node --experimental-strip-types --test tests/public-catalog.test.ts tests/homepage-jsonld.test.ts",
     "preview": "astro preview",
     "astro": "astro"
   },

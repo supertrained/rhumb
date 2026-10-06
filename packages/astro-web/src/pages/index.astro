@@ -13,14 +13,33 @@ import { PUBLIC_TRUTH } from "../lib/public-truth";
 const description =
   "Rhumb is the tool discovery and governed access layer for AI agents: use Index to compare capabilities and evidence, then use Resolve for supported execution routes.";
 
+// RH-10: Google picks the site name from WebSite markup on the homepage, not from Organization.
+// Both blocks share @id values so Google can join them. URLs match the canonical (trailing slash).
+const WEBSITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://rhumb.dev/#website",
+  name: "Rhumb",
+  alternateName: ["rhumb.dev", "Rhumb Labs"],
+  url: "https://rhumb.dev/",
+  inLanguage: "en",
+  publisher: { "@id": "https://rhumb.dev/#organization" },
+};
+
 const HOME_JSON_LD = {
   "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": "https://rhumb.dev/#organization",
   name: "Rhumb",
-  alternateName: "Rhumb Labs",
-  url: "https://rhumb.dev",
+  alternateName: ["Rhumb Labs", "rhumb.dev"],
+  url: "https://rhumb.dev/",
   description,
-  logo: "https://rhumb.dev/favicon.ico",
+  logo: {
+    "@type": "ImageObject",
+    url: "https://rhumb.dev/logo.png",
+    width: 512,
+    height: 512,
+  },
   sameAs: ["https://github.com/supertrained/rhumb"],
   knowsAbout: [
     "AI agent tool discovery",
@@ -68,7 +87,7 @@ current_public_truth: ${PUBLIC_TRUTH.catalogRealitySummary}`;
   ogTitle="Rhumb | From task to trusted tool call"
   ogDescription={description}
   ogUrl="https://rhumb.dev/"
-  jsonLdBlocks={[HOME_JSON_LD, AGENT_ROUTE_JSON_LD]}
+  jsonLdBlocks={[WEBSITE_JSON_LD, HOME_JSON_LD, AGENT_ROUTE_JSON_LD]}
   agentContext={agentContext}
 >
   <Hero />
