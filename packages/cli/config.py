@@ -11,6 +11,6 @@ class CLIConfig:
     api_base_url: str = field(
         default_factory=lambda: os.environ.get(
             "RHUMB_API_BASE_URL",
-            "https://rhumb-api-production-f173.up.railway.app/v1",
+            "https://api.rhumb.dev/v1",
         )
     )
