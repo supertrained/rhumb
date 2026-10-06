@@ -102,14 +102,6 @@ def resolve_intercom_support_bundle(support_ref: str) -> IntercomSupportBundle:
     return bundle
 
 
-def ticket_in_scope(bundle: ZendeskSupportBundle, ticket: dict[str, Any]) -> bool:
-    return ticket_is_allowed(
-        bundle,
-        group_id=_id_value(ticket.get("group_id")),
-        brand_id=_id_value(ticket.get("brand_id")),
-    )
-
-
 def ticket_is_allowed(
     bundle: ZendeskSupportBundle,
     *,
