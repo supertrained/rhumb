@@ -1,3 +1,3 @@
 # rhumb-shared
 
-Shared constants, schema references, and cross-package types.
+Shared JSON catalogs used across packages (`pricing.json`, `failure-mode-catalog.json`).
