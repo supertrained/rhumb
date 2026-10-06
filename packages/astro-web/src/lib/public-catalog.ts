@@ -1,11 +1,17 @@
-import { PUBLIC_TRUTH_COUNTS } from "./public-truth-counts";
+/**
+ * Last-resort published catalog size when a caller passes no fallback, or
+ * passes a blocked one. Callers that have `PUBLIC_TRUTH_COUNTS` pass that
+ * `services` value (999). This module does not import the counts file so
+ * Node can load it without Astro's tsconfig.
+ */
+const PUBLISHED_CATALOG_SERVICES = 999;
 
 /**
  * Numbers that must not be shown as the tracked service count.
  * 1000 is the PostgREST max-rows cap (an unpaged `scores` read).
  * 1048 is the paged `scores` / `services` table size, which includes rows
  * the public API does not list. The published catalog is GET /v1/services
- * `data.total` (PUBLIC_TRUTH_COUNTS.services, 999).
+ * `data.total` (999).
  */
 const BLOCKED_TRACKED_SERVICE_COUNTS = new Set<number>([1000, 1048]);
 
@@ -21,11 +27,11 @@ export function isPublishableTrackedServiceCount(count: number): boolean {
  */
 export function displayedServiceCount(
   candidate: number,
-  publishedFallback: number = PUBLIC_TRUTH_COUNTS.services,
+  publishedFallback: number = PUBLISHED_CATALOG_SERVICES,
 ): number {
   if (isPublishableTrackedServiceCount(candidate)) return candidate;
   if (isPublishableTrackedServiceCount(publishedFallback)) return publishedFallback;
-  return PUBLIC_TRUTH_COUNTS.services;
+  return PUBLISHED_CATALOG_SERVICES;
 }
 
 /**
