@@ -1136,7 +1136,6 @@ async def execute_recipe(
         chain_id=execution_id,
         execution_id=execution_id,
         agent_id=agent.agent_id,
-        idempotency_key=None,
     )
 
     if not preflight.passed:
@@ -1256,10 +1255,6 @@ async def execute_recipe(
     safety_gate.finalize_execution(
         chain_id=execution_id,
         execution_id=execution_id,
-        idempotency_key=None,
-        recipe_id=recipe.recipe_id,
-        status=execution.status.value if hasattr(execution.status, "value") else str(execution.status),
-        result_hash=execution.receipt_chain_hash,
     )
 
     if effective_idempotency_key and durable_idempotency is not None:
