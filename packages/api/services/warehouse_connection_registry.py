@@ -293,13 +293,6 @@ def resolve_warehouse_bundle(warehouse_ref: str) -> BigQueryWarehouseBundle:
     )
 
 
-def dataset_is_allowed(bundle: BigQueryWarehouseBundle, dataset_ref: str | None) -> bool:
-    if dataset_ref is None:
-        return False
-    normalized = normalize_dataset_ref(dataset_ref)
-    return normalized in bundle.allowed_dataset_refs
-
-
 def table_is_allowed(bundle: BigQueryWarehouseBundle, table_ref: str | None) -> bool:
     if table_ref is None:
         return False

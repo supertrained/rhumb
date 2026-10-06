@@ -32,12 +32,6 @@ from services.warehouse_receipt_summary import summarize_warehouse_execution
 
 logger = logging.getLogger(__name__)
 
-WAREHOUSE_CAPABILITY_IDS = frozenset({"warehouse.query.read", "warehouse.schema.describe"})
-
-
-def is_warehouse_capability(capability_id: str) -> bool:
-    return capability_id in WAREHOUSE_CAPABILITY_IDS
-
 
 def _client_ip(raw_request: Request) -> str | None:
     forwarded_for = raw_request.headers.get("x-forwarded-for")

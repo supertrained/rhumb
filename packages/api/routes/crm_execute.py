@@ -46,16 +46,6 @@ from services.receipt_service import (
 
 logger = logging.getLogger(__name__)
 
-CRM_CAPABILITY_IDS = frozenset({
-    "crm.object.describe",
-    "crm.record.search",
-    "crm.record.get",
-})
-
-
-def is_crm_capability(capability_id: str) -> bool:
-    return capability_id in CRM_CAPABILITY_IDS
-
 
 def _client_ip(raw_request: Request) -> str | None:
     forwarded_for = raw_request.headers.get("x-forwarded-for")
