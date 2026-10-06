@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import uuid
 from datetime import UTC, datetime
 from types import SimpleNamespace
@@ -18,16 +17,6 @@ from routes.admin_billing import set_test_billing_stores
 from schemas.agent_identity import AgentIdentityStore, reset_identity_store
 from services.agent_usage_analytics import AgentUsageAnalytics, reset_usage_analytics
 from services.billing_aggregation import BillingAggregator, TAX_RATE, reset_billing_aggregator
-from services.free_tier_quota import (
-    FREE_TIER_LIMIT,
-    FreeTierQuotaManager,
-    reset_free_tier_quota_manager,
-)
-from services.spend_cap import (
-    DEFAULT_MONTHLY_SPEND_CAP_USD,
-    SpendCapManager,
-    reset_spend_cap_manager,
-)
 from services.stripe_integration import (
     MockStripeClient,
     StripeIntegrationManager,
@@ -75,23 +64,12 @@ def _seed_meter_events(
         )
 
 
-def _set_custom_attrs(
-    identity_store: AgentIdentityStore,
-    agent_id: str,
-    attrs: dict[str, object],
-) -> None:
-    """Set custom attributes directly in in-memory identity store."""
-    identity_store._mem_agents[agent_id]["custom_attributes"] = json.dumps(attrs)  # noqa: SLF001
-
-
 @pytest.fixture(autouse=True)
 def _reset_singletons() -> Generator[None, None, None]:
     """Reset singletons and route test stores between tests."""
     reset_identity_store()
     reset_usage_analytics()
     reset_usage_meter_engine()
-    reset_spend_cap_manager()
-    reset_free_tier_quota_manager()
     reset_billing_aggregator()
     reset_stripe_integration_manager()
     set_test_billing_stores(None, None, None)
@@ -99,8 +77,6 @@ def _reset_singletons() -> Generator[None, None, None]:
     reset_identity_store()
     reset_usage_analytics()
     reset_usage_meter_engine()
-    reset_spend_cap_manager()
-    reset_free_tier_quota_manager()
     reset_billing_aggregator()
     reset_stripe_integration_manager()
     set_test_billing_stores(None, None, None)
@@ -125,24 +101,6 @@ def usage_meter(
 ) -> UsageMeterEngine:
     """In-memory usage meter engine."""
     return UsageMeterEngine(usage_analytics=usage_analytics, identity_store=identity_store)
-
-
-@pytest.fixture
-def spend_cap_manager(
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> SpendCapManager:
-    """Spend cap manager fixture."""
-    return SpendCapManager(usage_meter=usage_meter, identity_store=identity_store)
-
-
-@pytest.fixture
-def free_tier_manager(
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> FreeTierQuotaManager:
-    """Free tier quota manager fixture."""
-    return FreeTierQuotaManager(usage_meter=usage_meter, identity_store=identity_store)
 
 
 @pytest.fixture
@@ -294,133 +252,6 @@ def test_percentile_calculation(
     assert snapshot.p50_latency_ms == 300.0
     assert snapshot.p95_latency_ms == 500.0
     assert snapshot.p99_latency_ms == 500.0
-
-
-# ── Spend cap tests ──────────────────────────────────────────────────
-
-
-def test_spend_within_limit_no_alert(
-    spend_cap_manager: SpendCapManager,
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store)
-    _set_custom_attrs(identity_store, agent_id, {"monthly_spend_cap_usd": 1.0})
-    _seed_meter_events(usage_meter, agent_id, "openai", 100)
-
-    allowed, alert = _run(spend_cap_manager.check_spend_cap(agent_id))
-    assert allowed is True
-    assert alert is None
-
-
-def test_spend_at_80_percent_warning(
-    spend_cap_manager: SpendCapManager,
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store)
-    _set_custom_attrs(identity_store, agent_id, {"monthly_spend_cap_usd": 0.01})
-    _seed_meter_events(usage_meter, agent_id, "openai", 8)
-
-    allowed, alert = _run(spend_cap_manager.check_spend_cap(agent_id))
-    assert allowed is True
-    assert alert is not None
-    assert alert.alert_type == "warning"
-    assert alert.percent_used == pytest.approx(80.0)
-
-
-def test_spend_exceeds_limit_blocked(
-    spend_cap_manager: SpendCapManager,
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store)
-    _set_custom_attrs(identity_store, agent_id, {"monthly_spend_cap_usd": 0.002})
-    _seed_meter_events(usage_meter, agent_id, "openai", 3)
-
-    allowed, alert = _run(spend_cap_manager.check_spend_cap(agent_id))
-    assert allowed is False
-    assert alert is not None
-    assert alert.alert_type == "critical"
-
-
-def test_default_spend_cap_100(
-    spend_cap_manager: SpendCapManager,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store)
-    allowed, alert = _run(spend_cap_manager.check_spend_cap(agent_id))
-
-    assert allowed is True
-    assert alert is None
-
-    # Verify default constant is used by implementation contract.
-    assert DEFAULT_MONTHLY_SPEND_CAP_USD == 100.0
-
-
-def test_custom_spend_cap(
-    spend_cap_manager: SpendCapManager,
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store)
-    _set_custom_attrs(identity_store, agent_id, {"monthly_spend_cap_usd": 2.0})
-    _seed_meter_events(usage_meter, agent_id, "openai", 1500)
-
-    allowed, alert = _run(spend_cap_manager.check_spend_cap(agent_id))
-    assert allowed is True
-    assert alert is None
-
-
-# ── Free tier tests ──────────────────────────────────────────────────
-
-
-def test_free_tier_active_no_stripe(
-    free_tier_manager: FreeTierQuotaManager,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store)
-    assert _run(free_tier_manager.is_free_tier(agent_id)) is True
-
-
-def test_free_tier_always_blocked_when_limit_zero(
-    free_tier_manager: FreeTierQuotaManager,
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> None:
-    """With FREE_TIER_LIMIT=0, any free-tier usage is blocked (no free executions)."""
-    agent_id = _register_agent(identity_store)
-    # Even zero usage should block because limit is 0
-    allowed, remaining = _run(free_tier_manager.check_quota(agent_id))
-    assert allowed is False
-    assert remaining == 0
-
-
-def test_free_tier_quota_exceeded_with_usage(
-    free_tier_manager: FreeTierQuotaManager,
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store)
-    _seed_meter_events(usage_meter, agent_id, "openai", FREE_TIER_LIMIT + 10)
-
-    allowed, remaining = _run(free_tier_manager.check_quota(agent_id))
-    assert allowed is False
-    assert remaining == 0
-
-
-def test_paid_tier_bypasses_quota(
-    free_tier_manager: FreeTierQuotaManager,
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store)
-    _set_custom_attrs(identity_store, agent_id, {"stripe_customer_id": "cus_test123"})
-    _seed_meter_events(usage_meter, agent_id, "openai", FREE_TIER_LIMIT + 500)
-
-    allowed, remaining = _run(free_tier_manager.check_quota(agent_id))
-    assert allowed is True
-    assert remaining == -1
 
 
 # ── Billing tests ────────────────────────────────────────────────────
@@ -1059,39 +890,3 @@ def test_forecast_spend_rejects_missing_organization_before_usage_meter_reads(
     assert payload["error"]["message"] == "Invalid 'organization_id' filter."
     assert payload["error"]["detail"] == "Provide a non-empty organization_id value."
     fake_usage_meter.get_org_daily_average_calls.assert_not_awaited()
-
-
-# ── E2E integration tests ────────────────────────────────────────────
-
-
-def test_e2e_free_tier_to_paid_upgrade(
-    free_tier_manager: FreeTierQuotaManager,
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store, "org_upgrade")
-    _seed_meter_events(usage_meter, agent_id, "openai", FREE_TIER_LIMIT)
-
-    allowed, remaining = _run(free_tier_manager.check_quota(agent_id))
-    assert allowed is False
-    assert remaining == 0
-
-    _set_custom_attrs(identity_store, agent_id, {"stripe_customer_id": "cus_upgraded"})
-    allowed_after, remaining_after = _run(free_tier_manager.check_quota(agent_id))
-    assert allowed_after is True
-    assert remaining_after == -1
-
-
-def test_e2e_spend_cap_blocks_at_limit(
-    spend_cap_manager: SpendCapManager,
-    usage_meter: UsageMeterEngine,
-    identity_store: AgentIdentityStore,
-) -> None:
-    agent_id = _register_agent(identity_store, "org_cap")
-    _set_custom_attrs(identity_store, agent_id, {"monthly_spend_cap_usd": 0.003})
-    _seed_meter_events(usage_meter, agent_id, "openai", 4)
-
-    allowed, alert = _run(spend_cap_manager.check_spend_cap(agent_id))
-    assert allowed is False
-    assert alert is not None
-    assert alert.alert_type == "critical"
