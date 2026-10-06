@@ -13,7 +13,7 @@ Resolve `search.query` shows ranked providers and the default execute hint for w
 
 - Call `GET https://api.rhumb.dev/v1/capabilities/search.query/resolve`.
 - Call `GET https://api.rhumb.dev/v1/capabilities?search=web+research` first when you do not already have the slug.
-- Ask an MCP client to `resolve_capability` with `capability_id=search.query`.
+- Ask an MCP client to `resolve_capability` with `capability=search.query`.
 - Read the Resolve docs page at `https://rhumb.dev/resolve`.
 
 ## Driving it with curl
@@ -35,4 +35,5 @@ Preconditions:
 - `scripts/dc90_search_query_pilot_smoke.py` resolves, estimates, then executes with a funded dogfood key. Do not run it.
 - `examples/resolve-and-execute.py` stops after resolve when `RHUMB_API_KEY` is unset. Prefer `bin/drive` so estimate cannot start by accident.
 - Provider objects use `service_slug` and `service_name`, not `name`.
+- MCP `resolve_capability` takes `capability`. `execute_capability` and `estimate_capability` take `capability_id`. Do not copy the execute argument name onto resolve.
 - Do not treat `execute_hint` as permission to execute. The hint is documentation of the next paid step.
