@@ -69,7 +69,7 @@ jobs:
         run: npm ci
       - name: Run public-truth contract tests
         working-directory: packages/web
-        run: npx vitest run tests/public-authority.contract.test.ts tests/astro-authority.contract.test.mjs tests/llms.contract.test.ts
+        run: npx vitest run tests/public-authority.contract.test.ts tests/astro-authority.contract.test.mjs tests/llms.contract.test.ts tests/rh-07bc-public-catalog.test.ts
 
   astro-web-build:
     runs-on: ubuntu-latest

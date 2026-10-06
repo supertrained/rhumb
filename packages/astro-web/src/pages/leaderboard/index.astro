@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import { getCategories, getServiceCount } from "../../lib/api";
 import { CATEGORY_INFO, ORDERED_SLUGS } from "../../lib/categories";
+import { displayedServiceCount } from "../../lib/public-catalog";
 import { PUBLIC_TRUTH } from "../../lib/public-truth";
 
 const leaderboardCategoryCount = ORDERED_SLUGS.length;
@@ -20,8 +21,10 @@ const categorySummaries = ORDERED_SLUGS
   })
   .filter(Boolean);
 
-const categoryServicesTotal = Object.values(countMap).reduce((a, b) => a + b, 0);
-const totalScoredServices = (await getServiceCount()) || categoryServicesTotal;
+const totalScoredServices = displayedServiceCount(
+  await getServiceCount(),
+  PUBLIC_TRUTH.services,
+);
 
 const LEADERBOARD_HUB_JSON_LD = {
   "@context": "https://schema.org",

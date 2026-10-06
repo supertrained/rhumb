@@ -8,6 +8,12 @@ import type {
   ServiceReview,
   ServiceScoreViewModel,
 } from "./types";
+import { PUBLIC_TRUTH_COUNTS } from "./public-truth-counts";
+import {
+  collectPagedRows,
+  displayedServiceCount,
+  isPublishableTrackedServiceCount,
+} from "./public-catalog";
 
 const UNRESEARCHED_FAILURE_HONESTY =
   "No failure modes have been captured for this service yet. An empty list is a coverage gap, not a clean bill of health.";
@@ -89,6 +95,19 @@ async function supabaseFetch<T>(path: string): Promise<T | null> {
   }
 }
 
+/**
+ * PostgREST caps every response at the project's max-rows (Supabase default 1000).
+ * Page with limit/offset until an empty page so list callers (sitemap, categories)
+ * never truncate silently. Pass a path with a stable `order=`.
+ */
+async function supabaseFetchAll<T>(path: string, pageSize = 1000): Promise<T[] | null> {
+  const sep = path.includes("?") ? "&" : "?";
+  return collectPagedRows(
+    (limit, offset) => supabaseFetch<T[]>(`${path}${sep}limit=${limit}&offset=${offset}`),
+    pageSize,
+  );
+}
+
 type SupabaseService = {
   slug: string;
   name: string;
@@ -155,10 +174,10 @@ type EvidenceStats = {
 };
 
 async function getEvidenceStats(slug: string): Promise<EvidenceStats> {
-  // Use Supabase HEAD request with Prefer: count=exact to get count + latest date
-  // First get the count of runtime evidence records
-  const records = await supabaseFetch<Array<{ created_at: string }>>(
-    `evidence_records?service_slug=eq.${encodeURIComponent(slug)}&evidence_type=in.(runtime_verified,tester_generated)&select=created_at&order=created_at.desc`
+  // evidence_records has no `evidence_type` column; the runtime/tester values live in `source_type`.
+  // The old filter made PostgREST return 400, so every service showed 0 runtime evidence.
+  const records = await supabaseFetchAll<{ created_at: string }>(
+    `evidence_records?service_slug=eq.${encodeURIComponent(slug)}&source_type=in.(runtime_verified,tester_generated)&select=created_at&order=created_at.desc,id.desc`
   );
   if (!records || records.length === 0) {
     return { count: 0, latestAt: null };
@@ -169,8 +188,8 @@ async function getEvidenceStats(slug: string): Promise<EvidenceStats> {
 async function getEvidenceCountsBatch(slugs: string[]): Promise<Record<string, number>> {
   if (slugs.length === 0) return {};
   const slugFilter = slugs.map((s) => `"${s}"`).join(",");
-  const records = await supabaseFetch<Array<{ service_slug: string }>>(
-    `evidence_records?service_slug=in.(${slugFilter})&evidence_type=in.(runtime_verified,tester_generated)&select=service_slug`
+  const records = await supabaseFetchAll<{ service_slug: string }>(
+    `evidence_records?service_slug=in.(${slugFilter})&source_type=in.(runtime_verified,tester_generated)&select=service_slug&order=service_slug.asc,id.asc`
   );
   if (!records) return {};
   const counts: Record<string, number> = {};
@@ -183,8 +202,8 @@ async function getEvidenceCountsBatch(slugs: string[]): Promise<Record<string, n
 // ---------- Supabase implementations ----------
 
 async function getServicesFromSupabase(): Promise<Service[]> {
-  const data = await supabaseFetch<SupabaseService[]>(
-    "services?select=slug,name,category,description&order=name.asc"
+  const data = await supabaseFetchAll<SupabaseService>(
+    "services?select=slug,name,category,description&order=name.asc,slug.asc"
   );
   if (!data) return [];
   return data.map((s) => ({
@@ -208,10 +227,8 @@ async function getLeaderboardFromSupabase(
 
   if (!services || services.length === 0) {
     // Try to get all categories to show helpful error
-    const allServices = await supabaseFetch<{ category: string }[]>(
-      "services?select=category"
-    );
-    const categories = [...new Set(allServices?.map((s) => s.category) ?? [])].sort();
+    // Paged: an unpaged read stops at 1,000 rows and drops the categories at the end.
+    const categories = (await getCategoriesFromSupabase()).map((c) => c.slug).sort();
     return {
       category,
       items: [],
@@ -372,7 +389,7 @@ async function getServiceScoreFromSupabase(
 }
 
 async function getCategoriesFromSupabase(): Promise<CategorySummary[]> {
-  const data = await supabaseFetch<{ category: string }[]>("services?select=category");
+  const data = await supabaseFetchAll<{ category: string }>("services?select=category,slug&order=slug.asc");
   if (!data) return [];
 
   const counts: Record<string, number> = {};
@@ -649,16 +666,26 @@ export async function getCategories(): Promise<CategorySummary[]> {
   return getCategoriesFromAPI();
 }
 
-/** Fetch total number of scored services (services with a score row). */
+/**
+ * Published catalog size for "Rhumb tracks N scored services".
+ * The public source is GET /v1/services `data.total` (999). Paging `scores`
+ * is complete, but that table is one row per services slug (~1048), and an
+ * unpaged read of it displayed the PostgREST 1000-row cap. Neither number
+ * is the published catalog.
+ */
 export async function getServiceCount(): Promise<number> {
+  const published = await getServiceCountFromAPI();
+  if (isPublishableTrackedServiceCount(published)) return published;
+
   if (useSupabase) {
-    const data = await supabaseFetch<Array<{ service_slug: string }>>(
-      "scores?select=service_slug"
+    const data = await supabaseFetchAll<{ service_slug: string }>(
+      "scores?select=service_slug&order=service_slug.asc,id.asc"
     );
-    if (!data) return 0;
-    return new Set(data.map((r) => r.service_slug)).size;
+    const scored = data ? new Set(data.map((row) => row.service_slug)).size : 0;
+    if (isPublishableTrackedServiceCount(scored)) return scored;
   }
-  return getServiceCountFromAPI();
+
+  return displayedServiceCount(published, PUBLIC_TRUTH_COUNTS.services);
 }
 
 /** Fetch launch dashboard data from the admin API. */
