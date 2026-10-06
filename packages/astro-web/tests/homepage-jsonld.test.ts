@@ -8,6 +8,12 @@ const logoPng = readFileSync(new URL("../public/logo.png", import.meta.url));
 const DESCRIPTION =
   "Rhumb is the tool discovery and governed access layer for AI agents: use Index to compare capabilities and evidence, then use Resolve for supported execution routes.";
 
+function pageDescription(): string {
+  const match = source.match(/const description =\n  "([^"]*)";/);
+  assert.ok(match, "homepage description constant missing");
+  return match[1];
+}
+
 function extractObjectLiteral(constName: string): string {
   const marker = `const ${constName} = `;
   const start = source.indexOf(marker);
@@ -26,8 +32,8 @@ function extractObjectLiteral(constName: string): string {
   throw new Error(`unterminated ${constName}`);
 }
 
-function evalLiteral(literal: string): Record<string, unknown> {
-  return new Function("description", `"use strict"; return (${literal});`)(DESCRIPTION) as Record<
+function evalLiteral(literal: string, description: string): Record<string, unknown> {
+  return new Function("description", `"use strict"; return (${literal});`)(description) as Record<
     string,
     unknown
   >;
@@ -39,8 +45,9 @@ function pngSize(buf: Buffer): { width: number; height: number } {
 }
 
 describe("RH-10 homepage brand JSON-LD", () => {
-  const website = evalLiteral(extractObjectLiteral("WEBSITE_JSON_LD"));
-  const organization = evalLiteral(extractObjectLiteral("HOME_JSON_LD"));
+  const description = pageDescription();
+  const website = evalLiteral(extractObjectLiteral("WEBSITE_JSON_LD"), description);
+  const organization = evalLiteral(extractObjectLiteral("HOME_JSON_LD"), description);
   const logo = organization.logo as Record<string, unknown>;
 
   it("emits WebSite first, then Organization, then the existing agent route", () => {
@@ -66,7 +73,8 @@ describe("RH-10 homepage brand JSON-LD", () => {
     assert.equal(organization.name, "Rhumb");
     assert.deepEqual(organization.alternateName, ["Rhumb Labs", "rhumb.dev"]);
     assert.equal(organization.url, "https://rhumb.dev/");
-    assert.equal(organization.description, DESCRIPTION);
+    assert.equal(description, DESCRIPTION);
+    assert.equal(organization.description, description);
   });
 
   it("points Organization.logo at the 512 logo.png and keeps sameAs to GitHub only", () => {
@@ -87,7 +95,6 @@ describe("RH-10 homepage brand JSON-LD", () => {
     assert.match(source, /title="Rhumb \| From task to trusted tool call"/);
     assert.match(source, /ogTitle="Rhumb \| From task to trusted tool call"/);
     assert.match(source, /canonical="https:\/\/rhumb\.dev\/"/);
-    assert.match(source, /const description =\n  "Rhumb is the tool discovery/);
     const body = source.split("---").at(-1) ?? "";
     for (const section of [
       "<Hero />",
