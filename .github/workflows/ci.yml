@@ -63,13 +63,11 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: packages/web/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: Install contract-test dependencies
-        working-directory: packages/web
         run: npm ci
       - name: Run public-truth contract tests
-        working-directory: packages/web
-        run: npx vitest run tests/public-authority.contract.test.ts tests/astro-authority.contract.test.mjs tests/llms.contract.test.ts
+        run: npm test
 
   astro-web-build:
     runs-on: ubuntu-latest

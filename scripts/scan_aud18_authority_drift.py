@@ -37,8 +37,6 @@ DEFAULT_SCAN_PATHS = (
     Path("packages/api/pricing.json"),
     Path("packages/astro-web/src"),
     Path("packages/astro-web/public"),
-    Path("packages/web/app"),
-    Path("packages/web/public"),
     Path("packages/mcp/README.md"),
     Path("packages/mcp/package.json"),
     Path("packages/mcp/server.json"),
