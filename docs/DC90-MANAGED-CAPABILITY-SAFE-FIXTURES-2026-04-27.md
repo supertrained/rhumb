@@ -271,7 +271,7 @@ These are the next lowest-risk managed rails because they use public/synthetic i
 6. Verify cleanup through Rhumb-managed `agent.get_status` until the provider returns `upstream_status=404`, because the local direct E2B key can return an ambiguous 404/no-access response for hosted-managed sandboxes.
 7. Stop immediately if create fails or no `sandboxID` is returned; never create a second sandbox in the same run.
 
-- Existing cleanup pattern: `scripts/runtime_review_e2b_depth11_20260403.py` already creates, status-checks, and directly deletes Rhumb/direct E2B sandboxes. The DC90 helper intentionally avoids direct-control duplication and uses a 10-second TTL plus managed cleanup verification for the hosted dogfood path.
+- The March–April runtime-review E2B script that created, status-checked, and directly deleted Rhumb/direct E2B sandboxes has been removed. The DC90 helper uses a 10-second TTL plus managed cleanup verification for the hosted dogfood path.
 - Future code-exec payload, after lifecycle cleanup is proven:
 
 ```json
