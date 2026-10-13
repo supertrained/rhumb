@@ -12,6 +12,7 @@ const scoreMap = {
   exa: await getServiceScore("exa"),
   tavily: await getServiceScore("tavily"),
   "brave-search-api": await getServiceScore("brave-search-api"),
+  "serper-api": await getServiceScore("serper-api"),
 } satisfies Record<string, ServiceScoreViewModel | null>;
 
 type WebSearchScore = {
@@ -89,18 +90,26 @@ const WEB_SEARCH_SCORES: WebSearchScore[] = [
   {
     slug: "serper",
     name: "Serper",
-    score: 6.8,
-    execution: 7.0,
-    access: 6.6,
-    confidence: 0.50,
-    tier: "Ready",
+    score: 8.0,
+    execution: 8.2,
+    access: 7.8,
+    confidence: 0.55,
+    tier: "Native",
     bestUse: "Google-like freshness when exact SERP behavior is the job and the team accepts a discovery-only route here.",
     routeRule: "Use Serper for freshness comparison; keep it discovery-only until the route card proves credentials, quota, and receipts.",
+    data: scoreMap["serper-api"],
   },
 ];
 
 const rankedWebSearchScores = [...WEB_SEARCH_SCORES].sort((a, b) => score(b) - score(a));
 const webSearchWinner = rankedWebSearchScores[0];
+const bySlug = (slug: WebSearchScore["slug"]) => WEB_SEARCH_SCORES.find((item) => item.slug === slug)!;
+const PICKS = [
+  { job: "Research and semantic retrieval", item: bySlug("exa"), href: "/service/exa", why: "Top score in the set. Best when meaning and source-rich context matter." },
+  { job: "Agent-first answer loops", item: bySlug("tavily"), href: "/service/tavily", why: "Near-tie with Exa. Built for LLM research loops with less glue code." },
+  { job: "Google-style SERP freshness", item: bySlug("serper"), href: "/service/serper-api", why: "Closest to Google results. Discovery-only in Rhumb for now, so bring your own key." },
+  { job: "Independent index, no Google dependency", item: bySlug("brave-search-api"), href: "/service/brave-search-api", why: "Own index. Lower access readiness, so plan for more setup and result shaping." },
+];
 
 const RELATED_READING = [
   {
@@ -292,11 +301,32 @@ const htmlContent = markdownToHtml(content);
         </p>
       </header>
 
+      <section class="mb-10 rounded-[28px] border border-amber/40 bg-amber/10 p-6 sm:p-7" data-section="pick-for-your-agent">
+        <div class="text-[11px] font-mono uppercase tracking-[0.24em] text-amber mb-3">Pick for your agent</div>
+        <h2 class="font-display font-bold text-2xl text-slate-100 mb-4">Short answer: Exa for research, Tavily for agent loops, Serper for Google freshness, Brave for an independent index</h2>
+        <ul class="space-y-3 mb-5">
+          {PICKS.map((pick) => (
+            <li class="rounded-2xl border border-slate-800 bg-navy/50 p-4">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <span class="text-sm text-slate-400">{pick.job}</span>
+                <a href={pick.href} class="font-display font-semibold text-slate-100 hover:text-amber">{pick.item.name} <span class="font-mono text-amber">{fmt(score(pick.item))}</span></a>
+              </div>
+              <p class="mt-1 text-sm leading-6 text-slate-400">{pick.why}</p>
+            </li>
+          ))}
+        </ul>
+        <p class="text-xs text-slate-500 mb-5">Scores are live Rhumb AN Scores (out of 10) from the Rhumb Index. Serper vs Exa? Exa if your agent reasons over sources... Serper if it needs what Google shows right now.</p>
+        <div class="flex flex-wrap gap-3">
+          <a data-rhumb-propagate href="/quickstart#mcp-path" class="inline-flex items-center justify-center rounded-xl bg-amber px-5 py-3 text-sm font-display font-semibold text-navy hover:bg-amber-dark transition-colors duration-200">Add Rhumb MCP to your agent &rarr;</a>
+          <a data-rhumb-propagate href="/leaderboard/search" class="inline-flex items-center justify-center rounded-xl border border-slate-700 px-5 py-3 text-sm font-display font-semibold text-slate-200 hover:border-amber transition-colors duration-200">See the full search leaderboard</a>
+        </div>
+      </section>
+
       <ResolveComparisonCta
         source="exa-vs-tavily-vs-serper-vs-brave-search"
         capability="web search and retrieval"
         callableServices={[{ name: "Exa", href: "/service/exa" }, { name: "Tavily", href: "/service/tavily" }, { name: "Brave Search", href: "/service/brave-search-api" }]}
-        discoveryOnlyServices={[{ name: "Serper", href: "/service/serper" }]}
+        discoveryOnlyServices={[{ name: "Serper", href: "/service/serper-api" }]}
       />
 
       <section class="mb-10 rounded-[32px] border border-slate-800 bg-surface/80 p-6 sm:p-7" data-section="web-search-scorecard-refresh">
